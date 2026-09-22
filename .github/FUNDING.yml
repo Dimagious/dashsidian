@@ -1,0 +1,3 @@
+# Mirrors `fundingUrl` in manifest.json: Obsidian reads the manifest, GitHub
+# reads this file, and both should point at the same place.
+buy_me_a_coffee: dimagious
