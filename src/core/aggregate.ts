@@ -1,5 +1,5 @@
 /**
- * Сведение выборки в одно число. Чистый слой.
+ * Reducing a selection to a single number. Pure layer.
  */
 
 import type { NoteRecord } from "./source";
@@ -12,7 +12,7 @@ export function isAgg(v: unknown): v is Agg {
     return typeof v === "string" && (AGGS as readonly string[]).includes(v);
 }
 
-/** Число из frontmatter; всё, что не приводится к конечному числу — null. */
+/** A number from frontmatter; anything that is not a finite number becomes null. */
 export function numberAt(note: NoteRecord, field: string): number | null {
     const raw = note.frontmatter[field];
     if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
@@ -25,17 +25,17 @@ export function numberAt(note: NoteRecord, field: string): number | null {
 
 export interface AggregateSpec {
     agg: Agg;
-    /** обязателен для всего, кроме count и streak */
+    /** required for everything but count and streak */
     field?: string;
 }
 
 /**
- * `count` считает заметки. `streak` считает самую длинную цепочку подряд
- * идущих дней среди заметок, у которых поле заполнено (а без поля — среди
- * всех отобранных); имя заметки при этом должно быть датой YYYY-MM-DD.
- * Остальные агрегаты работают по числам поля.
+ * `count` counts notes. `streak` counts the longest run of consecutive days
+ * among notes that have the field filled in (or among all selected notes when
+ * no field is given); those notes must be named as YYYY-MM-DD dates.
+ * The rest aggregate the numbers held in the field.
  *
- * Возвращает null, когда считать нечего — вызывающий покажет прочерк.
+ * Returns null when there is nothing to count — the caller draws a dash.
  */
 export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): number | null {
     if (spec.agg === "count") return notes.length;
@@ -80,7 +80,7 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
     }
 }
 
-/** Ряд значений по дням для спарклайна: последние `days` заметок-дат. */
+/** Day-by-day values for a sparkline: the last `days` date-named notes. */
 export function series(notes: readonly NoteRecord[], field: string, days: number): number[] {
     return [...notes]
         .filter((n) => /^\d{4}-\d{2}-\d{2}$/.test(n.name))

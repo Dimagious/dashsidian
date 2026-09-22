@@ -1,12 +1,12 @@
-/* Токены Dashy.
+/* Dashy tokens.
  *
- * Объявлены на body, а НЕ на :root. Obsidian и темы задают свои переменные
- * именно в body; :root — это html, он лежит выше, и там --background-primary
- * ещё не существует. color-mix от несуществующего цвета невалиден, и плашки
- * молча схлопываются в полную прозрачность.
+ * Declared on body, NOT on :root. Obsidian and its themes set their variables
+ * on body; :root is html, it sits above, and --background-primary does not
+ * exist there yet. color-mix over a non-existent colour is invalid, and the
+ * surfaces silently collapse into full transparency.
  *
- * Ни одного жёсткого цвета: всё считается от темы, поэтому дашборд едет за
- * любой темой и за акцентным цветом пользователя.
+ * Not a single hard-coded colour: everything derives from the theme, so the
+ * dashboard follows any theme and the user's accent colour.
  */
 body {
   --dashy-radius: 12px;

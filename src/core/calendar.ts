@@ -1,10 +1,11 @@
 /**
- * Раскладка года в сетку «колонка = неделя, строка = день недели».
+ * Laying a year out into a grid of "column = week, row = weekday".
  *
- * Чистый модуль: ни Obsidian, ни DOM. Всё, что рисует, лежит в blocks/heatmap.ts.
+ * Pure module: no Obsidian, no DOM. Everything that draws lives in
+ * blocks/heatmap.ts.
  */
 
-/** Ключ дня в формате YYYY-MM-DD. */
+/** A day key in YYYY-MM-DD form. */
 export function dateKey(d: Date): string {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -14,38 +15,38 @@ export function dateKey(d: Date): string {
 
 const DAY_MS = 86_400_000;
 
-/** Разница в целых днях между двумя ключами YYYY-MM-DD. */
+/** Whole days between two YYYY-MM-DD keys. */
 export function daysBetween(a: string, b: string): number {
     return Math.round((Date.parse(b) - Date.parse(a)) / DAY_MS);
 }
 
 export interface MonthLabel {
-    /** индекс месяца, 0 = январь */
+    /** month index, 0 = January */
     month: number;
-    /** колонка сетки, 1-based — годится прямо в grid-column-start */
+    /** grid column, 1-based — goes straight into grid-column-start */
     column: number;
 }
 
 export interface YearLayout {
     year: number;
     /**
-     * Сколько пустых клеток идёт перед 1 января, чтобы первая строка сетки
-     * была понедельником. Считается как (день недели 1 января + 6) % 7.
+     * How many empty cells come before January 1st so that the first grid row
+     * is Monday. Computed as (weekday of January 1st + 6) % 7.
      */
     offset: number;
-    /** Сколько дней года попадает в сетку: весь год, а для текущего — по сегодня. */
+    /** How many days of the year land in the grid: all of them, or up to today for the current year. */
     total: number;
-    /** Сколько колонок-недель занимает сетка. */
+    /** How many week columns the grid spans. */
     columns: number;
-    /** Подписи месяцев с колонками, в которых они начинаются. */
+    /** Month labels with the column each one starts in. */
     months: MonthLabel[];
 }
 
 /**
- * Считает раскладку года.
+ * Computes the layout of a year.
  *
- * `today` передаётся явно, а не берётся из `new Date()`, чтобы тесты не
- * зависели от дня прогона.
+ * `today` is passed in rather than read from `new Date()` so that tests do not
+ * depend on the day they run.
  */
 export function layoutYear(year: number, today: Date): YearLayout {
     const jan1 = new Date(year, 0, 1);
@@ -68,14 +69,14 @@ export function layoutYear(year: number, today: Date): YearLayout {
     return { year, offset, total, columns, months };
 }
 
-/** Ключи всех дней года, попадающих в сетку, по возрастанию. */
+/** Keys of every day of the year that lands in the grid, ascending. */
 export function eachDay(year: number, total: number): string[] {
     const out: string[] = [];
     for (let i = 0; i < total; i++) out.push(dateKey(new Date(year, 0, 1 + i)));
     return out;
 }
 
-/** Самая длинная цепочка подряд идущих дней. Вход — произвольный набор ключей. */
+/** The longest run of consecutive days. Takes an arbitrary set of keys. */
 export function longestStreak(dates: readonly string[]): number {
     const sorted = [...dates].sort();
     let best = 0;
@@ -90,8 +91,8 @@ export function longestStreak(dates: readonly string[]): number {
 }
 
 /**
- * Длина цепочки, которая тянется до `today` включительно.
- * Если сегодняшнего дня в наборе нет — цепочка считается прерванной и равна 0.
+ * The length of the run that reaches `today` inclusive.
+ * If today is not in the set the run counts as broken, and the answer is 0.
  */
 export function currentStreak(dates: readonly string[], today: string): number {
     const set = new Set(dates);
@@ -107,7 +108,7 @@ export function currentStreak(dates: readonly string[], today: string): number {
     return run;
 }
 
-/** Годы, присутствующие в наборе ключей, от новых к старым. */
+/** Years present in a set of keys, newest first. */
 export function yearsOf(dates: readonly string[]): number[] {
     const years = new Set<number>();
     for (const d of dates) years.add(Number(d.slice(0, 4)));

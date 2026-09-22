@@ -1,5 +1,6 @@
 import type { App } from "obsidian";
 import { snapshot } from "../adapters/vault";
+import { weekdayNamesShort, monthNamesShort } from "../adapters/datetime";
 import { selectNotes } from "../core/source";
 import { numberAt } from "../core/aggregate";
 import { layoutYear, dateKey, eachDay, yearsOf } from "../core/calendar";
@@ -7,27 +8,25 @@ import { toRgb, rgba, type Rgb } from "../core/palette";
 import { readBands, bandFor, type Band } from "../core/bands";
 import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { renderDiagnostics, internalLink } from "../shared/render";
+import { t } from "../i18n";
 import schema from "./schema.json";
 
-/** Ключи берутся из schema.json — того же источника, из которого собирается скилл. */
+/** Keys come from schema.json — the same source the agent skill is built from. */
 const KNOWN = Object.keys(schema.blocks.heatmap.root);
-
-const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-const MONTHS = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
 
 export function renderHeatmap(app: App, source: string, el: HTMLElement): void {
     const { value, diagnostics } = parseConfig(source, { root: KNOWN });
     const diags: Diagnostic[] = [...diagnostics];
 
     if (!isRecord(value)) {
-        renderDiagnostics(el, "heatmap", diags.length ? diags : [{ level: "error", message: "Ожидается набор полей, например `source:` и `field:`." }]);
+        renderDiagnostics(el, "heatmap", diags.length ? diags : [{ level: "error", message: t("heatmap.expectFields") }]);
         return;
     }
     diags.push(...unknownKeys(value, KNOWN));
 
     const field = typeof value.field === "string" ? value.field : null;
     if (!field) {
-        diags.push({ level: "error", message: "Не задано `field` — какое число из frontmatter красить." });
+        diags.push({ level: "error", message: t("heatmap.fieldRequired") });
         renderDiagnostics(el, "heatmap", diags);
         return;
     }
@@ -51,10 +50,7 @@ export function renderHeatmap(app: App, source: string, el: HTMLElement): void {
     }
 
     if (!byDate.size) {
-        diags.push({
-            level: "error",
-            message: `Нет заметок с именем-датой и числом в поле «${field}». Проверь \`source\`.`,
-        });
+        diags.push({ level: "error", message: t("heatmap.noData", { field }) });
         renderDiagnostics(el, "heatmap", diags);
         return;
     }
@@ -89,46 +85,54 @@ function drawYear(
         .map((k) => byDate.get(k))
         .filter((v): v is { value: number; path: string } => v !== undefined);
 
-    const avg = present.length
+    const average = present.length
         ? Math.round(present.reduce((s, d) => s + d.value, 0) / present.length)
         : 0;
     const caption = typeof opts.title === "string"
         ? opts.title
-        : `${year} — ${opts.field}: среднее ${avg}, ${present.length} из ${layout.total} дн.`;
+        : t("heatmap.caption", {
+            year,
+            field: opts.field,
+            average,
+            present: present.length,
+            total: layout.total,
+        });
     wrap.createDiv({ cls: "dashy-hm-title", text: caption });
 
     const body = wrap.createDiv({ cls: "dashy-hm-body" });
 
     const side = body.createDiv({ cls: "dashy-hm-side" });
-    WEEKDAYS.forEach((w, i) => side.createDiv({ cls: "dashy-hm-wd", text: i % 2 ? w : "" }));
+    weekdayNamesShort().forEach((w, i) => side.createDiv({ cls: "dashy-hm-wd", text: i % 2 ? w : "" }));
 
     const main = body.createDiv({ cls: "dashy-hm-main" });
+    const months = monthNamesShort();
 
-    const months = main.createDiv({ cls: "dashy-hm-months" });
-    months.style.gridTemplateColumns = `repeat(${layout.columns}, var(--dashy-cell))`;
+    const monthRow = main.createDiv({ cls: "dashy-hm-months" });
+    monthRow.style.gridTemplateColumns = `repeat(${layout.columns}, var(--dashy-cell))`;
     for (const m of layout.months) {
-        const label = months.createDiv({ cls: "dashy-hm-mon", text: MONTHS[m.month] ?? "" });
+        const label = monthRow.createDiv({ cls: "dashy-hm-mon", text: months[m.month] ?? "" });
         label.style.gridColumnStart = String(m.column);
     }
 
-    // grid-auto-flow: column по 7 строк — клетки идут по порядку,
-    // поэтому год начинается с `offset` пустых ячеек.
+    // grid-auto-flow: column over 7 rows — cells are added in order, so the
+    // year starts with `offset` empty ones.
     const grid = main.createDiv({ cls: "dashy-hm-grid" });
     for (let i = 0; i < layout.offset; i++) grid.createDiv({ cls: "dashy-hm-cell dashy-hm-pad" });
 
     for (let i = 0; i < layout.total; i++) {
-        const key = dateKey(new Date(year, 0, 1 + i));
-        const hit = byDate.get(key);
+        const date = dateKey(new Date(year, 0, 1 + i));
+        const hit = byDate.get(date);
         const cell = hit && opts.linkable
             ? internalLink(grid, hit.path, "dashy-hm-cell")
             : grid.createDiv({ cls: "dashy-hm-cell" });
         if (hit) {
             const band = bandFor(opts.bands, hit.value);
+            const tooltip = t("heatmap.cell", { date, field: opts.field, value: hit.value });
             cell.style.backgroundColor = rgba(opts.color, band?.alpha ?? 1);
-            cell.setAttr("aria-label", `${key} — ${opts.field} ${hit.value}`);
-            cell.setAttr("title", `${key} — ${opts.field} ${hit.value}`);
+            cell.setAttr("aria-label", tooltip);
+            cell.setAttr("title", tooltip);
         } else {
-            cell.setAttr("title", `${key} — нет данных`);
+            cell.setAttr("title", t("heatmap.cellEmpty", { date }));
         }
     }
 

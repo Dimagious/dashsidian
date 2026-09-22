@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 /**
- * Собирает SKILL.md для AI-агента из src/blocks/schema.json.
+ * Builds SKILL.md for an AI agent out of src/blocks/schema.json.
  *
- * Зачем генерация, а не рукописный файл: документация для агента — это и есть
- * контракт блоков. Написанная руками, она разъезжается с кодом за пару релизов,
- * и агент начинает уверенно сочинять несуществующие ключи.
+ * Why generate rather than hand-write: the agent documentation IS the block
+ * contract. Written by hand, it drifts away from the code within a couple of
+ * releases, and the agent starts confidently inventing keys that do not exist.
  *
- * Пишет:
- *   src/skill/skill-content.ts  — то, что плагин кладёт в хранилище
- *   docs/dashy.schema.json      — машиночитаемая копия для любых других тулов
+ * Writes:
+ *   src/skill/skill-content.ts  — what the plugin drops into the vault
+ *   docs/dashy.schema.json      — a machine-readable copy for any other tool
  *
- * `--check` ничего не пишет, а падает, если сгенерированное разошлось с тем,
- * что лежит в репозитории. Этим гейтом CI ловит «поправил схему, забыл пересобрать».
+ * `--check` writes nothing and fails when the generated output differs from
+ * what is committed. That is the gate catching "edited the schema, forgot to
+ * rebuild".
  */
 const fs = require("fs");
 const path = require("path");
@@ -23,27 +24,27 @@ const check = process.argv.includes("--check");
 
 const SKILL_PATH = ".claude/skills/dashy/SKILL.md";
 
-/** Вертикальная черта внутри ячейки рвёт markdown-таблицу — экранируем. */
+/** A pipe inside a cell breaks the markdown table — escape it. */
 function cell(v) {
     return String(v).replace(/\|/g, "\\|");
 }
 
 function fields(map) {
     const rows = Object.entries(map).map(([key, f]) => {
-        const req = f.required ? "да" : "—";
+        const req = f.required ? "yes" : "—";
         const def = f.default !== undefined ? `\`${cell(f.default)}\`` : "—";
         const alias = f.aliases ? f.aliases.map((a) => `\`${a}\``).join(", ") : "—";
         return `| \`${key}\` | ${cell(f.type)} | ${req} | ${def} | ${alias} | ${cell(f.doc)} |`;
     });
-    return ["| ключ | тип | обяз. | по умолч. | синонимы | что делает |",
+    return ["| key | type | required | default | synonyms | what it does |",
             "|---|---|---|---|---|---|", ...rows].join("\n");
 }
 
 function blockSection(name, b) {
     const parts = [`### \`${name}\``, "", b.summary, ""];
-    if (b.root) parts.push("**Корень блока**", "", fields(b.root), "");
-    if (b.item) parts.push("**Элемент списка**", "", fields(b.item), "");
-    parts.push("**Пример**", "", "````markdown", "```" + name, b.example, "```", "````", "");
+    if (b.root) parts.push("**Block root**", "", fields(b.root), "");
+    if (b.item) parts.push("**List item**", "", fields(b.item), "");
+    parts.push("**Example**", "", "````markdown", "```" + name, b.example, "```", "````", "");
     if (b.notes) parts.push(...b.notes.map((n) => `- ${n}`), "");
     return parts.join("\n");
 }
@@ -52,41 +53,47 @@ const blocks = Object.entries(schema.blocks);
 const markdown = `---
 name: dashy
 description: >-
-  Собрать дашборд в заметке Obsidian блоками плагина Dashy: сетка плиток для
-  навигации, карточки чисел по frontmatter, строка дня со ссылками на заметки
-  дня, недели и месяца, тепловая карта года. Использовать, когда просят сделать
-  дашборд, домашнюю страницу, сетку плиток, карточки со счётчиками или средними,
-  ссылку на сегодняшнюю заметку, календарь по дням, тепловую карту, трекер
-  привычки или визуальную точку входа в хранилище.
+  Build a dashboard inside an Obsidian note with Dashy blocks: a grid of
+  navigation tiles, number cards computed from frontmatter, a day row linking
+  to the daily, weekly and monthly notes, and a year heatmap. Use it when asked
+  for a dashboard, a home page, a tile grid, cards with counters or averages, a
+  link to today's note, a day calendar, a heatmap, a habit tracker or a visual
+  entry point into the vault.
 version: ${schema.version}
 ---
 
-# Dashy — блоки дашборда
+# Dashy — dashboard blocks
 
-Плагин **${manifest.name}** (\`${manifest.id}\`) рисует дашборд из markdown-блоков.
-Конфиг — YAML внутри блока. Никакого JavaScript, Dataview не нужен.
+The **${manifest.name}** plugin (\`${manifest.id}\`) draws a dashboard out of
+markdown blocks. The config is YAML inside the block. No JavaScript, and no
+Dataview required.
 
-Всего блоков: ${blocks.length}.
+Blocks in total: ${blocks.length}.
 
 ${blocks.map(([n, b]) => blockSection(n, b)).join("\n")}
-## Чего плагин НЕ делает
+## What the plugin does NOT do
 
-Не выдумывай блоки, которых нет. Если просят что-то из этого списка — скажи, чем это делается на самом деле.
+Do not invent blocks that do not exist. If asked for something on this list,
+say what actually does the job.
 
 ${Object.entries(schema.notInV1).map(([k, v]) => `- **${k}** — ${v}`).join("\n")}
 
-## Общие правила
+## General rules
 
-- Значения с двоеточием, запятой или решёткой бери в кавычки: \`label: "Дом: вход"\`.
-- Синонимы ключей из таблиц выше распознаются, но в новых конфигах пиши канонический ключ.
-- Неизвестный ключ не ломает блок — рисуется предупреждение. Но лишним ключам там не место.
-- Блок сам выводит ошибку конфига прямо в заметку. Если пользователь прислал текст ошибки — читай его буквально, там есть номер строки.
+- Quote values containing a colon, a comma or a hash: \`label: "Home: entry"\`.
+- The key synonyms in the tables above are recognised, but write the canonical key in new configs.
+- An unknown key does not break the block — a warning is drawn instead. Still, stray keys do not belong there.
+- A block prints its own config errors straight into the note. If the user pastes an error, read it literally: it carries the line number.
+
+The plugin speaks the language of the Obsidian interface. These blocks and keys
+are the same in every language.
 `;
 
 const contentTs = `/**
- * ВНИМАНИЕ: файл собирается скриптом \`npm run build:skill\` из src/blocks/schema.json.
- * Руками не править — правка потеряется на следующей сборке, а документация
- * разъедется с поведением. Именно так протухают инструкции для агентов.
+ * WARNING: this file is generated by \`npm run build:skill\` from
+ * src/blocks/schema.json. Do not edit by hand — the edit is lost on the next
+ * build and the documentation drifts away from the behaviour. That is exactly
+ * how agent instructions go stale.
  */
 export const SKILL_VERSION = ${JSON.stringify(schema.version)};
 export const SKILL_PATH = ${JSON.stringify(SKILL_PATH)};
@@ -111,8 +118,8 @@ for (const t of targets) {
 }
 
 if (check && stale.length) {
-    console.error(`[${manifest.id}] скилл разошёлся со схемой: ${stale.join(", ")}`);
-    console.error(`[${manifest.id}] запусти: npm run build:skill`);
+    console.error(`[${manifest.id}] skill is out of sync with the schema: ${stale.join(", ")}`);
+    console.error(`[${manifest.id}] run: npm run build:skill`);
     process.exit(1);
 }
-if (check) console.log(`[${manifest.id}] скилл в синхроне со схемой`);
+if (check) console.log(`[${manifest.id}] skill is in sync with the schema`);

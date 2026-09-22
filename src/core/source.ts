@@ -1,26 +1,27 @@
 /**
- * Отбор заметок под блок. Чистый слой: работает над снимком метаданных,
- * а не над Obsidian напрямую — снимок собирает adapters/vault.ts.
+ * Selecting the notes a block works on. Pure layer: it runs over a metadata
+ * snapshot rather than over Obsidian itself — adapters/vault.ts takes that
+ * snapshot.
  */
 
 export interface NoteRecord {
-    /** путь от корня хранилища, с расширением */
+    /** path from the vault root, with the extension */
     path: string;
-    /** имя файла без расширения */
+    /** file name without the extension */
     name: string;
-    /** родительская папка, "" для корня */
+    /** parent folder, "" for the vault root */
     folder: string;
-    /** теги из frontmatter и тела, без решётки */
+    /** tags from frontmatter and body, without the hash */
     tags: string[];
     frontmatter: Record<string, unknown>;
 }
 
 export interface SourceSpec {
-    /** папка; включает вложенные */
+    /** folder; includes nested ones */
     source?: string;
-    /** тег, с решёткой или без */
+    /** tag, with or without the hash */
     tag?: string;
-    /** простое условие по frontmatter, см. parseWhere */
+    /** a simple frontmatter condition, see parseWhere */
     where?: string;
 }
 
@@ -34,12 +35,12 @@ export interface WhereClause {
 }
 
 /**
- * Разбирает условие вида `year = 2026`, `rating >= 4`, `status != done`,
- * `tags contains книги`. Намеренно крошечный язык: всё сложнее — это уже
- * Dataview, и туда мы не идём.
+ * Parses conditions like `year = 2026`, `rating >= 4`, `status != done`,
+ * `tags contains books`. A deliberately tiny language: anything richer is
+ * Dataview territory, and we are not going there.
  *
- * Возвращает null, если разобрать не удалось — вызывающий покажет
- * предупреждение и отрисует блок без фильтра, а не упадёт.
+ * Returns null when parsing fails — the caller shows a warning and draws the
+ * block unfiltered rather than blowing up.
  */
 export function parseWhere(expr: string): WhereClause | null {
     const trimmed = expr.trim();
@@ -112,7 +113,7 @@ function matchesWhere(note: NoteRecord, clause: WhereClause): boolean {
     }
 }
 
-/** Папка включает вложенные: "01-Areas" покрывает "01-Areas/Sport/x.md". */
+/** A folder includes its children: "01-Areas" covers "01-Areas/Sport/x.md". */
 function inFolder(note: NoteRecord, folder: string): boolean {
     const f = folder.replace(/^\/+|\/+$/g, "");
     if (!f) return true;

@@ -5,9 +5,10 @@ import { aggregate } from "../core/aggregate";
 import { readStat, formatValue, type StatSpec } from "../core/stat";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { renderDiagnostics } from "../shared/render";
+import { t } from "../i18n";
 import schema from "./schema.json";
 
-/** Ключи берутся из schema.json — того же источника, из которого собирается скилл. */
+/** Keys come from schema.json — the same source the agent skill is built from. */
 const KNOWN_ITEM = Object.keys(schema.blocks.stats.item);
 const KNOWN_ROOT = Object.keys(schema.blocks.stats.root);
 
@@ -25,17 +26,17 @@ export function renderStats(app: App, source: string, el: HTMLElement): void {
     const items = asItems(value);
 
     if (!items.length) {
-        diags.push({ level: "error", message: "Список карточек пуст. Ожидается `items:` или массив." });
+        diags.push({ level: "error", message: t("stats.empty") });
         renderDiagnostics(el, "stats", diags);
         return;
     }
-    // Корневые ключи проверяем только у формы с `items:` — иначе одиночная
-    // карточка объектом получила бы предупреждения на собственные ключи.
+    // Root keys are only checked for the `items:` shape — otherwise a single
+    // card written as an object would get warnings about its own keys.
     if (isRecord(value) && Array.isArray(value.items)) diags.push(...unknownKeys(value, KNOWN_ROOT));
 
     const columns = isRecord(value) && typeof value.columns === "number" ? value.columns : 3;
 
-    // Снимок берётся один на блок, а не на карточку: обход хранилища не бесплатный.
+    // One snapshot per block, not per card: walking the vault is not free.
     const notes = snapshot(app);
     const cards: Card[] = [];
 
@@ -53,7 +54,7 @@ export function renderStats(app: App, source: string, el: HTMLElement): void {
         cards.push(card);
     }
 
-    // Диагностика — до карточек: ошибку надо увидеть раньше, чем прочерк.
+    // Diagnostics before the cards: an error must be seen before a dash is.
     renderDiagnostics(el, "stats", diags);
 
     const grid = el.createDiv({ cls: "dashy-stats" });
@@ -75,7 +76,7 @@ export function renderStats(app: App, source: string, el: HTMLElement): void {
     }
 }
 
-/** Отбор под карточку и сведение в текст. Пустой spec — карточка с прочерком. */
+/** Selection for one card, reduced to text. No spec — a card with a dash. */
 function cardText(
     notes: ReturnType<typeof snapshot>,
     item: Record<string, unknown>,

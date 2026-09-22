@@ -339,12 +339,12 @@ function checkManifestDescription() {
  * rather than real per-field definitions.
  */
 function checkSettingsTabHasGetSettingDefinitions() {
-    // Ищем по содержимому, а не по имени файла: класс настроек может
-    // лежать где угодно. Так проверка переносится в следующий плагин без правок.
+    // Search by content rather than by file name: the settings class may live
+    // anywhere. That way this check moves to the next plugin unchanged.
     const files = walk(srcRoot).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"));
     const tabs = files.filter((f) => /class\s+\w+\s+extends\s+PluginSettingTab/.test(fs.readFileSync(f, "utf8")));
 
-    if (!tabs.length) return [];   // плагин без вкладки настроек — правило неприменимо
+    if (!tabs.length) return [];   // no settings tab in the plugin — the rule does not apply
 
     const offenders = tabs.filter((f) => !/getSettingDefinitions\s*\(/.test(fs.readFileSync(f, "utf8")));
     return offenders.map((f) => hit({

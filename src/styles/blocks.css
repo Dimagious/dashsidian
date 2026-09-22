@@ -1,4 +1,4 @@
-/* Диагностика — рисуется в самом блоке, молча падать нельзя */
+/* Diagnostics — drawn inside the block itself; failing silently is not allowed */
 .dashy-diagnostics { margin: 4px 0 10px; font-size: 0.85em; }
 .dashy-diag { padding: 4px 8px; border-radius: var(--dashy-radius); margin-bottom: 4px; }
 .dashy-diag-error { color: var(--text-error, var(--color-red)); background: var(--background-secondary); }
@@ -56,7 +56,7 @@
   font-size: 1.9em; font-weight: 700; line-height: 1.15;
   font-variant-numeric: tabular-nums;
 }
-/* прочерк — это «нет данных», и выглядеть он должен тише числа */
+/* a dash means "no data", and it should read quieter than a number */
 .dashy-stat-value.is-empty { color: var(--text-faint); font-weight: 500; }
 .dashy-stat-unit { font-size: 0.45em; font-weight: 500; opacity: 0.6; margin-left: 3px; }
 .dashy-stat-label { font-size: 0.85em; margin-top: 4px; }
@@ -82,7 +82,7 @@
   text-decoration: none; color: inherit;
   transform: translateY(-2px); box-shadow: var(--dashy-shadow-hover);
 }
-/* заметки ещё нет: ссылка рабочая, но видно, что она создаст файл */
+/* the note does not exist yet: the link works, but shows it will create a file */
 .dashy-today-chip.is-missing { border-style: dashed; opacity: 0.7; }
 .dashy-today-icon { font-size: 1.05em; }
 .dashy-today-label { font-weight: 500; }
@@ -104,7 +104,7 @@
 }
 .dashy-hm-months { display: grid; gap: var(--dashy-cell-gap); height: 1.2em; margin-bottom: 4px; }
 .dashy-hm-mon { font-size: 0.65em; color: var(--text-muted); white-space: nowrap; }
-/* колонка = неделя: клетки просто добавляются по порядку */
+/* column = week: cells are simply appended in order */
 .dashy-hm-grid {
   display: grid;
   grid-auto-flow: column;

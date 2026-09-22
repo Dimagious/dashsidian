@@ -1,18 +1,19 @@
 /**
- * Разбор YAML-конфига блока.
+ * Parsing a block's YAML config.
  *
- * Автор конфига часто не человек, а языковая модель: она пишет файл и уходит,
- * отрисовку не видит. Поэтому парсер прощает — принимает синонимы ключей,
- * не падает на лишнем поле, а про сомнительное сообщает предупреждением.
- * Жёстко валимся только там, где без значения рисовать нечего.
+ * The author of a config is often not a human but a language model: it writes
+ * the file and leaves, never seeing what got drawn. So the parser forgives —
+ * it accepts key synonyms, does not choke on an extra field, and reports the
+ * doubtful ones as warnings. We only fail hard where there is nothing to draw.
  */
 
 import { parse as parseYaml } from "yaml";
+import { t } from "../i18n";
 
 export interface Diagnostic {
     level: "error" | "warning";
     message: string;
-    /** 1-based номер строки внутри блока, если удалось определить */
+    /** 1-based line number inside the block, when it could be determined */
     line?: number;
 }
 
@@ -21,7 +22,7 @@ export interface ParseOutcome<T> {
     diagnostics: Diagnostic[];
 }
 
-/** Канонический ключ ← его синонимы. */
+/** Canonical key <- its synonyms. */
 export const KEY_ALIASES: Record<string, string> = {
     folder: "source",
     from: "source",
@@ -37,25 +38,25 @@ export const KEY_ALIASES: Record<string, string> = {
 };
 
 /**
- * Канонические ключи блока — те, что переименовывать нельзя.
+ * A block's canonical keys — the ones that must not be renamed.
  *
- * Синонимы глобальны, а ключи блоков — нет, и они пересекаются: `title` для
- * плитки синоним `label`, а для heatmap — собственный ключ заголовка. Без
- * контекста заголовок heatmap молча уезжал в `label` и терялся, а автор конфига
- * получал бессмысленное «ключ label неизвестен, возможно title».
+ * Synonyms are global, block keys are not, and they overlap: `title` is a
+ * synonym of `label` for a tile, but heatmap's own heading key. Without the
+ * context, a heatmap heading silently drifted into `label` and was lost, while
+ * the config author got a meaningless "unknown key label, did you mean title".
  */
 export interface KeyContext {
-    /** канонические ключи корня блока */
+    /** canonical keys of the block root */
     root?: readonly string[];
-    /** канонические ключи элемента списка */
+    /** canonical keys of a list item */
     item?: readonly string[];
 }
 
 /**
- * Приводит ключи объекта к каноническим именам, рекурсивно.
+ * Rewrites object keys to their canonical names, recursively.
  *
- * Без контекста ведёт себя как раньше — переименовывает всё, что нашлось
- * в таблице синонимов.
+ * With no context it behaves as it used to — renaming anything found in the
+ * synonym table.
  */
 export function canonicalize(input: unknown, context: KeyContext = {}): unknown {
     return walk(input, context.root ?? [], context);
@@ -68,20 +69,20 @@ function walk(input: unknown, keep: readonly string[], context: KeyContext): unk
     const out: Record<string, unknown> = {};
     for (const [rawKey, value] of Object.entries(input as Record<string, unknown>)) {
         const key = keep.includes(rawKey) ? rawKey : KEY_ALIASES[rawKey] ?? rawKey;
-        // за `items:` начинаются элементы списка — у них свой набор ключей
+        // past `items:` the list elements begin — they have their own key set
         out[key] = walk(value, key === "items" ? context.item ?? [] : keep, context);
     }
     return out;
 }
 
 /**
- * YAML → объект. Ошибка синтаксиса не бросается наверх, а возвращается
- * диагностикой с номером строки.
+ * YAML to an object. A syntax error is not thrown upwards but returned as a
+ * diagnostic carrying the line number.
  */
 export function parseConfig(source: string, context: KeyContext = {}): ParseOutcome<unknown> {
     const text = source.trim();
     if (!text) {
-        return { value: null, diagnostics: [{ level: "error", message: "Блок пустой." }] };
+        return { value: null, diagnostics: [{ level: "error", message: t("parse.emptyBlock") }] };
     }
     try {
         return { value: canonicalize(parseYaml(text), context), diagnostics: [] };
@@ -91,7 +92,7 @@ export function parseConfig(source: string, context: KeyContext = {}): ParseOutc
             value: null,
             diagnostics: [{
                 level: "error",
-                message: `Не разобрать YAML: ${err.message ?? String(e)}`,
+                message: t("parse.yamlError", { message: err.message ?? String(e) }),
                 line: err.linePos?.[0]?.line,
             }],
         };
@@ -99,8 +100,8 @@ export function parseConfig(source: string, context: KeyContext = {}): ParseOutc
 }
 
 /**
- * Список элементов. Принимает и голый массив, и объект с `items:` —
- * обе формы встречаются в том, что пишут модели.
+ * The list of items. Accepts both a bare array and an object with `items:` —
+ * both shapes show up in what models write.
  */
 export function asItems(value: unknown): Record<string, unknown>[] {
     if (Array.isArray(value)) return value.filter(isRecord);
@@ -113,7 +114,7 @@ export function isRecord(v: unknown): v is Record<string, unknown> {
     return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-/** Предупреждение про ключи, которых мы не знаем — с подсказкой. */
+/** A warning about keys we do not know — with a suggestion. */
 export function unknownKeys(
     obj: Record<string, unknown>,
     known: readonly string[],
@@ -124,15 +125,13 @@ export function unknownKeys(
         const guess = nearest(key, known);
         out.push({
             level: "warning",
-            message: guess
-                ? `Ключ «${key}» неизвестен. Возможно, имелся в виду «${guess}».`
-                : `Ключ «${key}» неизвестен и пропущен.`,
+            message: guess ? t("parse.unknownKeyGuess", { key, guess }) : t("parse.unknownKey", { key }),
         });
     }
     return out;
 }
 
-/** Ближайший по расстоянию Левенштейна, если он достаточно близок. */
+/** The nearest option by Levenshtein distance, when it is close enough. */
 export function nearest(word: string, options: readonly string[]): string | null {
     let best: string | null = null;
     let bestScore = Infinity;

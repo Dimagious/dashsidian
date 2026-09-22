@@ -1,0 +1,65 @@
+import type { Catalog } from "./en";
+
+/**
+ * Russian catalog. Typed as a partial one on purpose: a language may lag
+ * behind `en.ts` without breaking the build, and the missing keys simply
+ * fall back to English.
+ */
+export const ru: Catalog = {
+    "parse.emptyBlock": "Блок пустой.",
+    "parse.yamlError": "Не разобрать YAML: {message}",
+    "parse.unknownKey": "Ключ «{key}» неизвестен и пропущен.",
+    "parse.unknownKeyGuess": "Ключ «{key}» неизвестен. Возможно, имелся в виду «{guess}».",
+
+    "render.line": "строка {line}",
+
+    "bands.hasData": "есть данные",
+    "bands.from": "от {min}",
+
+    "tiles.empty": "Список плиток пуст. Ожидается `items:` или массив.",
+
+    "stats.empty": "Список карточек пуст. Ожидается `items:` или массив.",
+    "stats.unlabeledCard": "карточка без подписи",
+    "stats.unknownAgg": "{card}: агрегат «{agg}» неизвестен. Доступны: {available}.",
+    "stats.unknownAggGuess":
+        "{card}: агрегат «{agg}» неизвестен. Возможно, «{guess}». Доступны: {available}.",
+    "stats.fieldRequired":
+        "{card}: агрегату «{agg}» нужно число — добавь `field:` с полем frontmatter.",
+    "stats.badPrecision":
+        "{card}: `precision` ожидает целое от 0 до {max}, получено «{value}» — округляю по умолчанию.",
+
+    "today.expectFields": "Ожидается набор полей, например `daily: true`.",
+    "today.nothingToShow": "Нечего показывать: включи `daily`, `weekly` или `monthly`.",
+    "today.notBoolean": "`{key}` ожидает true или false, получено «{value}» — считаю за {read}.",
+    "today.daily": "Сегодня",
+    "today.weekly": "Эта неделя",
+    "today.monthly": "Этот месяц",
+    "today.missingNote": "{path} — заметки ещё нет, клик её создаст",
+
+    "heatmap.expectFields": "Ожидается набор полей, например `source:` и `field:`.",
+    "heatmap.fieldRequired": "Не задано `field` — какое число из frontmatter красить.",
+    "heatmap.noData":
+        "Нет заметок с именем-датой и числом в поле «{field}». Проверь `source`.",
+    "heatmap.caption": "{year} — {field}: среднее {average}, {present} из {total} дн.",
+    "heatmap.cell": "{date} — {field} {value}",
+    "heatmap.cellEmpty": "{date} — нет данных",
+
+    "settings.periodicHeading": "Периодические заметки",
+    "settings.dailyFolder": "Папка заметок дня",
+    "settings.dailyFolderDesc": "Оставьте пустым, чтобы взять настройки плагина Periodic Notes.",
+    "settings.weeklyFolder": "Папка заметок недели",
+    "settings.monthlyFolder": "Папка заметок месяца",
+    "settings.followPeriodic": "Нужна блоку today. Пусто — берём из Periodic Notes.",
+    "settings.skillHeading": "Скилл для ИИ-агента",
+    "settings.skillName": "Файл скилла в этом хранилище",
+    "settings.skillNotInstalled":
+        "Запишет {path}, чтобы агент (Claude Code, Cursor) писал эти блоки за вас.",
+    "settings.skillCurrent": "Установлен, версия {version}. Делать нечего.",
+    "settings.skillOutdated": "Установлена версия {installed}, доступна {available}.",
+    "settings.install": "Установить",
+    "settings.update": "Обновить",
+    "settings.copyMarkdown": "Скопировать markdown",
+    "settings.copied": "Markdown скилла скопирован.",
+    "settings.written": "Скилл записан в {path}",
+    "settings.writeFailed": "Не удалось записать скилл: {message}",
+};

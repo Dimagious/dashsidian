@@ -2,118 +2,118 @@ import { describe, it, expect } from "vitest";
 import { normalizeFolder, notePath, resolveConfig, readToday, DEFAULT_FORMATS } from "./periodic";
 
 describe("normalizeFolder", () => {
-    it("снимает ведущие и хвостовые слэши", () => {
+    it("strips leading and trailing slashes", () => {
         expect(normalizeFolder("/Diary/")).toBe("Diary");
         expect(normalizeFolder("//a/b//")).toBe("a/b");
     });
 
-    it("корень хранилища — пустая строка", () => {
+    it("the vault root is an empty string", () => {
         for (const v of ["", "   ", "/", "///"]) expect(normalizeFolder(v)).toBe("");
     });
 
-    it("внутренние слэши не трогает", () => {
-        expect(normalizeFolder("01-Areas/Personal/Дневник")).toBe("01-Areas/Personal/Дневник");
+    it("leaves inner slashes alone", () => {
+        expect(normalizeFolder("01-Areas/Personal/Diary")).toBe("01-Areas/Personal/Diary");
     });
 });
 
 describe("notePath", () => {
-    it("склеивает папку и имя", () => {
+    it("joins the folder and the name", () => {
         expect(notePath("Diary", "2026-09-22")).toBe("Diary/2026-09-22.md");
     });
 
-    it("без папки кладёт в корень", () => {
+    it("with no folder it lands in the root", () => {
         expect(notePath("", "2026-09-22")).toBe("2026-09-22.md");
     });
 
-    it("грязная папка нормализуется, а не даёт двойной слэш", () => {
+    it("a messy folder is normalised instead of doubling the slash", () => {
         expect(notePath("/Diary/", "2026-09-22")).toBe("Diary/2026-09-22.md");
     });
 
-    it("имя с подпапкой от формата остаётся как есть", () => {
-        // формат вида `YYYY/MM/YYYY-MM-DD` — легальная настройка Periodic Notes
+    it("a name carrying subfolders from the format survives", () => {
+        // a format like `YYYY/MM/YYYY-MM-DD` is a legal Periodic Notes setting
         expect(notePath("Diary", "2026/09/2026-09-22")).toBe("Diary/2026/09/2026-09-22.md");
     });
 });
 
 describe("resolveConfig", () => {
-    it("настройка Dashy главнее найденного у соседей", () => {
-        const cfg = resolveConfig("daily", "Мой дневник", { folder: "Periodic/Daily", format: "DD-MM-YYYY" });
-        expect(cfg.folder).toBe("Мой дневник");
-        // формат всё равно берётся у соседа: в настройках Dashy форматов нет
+    it("the Dashy setting wins over what a neighbour reports", () => {
+        const cfg = resolveConfig("daily", "My diary", { folder: "Periodic/Daily", format: "DD-MM-YYYY" });
+        expect(cfg.folder).toBe("My diary");
+        // the format still comes from the neighbour: Dashy settings hold no formats
         expect(cfg.format).toBe("DD-MM-YYYY");
     });
 
-    it("пустая настройка уступает соседу", () => {
+    it("an empty setting yields to the neighbour", () => {
         expect(resolveConfig("daily", "", { folder: "Periodic/Daily", format: "DD-MM-YYYY" }))
             .toEqual({ folder: "Periodic/Daily", format: "DD-MM-YYYY" });
     });
 
-    it("пробелы в настройке — это пустая настройка", () => {
+    it("spaces in the setting mean an empty setting", () => {
         expect(resolveConfig("daily", "   ", { folder: "Periodic" }).folder).toBe("Periodic");
     });
 
-    it("соседа нет — формат по умолчанию для периода", () => {
+    it("no neighbour — the default format for the period", () => {
         expect(resolveConfig("daily", "", undefined).format).toBe(DEFAULT_FORMATS.daily);
         expect(resolveConfig("weekly", "", undefined).format).toBe(DEFAULT_FORMATS.weekly);
         expect(resolveConfig("monthly", "", undefined).format).toBe(DEFAULT_FORMATS.monthly);
     });
 
-    it("ничего не известно — корень хранилища", () => {
+    it("nothing known — the vault root", () => {
         expect(resolveConfig("daily", "", {}).folder).toBe("");
     });
 
-    it("пустой формат у соседа не затирает умолчание", () => {
+    it("a blank format from a neighbour does not wipe the default", () => {
         expect(resolveConfig("weekly", "", { folder: "W", format: "  " }).format)
             .toBe(DEFAULT_FORMATS.weekly);
     });
 });
 
 describe("readToday", () => {
-    it("ни одного ключа — показываем заметку дня", () => {
+    it("no keys at all — we show the daily note", () => {
         expect(readToday({}).spec?.periods).toEqual(["daily"]);
-        expect(readToday({ title: "Сегодня" }).spec?.periods).toEqual(["daily"]);
+        expect(readToday({ title: "Today" }).spec?.periods).toEqual(["daily"]);
     });
 
-    it("указанный ключ отменяет умолчание", () => {
+    it("a given key cancels the default", () => {
         expect(readToday({ weekly: true }).spec?.periods).toEqual(["weekly"]);
     });
 
-    it("порядок всегда день → неделя → месяц, как бы ни написали", () => {
+    it("the order is always day, week, month, however it was written", () => {
         const spec = readToday({ monthly: true, daily: true, weekly: true }).spec;
         expect(spec?.periods).toEqual(["daily", "weekly", "monthly"]);
     });
 
-    it("false исключает период", () => {
+    it("false excludes the period", () => {
         expect(readToday({ daily: true, weekly: false }).spec?.periods).toEqual(["daily"]);
     });
 
-    it("берёт свой заголовок", () => {
-        expect(readToday({ title: "  Мой день  " }).spec?.title).toBe("Мой день");
+    it("takes a custom heading", () => {
+        expect(readToday({ title: "  My day  " }).spec?.title).toBe("My day");
     });
 
-    it("пустой заголовок не попадает в spec", () => {
+    it("a blank heading does not reach the spec", () => {
         expect(readToday({ title: "   " }).spec?.title).toBeUndefined();
     });
 
-    it("всё выключено — ошибка, а не пустая строка", () => {
+    it("everything off is an error, not an empty row", () => {
         const { spec, diagnostics } = readToday({ daily: false, weekly: false, monthly: false });
         expect(spec).toBeNull();
         expect(diagnostics[0]?.level).toBe("error");
     });
 
-    it("не-булево значение предупреждает, но блок рисуется", () => {
+    it("a non-boolean warns, but the block is still drawn", () => {
         const { spec, diagnostics } = readToday({ daily: "yes" });
         expect(spec?.periods).toEqual(["daily"]);
         expect(diagnostics[0]?.level).toBe("warning");
     });
 
-    it("строковое отрицание понимается как false", () => {
-        for (const v of ["false", "no", "0", "off", "нет", "НЕТ"]) {
+    it("a string negation reads as false", () => {
+        for (const v of ["false", "no", "0", "off", "FALSE", "Off"]) {
             expect(readToday({ daily: v, weekly: true }).spec?.periods).toEqual(["weekly"]);
         }
     });
 
-    it("null в значении выключает период", () => {
+    it("a null value switches the period off", () => {
         const { spec } = readToday({ daily: null, weekly: true });
         expect(spec?.periods).toEqual(["weekly"]);
     });

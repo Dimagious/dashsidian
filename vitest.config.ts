@@ -18,17 +18,17 @@ export default defineConfig({
                 "src/types.ts",
                 "src/test/**",
                 "src/**/*.test.ts",
-                // Сгенерированный файл, кода в нём нет.
+                // Generated file, no code of its own.
                 "src/skill/**",
-                // Тонкие обёртки над Obsidian и чистая отрисовка: логика из них
-                // вынесена в core/ и покрыта там. Появятся mount-тесты — убрать
-                // отсюда. См. .claude/brain/backlog.md.
+                // Thin wrappers over Obsidian and pure drawing: their logic was
+                // moved into core/ and is covered there. Once mount tests exist,
+                // drop these exclusions.
                 "src/adapters/**",
                 "src/shared/render.ts",
-                // Слои, которые только регистрируют и рисуют. Логика из них
-                // вынесена в core/ и shared/ и покрыта там. Убирать отсюда по
-                // мере появления mount-тестов — порог не трогать, он шумовой
-                // гейт, а не показатель качества.
+                // Layers that only register and draw. Their logic lives in core/
+                // and shared/ and is covered there. Remove these as mount tests
+                // appear — do not touch the threshold, it is a noise gate, not a
+                // quality metric.
                 "src/app/plugin.ts",
                 "src/ui/**",
                 "src/blocks/**",

@@ -1,25 +1,27 @@
 /**
- * Периодические заметки: какая папка, какой формат имени, какой путь.
- * Чистый слой — ни Obsidian, ни moment.
+ * Periodic notes: which folder, which name format, which path.
+ * Pure layer — no Obsidian, no moment.
  *
- * Форматирование даты сюда не входит: строки формата задаются в moment-нотации,
- * а сам moment живёт внутри Obsidian и поставляется через adapters/periodic.ts.
+ * Formatting a date is not part of this: format strings are written in moment
+ * notation, and moment itself lives inside Obsidian and is reached through
+ * adapters/datetime.ts.
  */
 
 import type { Diagnostic } from "../shared/parse";
+import { t } from "../i18n";
 
 export const PERIODS = ["daily", "weekly", "monthly"] as const;
 export type Period = (typeof PERIODS)[number];
 
-/** Папка и формат имени заметки. Формат — в нотации moment. */
+/** A folder and a note name format. The format is in moment notation. */
 export interface PeriodConfig {
     folder: string;
     format: string;
 }
 
 /**
- * Умолчания на случай, когда ни Periodic Notes, ни ядровые Daily notes
- * не установлены. Совпадают с умолчаниями Periodic Notes.
+ * Defaults for when neither Periodic Notes nor the core Daily notes plugin is
+ * installed. They match the Periodic Notes defaults.
  */
 export const DEFAULT_FORMATS: Record<Period, string> = {
     daily: "YYYY-MM-DD",
@@ -27,25 +29,26 @@ export const DEFAULT_FORMATS: Record<Period, string> = {
     monthly: "YYYY-MM",
 };
 
-/** Папка без ведущих и хвостовых слэшей; корень хранилища — пустая строка. */
+/** A folder with no leading or trailing slashes; the vault root is "". */
 export function normalizeFolder(folder: string): string {
     return folder.trim().replace(/^\/+|\/+$/g, "");
 }
 
-/** Путь заметки от корня хранилища, с расширением. */
+/** A note path from the vault root, with the extension. */
 export function notePath(folder: string, basename: string): string {
     const f = normalizeFolder(folder);
     return f ? `${f}/${basename}.md` : `${basename}.md`;
 }
 
 /**
- * Откуда берём папку и формат.
+ * Where the folder and the format come from.
  *
- * Настройка Dashy главнее найденного у соседей: если человек вписал папку
- * руками, это осознанный выбор, и молча перебивать его чужим плагином нельзя.
- * Так же обещает текст в настройках — «leave empty to follow Periodic Notes».
+ * The Dashy setting wins over whatever a neighbouring plugin reports: a folder
+ * typed in by hand is a deliberate choice, and silently overriding it with
+ * another plugin's setting is not on. That is also what the settings text
+ * promises — "leave empty to follow Periodic Notes".
  *
- * Формат из настроек Dashy не берётся: там только папки.
+ * The format is never taken from the Dashy settings: they hold folders only.
  */
 export function resolveConfig(
     period: Period,
@@ -62,9 +65,9 @@ export function resolveConfig(
 }
 
 export interface TodaySpec {
-    /** что показывать, в порядке daily → weekly → monthly */
+    /** what to show, in daily -> weekly -> monthly order */
     periods: Period[];
-    /** свой заголовок вместо сегодняшней даты */
+    /** a custom heading instead of today's date */
     title?: string;
 }
 
@@ -74,11 +77,11 @@ export interface TodayOutcome {
 }
 
 /**
- * Разбирает конфиг блока `today`.
+ * Parses the config of the `today` block.
  *
- * Ни один из ключей не указан — показываем заметку дня: это то, чего человек
- * ждёт от блока с таким именем. Но стоит указать хоть один — работают только
- * указанные, иначе `weekly: true` молча притащил бы ещё и день.
+ * With none of the keys given we show the daily note: that is what one expects
+ * from a block by that name. But once at least one is given, only the given
+ * ones apply — otherwise `weekly: true` would silently drag the day along too.
  */
 export function readToday(value: Record<string, unknown>): TodayOutcome {
     const diagnostics: Diagnostic[] = [];
@@ -88,7 +91,11 @@ export function readToday(value: Record<string, unknown>): TodayOutcome {
         if (typeof value[p] !== "boolean") {
             diagnostics.push({
                 level: "warning",
-                message: `\`${p}\` ожидает true или false, получено «${String(value[p])}» — считаю за ${truthy(value[p]) ? "true" : "false"}.`,
+                message: t("today.notBoolean", {
+                    key: p,
+                    value: String(value[p]),
+                    read: truthy(value[p]) ? "true" : "false",
+                }),
             });
         }
     }
@@ -98,10 +105,7 @@ export function readToday(value: Record<string, unknown>): TodayOutcome {
         : mentioned.filter((p) => truthy(value[p]));
 
     if (!periods.length) {
-        diagnostics.push({
-            level: "error",
-            message: "Нечего показывать: включи `daily`, `weekly` или `monthly`.",
-        });
+        diagnostics.push({ level: "error", message: t("today.nothingToShow") });
         return { spec: null, diagnostics };
     }
 
@@ -110,10 +114,13 @@ export function readToday(value: Record<string, unknown>): TodayOutcome {
     return { spec, diagnostics };
 }
 
-/** YAML уже разобрал true/false; строки вроде "yes" приходят от моделей. */
+/**
+ * YAML already resolved true/false; strings like "yes" come from models.
+ * The keywords stay English: a config language is not localised.
+ */
 function truthy(v: unknown): boolean {
     if (typeof v === "boolean") return v;
-    if (typeof v === "string") return !["false", "no", "0", "off", "нет"].includes(v.trim().toLowerCase());
+    if (typeof v === "string") return !["false", "no", "0", "off"].includes(v.trim().toLowerCase());
     if (typeof v === "number") return v !== 0;
     return v !== null && v !== undefined;
 }

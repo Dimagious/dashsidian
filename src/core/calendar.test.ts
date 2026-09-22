@@ -10,55 +10,55 @@ import {
 } from "./calendar";
 
 describe("dateKey", () => {
-    it("формирует YYYY-MM-DD из локальной даты", () => {
+    it("builds YYYY-MM-DD from a local date", () => {
         expect(dateKey(new Date(2026, 0, 1))).toBe("2026-01-01");
         expect(dateKey(new Date(2026, 8, 22))).toBe("2026-09-22");
     });
 
-    it("не уезжает на сутки назад, как это делает toISOString в UTC+", () => {
-        // Локальная полночь в плюсовом поясе — это предыдущий день по UTC.
-        // Именно на этом разъезжалась вся сетка в первой версии.
+    it("does not slip a day back the way toISOString does east of UTC", () => {
+        // Local midnight in a positive offset is the previous day in UTC.
+        // This is exactly what threw the whole grid off in the first version.
         const midnight = new Date(2026, 2, 29, 0, 0, 0);
         expect(dateKey(midnight)).toBe("2026-03-29");
     });
 });
 
 describe("daysBetween", () => {
-    it("считает целые сутки", () => {
+    it("counts whole days", () => {
         expect(daysBetween("2026-01-01", "2026-01-02")).toBe(1);
         expect(daysBetween("2026-01-01", "2026-02-01")).toBe(31);
         expect(daysBetween("2026-01-02", "2026-01-01")).toBe(-1);
     });
 
-    it("переживает переход на летнее время", () => {
+    it("survives a daylight saving switch", () => {
         expect(daysBetween("2026-03-28", "2026-03-30")).toBe(2);
         expect(daysBetween("2026-10-24", "2026-10-26")).toBe(2);
     });
 });
 
 describe("layoutYear", () => {
-    it("ставит 1 января 2026 в четверг: смещение 3", () => {
+    it("puts 1 January 2026 on a Thursday: offset 3", () => {
         const l = layoutYear(2026, new Date(2026, 8, 22));
         expect(l.offset).toBe(3);
     });
 
-    it("текущий год обрезает по сегодня", () => {
+    it("the current year is cut off at today", () => {
         const l = layoutYear(2026, new Date(2026, 8, 22));
-        expect(l.total).toBe(265); // 1 января → 22 сентября
+        expect(l.total).toBe(265); // 1 January to 22 September
         expect(l.columns).toBe(39);
     });
 
-    it("прошедший год берёт целиком", () => {
+    it("a past year is taken whole", () => {
         const l = layoutYear(2025, new Date(2026, 8, 22));
         expect(l.total).toBe(365);
     });
 
-    it("високосный год — 366 дней", () => {
+    it("a leap year has 366 days", () => {
         const l = layoutYear(2024, new Date(2026, 8, 22));
         expect(l.total).toBe(366);
     });
 
-    it("каждая клетка попадает в свою строку недели", () => {
+    it("every cell lands in the row of its weekday", () => {
         const l = layoutYear(2026, new Date(2026, 11, 31));
         for (let i = 0; i < l.total; i++) {
             const row = (i + l.offset) % 7;
@@ -67,56 +67,56 @@ describe("layoutYear", () => {
         }
     });
 
-    it("подписи месяцев не выходят за пределы сетки", () => {
+    it("month labels stay inside the grid", () => {
         const l = layoutYear(2026, new Date(2026, 8, 22));
-        expect(l.months).toHaveLength(9); // январь…сентябрь
+        expect(l.months).toHaveLength(9); // January through September
         expect(l.months[0]).toEqual({ month: 0, column: 1 });
         for (const m of l.months) expect(m.column).toBeLessThanOrEqual(l.columns);
     });
 });
 
 describe("eachDay", () => {
-    it("отдаёт ключи по возрастанию", () => {
+    it("returns keys in ascending order", () => {
         const days = eachDay(2026, 3);
         expect(days).toEqual(["2026-01-01", "2026-01-02", "2026-01-03"]);
     });
 });
 
 describe("longestStreak", () => {
-    it("находит самую длинную цепочку", () => {
+    it("finds the longest run", () => {
         expect(longestStreak(["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-05"])).toBe(3);
     });
 
-    it("не зависит от порядка на входе", () => {
+    it("does not depend on input order", () => {
         expect(longestStreak(["2026-01-05", "2026-01-02", "2026-01-01", "2026-01-03"])).toBe(3);
     });
 
-    it("пустой набор — ноль", () => {
+    it("an empty set is zero", () => {
         expect(longestStreak([])).toBe(0);
     });
 
-    it("одиночный день — единица", () => {
+    it("a single day is one", () => {
         expect(longestStreak(["2026-01-01"])).toBe(1);
     });
 });
 
 describe("currentStreak", () => {
-    it("считает цепочку, доходящую до сегодня", () => {
+    it("counts the run that reaches today", () => {
         const dates = ["2026-09-20", "2026-09-21", "2026-09-22"];
         expect(currentStreak(dates, "2026-09-22")).toBe(3);
     });
 
-    it("если сегодня пропущено — цепочка нулевая", () => {
+    it("a missing today breaks the run", () => {
         expect(currentStreak(["2026-09-20", "2026-09-21"], "2026-09-22")).toBe(0);
     });
 
-    it("считает через границу месяца", () => {
+    it("counts across a month boundary", () => {
         expect(currentStreak(["2026-08-31", "2026-09-01"], "2026-09-01")).toBe(2);
     });
 });
 
 describe("yearsOf", () => {
-    it("отдаёт годы от новых к старым без повторов", () => {
+    it("returns years newest first, without repeats", () => {
         expect(yearsOf(["2025-01-01", "2026-05-05", "2026-01-01"])).toEqual([2026, 2025]);
     });
 });

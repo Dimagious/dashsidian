@@ -1,22 +1,24 @@
 import type { App } from "obsidian";
 import { noteExists } from "../adapters/vault";
-import { discoverPeriodics, formatDate } from "../adapters/periodic";
+import { discoverPeriodics } from "../adapters/periodic";
+import { formatDate } from "../adapters/datetime";
 import { readToday, resolveConfig, notePath, type Period } from "../core/periodic";
 import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { renderDiagnostics, internalLink } from "../shared/render";
+import { t, type MessageKey } from "../i18n";
 import type { DashySettings } from "../types";
 import schema from "./schema.json";
 
-/** Ключи берутся из schema.json — того же источника, из которого собирается скилл. */
+/** Keys come from schema.json — the same source the agent skill is built from. */
 const KNOWN = Object.keys(schema.blocks.today.root);
 
-/** Заголовок по умолчанию: moment внутри Obsidian уже настроен на язык приложения. */
+/** Obsidian's own moment is already set to the application language. */
 const TITLE_FORMAT = "D MMMM YYYY, dddd";
 
-const LABELS: Record<Period, string> = {
-    daily: "Сегодня",
-    weekly: "Эта неделя",
-    monthly: "Этот месяц",
+const LABEL_KEY: Record<Period, MessageKey> = {
+    daily: "today.daily",
+    weekly: "today.weekly",
+    monthly: "today.monthly",
 };
 
 const ICONS: Record<Period, string> = {
@@ -43,7 +45,7 @@ export function renderToday(
     if (!isRecord(value)) {
         renderDiagnostics(el, "today", diags.length ? diags : [{
             level: "error",
-            message: "Ожидается набор полей, например `daily: true`.",
+            message: t("today.expectFields"),
         }]);
         return;
     }
@@ -71,12 +73,12 @@ export function renderToday(
         const path = notePath(cfg.folder, basename);
         const exists = noteExists(app, path);
 
-        // Ссылка рисуется и на несуществующую заметку: клик по ней её создаст.
-        // Приглушаем, чтобы «ещё нет» было видно до клика.
+        // The link is drawn even for a note that does not exist: clicking it
+        // creates the note. It is dimmed so that "not yet" shows before the click.
         const chip = internalLink(row, path, exists ? "dashy-today-chip" : "dashy-today-chip is-missing");
         chip.createSpan({ cls: "dashy-today-icon", text: ICONS[period] });
-        chip.createSpan({ cls: "dashy-today-label", text: LABELS[period] });
+        chip.createSpan({ cls: "dashy-today-label", text: t(LABEL_KEY[period]) });
         chip.createSpan({ cls: "dashy-today-name", text: basename });
-        chip.setAttr("title", exists ? path : `${path} — заметки ещё нет, клик её создаст`);
+        chip.setAttr("title", exists ? path : t("today.missingNote", { path }));
     }
 }

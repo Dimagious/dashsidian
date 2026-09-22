@@ -1,9 +1,9 @@
 export interface DashySettings {
-    /** Папка заметок дня. Пусто — берём из Periodic Notes, если он установлен. */
+    /** Daily notes folder. Empty — take it from Periodic Notes when installed. */
     dailyFolder: string;
     weeklyFolder: string;
     monthlyFolder: string;
-    /** Версия скилла, установленного в хранилище, чтобы предлагать обновление. */
+    /** Version of the skill installed in the vault, so we can offer an update. */
     installedSkillVersion: string | null;
 }
 

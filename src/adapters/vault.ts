@@ -2,17 +2,17 @@ import type { App, TFile } from "obsidian";
 import type { NoteRecord } from "../core/source";
 
 /**
- * Снимок метаданных хранилища. Единственное место, где блоки касаются
- * Obsidian напрямую, — дальше работает чистый core/.
+ * A snapshot of the vault metadata. The only place where blocks touch Obsidian
+ * directly — everything past it is the pure core/.
  *
- * Читаем metadataCache, а не Dataview: плагину не нужна зависимость,
- * которой может не оказаться у пользователя.
+ * We read metadataCache rather than Dataview: the plugin should not depend on
+ * something the user may not have installed.
  */
 export function snapshot(app: App): NoteRecord[] {
     return app.vault.getMarkdownFiles().map((file) => toRecord(app, file));
 }
 
-/** Есть ли такая заметка. Нужно блокам, которые рисуют ссылку на ещё не созданное. */
+/** Whether such a note exists. Needed by blocks that link to what is not there yet. */
 export function noteExists(app: App, path: string): boolean {
     return app.vault.getAbstractFileByPath(path) !== null;
 }

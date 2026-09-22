@@ -1,54 +1,58 @@
 /**
- * Карточка числа: что считать и как показать. Чистый слой.
+ * A number card: what to count and how to show it. Pure layer.
  *
- * Разбор и форматирование живут здесь, а не в blocks/stats.ts, потому что
- * чистая функция в слое отрисовки — это функция вне гейта покрытия. Ровно так
- * в heatmap пропустили перевёрнутые подписи полос, см. core/bands.ts.
+ * Parsing and formatting live here rather than in blocks/stats.ts, because a
+ * pure function in the drawing layer is a function outside the coverage gate.
+ * That is exactly how the inverted band labels slipped through in heatmap,
+ * see core/bands.ts.
  */
 
 import { AGGS, isAgg, type Agg } from "./aggregate";
 import { nearest, type Diagnostic } from "../shared/parse";
+import { t } from "../i18n";
 
 export interface StatSpec {
     agg: Agg;
-    /** обязателен для всего, кроме count и streak */
+    /** required for everything but count and streak */
     field?: string;
-    /** приписка после числа: км, %, дн. */
+    /** a suffix after the number: km, %, d. */
     unit?: string;
-    /** знаков после запятой; не задано — форматируем по умолчанию */
+    /** decimal places; when unset we format the default way */
     precision?: number;
 }
 
-/** Агрегаты, которым поле не нужно: считают заметки, а не числа в них. */
+/** Aggregates that need no field: they count notes, not numbers inside them. */
 const FIELDLESS: readonly Agg[] = ["count", "streak"];
 
 const MAX_PRECISION = 6;
 
 export interface StatOutcome {
-    /** null — считать нечем, карточка покажет прочерк */
+    /** null — nothing to count, the card will show a dash */
     spec: StatSpec | null;
     diagnostics: Diagnostic[];
 }
 
 /**
- * Разбирает одну карточку. Не бросает: всё непонятное превращается
- * в диагностику, которую блок нарисует рядом с дашбордом.
+ * Parses a single card. Never throws: anything unclear turns into a diagnostic
+ * that the block draws next to the dashboard.
  *
- * `label` нужен только для сообщений — иначе на пяти карточках не понять,
- * в какой из них ошибка.
+ * `label` is only used in messages — without it, five cards give no clue which
+ * one holds the mistake.
  */
 export function readStat(item: Record<string, unknown>, label: string): StatOutcome {
     const diagnostics: Diagnostic[] = [];
-    const what = label ? `«${label}»` : "карточка без подписи";
+    const card = label ? `"${label}"` : t("stats.unlabeledCard");
+    const available = AGGS.join(", ");
 
     const rawAgg = item.agg ?? "count";
     if (!isAgg(rawAgg)) {
         const guess = typeof rawAgg === "string" ? nearest(rawAgg, AGGS) : null;
+        const agg = String(rawAgg);
         diagnostics.push({
             level: "error",
-            message: `${what}: агрегат «${String(rawAgg)}» неизвестен.${
-                guess ? ` Возможно, «${guess}».` : ""
-            } Доступны: ${AGGS.join(", ")}.`,
+            message: guess
+                ? t("stats.unknownAggGuess", { card, agg, guess, available })
+                : t("stats.unknownAgg", { card, agg, available }),
         });
         return { spec: null, diagnostics };
     }
@@ -57,7 +61,7 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
     if (!field && !FIELDLESS.includes(rawAgg)) {
         diagnostics.push({
             level: "error",
-            message: `${what}: агрегату «${rawAgg}» нужно число — добавь \`field:\` с полем frontmatter.`,
+            message: t("stats.fieldRequired", { card, agg: rawAgg }),
         });
         return { spec: null, diagnostics };
     }
@@ -73,7 +77,7 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
         } else {
             diagnostics.push({
                 level: "warning",
-                message: `${what}: \`precision\` ожидает целое от 0 до ${MAX_PRECISION}, получено «${String(p)}» — округляю по умолчанию.`,
+                message: t("stats.badPrecision", { card, max: MAX_PRECISION, value: String(p) }),
             });
         }
     }
@@ -82,13 +86,15 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
 }
 
 /**
- * Число в текст карточки.
+ * A number turned into card text.
  *
- * Прочерк, а не ноль: «нечего считать» и «посчитали ноль» — разные ответы,
- * и подменять первый вторым значит врать о данных.
+ * A dash rather than a zero: "nothing to count" and "counted zero" are
+ * different answers, and passing the first off as the second lies about the
+ * data.
  *
- * Без `precision` целое остаётся целым, а дробное округляется до одного знака:
- * `avg` иначе выводит 72.83333333333333 и ломает вёрстку карточки.
+ * Without `precision` a whole number stays whole and a fraction is rounded to
+ * one decimal: otherwise `avg` prints 72.83333333333333 and breaks the card
+ * layout.
  */
 export function formatValue(value: number | null, precision?: number): string {
     if (value === null || !Number.isFinite(value)) return "—";
@@ -97,14 +103,14 @@ export function formatValue(value: number | null, precision?: number): string {
     return group(String(Math.round(value * 10) / 10));
 }
 
-/** Узкий неразрывный пробел: разряды не должны переноситься по строкам. */
-const GROUP_SEPARATOR = "\u202F";
+/** A narrow no-break space: digit groups must not wrap across lines. */
+const GROUP_SEPARATOR = " ";
 
 /**
- * Разбивает целую часть по три разряда: 1138758 в карточке не читается.
+ * Splits the integer part into groups of three: 1138758 is unreadable on a card.
  *
- * До четырёх цифр не трогаем — иначе год вроде 2026 превращается в «2 026»,
- * хотя это не величина, а номер.
+ * Up to four digits are left alone — otherwise a year like 2026 turns into
+ * "2 026", and that is an ordinal, not a quantity.
  */
 function group(text: string): string {
     const dot = text.indexOf(".");

@@ -1,5 +1,6 @@
 import { Plugin } from "obsidian";
 import { DEFAULT_SETTINGS, type DashySettings } from "../types";
+import { applyObsidianLocale } from "../adapters/locale";
 import { renderHeatmap } from "../blocks/heatmap";
 import { renderStats } from "../blocks/stats";
 import { renderToday } from "../blocks/today";
@@ -11,6 +12,10 @@ export default class DashyPlugin extends Plugin {
 
     async onload(): Promise<void> {
         await this.loadSettings();
+
+        // Once, before anything renders: Obsidian needs a restart to change
+        // its own language, so there is nothing to react to later.
+        applyObsidianLocale();
 
         this.registerMarkdownCodeBlockProcessor("tiles", (source, el) => {
             renderTiles(this.app, source, el);

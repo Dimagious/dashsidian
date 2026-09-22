@@ -1,14 +1,15 @@
 /**
- * Заглушка пакета `obsidian` для vitest — настоящий поставляется только
- * внутри приложения. Алиас настроен в vitest.config.ts.
+ * A stub of the `obsidian` package for vitest — the real one ships only inside
+ * the application. The alias is configured in vitest.config.ts.
  *
- * Держим минимум: чистый слой (core/, shared/) обсидиан не импортирует
- * вовсе, а mount-тесты блоков будут дописывать сюда по мере появления.
+ * Kept minimal: the pure layer (core/, shared/, i18n/) does not import obsidian
+ * at all, and block mount tests will add to this as they appear.
  */
+
 /**
- * Настоящий Obsidian отдаёт свой moment, настроенный на язык приложения.
- * В тестах берём пакет из node_modules — он приходит вместе с типами obsidian.
- * В сборку он не попадает: `obsidian` для esbuild внешний.
+ * The real Obsidian hands out its own moment, set to the application language.
+ * In tests we take the package from node_modules — it comes along with the
+ * obsidian types. It never reaches the bundle: `obsidian` is external.
  */
 export { default as moment } from "moment";
 

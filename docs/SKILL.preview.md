@@ -1,110 +1,111 @@
 ---
 name: dashy
 description: >-
-  Собрать дашборд в заметке Obsidian блоками плагина Dashy: сетка плиток для
-  навигации, карточки чисел по frontmatter, строка дня со ссылками на заметки
-  дня, недели и месяца, тепловая карта года. Использовать, когда просят сделать
-  дашборд, домашнюю страницу, сетку плиток, карточки со счётчиками или средними,
-  ссылку на сегодняшнюю заметку, календарь по дням, тепловую карту, трекер
-  привычки или визуальную точку входа в хранилище.
-version: 0.3.0
+  Build a dashboard inside an Obsidian note with Dashy blocks: a grid of
+  navigation tiles, number cards computed from frontmatter, a day row linking
+  to the daily, weekly and monthly notes, and a year heatmap. Use it when asked
+  for a dashboard, a home page, a tile grid, cards with counters or averages, a
+  link to today's note, a day calendar, a heatmap, a habit tracker or a visual
+  entry point into the vault.
+version: 0.4.0
 ---
 
-# Dashy — блоки дашборда
+# Dashy — dashboard blocks
 
-Плагин **Dashy** (`dashsidian`) рисует дашборд из markdown-блоков.
-Конфиг — YAML внутри блока. Никакого JavaScript, Dataview не нужен.
+The **Dashy** plugin (`dashsidian`) draws a dashboard out of
+markdown blocks. The config is YAML inside the block. No JavaScript, and no
+Dataview required.
 
-Всего блоков: 4.
+Blocks in total: 4.
 
 ### `tiles`
 
-Сетка плиток-ссылок для навигации по хранилищу.
+A grid of link tiles for navigating the vault.
 
-**Корень блока**
+**Block root**
 
-| ключ | тип | обяз. | по умолч. | синонимы | что делает |
+| key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
-| `columns` | number | — | `4` | — | колонок в сетке, 1–8 |
-| `items` | list | да | — | — | список плиток |
+| `columns` | number | — | `4` | — | columns in the grid, 1–8 |
+| `items` | list | yes | — | — | the list of tiles |
 
-**Элемент списка**
+**List item**
 
-| ключ | тип | обяз. | по умолч. | синонимы | что делает |
+| key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
-| `label` | string | да | — | `title`, `name` | подпись |
-| `path` | string | да | — | — | куда ведёт; понимает Файл.base#Вид |
-| `icon` | string | — | — | `emoji` | эмодзи |
-| `sub` | string | — | — | — | мелкая подпись под названием |
-| `badge` | string\|number | — | — | — | count — число заметок в папке, либо своя строка |
-| `accent` | boolean | — | — | — | акцентная полоса слева |
+| `label` | string | yes | — | `title`, `name` | caption |
+| `path` | string | yes | — | — | where it leads; understands File.base#View |
+| `icon` | string | — | — | `emoji` | emoji |
+| `sub` | string | — | — | — | small caption under the title |
+| `badge` | string\|number | — | — | — | count — the number of notes in the folder, or your own string |
+| `accent` | boolean | — | — | — | accent stripe on the left |
 
-**Пример**
+**Example**
 
 ````markdown
 ```tiles
 columns: 4
 items:
   - { label: Inbox, path: 00-Inbox, icon: 📥, badge: count }
-  - { label: Sport, path: 01-Areas/Sport/Training-Log, icon: 🏆, sub: тренировки, accent: true }
+  - { label: Sport, path: 01-Areas/Sport/Training-Log, icon: 🏆, sub: workouts, accent: true }
 ```
 ````
 
 ### `stats`
 
-Карточки чисел: на каждой одно значение, посчитанное по выборке заметок.
+Number cards: one value per card, computed over a selection of notes.
 
-**Корень блока**
+**Block root**
 
-| ключ | тип | обяз. | по умолч. | синонимы | что делает |
+| key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
-| `columns` | number | — | `3` | — | колонок в сетке, 1–6 |
-| `items` | list | да | — | — | список карточек |
+| `columns` | number | — | `3` | — | columns in the grid, 1–6 |
+| `items` | list | yes | — | — | the list of cards |
 
-**Элемент списка**
+**List item**
 
-| ключ | тип | обяз. | по умолч. | синонимы | что делает |
+| key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
-| `label` | string | да | — | `title`, `name` | подпись под числом |
-| `source` | string | — | — | `folder`, `from` | папка; включает вложенные |
-| `tag` | string | — | — | — | тег, с решёткой или без |
-| `where` | string | — | — | — | условие вида `year = 2026`, `rating >= 4`, `tags contains книги` |
-| `field` | string | — | — | `property`, `prop` | числовое поле frontmatter; обязательно для всего, кроме count и streak |
+| `label` | string | yes | — | `title`, `name` | caption under the number |
+| `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
+| `tag` | string | — | — | — | tag, with or without the hash |
+| `where` | string | — | — | — | a condition like `year = 2026`, `rating >= 4`, `tags contains books` |
+| `field` | string | — | — | `property`, `prop` | numeric frontmatter property; required for everything but count and streak |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
-| `unit` | string | — | — | — | приписка после числа: км, %, дн. |
-| `precision` | number | — | — | — | знаков после запятой, 0–6; по умолчанию целое как есть, дробное до одного знака |
-| `icon` | string | — | — | `emoji` | эмодзи |
-| `sub` | string | — | — | — | мелкая подпись под названием |
+| `unit` | string | — | — | — | a suffix after the number: km, %, d. |
+| `precision` | number | — | — | — | decimal places, 0–6; by default a whole number stays whole and a fraction gets one decimal |
+| `icon` | string | — | — | `emoji` | emoji |
+| `sub` | string | — | — | — | small caption under the title |
 
-**Пример**
+**Example**
 
 ````markdown
 ```stats
 columns: 3
 items:
-  - { label: Заметок, source: 01-Areas, agg: count }
-  - { label: Сон, source: Дневник, field: sleep_score, agg: avg, precision: 1 }
-  - { label: Без пропусков, source: Дневник, field: sleep_score, agg: streak, unit: дн. }
+  - { label: Notes, source: 01-Areas, agg: count }
+  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, precision: 1 }
+  - { label: Days in a row, source: Diary, field: sleep_score, agg: streak, unit: d. }
 ```
 ````
 
-- `streak` считает самую длинную цепочку подряд идущих дней, `latest` берёт значение из самой поздней заметки — обоим нужны имена-даты YYYY-MM-DD.
-- Считать нечего — карточка показывает прочерк, а не ноль: «нет данных» и «ноль» это разные ответы.
+- `streak` counts the longest run of consecutive days and `latest` takes the value from the newest note — both need YYYY-MM-DD note names.
+- Nothing to count — the card shows a dash rather than a zero: "no data" and "zero" are different answers.
 
 ### `today`
 
-Строка дня: сегодняшняя дата и ссылки на заметки дня, недели и месяца.
+A day row: today's date and links to the daily, weekly and monthly notes.
 
-**Корень блока**
+**Block root**
 
-| ключ | тип | обяз. | по умолч. | синонимы | что делает |
+| key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
-| `daily` | boolean | — | `true` | — | ссылка на заметку дня |
-| `weekly` | boolean | — | `false` | — | ссылка на заметку недели |
-| `monthly` | boolean | — | `false` | — | ссылка на заметку месяца |
-| `title` | string | — | — | — | свой заголовок вместо сегодняшней даты |
+| `daily` | boolean | — | `true` | — | link to the daily note |
+| `weekly` | boolean | — | `false` | — | link to the weekly note |
+| `monthly` | boolean | — | `false` | — | link to the monthly note |
+| `title` | string | — | — | — | a custom heading instead of today's date |
 
-**Пример**
+**Example**
 
 ````markdown
 ```today
@@ -114,53 +115,57 @@ monthly: true
 ```
 ````
 
-- Папку и формат имени берёт из плагина Periodic Notes, если он установлен; для дня подхватывает и ядровой «Daily notes». Папка, вписанная в настройках Dashy, главнее обоих.
-- Ни один из ключей не указан — показывается только заметка дня. Указан хотя бы один — работают ровно указанные.
-- Заметки ещё нет — ссылка всё равно рисуется, приглушённой: клик по ней создаст заметку.
+- Takes the folder and the name format from the Periodic Notes plugin when installed; for the day it also picks up the core "Daily notes". A folder set in the Dashy settings wins over both.
+- With none of the keys given, only the daily note is shown. With at least one given, exactly those apply.
+- If the note does not exist yet the link is still drawn, dimmed: clicking it creates the note.
 
 ### `heatmap`
 
-Год по дням: клетка на каждый день, цвет по числу из frontmatter.
+A year by days: one cell per day, coloured by a number from frontmatter.
 
-**Корень блока**
+**Block root**
 
-| ключ | тип | обяз. | по умолч. | синонимы | что делает |
+| key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
-| `source` | string | — | — | `folder`, `from` | папка; включает вложенные |
-| `tag` | string | — | — | — | тег, с решёткой или без |
-| `where` | string | — | — | — | условие вида `year = 2026`, `rating >= 4`, `tags contains книги` |
-| `field` | string | да | — | `property`, `prop` | числовое поле frontmatter |
-| `color` | string | — | `blue` | `colour` | blue green cyan purple pink orange red gray, либо #rrggbb |
-| `bands` | list | — | — | — | пороги сверху вниз: [90, 80, 60] либо [{min, alpha, label}] |
-| `link` | boolean | — | `true` | — | клик по клетке открывает заметку дня |
-| `title` | string | — | — | — | свой заголовок вместо автоматического |
+| `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
+| `tag` | string | — | — | — | tag, with or without the hash |
+| `where` | string | — | — | — | a condition like `year = 2026`, `rating >= 4`, `tags contains books` |
+| `field` | string | yes | — | `property`, `prop` | numeric frontmatter property |
+| `color` | string | — | `blue` | `colour` | blue green cyan purple pink orange red gray, or #rrggbb |
+| `bands` | list | — | — | — | thresholds from the top down: [90, 80, 60] or [{min, alpha, label}] |
+| `link` | boolean | — | `true` | — | clicking a cell opens that day's note |
+| `title` | string | — | — | — | a custom heading instead of the automatic one |
 
-**Пример**
+**Example**
 
 ````markdown
 ```heatmap
-source: 01-Areas/Personal/Дневник
+source: 01-Areas/Personal/Diary
 field: sleep_score
 color: purple
 bands: [90, 80, 60]
 ```
 ````
 
-- Заметки должны называться датой YYYY-MM-DD — так блок понимает, в какую клетку их класть.
-- Годы определяются по данным: появится следующий год — нарисуется второй сеткой.
+- Notes must be named as YYYY-MM-DD dates — that is how the block knows which cell they belong to.
+- Years are taken from the data: once a new year appears, a second grid is drawn.
 
-## Чего плагин НЕ делает
+## What the plugin does NOT do
 
-Не выдумывай блоки, которых нет. Если просят что-то из этого списка — скажи, чем это делается на самом деле.
+Do not invent blocks that do not exist. If asked for something on this list,
+say what actually does the job.
 
-- **таблица** — Это Obsidian Bases. Сошлись на вид базы из плитки: `path: Vault.base#Мой вид`.
-- **график** — Это плагин Obsidian Charts. Dashy графики не рисует.
-- **канбан** — Это плагин Kanban.
-- **задачи** — Это плагины Tasks или Dataview.
+- **table** — That is Obsidian Bases. Link to a base view from a tile instead: `path: Vault.base#My view`.
+- **chart** — That is the Obsidian Charts plugin. Dashy does not draw charts.
+- **kanban** — That is the Kanban plugin.
+- **tasks** — That are the Tasks or Dataview plugins.
 
-## Общие правила
+## General rules
 
-- Значения с двоеточием, запятой или решёткой бери в кавычки: `label: "Дом: вход"`.
-- Синонимы ключей из таблиц выше распознаются, но в новых конфигах пиши канонический ключ.
-- Неизвестный ключ не ломает блок — рисуется предупреждение. Но лишним ключам там не место.
-- Блок сам выводит ошибку конфига прямо в заметку. Если пользователь прислал текст ошибки — читай его буквально, там есть номер строки.
+- Quote values containing a colon, a comma or a hash: `label: "Home: entry"`.
+- The key synonyms in the tables above are recognised, but write the canonical key in new configs.
+- An unknown key does not break the block — a warning is drawn instead. Still, stray keys do not belong there.
+- A block prints its own config errors straight into the note. If the user pastes an error, read it literally: it carries the line number.
+
+The plugin speaks the language of the Obsidian interface. These blocks and keys
+are the same in every language.

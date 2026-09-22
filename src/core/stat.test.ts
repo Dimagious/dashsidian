@@ -1,93 +1,93 @@
 import { describe, it, expect } from "vitest";
 import { readStat, formatValue } from "./stat";
 
-describe("readStat — счастливый путь", () => {
-    it("без agg считает заметки", () => {
-        const { spec, diagnostics } = readStat({ label: "Заметок", source: "01-Areas" }, "Заметок");
+describe("readStat — happy path", () => {
+    it("with no agg it counts notes", () => {
+        const { spec, diagnostics } = readStat({ label: "Notes", source: "01-Areas" }, "Notes");
         expect(spec).toEqual({ agg: "count" });
         expect(diagnostics).toEqual([]);
     });
 
-    it("агрегат по полю несёт поле дальше", () => {
-        const { spec, diagnostics } = readStat({ agg: "avg", field: "sleep_score" }, "Сон");
+    it("a field aggregate carries the field through", () => {
+        const { spec, diagnostics } = readStat({ agg: "avg", field: "sleep_score" }, "Sleep");
         expect(spec).toEqual({ agg: "avg", field: "sleep_score" });
         expect(diagnostics).toEqual([]);
     });
 
-    it("берёт unit и precision", () => {
-        const { spec } = readStat({ agg: "sum", field: "distance_km", unit: "км", precision: 2 }, "Бег");
-        expect(spec).toMatchObject({ unit: "км", precision: 2 });
+    it("takes unit and precision", () => {
+        const { spec } = readStat({ agg: "sum", field: "distance_km", unit: "km", precision: 2 }, "Running");
+        expect(spec).toMatchObject({ unit: "km", precision: 2 });
     });
 
-    it("streak обходится без поля", () => {
-        const { spec, diagnostics } = readStat({ agg: "streak" }, "Подряд");
+    it("streak needs no field", () => {
+        const { spec, diagnostics } = readStat({ agg: "streak" }, "In a row");
         expect(spec).toEqual({ agg: "streak" });
         expect(diagnostics).toEqual([]);
     });
 
-    it("streak с полем поле сохраняет — цепочка считается по дням с этим числом", () => {
-        const { spec } = readStat({ agg: "streak", field: "sleep_score" }, "Подряд");
+    it("streak with a field keeps it — the run counts days holding that number", () => {
+        const { spec } = readStat({ agg: "streak", field: "sleep_score" }, "In a row");
         expect(spec).toEqual({ agg: "streak", field: "sleep_score" });
     });
 });
 
-describe("readStat — края", () => {
-    it("пустое и пробельное поле считается незаданным", () => {
+describe("readStat — edges", () => {
+    it("an empty or blank field counts as unset", () => {
         for (const field of ["", "   "]) {
             expect(readStat({ agg: "avg", field }, "X").spec).toBeNull();
             expect(readStat({ agg: "count", field }, "X").spec).toEqual({ agg: "count" });
         }
     });
 
-    it("обрезает пробелы вокруг поля и приписки", () => {
-        const { spec } = readStat({ agg: "max", field: "  steps  ", unit: " шаг " }, "Шаги");
-        expect(spec).toEqual({ agg: "max", field: "steps", unit: "шаг" });
+    it("trims spaces around the field and the unit", () => {
+        const { spec } = readStat({ agg: "max", field: "  steps  ", unit: " step " }, "Steps");
+        expect(spec).toEqual({ agg: "max", field: "steps", unit: "step" });
     });
 
-    it("пустая приписка не попадает в spec", () => {
+    it("a blank unit does not reach the spec", () => {
         expect(readStat({ agg: "count", unit: "  " }, "X").spec).toEqual({ agg: "count" });
     });
 
-    it("precision 0 — допустимое значение, а не «не задано»", () => {
+    it("precision 0 is a value, not \"unset\"", () => {
         expect(readStat({ agg: "avg", field: "x", precision: 0 }, "X").spec?.precision).toBe(0);
     });
 
-    it("карточка без подписи всё равно называет себя в сообщении", () => {
+    it("an unlabelled card still names itself in the message", () => {
         const { diagnostics } = readStat({ agg: "avg" }, "");
-        expect(diagnostics[0]?.message).toContain("карточка без подписи");
+        expect(diagnostics[0]?.message).toContain("a card with no label");
     });
 });
 
-describe("readStat — ошибки конфига", () => {
-    it("агрегату по числам без field — ошибка, а не тихий ноль", () => {
+describe("readStat — config errors", () => {
+    it("a number aggregate without a field is an error, not a silent zero", () => {
         for (const agg of ["sum", "avg", "min", "max", "latest"]) {
-            const { spec, diagnostics } = readStat({ agg }, "Сон");
+            const { spec, diagnostics } = readStat({ agg }, "Sleep");
             expect(spec).toBeNull();
             expect(diagnostics[0]?.level).toBe("error");
             expect(diagnostics[0]?.message).toContain("field");
         }
     });
 
-    it("опечатка в agg подсказывает верный вариант", () => {
-        const { spec, diagnostics } = readStat({ agg: "avgg", field: "x" }, "Сон");
+    it("a typo in agg suggests the right one", () => {
+        const { spec, diagnostics } = readStat({ agg: "avgg", field: "x" }, "Sleep");
         expect(spec).toBeNull();
-        expect(diagnostics[0]?.message).toContain("«avg»");
+        expect(diagnostics[0]?.message).toContain("\"avg\"");
     });
 
-    it("совсем не агрегат — ошибка со списком доступных", () => {
-        const { spec, diagnostics } = readStat({ agg: "медиана", field: "x" }, "Сон");
+    it("something that is not an aggregate at all lists the available ones", () => {
+        const { spec, diagnostics } = readStat({ agg: "median", field: "x" }, "Sleep");
         expect(spec).toBeNull();
         expect(diagnostics[0]?.message).toContain("count");
     });
 
-    it("agg не строкой не роняет разбор", () => {
-        const { spec, diagnostics } = readStat({ agg: 42 }, "Сон");
+    it("a non-string agg does not break parsing", () => {
+        const { spec, diagnostics } = readStat({ agg: 42 }, "Sleep");
         expect(spec).toBeNull();
         expect(diagnostics[0]?.level).toBe("error");
     });
 
-    it("негодный precision — предупреждение, карточка всё равно рисуется", () => {
-        for (const precision of [-1, 7, 1.5, "два", null]) {
+    it("a bad precision warns, and the card is still drawn", () => {
+        for (const precision of [-1, 7, 1.5, "two", null]) {
             const { spec, diagnostics } = readStat({ agg: "count", precision }, "X");
             expect(spec).toEqual({ agg: "count" });
             expect(diagnostics[0]?.level).toBe("warning");
@@ -96,63 +96,63 @@ describe("readStat — ошибки конфига", () => {
 });
 
 describe("formatValue", () => {
-    it("нечего считать — прочерк, а не ноль", () => {
+    it("nothing to count is a dash, not a zero", () => {
         expect(formatValue(null)).toBe("—");
     });
 
-    it("ноль остаётся нулём", () => {
+    it("zero stays zero", () => {
         expect(formatValue(0)).toBe("0");
     });
 
-    it("целое выводится как есть", () => {
+    it("a whole number is printed as is", () => {
         expect(formatValue(212)).toBe("212");
     });
 
-    it("дробное по умолчанию округляется до одного знака", () => {
+    it("a fraction is rounded to one decimal by default", () => {
         expect(formatValue(72.83333333333333)).toBe("72.8");
     });
 
-    it("precision задаёт число знаков и добивает нулями", () => {
+    it("precision sets the decimals and pads with zeros", () => {
         expect(formatValue(72.8, 3)).toBe("72.800");
         expect(formatValue(72.83, 0)).toBe("73");
     });
 
-    it("отрицательные и крошечные значения не дают «-0»", () => {
+    it("negative and tiny values never render as \"-0\"", () => {
         expect(formatValue(-0.02)).toBe("0");
         expect(formatValue(-4.26)).toBe("-4.3");
     });
 
-    it("бесконечность и NaN — прочерк", () => {
+    it("infinity and NaN are a dash", () => {
         expect(formatValue(Infinity)).toBe("—");
         expect(formatValue(NaN)).toBe("—");
     });
 });
 
-const NBSP = "\u202F";
+const NBSP = " ";
 
-describe("formatValue — разряды", () => {
-    it("длинное число разбивается по три цифры", () => {
+describe("formatValue — digit groups", () => {
+    it("a long number is split into groups of three", () => {
         expect(formatValue(1138758)).toBe(`1${NBSP}138${NBSP}758`);
     });
 
-    it("год и четырёхзначный счётчик остаются слитными", () => {
+    it("a year and a four-digit counter stay unsplit", () => {
         expect(formatValue(2026)).toBe("2026");
         expect(formatValue(9999)).toBe("9999");
     });
 
-    it("разбивать начинаем с пяти цифр", () => {
+    it("splitting starts at five digits", () => {
         expect(formatValue(10000)).toBe(`10${NBSP}000`);
     });
 
-    it("дробная часть не разбивается", () => {
+    it("the fractional part is not split", () => {
         expect(formatValue(1234567.89, 2)).toBe(`1${NBSP}234${NBSP}567.89`);
     });
 
-    it("минус остаётся при числе", () => {
+    it("the minus sign stays with the number", () => {
         expect(formatValue(-1138758)).toBe(`-1${NBSP}138${NBSP}758`);
     });
 
-    it("разделитель неразрывный — иначе число переносится по строкам", () => {
+    it("the separator is non-breaking — otherwise the number wraps", () => {
         expect(formatValue(1138758)).not.toContain(" ");
     });
 });

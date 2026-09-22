@@ -1,4 +1,4 @@
-/** Именованные цвета блоков. Всё остальное в плагине берётся от темы. */
+/** Named block colours. Everything else in the plugin comes from the theme. */
 export type Rgb = readonly [number, number, number];
 
 export const PALETTE: Record<string, Rgb> = {
@@ -14,7 +14,7 @@ export const PALETTE: Record<string, Rgb> = {
 
 export const DEFAULT_COLOR: Rgb = PALETTE.blue as Rgb;
 
-/** `purple` | `#8b6cef` | `[139, 92, 246]` → rgb. Непонятное — цвет по умолчанию. */
+/** `purple` | `#8b6cef` | `[139, 92, 246]` → rgb. Anything unclear is the default. */
 export function toRgb(value: unknown): Rgb {
     if (Array.isArray(value) && value.length === 3 && value.every((v) => typeof v === "number")) {
         return value as unknown as Rgb;

@@ -1,67 +1,67 @@
 import { describe, it, expect } from "vitest";
 import { parseConfig, canonicalize, asItems, unknownKeys, nearest, isRecord } from "./parse";
 
-describe("canonicalize — контекст блока", () => {
-    it("собственный ключ блока не уезжает в синоним", () => {
-        // `title` — синоним `label` для плитки, но собственный ключ heatmap.
-        expect(canonicalize({ title: "Мой сон" }, { root: ["title"] }))
-            .toEqual({ title: "Мой сон" });
+describe("canonicalize — block context", () => {
+    it("a block's own key does not drift into a synonym", () => {
+        // `title` is a synonym of `label` for a tile, but heatmap's own key.
+        expect(canonicalize({ title: "My sleep" }, { root: ["title"] }))
+            .toEqual({ title: "My sleep" });
     });
 
-    it("тот же ключ вне списка канонических по-прежнему синоним", () => {
-        expect(canonicalize({ title: "Плитка" }, { root: ["columns", "items"], item: ["label"] }))
-            .toEqual({ label: "Плитка" });
+    it("the same key outside the canonical list is still a synonym", () => {
+        expect(canonicalize({ title: "Tile" }, { root: ["columns", "items"], item: ["label"] }))
+            .toEqual({ label: "Tile" });
     });
 
-    it("корень и элементы списка защищены разными наборами", () => {
+    it("the root and the list items are protected by different sets", () => {
         const out = canonicalize(
-            { title: "Заголовок", items: [{ title: "Плитка" }] },
+            { title: "Heading", items: [{ title: "Tile" }] },
             { root: ["title", "items"], item: ["label"] },
         );
-        expect(out).toEqual({ title: "Заголовок", items: [{ label: "Плитка" }] });
+        expect(out).toEqual({ title: "Heading", items: [{ label: "Tile" }] });
     });
 
-    it("голый массив разбирается как элементы списка", () => {
+    it("a bare array is read as list items", () => {
         expect(canonicalize([{ title: "A" }], { root: ["title"], item: [] }))
             .toEqual([{ label: "A" }]);
     });
 
-    it("вложенные объекты не из items защиту корня не теряют", () => {
-        expect(canonicalize({ title: "X", bands: [{ label: "верх" }] }, { root: ["title", "bands"] }))
-            .toEqual({ title: "X", bands: [{ label: "верх" }] });
+    it("nested objects that are not items keep the root protection", () => {
+        expect(canonicalize({ title: "X", bands: [{ label: "top" }] }, { root: ["title", "bands"] }))
+            .toEqual({ title: "X", bands: [{ label: "top" }] });
     });
 
-    it("parseConfig прокидывает контекст", () => {
-        expect(parseConfig("title: Мой сон\nfield: x", { root: ["title", "field"] }).value)
-            .toEqual({ title: "Мой сон", field: "x" });
+    it("parseConfig passes the context through", () => {
+        expect(parseConfig("title: My sleep\nfield: x", { root: ["title", "field"] }).value)
+            .toEqual({ title: "My sleep", field: "x" });
     });
 });
 
 describe("canonicalize", () => {
-    it("приводит синонимы к каноническим ключам", () => {
+    it("rewrites synonyms to canonical keys", () => {
         expect(canonicalize({ folder: "X", title: "Y", emoji: "📥" }))
             .toEqual({ source: "X", label: "Y", icon: "📥" });
     });
-    it("работает рекурсивно по массивам", () => {
+    it("recurses into arrays", () => {
         expect(canonicalize([{ from: "A" }, { name: "B" }]))
             .toEqual([{ source: "A" }, { label: "B" }]);
     });
-    it("не трогает скаляры", () => {
+    it("leaves scalars alone", () => {
         expect(canonicalize(42)).toBe(42);
         expect(canonicalize(null)).toBeNull();
     });
 });
 
 describe("parseConfig", () => {
-    it("разбирает валидный YAML", () => {
-        const r = parseConfig("source: Дневник\nfield: sleep_score");
-        expect(r.value).toEqual({ source: "Дневник", field: "sleep_score" });
+    it("parses valid YAML", () => {
+        const r = parseConfig("source: Diary\nfield: sleep_score");
+        expect(r.value).toEqual({ source: "Diary", field: "sleep_score" });
         expect(r.diagnostics).toHaveLength(0);
     });
-    it("пустой блок — ошибка, а не падение", () => {
+    it("an empty block is an error, not a crash", () => {
         expect(parseConfig("   ").diagnostics[0]?.level).toBe("error");
     });
-    it("битый YAML возвращает диагностику, а не бросает", () => {
+    it("broken YAML returns a diagnostic instead of throwing", () => {
         const r = parseConfig("items:\n  - { label: X\n");
         expect(r.value).toBeNull();
         expect(r.diagnostics[0]?.level).toBe("error");
@@ -69,42 +69,42 @@ describe("parseConfig", () => {
 });
 
 describe("asItems", () => {
-    it("принимает голый массив", () => {
+    it("accepts a bare array", () => {
         expect(asItems([{ label: "A" }])).toHaveLength(1);
     });
-    it("принимает объект с items", () => {
+    it("accepts an object with items", () => {
         expect(asItems({ columns: 4, items: [{ label: "A" }, { label: "B" }] })).toHaveLength(2);
     });
-    it("одиночный объект считает списком из одного", () => {
+    it("treats a single object as a list of one", () => {
         expect(asItems({ label: "A" })).toHaveLength(1);
     });
-    it("мусор — пустой список", () => {
-        expect(asItems("строка")).toHaveLength(0);
+    it("rubbish is an empty list", () => {
+        expect(asItems("a string")).toHaveLength(0);
     });
 });
 
 describe("unknownKeys", () => {
-    it("молчит про известные", () => {
+    it("says nothing about known keys", () => {
         expect(unknownKeys({ label: "A", icon: "x" }, ["label", "icon"])).toHaveLength(0);
     });
-    it("подсказывает похожий ключ", () => {
+    it("suggests a similar key", () => {
         const d = unknownKeys({ lable: "A" }, ["label", "icon"]);
         expect(d[0]?.level).toBe("warning");
         expect(d[0]?.message).toContain("label");
     });
-    it("для совсем чужого ключа подсказку не выдумывает", () => {
-        const d = unknownKeys({ совершенноДругое: 1 }, ["label"]);
-        expect(d[0]?.message).toContain("пропущен");
+    it("invents no suggestion for a completely foreign key", () => {
+        const d = unknownKeys({ somethingEntirelyElse: 1 }, ["label"]);
+        expect(d[0]?.message).toContain("ignored");
     });
 });
 
 describe("nearest", () => {
-    it("находит близкое", () => expect(nearest("feild", ["field", "label"])).toBe("field"));
-    it("далёкое не тянет", () => expect(nearest("zzzzzz", ["field"])).toBeNull());
+    it("finds a close one", () => expect(nearest("feild", ["field", "label"])).toBe("field"));
+    it("does not reach for a distant one", () => expect(nearest("zzzzzz", ["field"])).toBeNull());
 });
 
 describe("isRecord", () => {
-    it("отличает объект от массива и null", () => {
+    it("tells an object from an array and null", () => {
         expect(isRecord({})).toBe(true);
         expect(isRecord([])).toBe(false);
         expect(isRecord(null)).toBe(false);

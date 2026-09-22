@@ -1,19 +1,20 @@
-import { moment, type App } from "obsidian";
+import type { App } from "obsidian";
 import { PERIODS, type Period, type PeriodConfig } from "../core/periodic";
 import { isRecord } from "../shared/parse";
 
 /**
- * Где лежат периодические заметки — по данным соседних плагинов.
+ * Where periodic notes live, according to the neighbouring plugins.
  *
- * Официального API у Periodic Notes нет, и тянуть `obsidian-daily-notes-interface`
- * ради трёх полей — это зависимость (см. ADR 0001, тот же довод, что про Dataview).
- * Поэтому читаем настройки напрямую и защищаемся от любого их вида: соседа может
- * не быть вовсе, он может обновиться и переехать. Ничего не нашли — вернём пусто,
- * и core/periodic.ts подставит умолчания.
+ * Periodic Notes has no official API, and pulling in
+ * `obsidian-daily-notes-interface` for three fields would be a dependency
+ * (see ADR 0001, the same argument as for Dataview). So we read the settings
+ * directly and defend against any shape of them: the neighbour may be absent,
+ * or may update and move things around. Found nothing — return nothing, and
+ * core/periodic.ts falls back to the defaults.
  */
 export type Discovered = Partial<Record<Period, Partial<PeriodConfig>>>;
 
-/** Приватная часть App: в публичных типах её нет, но она стабильна годами. */
+/** The private part of App: absent from the public types, but stable for years. */
 interface PluginHost {
     plugins?: { plugins?: Record<string, unknown> };
     internalPlugins?: { plugins?: Record<string, unknown> };
@@ -28,16 +29,17 @@ export function discoverPeriodics(app: App): Discovered {
     if (isRecord(settings)) {
         for (const period of PERIODS) {
             const cfg = settings[period];
-            // `enabled` сознательно игнорируем: даже выключенный у соседа период
-            // хранит настроенную папку, а это лучшая догадка, чем корень хранилища.
-            // Раз блок просит `monthly: true`, заметка нужна именно там.
+            // `enabled` is ignored on purpose: even a period switched off at the
+            // neighbour still holds a configured folder, and that is a better
+            // guess than the vault root. If the block asks for `monthly: true`,
+            // the note belongs exactly there.
             if (!isRecord(cfg)) continue;
             const found = pick(cfg);
             if (found) out[period] = found;
         }
     }
 
-    // Ядровой «Daily notes» знает только про день и уступает Periodic Notes.
+    // The core "Daily notes" only knows about the day, and yields to Periodic Notes.
     if (!out.daily) {
         const core = host.internalPlugins?.plugins?.["daily-notes"];
         const instance = isRecord(core) ? core.instance : undefined;
@@ -55,14 +57,4 @@ function pick(cfg: Record<string, unknown>): Partial<PeriodConfig> | null {
     const folder = typeof cfg.folder === "string" ? cfg.folder : "";
     const format = typeof cfg.format === "string" ? cfg.format : "";
     return folder || format ? { folder, format } : null;
-}
-
-/**
- * Дата в имя заметки по формату moment.
- *
- * `moment` берём из Obsidian, а не из npm: он там уже есть, настроен на язык
- * приложения и форматы Periodic Notes записаны в той же нотации.
- */
-export function formatDate(date: Date, format: string): string {
-    return moment(date).format(format);
 }

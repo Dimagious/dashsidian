@@ -3,9 +3,10 @@ import { snapshot } from "../adapters/vault";
 import { selectNotes } from "../core/source";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { renderDiagnostics, internalLink } from "../shared/render";
+import { t } from "../i18n";
 import schema from "./schema.json";
 
-/** Ключи берутся из schema.json — того же источника, из которого собирается скилл. */
+/** Keys come from schema.json — the same source the agent skill is built from. */
 const KNOWN_ITEM = Object.keys(schema.blocks.tiles.item);
 const KNOWN_ROOT = Object.keys(schema.blocks.tiles.root);
 
@@ -15,7 +16,7 @@ export function renderTiles(app: App, source: string, el: HTMLElement): void {
     const items = asItems(value);
 
     if (!items.length) {
-        diags.push({ level: "error", message: "Список плиток пуст. Ожидается `items:` или массив." });
+        diags.push({ level: "error", message: t("tiles.empty") });
         renderDiagnostics(el, "tiles", diags);
         return;
     }
