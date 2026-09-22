@@ -88,6 +88,14 @@ test.describe("settings tab", () => {
         expect(written).toContain("### `countdown`");
     });
 
+    test("the About rows are there, with somewhere to send feedback", async ({ app, win }) => {
+        const settings = await openSettings(app, win);
+        for (const name of ["Report a bug", "Suggest a feature", "Documentation", "Buy me a coffee"]) {
+            await expect(settings.getByText(name, { exact: true })).toBeVisible();
+        }
+        await expect(settings.getByRole("button", { name: "Report a bug" })).toBeVisible();
+    });
+
     test("installing again offers an update rather than a fresh install", async ({ app, win }) => {
         const settings = await openSettings(app, win);
         await settings.getByRole("button", { name: "Skill file in this vault" }).click();

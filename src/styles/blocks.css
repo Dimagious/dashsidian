@@ -73,6 +73,10 @@
 .dashy-stat-label { font-size: 0.85em; margin-top: 4px; }
 .dashy-stat-sub { font-size: 0.7em; opacity: 0.55; margin-top: 2px; }
 
+/* the block picker in the command palette */
+.dashy-suggest-name { font-weight: 500; }
+.dashy-suggest-what { font-size: 0.8em; color: var(--text-muted); }
+
 /* progress */
 .dashy-progress { margin: 0 0 24px; display: flex; flex-direction: column; gap: 14px; }
 .dashy-progress-head {

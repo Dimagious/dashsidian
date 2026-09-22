@@ -1,6 +1,8 @@
 import {
     App,
     Notice,
+    Platform,
+    apiVersion,
     PluginSettingTab,
     normalizePath,
     type SettingDefinitionItem,
@@ -17,6 +19,7 @@ import {
     AGENTS_END,
 } from "../skill/skill-content";
 import { upsertManagedSection, hasManagedSection } from "../core/agents-file";
+import { buildIssueUrl, DOCS_URL, FUNDING_URL, type IssueKind } from "../core/feedback";
 import { t } from "../i18n";
 
 type FolderKey = "dailyFolder" | "weeklyFolder" | "monthlyFolder";
@@ -54,7 +57,48 @@ export class DashySettingTab extends PluginSettingTab {
                 heading: t("settings.skillHeading"),
                 items: [this.skillRow(), this.agentsRow()],
             },
+            {
+                type: "group",
+                heading: t("about.heading"),
+                items: [
+                    this.link(t("about.bug"), t("about.bugDesc"), this.issueUrl("bug")),
+                    this.link(t("about.feature"), t("about.featureDesc"), this.issueUrl("feature")),
+                    this.link(t("about.docs"), t("about.docsDesc"), DOCS_URL),
+                    this.link(t("about.funding"), t("about.fundingDesc"), FUNDING_URL),
+                ],
+            },
         ];
+    }
+
+    /**
+     * A row that opens something in the browser.
+     *
+     * The whole backlog of this plugin waits on people saying what they need,
+     * and until now there was nowhere for them to say it.
+     */
+    private link(name: string, desc: string, href: string): SettingGroupItem {
+        return {
+            name,
+            desc,
+            render: (setting) => {
+                setting.addButton((b) =>
+                    b
+                        .setButtonText(t("about.open"))
+                        .setTooltip(name)
+                        .onClick(() => {
+                            window.open(href);
+                        }),
+                );
+            },
+        };
+    }
+
+    private issueUrl(kind: IssueKind): string {
+        return buildIssueUrl(kind, {
+            plugin: this.plugin.manifest.version,
+            obsidian: apiVersion,
+            platform: Platform.isMobileApp ? "mobile" : "desktop",
+        });
     }
 
     /** Obsidian reads a control's value from here, by the key the control names. */

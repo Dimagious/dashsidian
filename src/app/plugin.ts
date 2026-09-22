@@ -10,6 +10,8 @@ import { renderStats } from "../blocks/stats";
 import { renderToday } from "../blocks/today";
 import { renderTiles } from "../blocks/tiles";
 import { BlockRefresher } from "./refresh";
+import { t } from "../i18n";
+import { InsertBlockModal } from "../ui/insert-block";
 import { DashySettingTab } from "../ui/settings";
 
 type Draw = (ctx: BlockContext, source: string, el: HTMLElement) => void;
@@ -49,6 +51,15 @@ export default class DashyPlugin extends Plugin {
                 }));
             });
         }
+
+        // The way in for someone who does not keep the YAML in their head.
+        this.addCommand({
+            id: "insert-block",
+            name: t("insert.name"),
+            editorCallback: (editor) => {
+                new InsertBlockModal(this.app, editor).open();
+            },
+        });
 
         this.watchVault();
         this.addSettingTab(new DashySettingTab(this.app, this));

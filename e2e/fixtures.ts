@@ -83,6 +83,14 @@ export const test = base.extend<Fixtures>({
         const win = await app.firstWindow();
         await win.waitForLoadState("domcontentloaded");
 
+        // A dialog blocks every further command on the page, and Electron
+        // raises one on shutdown when a note was edited during the test. The
+        // failure surfaces as "No dialog is showing" from the teardown, which
+        // points nowhere near the test that caused it.
+        win.on("dialog", (dialog) => {
+            void dialog.dismiss().catch(() => undefined);
+        });
+
         // The trust dialog blocks plugin loading. Do not press its button: it
         // opens Settings afterwards, which is awkward to close from a test.
         try {

@@ -41,7 +41,8 @@ Dataview), kanban, tasks. Each of the six blocks has one job.
 
 Settings → **Community plugins** → **Browse** → search for **Dashy** → Install → Enable.
 
-Then create a note, add a block, and switch to reading view.
+Then open a note and run **Dashy: Insert block** from the command palette. Pick a block and
+a working example lands at the cursor, ready to edit. Everything below is that example.
 
 ## The blocks
 
@@ -231,6 +232,15 @@ After that you can just ask:
 Both files come from [`src/blocks/schema.json`](src/blocks/schema.json), the same file the
 plugin validates against, so the reference an agent reads cannot drift from what the code
 accepts. You can read it yourself in [`docs/SKILL.preview.md`](docs/SKILL.preview.md).
+
+## If something is wrong, or missing
+
+The settings tab has a row for each: a bug report and a feature request both open GitHub
+with your plugin and Obsidian versions already filled in, so nobody has to ask for them.
+
+The blocks are deliberately few. `where` takes one condition, there is no chart block, and
+the list stops at six. Those are decisions rather than omissions, and the fastest way to
+change one is to say what you tried to build and could not.
 
 ## Languages
 
