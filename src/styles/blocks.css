@@ -36,6 +36,32 @@
 }
 .dashy-tile-badge.is-empty { background: var(--dashy-badge-empty); }
 
+/* stats */
+.dashy-stats {
+  display: grid;
+  grid-template-columns: repeat(var(--dashy-stat-columns, 3), 1fr);
+  gap: var(--dashy-gap);
+  margin: 0 0 24px;
+}
+.dashy-stat {
+  background: linear-gradient(135deg, var(--dashy-surface) 0%, var(--dashy-surface-hi) 100%);
+  border: 1px solid var(--dashy-border);
+  border-radius: var(--dashy-radius);
+  padding: 16px 12px;
+  text-align: center;
+  box-shadow: var(--dashy-shadow);
+}
+.dashy-stat-icon { display: block; font-size: 1.3em; margin-bottom: 4px; }
+.dashy-stat-value {
+  font-size: 1.9em; font-weight: 700; line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+/* прочерк — это «нет данных», и выглядеть он должен тише числа */
+.dashy-stat-value.is-empty { color: var(--text-faint); font-weight: 500; }
+.dashy-stat-unit { font-size: 0.45em; font-weight: 500; opacity: 0.6; margin-left: 3px; }
+.dashy-stat-label { font-size: 0.85em; margin-top: 4px; }
+.dashy-stat-sub { font-size: 0.7em; opacity: 0.55; margin-top: 2px; }
+
 /* heatmap */
 .dashy-hm-wrap { margin: 8px 0 26px; overflow-x: auto; }
 .dashy-hm-title { font-weight: 600; margin-bottom: 10px; }
@@ -76,4 +102,5 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
 
 @media (max-width: 768px) {
   .dashy-tiles { grid-template-columns: repeat(2, 1fr); }
+  .dashy-stats { grid-template-columns: repeat(2, 1fr); }
 }

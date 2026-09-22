@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.2.0",
   "blocks": {
     "tiles": {
       "summary": "Сетка плиток-ссылок для навигации по хранилищу.",
@@ -51,6 +51,88 @@
         }
       },
       "example": "columns: 4\nitems:\n  - { label: Inbox, path: 00-Inbox, icon: 📥, badge: count }\n  - { label: Sport, path: 01-Areas/Sport/Training-Log, icon: 🏆, sub: тренировки, accent: true }"
+    },
+    "stats": {
+      "summary": "Карточки чисел: на каждой одно значение, посчитанное по выборке заметок.",
+      "root": {
+        "columns": {
+          "type": "number",
+          "default": 3,
+          "doc": "колонок в сетке, 1–6"
+        },
+        "items": {
+          "type": "list",
+          "required": true,
+          "doc": "список карточек"
+        }
+      },
+      "item": {
+        "label": {
+          "type": "string",
+          "required": true,
+          "doc": "подпись под числом",
+          "aliases": [
+            "title",
+            "name"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "doc": "папка; включает вложенные",
+          "aliases": [
+            "folder",
+            "from"
+          ]
+        },
+        "tag": {
+          "type": "string",
+          "doc": "тег, с решёткой или без"
+        },
+        "where": {
+          "type": "string",
+          "doc": "условие вида `year = 2026`, `rating >= 4`, `tags contains книги`"
+        },
+        "field": {
+          "type": "string",
+          "doc": "числовое поле frontmatter; обязательно для всего, кроме count и streak",
+          "aliases": [
+            "property",
+            "prop"
+          ]
+        },
+        "agg": {
+          "type": "string",
+          "default": "count",
+          "doc": "count sum avg min max latest streak",
+          "aliases": [
+            "aggregate"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "doc": "приписка после числа: км, %, дн."
+        },
+        "precision": {
+          "type": "number",
+          "doc": "знаков после запятой, 0–6; по умолчанию целое как есть, дробное до одного знака"
+        },
+        "icon": {
+          "type": "string",
+          "doc": "эмодзи",
+          "aliases": [
+            "emoji"
+          ]
+        },
+        "sub": {
+          "type": "string",
+          "doc": "мелкая подпись под названием"
+        }
+      },
+      "example": "columns: 3\nitems:\n  - { label: Заметок, source: 01-Areas, agg: count }\n  - { label: Сон, source: Дневник, field: sleep_score, agg: avg, precision: 1 }\n  - { label: Без пропусков, source: Дневник, field: sleep_score, agg: streak, unit: дн. }",
+      "notes": [
+        "`streak` считает самую длинную цепочку подряд идущих дней, `latest` берёт значение из самой поздней заметки — обоим нужны имена-даты YYYY-MM-DD.",
+        "Считать нечего — карточка показывает прочерк, а не ноль: «нет данных» и «ноль» это разные ответы."
+      ]
     },
     "heatmap": {
       "summary": "Год по дням: клетка на каждый день, цвет по числу из frontmatter.",

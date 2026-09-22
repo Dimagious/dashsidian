@@ -37,9 +37,10 @@
 
 ## Состояние
 
-v0.1.0, до публикации. Работают `tiles` и `heatmap`. `stats`, `progress`, `today`,
-`countdown` описаны в ТЗ и не написаны. Ядро под `stats`/`progress` (`core/aggregate.ts`)
-уже есть и покрыто тестами.
+v0.1.0, до публикации. Работают `tiles`, `stats` и `heatmap`. `progress`, `today`,
+`countdown` описаны в ТЗ и не написаны. Ядро под `progress` (`core/aggregate.ts`)
+уже есть и покрыто тестами. Спарклайн `trend` в `stats` — отдельный пункт B-008,
+в схеме его сознательно нет.
 
 ## Раскладка
 

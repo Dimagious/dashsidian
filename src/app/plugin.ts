@@ -1,6 +1,7 @@
 import { Plugin } from "obsidian";
 import { DEFAULT_SETTINGS, type DashySettings } from "../types";
 import { renderHeatmap } from "../blocks/heatmap";
+import { renderStats } from "../blocks/stats";
 import { renderTiles } from "../blocks/tiles";
 import { DashySettingTab } from "../ui/settings";
 
@@ -12,6 +13,9 @@ export default class DashyPlugin extends Plugin {
 
         this.registerMarkdownCodeBlockProcessor("tiles", (source, el) => {
             renderTiles(this.app, source, el);
+        });
+        this.registerMarkdownCodeBlockProcessor("stats", (source, el) => {
+            renderStats(this.app, source, el);
         });
         this.registerMarkdownCodeBlockProcessor("heatmap", (source, el) => {
             renderHeatmap(this.app, source, el);
