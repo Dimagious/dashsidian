@@ -28,6 +28,7 @@
     "e2e": "./scripts/e2e-setup.sh && env -u ELECTRON_RUN_AS_NODE playwright test",
     "e2e:headed": "./scripts/e2e-setup.sh && env -u ELECTRON_RUN_AS_NODE playwright test --headed",
     "capture": "node scripts/capture.cjs",
+    "social-card": "node scripts/social-card.cjs",
     "firstrun": "npm run build && node scripts/newcomer-vault.cjs && env -u ELECTRON_RUN_AS_NODE FIRSTRUN=1 DASHY_VAULT=.capture/newcomer playwright test e2e/firstrun.spec.ts --reporter=list"
   },
   "dependencies": {
