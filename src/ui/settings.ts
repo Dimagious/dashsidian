@@ -22,18 +22,24 @@ export class DashySettingTab extends PluginSettingTab {
 
         new Setting(containerEl).setName("Periodic notes").setHeading();
 
-        new Setting(containerEl)
-            .setName("Daily notes folder")
-            .setDesc("Leave empty to use the Periodic Notes plugin settings when it is installed.")
-            .addText((t) =>
-                t
-                    .setPlaceholder("01-Areas/Personal/Diary")
-                    .setValue(this.plugin.settings.dailyFolder)
-                    .onChange(async (v) => {
-                        this.plugin.settings.dailyFolder = v.trim();
-                        await this.plugin.saveSettings();
-                    }),
-            );
+        this.folderSetting(
+            "Daily notes folder",
+            "Leave empty to use the Periodic Notes plugin settings when it is installed.",
+            "01-Areas/Personal/Diary",
+            "dailyFolder",
+        );
+        this.folderSetting(
+            "Weekly notes folder",
+            "Used by the today block. Leave empty to follow Periodic Notes.",
+            "01-Areas/Personal/Weekly",
+            "weeklyFolder",
+        );
+        this.folderSetting(
+            "Monthly notes folder",
+            "Used by the today block. Leave empty to follow Periodic Notes.",
+            "01-Areas/Personal/Monthly",
+            "monthlyFolder",
+        );
 
         new Setting(containerEl).setName("AI agent skill").setHeading();
 
@@ -61,6 +67,27 @@ export class DashySettingTab extends PluginSettingTab {
                         new Notice("Skill markdown copied.");
                     });
                 }),
+            );
+    }
+
+    /** Три поля различаются только текстом и ключом настройки. */
+    private folderSetting(
+        name: string,
+        desc: string,
+        placeholder: string,
+        key: "dailyFolder" | "weeklyFolder" | "monthlyFolder",
+    ): void {
+        new Setting(this.containerEl)
+            .setName(name)
+            .setDesc(desc)
+            .addText((t) =>
+                t
+                    .setPlaceholder(placeholder)
+                    .setValue(this.plugin.settings[key])
+                    .onChange(async (v) => {
+                        this.plugin.settings[key] = v.trim();
+                        await this.plugin.saveSettings();
+                    }),
             );
     }
 
