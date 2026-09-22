@@ -22,8 +22,8 @@ agent can read.
   over a selection, `progress` for bars towards a goal, `today` for the day row
   linking to periodic notes, `countdown` for the days to a date, and `heatmap`
   for a year coloured by a frontmatter number.
-- **Sparklines in `stats`** through `trend: 30d`, scaled inside their own
-  window so the shape of the run is what shows.
+- **Sparklines in `stats`** through `trend: 30d`: the last N days ending today,
+  scaled inside that window so the shape of the run is what shows.
 - **Diagnostics in the note.** A block that cannot draw says why, with the line
   number, a suggestion for an unknown key, and a warning when a filter had to
   be dropped, rather than showing unfiltered numbers as if they were filtered.

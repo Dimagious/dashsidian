@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { renderStats } from "./stats";
-import { mockContext, diary, host, texts, nodes, diagnostics } from "../test/vault";
+import { mockContext, diary, recentDiary, host, texts, nodes, diagnostics } from "../test/vault";
 
 // 10 days, sleep_score 70..79, steps 1000..1900, two of them tagged.
 const ctx = mockContext({
@@ -73,25 +73,39 @@ describe("stats — the numbers are the real ones", () => {
 });
 
 describe("stats — the trend beside the number", () => {
-    it("sketches one bar per day of the window", () => {
-        const el = card("items:\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, trend: 30d }");
-        // The vault holds ten days; a 30-day window can only show those ten.
-        expect(nodes(el, ".dashy-stat-bar")).toHaveLength(10);
+    // A trailing window needs dates near now, or it is empty and proves nothing.
+    const recent = mockContext({ notes: recentDiary("Recent", 40, (i) => ({ v: 60 + i })) });
+    const trend = (config: string) => {
+        const el = host();
+        renderStats(recent, config, el);
+        return el;
+    };
+
+    it("sketches one bar per day inside the window", () => {
+        const el = trend("items:\n  - { label: Sleep, source: Recent, field: v, agg: avg, trend: 30d }");
+        expect(nodes(el, ".dashy-stat-bar")).toHaveLength(30);
     });
 
     it("a shorter window takes the latest days, not the first", () => {
-        const el = card("items:\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, trend: 3d }");
-        const bars = nodes(el, ".dashy-stat-bar");
-        expect(bars).toHaveLength(3);
-        // sleep_score climbs 70..79, so the last three climb too
-        const heights = bars.map((b) => Number.parseFloat(b.style.height));
+        const el = trend("items:\n  - { label: Sleep, source: Recent, field: v, agg: avg, trend: 3d }");
+        const heights = nodes(el, ".dashy-stat-bar").map((b) => Number.parseFloat(b.style.height));
+        expect(heights).toHaveLength(3);
+        // v climbs with the date, so the last three climb too
         expect(heights[0]).toBeLessThan(heights[2]!);
     });
 
     it("the tallest bar is full height", () => {
-        const el = card("items:\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, trend: 30d }");
+        const el = trend("items:\n  - { label: Sleep, source: Recent, field: v, agg: avg, trend: 30d }");
         const heights = nodes(el, ".dashy-stat-bar").map((b) => Number.parseFloat(b.style.height));
         expect(Math.max(...heights)).toBe(100);
+    });
+
+    it("a diary that stopped months ago draws no trend at all", () => {
+        // The window is days, not notes: ten notes from January are not the
+        // last thirty days of anything.
+        const el = card("items:\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, trend: 30d }");
+        expect(nodes(el, ".dashy-stat-bar")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value"), "the number still works").toEqual(["74.5"]);
     });
 
     it("no trend asked for means no bars at all", () => {

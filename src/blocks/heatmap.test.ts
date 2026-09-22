@@ -119,8 +119,10 @@ describe("heatmap — the caption", () => {
         const caption = texts(map("source: Diary\nfield: sleep_score"), ".dashy-hm-title")[0] ?? "";
         expect(caption).toContain("2026");
         expect(caption).toContain("sleep_score");
-        // 60 through 89 averages 74.5, which the caption rounds.
-        expect(caption).toContain("average 75");
+        // 60 through 89 averages 74.5, and the caption says so. It used to
+        // round to a whole number while a stat card over the same data printed
+        // the decimal, and both were presented as facts.
+        expect(caption).toContain("average 74.5");
         expect(caption).toContain("30 of");
     });
 

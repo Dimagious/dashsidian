@@ -1,4 +1,4 @@
-import { MarkdownRenderChild, Plugin, debounce } from "obsidian";
+import { MarkdownRenderChild, Plugin, debounce, type Debouncer } from "obsidian";
 import { DEFAULT_SETTINGS, type DashySettings } from "../types";
 import { applyObsidianLocale } from "../adapters/locale";
 import { VaultSnapshot } from "../adapters/vault";
@@ -33,6 +33,7 @@ export default class DashyPlugin extends Plugin {
 
     private snapshot!: VaultSnapshot;
     private refresher!: BlockRefresher;
+    private scheduled: Debouncer<[], void> | null = null;
 
     async onload(): Promise<void> {
         await this.loadSettings();
@@ -42,7 +43,12 @@ export default class DashyPlugin extends Plugin {
         applyObsidianLocale();
 
         this.snapshot = new VaultSnapshot(this.app);
-        this.refresher = new BlockRefresher(() => this.snapshot.invalidate());
+        this.refresher = new BlockRefresher(
+            () => this.snapshot.invalidate(),
+            // A block that throws mid-redraw must not take the rest with it,
+            // and must not vanish without a word either.
+            (error) => console.error("[dashy] a block failed to redraw", error),
+        );
 
         for (const [name, draw] of Object.entries(BLOCKS)) {
             this.registerMarkdownCodeBlockProcessor(name, (source, el, ctx) => {
@@ -79,6 +85,7 @@ export default class DashyPlugin extends Plugin {
      */
     private watchVault(): void {
         const schedule = debounce(() => this.refresher.refresh(), REFRESH_DELAY_MS, true);
+        this.scheduled = schedule;
 
         this.registerEvent(this.app.metadataCache.on("resolved", schedule));
         this.registerEvent(this.app.metadataCache.on("changed", schedule));
@@ -94,6 +101,14 @@ export default class DashyPlugin extends Plugin {
             notes: () => this.snapshot.get(),
             settings: this.settings,
         };
+    }
+
+    /**
+     * `registerEvent` detaches the listeners, but a redraw already armed by the
+     * debounce would still fire afterwards and walk blocks that are gone.
+     */
+    override onunload(): void {
+        this.scheduled?.cancel();
     }
 
     async loadSettings(): Promise<void> {

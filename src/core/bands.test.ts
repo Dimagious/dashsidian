@@ -67,7 +67,17 @@ describe("bandFor", () => {
         expect(bandFor(bands, 85)?.label).toBe("80–89");
         expect(bandFor(bands, 60)?.label).toBe("60–79");
     });
-    it("below every threshold — nothing", () => {
-        expect(bandFor(bands, 10)).toBeUndefined();
+    it("below every threshold falls into the bottom band, not into nothing", () => {
+        // The caller paints whatever comes back, and "nothing" used to mean
+        // full strength: a 10 was painted exactly like a 95.
+        expect(bandFor(bands, 10)?.label).toBe("60–79");
+        expect(bandFor(bands, 10)?.alpha).toBeLessThan(bandFor(bands, 95)!.alpha);
+    });
+
+    it("the weakest colour belongs to the weakest value", () => {
+        const alphas = [95, 85, 65, 10].map((v) => bandFor(bands, v)!.alpha);
+        expect(alphas[0]).toBeGreaterThan(alphas[1]!);
+        expect(alphas[1]).toBeGreaterThan(alphas[2]!);
+        expect(alphas[3]).toBe(alphas[2]);
     });
 });

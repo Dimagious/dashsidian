@@ -23,8 +23,15 @@ export function readProgress(item: Record<string, unknown>, label: string): Prog
     const card = label ? `"${label}"` : t("stats.unlabeledCard");
     const { spec, diagnostics } = readStat(item, label);
 
-    const goal = typeof item.goal === "number" ? item.goal : Number(item.goal);
-    if (item.goal === undefined || !Number.isFinite(goal)) {
+    // Number() would take `true` for 1 and `[5]` for 5. A goal is a number the
+    // user wrote, and everything else is a mistake worth reporting.
+    const written = item.goal;
+    const goal = typeof written === "number"
+        ? written
+        : typeof written === "string" && written.trim() !== ""
+            ? Number(written)
+            : Number.NaN;
+    if (written === undefined || !Number.isFinite(goal)) {
         diagnostics.push({ level: "error", message: t("progress.goalRequired", { card }) });
         return { spec: null, diagnostics };
     }

@@ -1,5 +1,5 @@
 {
-  "version": "1.2.0",
+  "version": "1.3.0",
   "blocks": {
     "tiles": {
       "summary": "A grid of link tiles for navigating the vault.",
@@ -118,7 +118,7 @@
         },
         "trend": {
           "type": "string|number",
-          "doc": "sketch the last N days beside the number: `30d`. Needs `field`"
+          "doc": "sketch the last N days ending today: `30d`. Needs `field`"
         },
         "icon": {
           "type": "string",
@@ -136,7 +136,7 @@
       "notes": [
         "`streak` counts the longest run of consecutive days and `latest` takes the value from the newest note — both need YYYY-MM-DD note names.",
         "Nothing to count — the card shows a dash rather than a zero: \"no data\" and \"zero\" are different answers.",
-        "`trend` sketches the shape of the last N days, scaled between the smallest and largest of that window rather than from zero."
+        "`trend` sketches the days of a trailing window ending today, scaled between the smallest and largest value in that window rather than from zero. A day without a note is left out, not drawn as a zero."
       ]
     },
     "progress": {
@@ -339,7 +339,7 @@
         },
         "bands": {
           "type": "list",
-          "doc": "thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]"
+          "doc": "thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band"
         },
         "link": {
           "type": "boolean",

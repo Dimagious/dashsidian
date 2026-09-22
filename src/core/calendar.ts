@@ -105,7 +105,10 @@ export function eachDay(year: number, total: number): string[] {
 
 /** The longest run of consecutive days. Takes an arbitrary set of keys. */
 export function longestStreak(dates: readonly string[]): number {
-    const sorted = [...dates].sort();
+    // Deduplicated first: two notes named for the same day are one day, and
+    // the run below reads the zero-day gap between them as a break. A vault
+    // with Personal/2026-01-02 and Work/2026-01-02 reported a streak of 1.
+    const sorted = [...new Set(dates)].sort();
     let best = 0;
     let run = 0;
     let prev: string | null = null;

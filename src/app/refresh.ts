@@ -13,8 +13,15 @@
 export class BlockRefresher {
     private readonly drawers = new Set<() => void>();
 
-    /** Run before notifying anyone — the plugin drops the cached snapshot here. */
-    constructor(private readonly beforeRefresh: () => void = () => undefined) {}
+    /**
+     * `beforeRefresh` runs before notifying anyone — the plugin drops the
+     * cached snapshot there. `onError` sees anything a block throws while
+     * redrawing, so a failure is reported rather than swallowed.
+     */
+    constructor(
+        private readonly beforeRefresh: () => void = () => undefined,
+        private readonly onError: (error: unknown) => void = () => undefined,
+    ) {}
 
     /** A block starts listening when it is rendered into the document. */
     register(draw: () => void): void {
@@ -37,9 +44,20 @@ export class BlockRefresher {
     /**
      * A copy of the set is iterated: a block that unregisters itself while
      * redrawing would otherwise break the loop for the ones after it.
+     *
+     * And each one is isolated. Obsidian isolates the first render of a block,
+     * but this loop is ours: a single throw here would abort it, and every
+     * block after the failing one would keep showing stale numbers on every
+     * later vault change, with nothing on screen to say so.
      */
     refresh(): void {
         this.beforeRefresh();
-        for (const draw of [...this.drawers]) draw();
+        for (const draw of [...this.drawers]) {
+            try {
+                draw();
+            } catch (e) {
+                this.onError(e);
+            }
+        }
     }
 }

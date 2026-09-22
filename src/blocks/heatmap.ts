@@ -2,6 +2,7 @@ import type { BlockContext } from "./context";
 import { weekdayNamesShort, monthNamesShort, firstDayOfWeek } from "../adapters/datetime";
 import { selectNotes, readSource } from "../core/source";
 import { numberAt } from "../core/aggregate";
+import { formatValue } from "../core/stat";
 import { layoutYear, dateKey, eachDay, yearsOf, rotateWeekdays, weekdayRow } from "../core/calendar";
 import { toRgb, rgba, type Rgb } from "../core/palette";
 import { readBands, bandFor, type Band } from "../core/bands";
@@ -86,9 +87,11 @@ function drawYear(
         .map((k) => byDate.get(k))
         .filter((v): v is { value: number; path: string } => v !== undefined);
 
-    const average = present.length
-        ? Math.round(present.reduce((s, d) => s + d.value, 0) / present.length)
-        : 0;
+    // Formatted the way a stat card formats it: the same data read "average 5"
+    // here and "4.6" on a card, and both are presented as facts.
+    const average = formatValue(
+        present.length ? present.reduce((s, d) => s + d.value, 0) / present.length : 0,
+    );
     const caption = typeof opts.title === "string"
         ? opts.title
         : t("heatmap.caption", {

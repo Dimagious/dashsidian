@@ -114,6 +114,15 @@ describe("longestStreak", () => {
     it("a single day is one", () => {
         expect(longestStreak(["2026-01-01"])).toBe(1);
     });
+
+    it("two notes named for the same day are one day, not a break", () => {
+        // A vault with Personal/2026-01-02 and Work/2026-01-02 reported 1.
+        expect(longestStreak(["2026-01-01", "2026-01-02", "2026-01-02", "2026-01-03"])).toBe(3);
+    });
+
+    it("a day repeated many times still counts once", () => {
+        expect(longestStreak(["2026-01-01", "2026-01-01", "2026-01-01"])).toBe(1);
+    });
 });
 
 describe("currentStreak", () => {

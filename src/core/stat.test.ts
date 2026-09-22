@@ -122,6 +122,13 @@ describe("formatValue", () => {
         expect(formatValue(-4.26)).toBe("-4.3");
     });
 
+    it("nor as \"-0.0\" when a precision is given", () => {
+        // toFixed keeps the sign of a value that rounds to nothing, and
+        // "-0.0" reads as a measurement rather than as zero.
+        expect(formatValue(-0.04, 1)).toBe("0.0");
+        expect(formatValue(-0.4, 1)).toBe("-0.4");
+    });
+
     it("infinity and NaN are a dash", () => {
         expect(formatValue(Infinity)).toBe("—");
         expect(formatValue(NaN)).toBe("—");

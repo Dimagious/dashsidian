@@ -35,13 +35,12 @@ test.describe("blocks render in a real Obsidian", () => {
         await expect(values.nth(2)).toHaveText("14 500");
     });
 
-    test("a trend sketches one bar per day it has", async ({ win }) => {
-        const bars = view(win).locator(".dashy-stat-bar");
-        await expect(bars).toHaveCount(10);
-        const tallest = await bars.evaluateAll(
-            (els) => Math.max(...els.map((e) => Number.parseFloat((e as HTMLElement).style.height))),
-        );
-        expect(tallest).toBe(100);
+    test("a trend over a diary that stopped months ago draws nothing", async ({ win }) => {
+        // The window is days ending today, not the last N notes. This vault's
+        // diary is ten days in January, so a 30-day trend is empty — and the
+        // average beside it still reads 74.5.
+        await expect(view(win).locator(".dashy-stat-bar")).toHaveCount(0);
+        await expect(view(win).locator(".dashy-stat-value").nth(1)).toHaveText("74.5");
     });
 
     test("a progress bar is as wide as its percent says", async ({ win }) => {

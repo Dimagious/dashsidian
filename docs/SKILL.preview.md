@@ -7,7 +7,7 @@ description: >-
   for a dashboard, a home page, a tile grid, cards with counters or averages, a
   link to today's note, a day calendar, a heatmap, a habit tracker or a visual
   entry point into the vault.
-version: 1.2.0
+version: 1.3.0
 ---
 
 # Dashy — dashboard blocks
@@ -74,7 +74,7 @@ Number cards: one value per card, computed over a selection of notes.
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
 | `unit` | string | — | — | — | a suffix after the number: km, %, d. |
 | `precision` | number | — | — | — | decimal places, 0–6; by default a whole number stays whole and a fraction gets one decimal |
-| `trend` | string\|number | — | — | — | sketch the last N days beside the number: `30d`. Needs `field` |
+| `trend` | string\|number | — | — | — | sketch the last N days ending today: `30d`. Needs `field` |
 | `icon` | string | — | — | `emoji` | emoji |
 | `sub` | string | — | — | — | small caption under the title |
 
@@ -92,7 +92,7 @@ items:
 
 - `streak` counts the longest run of consecutive days and `latest` takes the value from the newest note — both need YYYY-MM-DD note names.
 - Nothing to count — the card shows a dash rather than a zero: "no data" and "zero" are different answers.
-- `trend` sketches the shape of the last N days, scaled between the smallest and largest of that window rather than from zero.
+- `trend` sketches the days of a trailing window ending today, scaled between the smallest and largest value in that window rather than from zero. A day without a note is left out, not drawn as a zero.
 
 ### `progress`
 
@@ -207,7 +207,7 @@ A year by days: one cell per day, coloured by a number from frontmatter.
 | `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported |
 | `field` | string | yes | — | `property`, `prop` | numeric frontmatter property |
 | `color` | string | — | `blue` | `colour` | blue green cyan purple pink orange red gray, or #rrggbb |
-| `bands` | list | — | — | — | thresholds from the top down: [90, 80, 60] or [{min, alpha, label}] |
+| `bands` | list | — | — | — | thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band |
 | `link` | boolean | — | `true` | — | clicking a cell opens that day's note |
 | `title` | string | — | — | — | a custom heading instead of the automatic one |
 

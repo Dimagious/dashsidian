@@ -3,7 +3,10 @@
  */
 
 import type { NoteRecord } from "./source";
-import { longestStreak } from "./calendar";
+import { longestStreak, dateKey } from "./calendar";
+
+/** A note whose name is the day it belongs to. */
+const DATE_NAME = /^\d{4}-\d{2}-\d{2}$/;
 
 export const AGGS = ["count", "sum", "avg", "min", "max", "latest", "streak"] as const;
 export type Agg = (typeof AGGS)[number];
@@ -44,14 +47,19 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
         const dates = notes
             .filter((n) => (spec.field ? numberAt(n, spec.field) !== null : true))
             .map((n) => n.name)
-            .filter((name) => /^\d{4}-\d{2}-\d{2}$/.test(name));
+            .filter((name) => DATE_NAME.test(name));
         return longestStreak(dates);
     }
 
     if (!spec.field) return null;
 
     if (spec.agg === "latest") {
-        const sorted = [...notes].sort((a, b) => (a.name < b.name ? 1 : a.name > b.name ? -1 : 0));
+        // Date-named only, as the schema promises. Without the filter a
+        // `Template.md` sitting in the diary folder sorts after every date and
+        // its placeholder number became the "latest" reading.
+        const sorted = [...notes]
+            .filter((n) => DATE_NAME.test(n.name))
+            .sort((a, b) => (a.name < b.name ? 1 : a.name > b.name ? -1 : 0));
         for (const n of sorted) {
             const v = numberAt(n, spec.field);
             if (v !== null) return v;
@@ -80,12 +88,31 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
     }
 }
 
-/** Day-by-day values for a sparkline: the last `days` date-named notes. */
-export function series(notes: readonly NoteRecord[], field: string, days: number): number[] {
+/**
+ * Values for a sparkline: the last `days` days, ending today.
+ *
+ * A window of days, not of notes. Taking the last N notes instead let a diary
+ * that stopped in 2024 draw a "last 30 days" shape out of 2024, and let a note
+ * dated next year sit inside a trailing window. Days without a note are left
+ * out rather than drawn as zero: a missing day is not a day of zero.
+ */
+export function series(
+    notes: readonly NoteRecord[],
+    field: string,
+    days: number,
+    today: Date,
+): number[] {
+    // Not named `window`: it shadows the global, and both the scanner and a
+    // reader take `window.has(...)` for a call on the browser object.
+    const wanted = new Set(
+        Array.from({ length: days }, (_, back) =>
+            dateKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() - back)),
+        ),
+    );
+
     return [...notes]
-        .filter((n) => /^\d{4}-\d{2}-\d{2}$/.test(n.name))
+        .filter((n) => wanted.has(n.name))
         .sort((a, b) => (a.name < b.name ? -1 : 1))
-        .slice(-days)
         .map((n) => numberAt(n, field))
         .filter((v): v is number => v !== null);
 }

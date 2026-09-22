@@ -26,7 +26,8 @@ describe("readProgress", () => {
     });
 
     it("a goal that is not a number is an error, not NaN on screen", () => {
-        for (const goal of ["soon", null, {}, []]) {
+        // `true` and `[5]` used to pass through Number() as 1 and 5, silently.
+        for (const goal of ["soon", null, {}, [], [5], true, false]) {
             const { spec, diagnostics } = readProgress({ agg: "count", goal }, "X");
             expect(spec).toBeNull();
             expect(diagnostics[0]?.level).toBe("error");

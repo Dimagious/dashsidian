@@ -50,7 +50,14 @@ export function readBands(raw: unknown): Band[] {
         .sort((a, b) => b.min - a.min);
 }
 
-/** The first band a value falls into. Bands must be in descending order. */
+/**
+ * The band a value falls into. Bands must be in descending order.
+ *
+ * A value under every threshold falls into the bottom band rather than into
+ * nothing. The caller paints whatever comes back, and "nothing" used to mean
+ * full strength: with `bands: [90, 80, 70]`, a night of 65 was painted exactly
+ * like a night of 95, while the legend said the darkest swatch meant 90+.
+ */
 export function bandFor(bands: readonly Band[], value: number): Band | undefined {
-    return bands.find((b) => value >= b.min);
+    return bands.find((b) => value >= b.min) ?? bands[bands.length - 1];
 }

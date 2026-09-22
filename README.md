@@ -115,9 +115,10 @@ items:
 </picture>
 
 `agg` is one of `count`, `sum`, `avg`, `min`, `max`, `latest`, `streak`. Add `trend: 30d`
-and the card sketches the shape of that window beside the number, scaled between its own
+and the card sketches the last thirty days beside the number, scaled between its own
 smallest and largest value. Sleep scores of 70 to 80 plotted from zero are a flat line that
-says nothing.
+says nothing. A day with no note is left out rather than drawn as a zero, and a diary that
+stopped months ago draws nothing at all, which is the honest answer.
 
 When there is nothing to count the card shows a dash. "No notes at all" and "the sum is
 zero" are different answers, and a zero for the first would be a lie.

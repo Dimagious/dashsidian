@@ -45,6 +45,8 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
 
     // One snapshot for the whole page, taken by the context.
     const notes = ctx.notes();
+    // Taken once, so every card on the page measures the same window.
+    const today = new Date();
     const cards: Card[] = [];
 
     for (const item of items) {
@@ -61,7 +63,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
             label: label || spec?.field || "",
             text: cardValue(selected, spec),
             trend: spec?.trend && spec.field
-                ? sparkBars(series(selected, spec.field, spec.trend))
+                ? sparkBars(series(selected, spec.field, spec.trend, today))
                 : [],
         };
         if (typeof item.icon === "string") card.icon = item.icon;

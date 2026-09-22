@@ -125,6 +125,27 @@ export function diary(
     });
 }
 
+/**
+ * `days` notes ending today. Anything that measures a trailing window needs
+ * dates near now, or the window is empty and the test proves nothing.
+ */
+export function recentDiary(
+    folder: string,
+    days: number,
+    fields: (i: number) => Record<string, unknown>,
+): FakeNote[] {
+    const today = new Date();
+    return Array.from({ length: days }, (_, i) => {
+        const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (days - 1 - i));
+        const key = [
+            date.getFullYear(),
+            String(date.getMonth() + 1).padStart(2, "0"),
+            String(date.getDate()).padStart(2, "0"),
+        ].join("-");
+        return { path: `${folder}/${key}.md`, frontmatter: fields(i) };
+    });
+}
+
 /** Renders into a detached element, the way a code block processor receives one. */
 export function host(): HTMLElement {
     return document.createElement("div");

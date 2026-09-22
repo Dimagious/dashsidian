@@ -117,7 +117,12 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
  */
 export function formatValue(value: number | null, precision?: number): string {
     if (value === null || !Number.isFinite(value)) return "—";
-    if (precision !== undefined) return group(value.toFixed(precision));
+    if (precision !== undefined) {
+        const fixed = value.toFixed(precision);
+        // toFixed keeps the sign of a value that rounds to nothing: -0.04 at
+        // one decimal came out as "-0.0", which reads as a measurement.
+        return group(Number(fixed) === 0 ? (0).toFixed(precision) : fixed);
+    }
     if (Number.isInteger(value)) return group(String(value));
     return group(String(Math.round(value * 10) / 10));
 }

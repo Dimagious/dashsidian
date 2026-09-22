@@ -66,6 +66,42 @@ describe("BlockRefresher", () => {
         expect(refresher.size).toBe(1);
     });
 
+    it("a block that throws does not take the rest of the page with it", () => {
+        const seen: unknown[] = [];
+        const refresher = new BlockRefresher(() => undefined, (e) => seen.push(e));
+        const after = vi.fn();
+        refresher.register(() => {
+            throw new Error("boom");
+        });
+        refresher.register(after);
+
+        expect(() => refresher.refresh()).not.toThrow();
+        expect(after, "the next block still drew").toHaveBeenCalledTimes(1);
+        expect(seen).toHaveLength(1);
+    });
+
+    it("a failure is reported rather than swallowed", () => {
+        const seen: unknown[] = [];
+        const refresher = new BlockRefresher(() => undefined, (e) => seen.push(e));
+        refresher.register(() => {
+            throw new Error("boom");
+        });
+        refresher.refresh();
+        expect((seen[0] as Error).message).toBe("boom");
+    });
+
+    it("a block that throws keeps redrawing on the next change", () => {
+        let calls = 0;
+        const refresher = new BlockRefresher(() => undefined, () => undefined);
+        refresher.register(() => {
+            calls += 1;
+            throw new Error("boom");
+        });
+        refresher.refresh();
+        refresher.refresh();
+        expect(calls).toBe(2);
+    });
+
     it("refreshing twice redraws twice — this is what a vault change does", () => {
         const refresher = new BlockRefresher();
         const draw = vi.fn();
