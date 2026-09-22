@@ -44,8 +44,45 @@ test.describe("settings tab", () => {
         expect(saved).toBe("Diary");
     });
 
+    test("AGENTS.md is written for agents that do not read Claude skills", async ({ win }) => {
+        await win.locator(".modal-container").getByRole("button", { name: "AGENTS.md in the vault root" }).click();
+        await expect(win.locator(".notice").first()).toHaveText(/AGENTS\.md/);
+
+        const written = await win.evaluate(async () => {
+            const a = (globalThis as unknown as {
+                app?: { vault?: { adapter?: { read?: (p: string) => Promise<string> } } };
+            }).app;
+            return a?.vault?.adapter?.read?.("AGENTS.md") ?? null;
+        });
+        expect(written).toContain("<!-- dashy:begin -->");
+        expect(written).toContain("### `countdown`");
+        expect(written?.trimEnd().endsWith("<!-- dashy:end -->")).toBe(true);
+    });
+
+    test("a file the user already owns keeps its own text", async ({ win }) => {
+        await win.evaluate(async () => {
+            const a = (globalThis as unknown as {
+                app?: { vault?: { adapter?: { write?: (p: string, d: string) => Promise<void> } } };
+            }).app;
+            await a?.vault?.adapter?.write?.("AGENTS.md", "# House rules\n\nNever touch this line.\n");
+        });
+
+        await win.locator(".modal-container").getByRole("button", { name: "AGENTS.md in the vault root" }).click();
+        await expect(win.locator(".notice").first()).toHaveText(/AGENTS\.md/);
+
+        const written = await win.evaluate(async () => {
+            const a = (globalThis as unknown as {
+                app?: { vault?: { adapter?: { read?: (p: string) => Promise<string> } } };
+            }).app;
+            return a?.vault?.adapter?.read?.("AGENTS.md") ?? "";
+        });
+        expect(written).toContain("# House rules");
+        expect(written).toContain("Never touch this line.");
+        expect(written).toContain("<!-- dashy:begin -->");
+    });
+
     test("the skill can be installed into the vault from the button", async ({ win }) => {
-        await win.locator(".modal-container").getByRole("button", { name: "Install" }).click();
+        await win.locator(".modal-container").getByRole("button", { name: "Skill file in this vault" }).click();
         await expect(win.locator(".notice").first()).toHaveText(/Skill written to/);
 
         const written = await win.evaluate(async () => {

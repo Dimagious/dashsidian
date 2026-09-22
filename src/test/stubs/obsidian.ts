@@ -36,10 +36,10 @@ export function debounce<A extends unknown[]>(
     timeout = 0,
     _resetTimer = false,
 ): (...args: A) => void {
-    let handle: ReturnType<typeof setTimeout> | null = null;
+    let handle: number | null = null;
     return (...args: A) => {
-        if (handle !== null) clearTimeout(handle);
-        handle = setTimeout(() => fn(...args), timeout);
+        if (handle !== null) window.clearTimeout(handle);
+        handle = window.setTimeout(() => fn(...args), timeout);
     };
 }
 

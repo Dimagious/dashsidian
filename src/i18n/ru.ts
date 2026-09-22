@@ -76,6 +76,14 @@ export const ru: Catalog = {
         "Запишет {path}, чтобы агент (Claude Code, Cursor) писал эти блоки за вас.",
     "settings.skillCurrent": "Установлен, версия {version}. Делать нечего.",
     "settings.skillOutdated": "Установлена версия {installed}, доступна {available}.",
+    "settings.agentsName": "AGENTS.md в корне хранилища",
+    "settings.agentsNotInstalled":
+        "Запишет {path} для агентов, которые не читают скиллы Claude, — Cursor, Codex и прочих. Наша только секция между маркерами, остальное в файле не трогаем.",
+    "settings.agentsCurrent": "Записан, версия {version}. Делать нечего.",
+    "settings.agentsOutdated": "Записана версия {installed}, доступна {available}.",
+    "settings.agentsUntouched":
+        "В {path} есть недописанная секция Dashy, файл оставлен как есть. Уберите лишний маркер и повторите.",
+
     "settings.install": "Установить",
     "settings.update": "Обновить",
     "settings.copyMarkdown": "Скопировать markdown",
