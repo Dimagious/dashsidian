@@ -22,6 +22,19 @@
 - Полное ТЗ: `docs/SPEC.md`
 - Второй плагин автора; харнесс перенесён из [`Dimagious/snipsidian`](https://github.com/Dimagious/snipsidian)
 
+## Имя ≠ id, и это не случайность
+
+`name: Dashy`, `id: dashsidian`, репозиторий `dashsidian`. Расхождение намеренное.
+
+Ревью Obsidian **заворачивает имя плагина, похожее на «Obsidian»**. Первый плагин автора
+подавался как `Snipsidian` и получил отказ именно по имени; после переименования в
+`Snipsy` прошёл. При этом **id остался `snipsidian`** и живёт в публичном URL
+`community.obsidian.md/plugins/snipsidian` — то есть правило действует на `name`, а не
+на `id`.
+
+Отсюда схема, которую повторяем: `id` и репозиторий — `<что-то>sidian`, `name` — короткое
+собственное слово. Менять `name` на что-то вроде `Dashsidian` нельзя, завернут.
+
 ## Состояние
 
 v0.1.0, до публикации. Работают `tiles` и `heatmap`. `stats`, `progress`, `today`,
