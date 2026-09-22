@@ -21,6 +21,15 @@ const PRISTINE = process.env.DASHY_VAULT
     ? path.resolve(ROOT, process.env.DASHY_VAULT)
     : path.join(ROOT, "e2e-vault.pristine");
 
+/**
+ * Obsidian keeps writing while it shuts down — the config, the workspace, its
+ * own caches — so a plain remove races it and throws ENOTEMPTY, failing a test
+ * whose assertions already passed. Retry instead of guessing how long to wait.
+ */
+function removeTree(dir: string): void {
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
 interface Fixtures {
     vaultPath: string;
     app: ElectronApplication;
@@ -39,7 +48,7 @@ export const test = base.extend<Fixtures>({
         const vault = path.join(dir, "vault");
         fs.cpSync(PRISTINE, vault, { recursive: true, dereference: true });
         await use(vault);
-        fs.rmSync(dir, { recursive: true, force: true });
+        removeTree(dir);
     },
 
     app: async ({ vaultPath }, use) => {
@@ -76,7 +85,7 @@ export const test = base.extend<Fixtures>({
         } catch {
             // already gone
         }
-        fs.rmSync(userDataDir, { recursive: true, force: true });
+        removeTree(userDataDir);
     },
 
     win: async ({ app }, use) => {
