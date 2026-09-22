@@ -105,12 +105,22 @@ test("diagnostics", async ({ win }) => {
         const a = (globalThis as unknown as {
             app?: { workspace?: { openLinkText?: (l: string, s: string) => Promise<void> } };
         }).app;
-        await a?.workspace?.openLinkText?.("Typo.md", "");
+        await a?.workspace?.openLinkText?.("A config with a mistake.md", "");
     });
     const view = win.locator(READING_VIEW);
     await expect(view.locator(".dashy-diag-warning").first()).toBeVisible();
-    await view.locator(".dashy-diagnostics").first().scrollIntoViewIfNeeded();
-    await win.screenshot({ path: path.join(SHOTS, "diagnostics-dark.png") });
+
+    // Clipped to where the content actually ends. The preview container has a
+    // min-height, so screenshotting it leaves half a page of empty note under
+    // a picture whose subject is four lines tall.
+    const top = await view.locator(".markdown-preview-sizer").first().boundingBox();
+    const last = await view.locator(".dashy-stats").last().boundingBox();
+    if (top && last) {
+        await win.screenshot({
+            path: path.join(SHOTS, "diagnostics-dark.png"),
+            clip: { x: top.x, y: top.y, width: top.width, height: last.y + last.height - top.y + 12 },
+        });
+    }
 });
 
 test("settings", async ({ win }) => {
@@ -123,7 +133,9 @@ test("settings", async ({ win }) => {
         a?.setting?.openTabById?.("dashsidian");
     });
     await win.waitForTimeout(600);
-    await win.locator(".modal-container").first().screenshot({ path: path.join(SHOTS, "settings-dark.png") });
+    // The settings pane alone, without Obsidian's own tab list beside it.
+    await win.locator(".vertical-tab-content-container").first()
+        .screenshot({ path: path.join(SHOTS, "settings-dark.png") });
 });
 
 test("reel: the dashboard follows the vault", async ({ win }) => {

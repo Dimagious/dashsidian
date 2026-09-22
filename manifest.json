@@ -3,7 +3,7 @@
   "id": "dashsidian",
   "version": "0.1.0",
   "minAppVersion": "1.5.0",
-  "description": "Dashboard blocks for your notes — tiles, stats, progress bars and a year heatmap, configured in YAML with no JavaScript.",
+  "description": "Dashboard blocks for your notes: tiles, number cards, progress bars, a day row, countdowns and a year heatmap. Configured in YAML, no JavaScript.",
   "author": "Dimagious",
   "authorUrl": "https://github.com/Dimagious",
   "isDesktopOnly": false

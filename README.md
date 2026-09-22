@@ -1,62 +1,272 @@
 # Dashy
 
-Dashboard blocks for [Obsidian](https://obsidian.md). Tiles, stats, progress bars and a
-year heatmap — configured in YAML inside a code block. No JavaScript, no Dataview.
+Build a dashboard inside an Obsidian note from six markdown blocks. The config is YAML,
+a few lines of it. **No JavaScript, and no Dataview.**
 
-> Status: **v0.1.0, pre-release.** `tiles` and `heatmap` work. `stats`, `progress`,
-> `today` and `countdown` are specified in [`docs/SPEC.md`](docs/SPEC.md) and not built yet.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/dashboard-dark.png">
+  <img alt="A Dashy dashboard: a day row, navigation tiles, number cards and progress bars"
+       src="docs/screens/dashboard-light.png">
+</picture>
 
-## Blocks
+Everything above is one note. Here is the whole of the first block in it:
+
+````markdown
+```today
+daily: true
+weekly: true
+monthly: true
+```
+````
+
+## How it differs from a query plugin
+
+Dashy reads your notes' frontmatter through Obsidian's own metadata cache. Four
+consequences of that, worth knowing before you install anything:
+
+- **One plugin, not two.** Nothing to install alongside it, nothing to explain to someone
+  you share a vault with.
+- **No code in your notes.** A `dataviewjs` block is a program. These are eight lines of
+  YAML that you, a month from now, can read at a glance.
+- **It follows your theme.** Not one colour is hard-coded. Every surface mixes from the
+  variables your theme and accent colour define.
+- **It tells you when the config is wrong.** A block that cannot draw says so, in the note,
+  with the line number and a guess at what you meant.
+
+What it does not do: charts (that is
+[Obsidian Charts](https://github.com/phibr0/obsidian-charts)), tables and queries (Bases,
+Dataview), kanban, tasks. Each of the six blocks has one job.
+
+## Install
+
+Settings → **Community plugins** → **Browse** → search for **Dashy** → Install → Enable.
+
+Then create a note, add a block, and switch to reading view.
+
+## The blocks
+
+### `today`: where the day starts
+
+A row with today's date and links to the daily, weekly and monthly notes.
+
+````markdown
+```today
+daily: true
+weekly: true
+monthly: true
+```
+````
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/today-dark.png">
+  <img alt="A date and three chips linking to the daily, weekly and monthly notes"
+       src="docs/screens/today-light.png">
+</picture>
+
+Folders and filename formats come from [Periodic
+Notes](https://github.com/liamcain/obsidian-periodic-notes) when you have it, and from the
+core **Daily notes** plugin for the day. Anything you set in Dashy's own settings wins over
+both. A note that does not exist yet still gets a link, drawn dimmed. Clicking it creates
+the note.
+
+### `tiles`: navigation
+
+A grid of links into the vault, with a live count of what is in each folder.
 
 ````markdown
 ```tiles
 columns: 4
 items:
-  - { label: Inbox, path: 00-Inbox, icon: 📥, badge: count }
-  - { label: Sport, path: 01-Areas/Sport/Training-Log, icon: 🏆, sub: тренировки, accent: true }
+  - { label: Inbox, path: Inbox, icon: 📥, badge: count }
+  - { label: Diary, path: Diary, icon: 📔, badge: count, sub: one note a day }
+  - { label: Books, path: Books, icon: 📚, badge: count }
+  - { label: Sport, path: Diary, icon: 🏃, accent: true, sub: training log }
 ```
 ````
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/tiles-dark.png">
+  <img alt="Four tiles with emoji, labels and note counts" src="docs/screens/tiles-light.png">
+</picture>
+
+`path` also understands a Bases view (`path: Vault.base#My view`), which is the answer
+whenever you want a table.
+
+### `stats`: the numbers
+
+One card per number, counted over whatever selection you describe.
+
+````markdown
+```stats
+columns: 4
+items:
+  - { label: Days logged, source: Diary, agg: count, icon: 📔 }
+  - { label: Average sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }
+  - { label: Steps this year, source: Diary, field: steps, agg: sum, unit: steps }
+  - { label: Longest streak, source: Diary, field: sleep_score, agg: streak, unit: days }
+```
+````
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/stats-dark.png">
+  <img alt="Eight cards showing counts, averages, sums and streaks, two with sparklines"
+       src="docs/screens/stats-light.png">
+</picture>
+
+`agg` is one of `count`, `sum`, `avg`, `min`, `max`, `latest`, `streak`. Add `trend: 30d`
+and the card sketches the shape of that window beside the number, scaled between its own
+smallest and largest value. Sleep scores of 70 to 80 plotted from zero are a flat line that
+says nothing.
+
+When there is nothing to count the card shows a dash. "No notes at all" and "the sum is
+zero" are different answers, and a zero for the first would be a lie.
+
+### `progress`: how far along
+
+````markdown
+```progress
+items:
+  - { label: Days logged this year, source: Diary, agg: count, goal: 365, icon: 📔 }
+  - { label: Books this year, source: Books, where: "year = 2026", agg: count, goal: 24, icon: 📚 }
+  - { label: Steps, source: Diary, field: steps, agg: sum, goal: 3000000, unit: steps }
+```
+````
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/progress-dark.png">
+  <img alt="Three progress bars, one of them past its goal and coloured green"
+       src="docs/screens/progress-light.png">
+</picture>
+
+Beating a goal shows as it is. 110% stays 110%, and only the bar stops at full.
+
+### `countdown`: what is coming
+
+````markdown
+```countdown
+columns: 3
+items:
+  - { label: IRONMAN 70.3, date: 2027-06-14, icon: 🏊 }
+  - { label: Holiday, date: 2027-01-20, icon: 🏖, sub: two weeks off }
+  - { label: Review, date: 2027-03-01, icon: 🗒 }
+```
+````
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/countdown-dark.png">
+  <img alt="Three cards counting the days to a race, a holiday and a review"
+       src="docs/screens/countdown-light.png">
+</picture>
+
+A date that has passed keeps its card and counts up instead of down.
+
+### `heatmap`: the year
+
+A cell per day, coloured by a number from frontmatter.
 
 ````markdown
 ```heatmap
-source: 01-Areas/Personal/Diary
+source: Diary
 field: sleep_score
 color: purple
-bands: [90, 80, 60]
+bands: [90, 80, 70]
+title: Sleep, last twelve months
 ```
 ````
 
-Every colour comes from your theme's CSS variables, so the blocks follow whatever theme
-and accent colour you run.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/heatmap-dark.png">
+  <img alt="A year of days coloured by sleep score, with a legend"
+       src="docs/screens/heatmap-light.png">
+</picture>
 
-Full reference: [`docs/SKILL.preview.md`](docs/SKILL.preview.md) — generated from
-`src/blocks/schema.json`, so it cannot drift from the code.
+Notes have to be named as `YYYY-MM-DD` dates, which is how the block knows which cell they
+belong to. Clicking a cell opens that day. The week starts where your language starts it:
+Monday here, Sunday in the US, Canada and Japan.
 
-## Works with your AI agent
+## It keeps up with the vault
 
-Settings → **AI agent skill** → *Install* writes `.claude/skills/dashy/SKILL.md` into your
-vault. After that you can just ask your agent:
+Add a note, edit a number, delete something, and every block on the page redraws. No
+reopening, no command to run.
 
-> сделай мне сетку плиток 3 на 3 по областям
-> нарисуй календарь веса за год
+![Counters and sparklines updating as notes are added to the vault](docs/screens/live-update.gif)
 
-The agent reads the skill and writes a correct block. The file is written only when you
-press the button.
+Obsidian lists your files well before it has read their frontmatter. Without this, a
+dashboard opened right after startup would show the numbers of a half-read vault and never
+correct them.
+
+## It keeps up with your theme
+
+![The dashboard re-colouring as the Obsidian theme changes](docs/screens/theme-follow.gif)
+
+## When the config is wrong
+
+A block that cannot draw tells you why, in the note, next to the thing that failed.
+
+<img alt="Diagnostics inside a note: an unknown key with a suggestion, a missing required field, an unknown aggregate, and a where clause holding two conditions"
+     src="docs/screens/diagnostics-dark.png">
+
+Unknown keys suggest the key you probably meant. A broken YAML line reports its line
+number. A filter that could not be read says that the numbers below it are unfiltered,
+instead of showing you the wrong ones as if they were right.
+
+## Your AI agent can write these blocks
+
+Two buttons in the settings, and both write only when you press them.
+
+<img alt="Dashy settings: periodic note folders, and install buttons for the agent skill and AGENTS.md"
+     src="docs/screens/settings-dark.png">
+
+- **Skill file in this vault** writes `.claude/skills/dashy/SKILL.md`, which Claude Code
+  reads on its own.
+- **AGENTS.md in the vault root** writes the same reference where Cursor, Codex and the
+  rest look for it. Only the fenced section belongs to Dashy. Anything else in that file
+  stays as it was.
+
+After that you can just ask:
+
+> Make me a dashboard for my training log: a heatmap of distance, cards for weekly volume
+> and longest run, and a countdown to the marathon in May.
+
+Both files come from [`src/blocks/schema.json`](src/blocks/schema.json), the same file the
+plugin validates against, so the reference an agent reads cannot drift from what the code
+accepts. You can read it yourself in [`docs/SKILL.preview.md`](docs/SKILL.preview.md).
+
+## Languages
+
+The plugin speaks the language of your Obsidian interface. English and Russian ship today.
+Anything missing from a translation falls back to English rather than showing you a key.
+
+To add a language, copy [`src/i18n/en.ts`](src/i18n/en.ts), translate the values and
+register the file. No TypeScript needed, and a partial translation is a valid one. Dates,
+month names and the first day of the week come from Obsidian itself, so they are right in
+every language it supports.
 
 ## Development
 
 ```bash
 npm install
-npm test          # vitest + coverage gates
-npm run lint      # eslint + eslint-plugin-obsidianmd
+npm test           # vitest, with coverage gates
+npm run lint       # eslint + eslint-plugin-obsidianmd
 npm run typecheck
-npm run build     # styles.css + main.js
-npm run build:skill   # regenerate the agent skill from the schema
+npm run build      # main.js + styles.css
 ```
 
+| | |
+|---|---|
+| `npm run preview` | every block in every state, in a browser, with theme and language switches |
+| `npm run e2e` | the suite against a real Obsidian |
+| `npm run capture` | regenerates the pictures in this README |
+| `npm run build:skill` | rebuilds the agent reference from the schema |
+| `npm run scorecard:check` | mirrors the community-plugin review scanner |
+
 `VAULT_PLUGIN="/path/to/vault/.obsidian/plugins/dashsidian" npm run dev:vault` builds
-straight into a test vault and watches.
+straight into a test vault and watches for changes.
+
+Logic lives in `src/core/`, which imports neither Obsidian nor the DOM and is tested
+without mocks. `src/blocks/` only draws. The design notes are in
+[`docs/SPEC.md`](docs/SPEC.md).
 
 ## License
 
-MIT
+[MIT](LICENSE) © Dmitriy Yurkin

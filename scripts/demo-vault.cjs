@@ -113,9 +113,8 @@ title: Steps, last twelve months
 \`\`\`
 `);
 
-    fs.writeFileSync(path.join(out, "Typo.md"), `# A config with a mistake
-
-\`\`\`heatmap
+    // The file name is the heading Obsidian draws, so the note has none of its own.
+    fs.writeFileSync(path.join(out, "A config with a mistake.md"), `\`\`\`heatmap
 source: Diary
 feild: sleep_score
 \`\`\`
@@ -156,7 +155,7 @@ items:
             left: { id: "cap-left", type: "split", children: [], direction: "horizontal", width: 0, collapsed: true },
             right: { id: "cap-right", type: "split", children: [], direction: "horizontal", width: 0, collapsed: true },
             active: "cap-leaf",
-            lastOpenFiles: ["Dashboard.md", "Typo.md"],
+            lastOpenFiles: ["Dashboard.md", "A config with a mistake.md"],
         }, null, 2) + "\n",
     );
 
