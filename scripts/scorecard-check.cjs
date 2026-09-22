@@ -354,7 +354,12 @@ function checkManifestDescription() {
 function checkSettingsTabHasGetSettingDefinitions() {
     // Search by content rather than by file name: the settings class may live
     // anywhere. That way this check moves to the next plugin unchanged.
-    const files = walk(srcRoot).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"));
+    // `walk` is a generator: spread it before filtering. Calling `.filter` on it
+    // directly only works where iterator helpers exist (Node >= 22), and there it
+    // returns a lazy helper without `.length` — which made this check report
+    // "no settings tab" and pass without ever reading a file.
+    const files = [...walk(srcRoot, [".ts"])];
+    if (!files.length) throw new Error(`scorecard-check: no TypeScript sources under ${srcRoot}`);
     const tabs = files.filter((f) => /class\s+\w+\s+extends\s+PluginSettingTab/.test(fs.readFileSync(f, "utf8")));
 
     if (!tabs.length) return [];   // no settings tab in the plugin — the rule does not apply
