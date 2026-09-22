@@ -91,10 +91,11 @@
 
 /* today */
 .dashy-today { margin: 0 0 24px; }
-.dashy-today-date {
-  font-weight: 600; margin-bottom: 8px;
-  text-transform: capitalize;
-}
+.dashy-today-date { font-weight: 600; margin-bottom: 8px; }
+/* A localised date starts lowercase in many languages ("вторник, 22 сентября").
+ * Only the first letter is raised: `text-transform: capitalize` would raise
+ * every word and turn a custom title of "Мой день" into "Мой День". */
+.dashy-today-date::first-letter { text-transform: uppercase; }
 .dashy-today-links { display: flex; flex-wrap: wrap; gap: 8px; }
 .dashy-today-chip {
   display: inline-flex; align-items: baseline; gap: 6px;
