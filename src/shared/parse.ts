@@ -8,6 +8,7 @@
  */
 
 import { parse as parseYaml } from "yaml";
+import schema from "../blocks/schema.json";
 import { t } from "../i18n";
 
 export interface Diagnostic {
@@ -22,20 +23,44 @@ export interface ParseOutcome<T> {
     diagnostics: Diagnostic[];
 }
 
-/** Canonical key <- its synonyms. */
-export const KEY_ALIASES: Record<string, string> = {
-    folder: "source",
-    from: "source",
-    path: "path",
-    title: "label",
-    name: "label",
-    emoji: "icon",
-    property: "field",
-    prop: "field",
-    aggregate: "agg",
-    target: "goal",
-    colour: "color",
-};
+/**
+ * Canonical key <- its synonyms, built from the schema.
+ *
+ * The schema already declares `aliases` next to every key, because the agent
+ * reference is generated from it. A second hand-kept copy here is a second
+ * place to forget: a key could gain a synonym in the documentation that the
+ * parser had never heard of.
+ *
+ * Importing the schema from `shared/` is not a cycle — JSON imports nothing —
+ * and the dependency is honest: this module parses block configs, and the
+ * schema is what a block config is.
+ */
+export const KEY_ALIASES: Record<string, string> = buildAliases();
+
+interface SchemaField {
+    aliases?: readonly string[];
+}
+
+function buildAliases(): Record<string, string> {
+    // One cast, over data whose shape differs per block: `today` has no item
+    // level, `heatmap` no columns. Typing each block separately would describe
+    // the schema twice over, which is the duplication this is removing.
+    const blocks = schema.blocks as unknown as Record<
+        string,
+        { root?: Record<string, SchemaField>; item?: Record<string, SchemaField> }
+    >;
+
+    const out: Record<string, string> = {};
+    for (const block of Object.values(blocks)) {
+        for (const level of [block.root, block.item]) {
+            if (!level) continue;
+            for (const [canonical, field] of Object.entries(level)) {
+                for (const alias of field.aliases ?? []) out[alias] = canonical;
+            }
+        }
+    }
+    return out;
+}
 
 /**
  * A block's canonical keys — the ones that must not be renamed.

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { parseConfig, canonicalize, asItems, unknownKeys, nearest, isRecord } from "./parse";
+import { parseConfig, canonicalize, asItems, unknownKeys, nearest, isRecord, KEY_ALIASES } from "./parse";
+import schema from "../blocks/schema.json";
 
 describe("canonicalize — block context", () => {
     it("a block's own key does not drift into a synonym", () => {
@@ -108,5 +109,63 @@ describe("isRecord", () => {
         expect(isRecord({})).toBe(true);
         expect(isRecord([])).toBe(false);
         expect(isRecord(null)).toBe(false);
+    });
+});
+
+describe("KEY_ALIASES comes from the schema", () => {
+    it("carries every synonym the schema declares", () => {
+        const declared: [string, string][] = [];
+        for (const block of Object.values(schema.blocks) as Record<string, unknown>[]) {
+            for (const level of [block.root, block.item]) {
+                if (!level) continue;
+                for (const [canonical, field] of Object.entries(level as Record<string, { aliases?: string[] }>)) {
+                    for (const alias of field.aliases ?? []) declared.push([alias, canonical]);
+                }
+            }
+        }
+        expect(declared.length).toBeGreaterThan(0);
+        for (const [alias, canonical] of declared) {
+            expect(KEY_ALIASES[alias], alias).toBe(canonical);
+        }
+    });
+
+    it("no two blocks claim the same synonym for different keys", () => {
+        const seen = new Map<string, string>();
+        const clashes: string[] = [];
+        for (const block of Object.values(schema.blocks) as Record<string, unknown>[]) {
+            for (const level of [block.root, block.item]) {
+                if (!level) continue;
+                for (const [canonical, field] of Object.entries(level as Record<string, { aliases?: string[] }>)) {
+                    for (const alias of field.aliases ?? []) {
+                        const first = seen.get(alias);
+                        if (first && first !== canonical) clashes.push(`${alias} -> ${first} / ${canonical}`);
+                        seen.set(alias, canonical);
+                    }
+                }
+            }
+        }
+        // The table is flat, so a clash would silently let the last block win.
+        expect(clashes).toEqual([]);
+    });
+
+    it("still maps the synonyms it always did", () => {
+        expect(KEY_ALIASES).toMatchObject({
+            folder: "source",
+            from: "source",
+            title: "label",
+            name: "label",
+            emoji: "icon",
+            property: "field",
+            prop: "field",
+            aggregate: "agg",
+            target: "goal",
+            colour: "color",
+        });
+    });
+
+    it("no longer carries a synonym that maps a key to itself", () => {
+        for (const [alias, canonical] of Object.entries(KEY_ALIASES)) {
+            expect(alias, `${alias} -> ${canonical}`).not.toBe(canonical);
+        }
     });
 });
