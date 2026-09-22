@@ -5,6 +5,9 @@
   "main": "main.js",
   "type": "module",
   "license": "MIT",
+  "engines": {
+    "node": ">=22.22.2"
+  },
   "author": "Dmitriy Yurkin (Dimagious)",
   "scripts": {
     "build": "npm run build:css && esbuild src/main.ts --bundle --outfile=main.js --minify --platform=node --format=cjs --target=es2020 --external:obsidian --external:electron --external:@codemirror/state --external:@codemirror/view --footer:js=\"module.exports = module.exports.default || module.exports;\"",
