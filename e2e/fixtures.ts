@@ -117,6 +117,43 @@ export const test = base.extend<Fixtures>({
 export { expect } from "@playwright/test";
 
 /**
+ * Opens the settings tab and returns the window it was drawn in.
+ *
+ * Obsidian 1.13 renders settings in a popout window of its own, so the main
+ * window's document holds none of it. Older builds drew it in place, and the
+ * search below covers both rather than pinning the suite to one of them.
+ */
+export async function openSettings(app: ElectronApplication, win: Page): Promise<Page> {
+    await win.evaluate(() => {
+        const a = (globalThis as unknown as { app?: { setting?: { open?: () => void } } }).app;
+        a?.setting?.open?.();
+    });
+    await win.waitForTimeout(400);
+    await win.evaluate(() => {
+        const a = (globalThis as unknown as {
+            app?: { setting?: { openTabById?: (id: string) => void } };
+        }).app;
+        a?.setting?.openTabById?.("dashsidian");
+    });
+
+    for (let attempt = 0; attempt < 25; attempt += 1) {
+        for (const page of app.windows()) {
+            const drawn = await page.locator(".modal.mod-settings").count().catch(() => 0);
+            if (drawn) return page;
+        }
+        await win.waitForTimeout(200);
+    }
+    throw new Error("the settings tab did not appear in any window");
+}
+
+export async function closeSettings(win: Page): Promise<void> {
+    await win.evaluate(() => {
+        const a = (globalThis as unknown as { app?: { setting?: { close?: () => void } } }).app;
+        a?.setting?.close?.();
+    });
+}
+
+/**
  * The reading view of the open note.
  *
  * Obsidian keeps both renderings of a note in the DOM at once — the Live

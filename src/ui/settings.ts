@@ -1,6 +1,5 @@
 import {
     App,
-    ButtonComponent,
     Notice,
     PluginSettingTab,
     normalizePath,
@@ -83,24 +82,28 @@ export class DashySettingTab extends PluginSettingTab {
                 : installed === SKILL_VERSION
                     ? t("settings.skillCurrent", { version: installed })
                     : t("settings.skillOutdated", { installed, available: SKILL_VERSION }),
-            action: (el) => {
-                new ButtonComponent(el)
-                    .setButtonText(installed === null ? t("settings.install") : t("settings.update"))
-                    // Two rows carry an "Install" button; without a label they
-                    // are indistinguishable to a screen reader, which reads the
-                    // button and not the row it sits in.
-                    .setTooltip(t("settings.skillName"))
-                    .setCta()
-                    .onClick(() => {
-                        void this.installSkill();
-                    });
-                new ButtonComponent(el)
-                    .setButtonText(t("settings.copyMarkdown"))
-                    .onClick(() => {
+            // `render`, not `action`: an action definition is a click handler
+            // for the whole row, and leaves the control cell empty.
+            render: (setting) => {
+                setting.addButton((b) =>
+                    b
+                        .setButtonText(installed === null ? t("settings.install") : t("settings.update"))
+                        // Two rows carry an "Install" button; without a label
+                        // they are indistinguishable to a screen reader, which
+                        // reads the button and not the row it sits in.
+                        .setTooltip(t("settings.skillName"))
+                        .setCta()
+                        .onClick(() => {
+                            void this.installSkill();
+                        }),
+                );
+                setting.addButton((b) =>
+                    b.setButtonText(t("settings.copyMarkdown")).onClick(() => {
                         void navigator.clipboard.writeText(SKILL_MARKDOWN).then(() => {
                             new Notice(t("settings.copied"));
                         });
-                    });
+                    }),
+                );
             },
         };
     }
@@ -114,13 +117,15 @@ export class DashySettingTab extends PluginSettingTab {
                 : installed === SKILL_VERSION
                     ? t("settings.agentsCurrent", { version: installed })
                     : t("settings.agentsOutdated", { installed, available: SKILL_VERSION }),
-            action: (el) => {
-                new ButtonComponent(el)
-                    .setButtonText(installed === null ? t("settings.install") : t("settings.update"))
-                    .setTooltip(t("settings.agentsName"))
-                    .onClick(() => {
-                        void this.installAgents();
-                    });
+            render: (setting) => {
+                setting.addButton((b) =>
+                    b
+                        .setButtonText(installed === null ? t("settings.install") : t("settings.update"))
+                        .setTooltip(t("settings.agentsName"))
+                        .onClick(() => {
+                            void this.installAgents();
+                        }),
+                );
             },
         };
     }

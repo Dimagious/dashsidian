@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { test, expect, READING_VIEW } from "./fixtures";
+import { test, expect, openSettings, READING_VIEW } from "./fixtures";
 
 /**
  * The pictures for the README and the store listing.
@@ -123,18 +123,13 @@ test("diagnostics", async ({ win }) => {
     }
 });
 
-test("settings", async ({ win }) => {
+test("settings", async ({ app, win }) => {
     await setUp(win, "obsidian");
-    await win.evaluate(() => {
-        const a = (globalThis as unknown as {
-            app?: { setting?: { open?: () => void; openTabById?: (id: string) => void } };
-        }).app;
-        a?.setting?.open?.();
-        a?.setting?.openTabById?.("dashsidian");
-    });
-    await win.waitForTimeout(600);
+    // Since Obsidian 1.13 the settings live in a window of their own.
+    const settings = await openSettings(app, win);
+    await settings.waitForTimeout(600);
     // The settings pane alone, without Obsidian's own tab list beside it.
-    await win.locator(".vertical-tab-content-container").first()
+    await settings.locator(".vertical-tab-content-container").first()
         .screenshot({ path: path.join(SHOTS, "settings-dark.png") });
 });
 

@@ -1,40 +1,27 @@
-import { test, expect } from "./fixtures";
+import { test, expect, openSettings, closeSettings } from "./fixtures";
 
 /**
- * The settings tab is built through Obsidian's own Setting builder, so a DOM
- * fake proves nothing about it. This is the only place it gets exercised.
+ * The settings tab is declared through `getSettingDefinitions()`, so Obsidian
+ * renders it, not us. A DOM fake proves nothing about that; this is the only
+ * place it gets exercised.
  */
 test.describe("settings tab", () => {
-    test.beforeEach(async ({ win }) => {
-        await win.evaluate(() => {
-            const a = (globalThis as unknown as {
-                app?: { setting?: { open?: () => void; openTabById?: (id: string) => void } };
-            }).app;
-            a?.setting?.open?.();
-            a?.setting?.openTabById?.("dashsidian");
-        });
-        await win.waitForTimeout(400);
-    });
-
     test.afterEach(async ({ win }) => {
-        await win.evaluate(() => {
-            const a = (globalThis as unknown as { app?: { setting?: { close?: () => void } } }).app;
-            a?.setting?.close?.();
-        });
+        await closeSettings(win);
     });
 
-    test("all three periodic folders can be set", async ({ win }) => {
-        // This Obsidian build does not put `mod-settings` on the container.
-        const modal = win.locator(".modal-container");
+    test("all three periodic folders can be set", async ({ app, win }) => {
+        const settings = await openSettings(app, win);
         for (const name of ["Daily notes folder", "Weekly notes folder", "Monthly notes folder"]) {
-            await expect(modal.getByText(name, { exact: true })).toBeVisible();
+            await expect(settings.getByText(name, { exact: true })).toBeVisible();
         }
     });
 
-    test("typing a folder is saved to disk", async ({ win }) => {
-        const input = win.locator(".modal-container input[type=text]").first();
-        await input.fill("Diary");
-        await win.waitForTimeout(400);
+    test("typing a folder is saved to disk", async ({ app, win }) => {
+        const settings = await openSettings(app, win);
+        await settings.locator(".modal.mod-settings input[type=text]").first().fill("Diary");
+        await win.waitForTimeout(500);
+
         const saved = await win.evaluate(async () => {
             const a = (globalThis as unknown as {
                 app?: { plugins?: { plugins?: Record<string, { settings?: { dailyFolder?: string } }> } };
@@ -44,9 +31,13 @@ test.describe("settings tab", () => {
         expect(saved).toBe("Diary");
     });
 
-    test("AGENTS.md is written for agents that do not read Claude skills", async ({ win }) => {
-        await win.locator(".modal-container").getByRole("button", { name: "AGENTS.md in the vault root" }).click();
-        await expect(win.locator(".notice").first()).toHaveText(/AGENTS\.md/);
+    test("AGENTS.md is written for agents that do not read Claude skills", async ({ app, win }) => {
+        const settings = await openSettings(app, win);
+        await settings.getByRole("button", { name: "AGENTS.md in the vault root" }).click();
+        // The notice lands in whichever window Obsidian considers active, and
+        // since 1.13 that is not the one holding the settings. The file on disk
+        // is the assertion that matters anyway.
+        await win.waitForTimeout(800);
 
         const written = await win.evaluate(async () => {
             const a = (globalThis as unknown as {
@@ -59,7 +50,7 @@ test.describe("settings tab", () => {
         expect(written?.trimEnd().endsWith("<!-- dashy:end -->")).toBe(true);
     });
 
-    test("a file the user already owns keeps its own text", async ({ win }) => {
+    test("a file the user already owns keeps its own text", async ({ app, win }) => {
         await win.evaluate(async () => {
             const a = (globalThis as unknown as {
                 app?: { vault?: { adapter?: { write?: (p: string, d: string) => Promise<void> } } };
@@ -67,8 +58,9 @@ test.describe("settings tab", () => {
             await a?.vault?.adapter?.write?.("AGENTS.md", "# House rules\n\nNever touch this line.\n");
         });
 
-        await win.locator(".modal-container").getByRole("button", { name: "AGENTS.md in the vault root" }).click();
-        await expect(win.locator(".notice").first()).toHaveText(/AGENTS\.md/);
+        const settings = await openSettings(app, win);
+        await settings.getByRole("button", { name: "AGENTS.md in the vault root" }).click();
+        await win.waitForTimeout(800);
 
         const written = await win.evaluate(async () => {
             const a = (globalThis as unknown as {
@@ -81,9 +73,10 @@ test.describe("settings tab", () => {
         expect(written).toContain("<!-- dashy:begin -->");
     });
 
-    test("the skill can be installed into the vault from the button", async ({ win }) => {
-        await win.locator(".modal-container").getByRole("button", { name: "Skill file in this vault" }).click();
-        await expect(win.locator(".notice").first()).toHaveText(/Skill written to/);
+    test("the skill can be installed into the vault from the button", async ({ app, win }) => {
+        const settings = await openSettings(app, win);
+        await settings.getByRole("button", { name: "Skill file in this vault" }).click();
+        await win.waitForTimeout(800);
 
         const written = await win.evaluate(async () => {
             const a = (globalThis as unknown as {
@@ -93,5 +86,14 @@ test.describe("settings tab", () => {
         });
         expect(written).toContain("# Dashy — dashboard blocks");
         expect(written).toContain("### `countdown`");
+    });
+
+    test("installing again offers an update rather than a fresh install", async ({ app, win }) => {
+        const settings = await openSettings(app, win);
+        await settings.getByRole("button", { name: "Skill file in this vault" }).click();
+        await win.waitForTimeout(800);
+        // The row redraws through update(), so the button relabels itself.
+        await expect(settings.getByRole("button", { name: "Skill file in this vault" }))
+            .toHaveText("Update");
     });
 });
