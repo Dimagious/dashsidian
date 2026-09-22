@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseConfig, canonicalize, asItems, unknownKeys, nearest, isRecord, KEY_ALIASES } from "./parse";
+import { parseConfig, canonicalize, asItems, unknownKeys, nearest, isRecord, describeValue, KEY_ALIASES } from "./parse";
 import schema from "../blocks/schema.json";
 
 describe("canonicalize — block context", () => {
@@ -167,5 +167,43 @@ describe("KEY_ALIASES comes from the schema", () => {
         for (const [alias, canonical] of Object.entries(KEY_ALIASES)) {
             expect(alias, `${alias} -> ${canonical}`).not.toBe(canonical);
         }
+    });
+});
+
+describe("describeValue", () => {
+    it("a string is itself", () => {
+        expect(describeValue("avgg")).toBe("avgg");
+    });
+
+    it("numbers and booleans read as written", () => {
+        expect(describeValue(42)).toBe("42");
+        expect(describeValue(true)).toBe("true");
+        expect(describeValue(1.5)).toBe("1.5");
+    });
+
+    it("a map reads back instead of [object Object]", () => {
+        // YAML will happily produce a map where a string was expected, and
+        // "[object Object]" tells the author nothing about what they wrote.
+        expect(describeValue({ min: 1 })).toBe('{"min":1}');
+    });
+
+    it("a list reads back too", () => {
+        expect(describeValue([1, 2])).toBe("[1,2]");
+    });
+
+    it("null and undefined are named", () => {
+        expect(describeValue(null)).toBe("null");
+        expect(describeValue(undefined)).toBe("undefined");
+    });
+
+    it("something with no reading says so rather than throwing", () => {
+        expect(describeValue(Symbol("x"))).toBe("[unreadable]");
+        expect(describeValue(() => undefined)).toBe("[unreadable]");
+    });
+
+    it("a structure that cannot be walked does not take the block down", () => {
+        const loop: Record<string, unknown> = {};
+        loop.self = loop;
+        expect(describeValue(loop)).toBe("[unreadable]");
     });
 });

@@ -9,7 +9,7 @@
 
 import { AGGS, isAgg, type Agg } from "./aggregate";
 import { readTrendDays } from "./sparkline";
-import { nearest, type Diagnostic } from "../shared/parse";
+import { nearest, describeValue, type Diagnostic } from "../shared/parse";
 import { t } from "../i18n";
 
 export interface StatSpec {
@@ -50,7 +50,7 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
     const rawAgg = item.agg ?? "count";
     if (!isAgg(rawAgg)) {
         const guess = typeof rawAgg === "string" ? nearest(rawAgg, AGGS) : null;
-        const agg = String(rawAgg);
+        const agg = describeValue(rawAgg);
         diagnostics.push({
             level: "error",
             message: guess
@@ -80,7 +80,7 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
         } else {
             diagnostics.push({
                 level: "warning",
-                message: t("stats.badPrecision", { card, max: MAX_PRECISION, value: String(p) }),
+                message: t("stats.badPrecision", { card, max: MAX_PRECISION, value: describeValue(p) }),
             });
         }
     }
@@ -90,7 +90,7 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
         if (days === null) {
             diagnostics.push({
                 level: "warning",
-                message: t("stats.trendInvalid", { card, value: String(item.trend) }),
+                message: t("stats.trendInvalid", { card, value: describeValue(item.trend) }),
             });
         } else if (!field) {
             // `count` has a number but no series behind it: there is nothing

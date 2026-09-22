@@ -5,11 +5,18 @@ import tseslint from 'typescript-eslint';
 export default [
   // Base JavaScript recommended
   js.configs.recommended,
-  
+
   // TypeScript recommended (without type checking for faster linting)
   ...tseslint.configs.recommended,
-  
-  // Obsidian plugin rules
+
+  // The plugin's own `recommended` preset, not a hand-picked subset of it.
+  // Picking rules by hand is picking which parts of the review to fail: the
+  // list here was 27 of the 39 the preset enables, and the twelve missing ones
+  // included `no-unsupported-api` at error level and the console-logging rule
+  // straight out of the plugin guidelines.
+  ...obsidianmd.configs.recommended,
+
+  // Our own overrides on top, each one deliberate.
   {
     plugins: {
       obsidianmd: obsidianmd,
@@ -26,32 +33,6 @@ export default [
       },
     },
     rules: {
-      // Obsidian recommended rules
-      'obsidianmd/commands/no-command-in-command-id': 'error',
-      'obsidianmd/commands/no-command-in-command-name': 'error',
-      'obsidianmd/commands/no-default-hotkeys': 'error',
-      'obsidianmd/commands/no-plugin-id-in-command-id': 'error',
-      'obsidianmd/commands/no-plugin-name-in-command-name': 'error',
-      'obsidianmd/settings-tab/no-manual-html-headings': 'error',
-      'obsidianmd/settings-tab/no-problematic-settings-headings': 'error',
-      'obsidianmd/vault/iterate': 'error',
-      'obsidianmd/detach-leaves': 'error',
-      'obsidianmd/hardcoded-config-path': 'error',
-      'obsidianmd/no-forbidden-elements': 'error',
-      'obsidianmd/no-plugin-as-component': 'error',
-      'obsidianmd/no-sample-code': 'error',
-      'obsidianmd/no-tfile-tfolder-cast': 'error',
-      'obsidianmd/no-view-references-in-plugin': 'error',
-      'obsidianmd/no-static-styles-assignment': 'error',
-      'obsidianmd/object-assign': 'error',
-      'obsidianmd/platform': 'error',
-      'obsidianmd/prefer-file-manager-trash-file': 'warn',
-      'obsidianmd/prefer-abstract-input-suggest': 'error',
-      'obsidianmd/regex-lookbehind': 'error',
-      'obsidianmd/sample-names': 'error',
-      'obsidianmd/validate-manifest': 'error',
-      'obsidianmd/validate-license': 'error',
-
       // eslint-plugin-obsidianmd 0.4.x additions (scorecard parity, 2026-08-05):
       // `prefer-window-timers` flipped direction vs 0.1.x — it now demands
       // bare `window.setTimeout`/`window.clearTimeout` and flags
@@ -108,7 +89,16 @@ export default [
       'coverage/**',
       'dist/**',
       'main.js',
+      // Build output of the preview stand and the capture run: bundles, and
+      // one of them is a symlink to main.js inside a generated vault.
+      '.preview/**',
+      '.capture/**',
       'scripts/**',
+      // Test scaffolding: the fake Obsidian, the DOM shim, the fake vault.
+      // None of it is bundled, and the preset forbids silencing its DOM rules
+      // per line — rightly, since in plugin code they are never negotiable.
+      // The shim cannot call createEl: it is what provides createEl.
+      'src/test/**',
       'src/**/*.test.ts',
       'vitest.config.ts', // Exclude from type checking to avoid parsing errors
       // e2e/**, e2e-vault.pristine/**, and playwright.config.ts are

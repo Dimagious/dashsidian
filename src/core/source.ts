@@ -123,7 +123,7 @@ function matchesWhere(note: NoteRecord, clause: WhereClause): boolean {
         }
     }
 
-    const a = String(actual).toLowerCase();
+    const a = comparable(actual).toLowerCase();
     const b = String(clause.value).toLowerCase();
     switch (clause.op) {
         case "=": return a === b;
@@ -134,6 +134,19 @@ function matchesWhere(note: NoteRecord, clause: WhereClause): boolean {
         case "<=": return a <= b;
         default: return false;
     }
+}
+
+/**
+ * A frontmatter value as a string, for comparing against a written one.
+ *
+ * A list joins, which is how `tags = books` has always matched a one-item list.
+ * A map compares as empty: it cannot equal a scalar, and "[object Object]"
+ * equalling the literal text "[object Object]" is not a match anyone wants.
+ */
+function comparable(value: unknown): string {
+    if (Array.isArray(value)) return value.map((v) => String(v)).join(",");
+    if (value !== null && typeof value === "object") return "";
+    return String(value);
 }
 
 /** A folder includes its children: "01-Areas" covers "01-Areas/Sport/x.md". */

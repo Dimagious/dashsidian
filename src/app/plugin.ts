@@ -86,7 +86,10 @@ export default class DashyPlugin extends Plugin {
     }
 
     async loadSettings(): Promise<void> {
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+        // loadData() is typed `any`; saying what we expect keeps the rest of
+        // the plugin from inheriting it.
+        const stored = (await this.loadData()) as Partial<DashySettings> | null;
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, stored ?? {});
     }
 
     async saveSettings(): Promise<void> {

@@ -93,10 +93,10 @@ export function countingContext(vault: FakeVault = {}): {
     const app = mockApp(vault);
     const real = app.vault.getMarkdownFiles.bind(app.vault);
     let walks = 0;
-    app.vault.getMarkdownFiles = (() => {
+    app.vault.getMarkdownFiles = () => {
         walks += 1;
         return real();
-    }) as typeof app.vault.getMarkdownFiles;
+    };
 
     const snapshot = new VaultSnapshot(app);
     return {
@@ -137,7 +137,7 @@ export function texts(el: HTMLElement, selector: string): string[] {
 
 /** Every match as an element, for assertions on classes and attributes. */
 export function nodes(el: HTMLElement, selector: string): HTMLElement[] {
-    return Array.from(el.querySelectorAll(selector)) as HTMLElement[];
+    return Array.from(el.querySelectorAll<HTMLElement>(selector));
 }
 
 /** The diagnostics a block drew, by level. */

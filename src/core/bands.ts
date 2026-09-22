@@ -1,4 +1,4 @@
-import { isRecord } from "../shared/parse";
+import { isRecord, describeValue } from "../shared/parse";
 import { t } from "../i18n";
 
 /** A colouring band: everything >= min gets its own alpha. */
@@ -32,7 +32,7 @@ export function readBands(raw: unknown): Band[] {
     }
 
     if (raw.every((v) => typeof v === "number")) {
-        const nums = [...(raw as number[])].sort((a, b) => b - a);
+        const nums = [...raw].sort((a, b) => b - a);
         return nums.map((min, i) => ({
             min,
             alpha: alphaFor(i),
@@ -45,7 +45,7 @@ export function readBands(raw: unknown): Band[] {
         .map((b, i) => ({
             min: typeof b.min === "number" ? b.min : Number.NEGATIVE_INFINITY,
             alpha: typeof b.alpha === "number" ? b.alpha : alphaFor(i),
-            label: typeof b.label === "string" ? b.label : t("bands.from", { min: String(b.min ?? "") }),
+            label: typeof b.label === "string" ? b.label : t("bands.from", { min: describeValue(b.min ?? "") }),
         }))
         .sort((a, b) => b.min - a.min);
 }

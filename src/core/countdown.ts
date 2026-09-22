@@ -3,7 +3,7 @@
  */
 
 import { daysBetween } from "./calendar";
-import type { Diagnostic } from "../shared/parse";
+import { describeValue, type Diagnostic } from "../shared/parse";
 import { t } from "../i18n";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -58,7 +58,7 @@ export function readCountdown(item: Record<string, unknown>, label: string): Cou
     if (!date) {
         diagnostics.push({
             level: "error",
-            message: t("countdown.dateInvalid", { card, date: String(item.date) }),
+            message: t("countdown.dateInvalid", { card, date: describeValue(item.date) }),
         });
         return { spec: null, diagnostics };
     }

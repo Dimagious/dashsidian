@@ -43,9 +43,9 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
         const path = typeof item.path === "string" ? item.path : "";
         if (!label && !path) continue;
 
-        const tile = el.ownerDocument.createElement("div");
-        tile.className = item.accent === true ? "dashy-tile dashy-tile-accent" : "dashy-tile";
-        grid.appendChild(tile);
+        const tile = grid.createDiv({
+            cls: item.accent === true ? "dashy-tile dashy-tile-accent" : "dashy-tile",
+        });
 
         const link = path ? internalLink(tile, path, "dashy-tile-link") : tile.createDiv({ cls: "dashy-tile-link" });
 

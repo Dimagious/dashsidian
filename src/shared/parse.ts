@@ -135,6 +135,29 @@ export function asItems(value: unknown): Record<string, unknown>[] {
     return [];
 }
 
+/**
+ * A value as it should appear in a message about it.
+ *
+ * `String()` over an object gives "[object Object]", which tells the author
+ * nothing about what they wrote. YAML happily produces a map where a string was
+ * expected, so this is not a theoretical case.
+ */
+export function describeValue(value: unknown): string {
+    if (typeof value === "string") return value;
+    if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
+        return String(value);
+    }
+    if (value === null) return "null";
+    if (value === undefined) return "undefined";
+    try {
+        // A map or a list reads back as it was written. A symbol or a function
+        // has no reading, and JSON.stringify returns nothing for them.
+        return JSON.stringify(value) ?? "[unreadable]";
+    } catch {
+        return "[unreadable]";
+    }
+}
+
 export function isRecord(v: unknown): v is Record<string, unknown> {
     return typeof v === "object" && v !== null && !Array.isArray(v);
 }
