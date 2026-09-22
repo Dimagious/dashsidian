@@ -20,7 +20,9 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: node scripts/assert-versions.cjs
+      # The tag is the fourth place the version is written; it is checked here
+      # because this is the only step that knows it.
+      - run: node scripts/assert-versions.cjs "${{ github.ref_name }}"
       - run: npm run test
       - run: npm run build
 
