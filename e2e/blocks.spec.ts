@@ -35,6 +35,15 @@ test.describe("blocks render in a real Obsidian", () => {
         await expect(values.nth(2)).toHaveText("14 500");
     });
 
+    test("a trend sketches one bar per day it has", async ({ win }) => {
+        const bars = view(win).locator(".dashy-stat-bar");
+        await expect(bars).toHaveCount(10);
+        const tallest = await bars.evaluateAll(
+            (els) => Math.max(...els.map((e) => Number.parseFloat((e as HTMLElement).style.height))),
+        );
+        expect(tallest).toBe(100);
+    });
+
     test("a progress bar is as wide as its percent says", async ({ win }) => {
         await expect(view(win).locator(".dashy-progress-percent")).toHaveText("25%");
         const width = await view(win).locator(".dashy-progress-fill").first()

@@ -11,7 +11,7 @@ items:
 columns: 3
 items:
   - { label: Days, source: Diary, agg: count }
-  - { label: Average sleep, source: Diary, field: sleep_score, agg: avg }
+  - { label: Average sleep, source: Diary, field: sleep_score, agg: avg, trend: 30d }
   - { label: Steps, source: Diary, field: steps, agg: sum }
 ```
 

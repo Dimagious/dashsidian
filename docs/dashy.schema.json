@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "blocks": {
     "tiles": {
       "summary": "A grid of link tiles for navigating the vault.",
@@ -116,6 +116,10 @@
           "type": "number",
           "doc": "decimal places, 0–6; by default a whole number stays whole and a fraction gets one decimal"
         },
+        "trend": {
+          "type": "string|number",
+          "doc": "sketch the last N days beside the number: `30d`. Needs `field`"
+        },
         "icon": {
           "type": "string",
           "doc": "emoji",
@@ -128,10 +132,11 @@
           "doc": "small caption under the title"
         }
       },
-      "example": "columns: 3\nitems:\n  - { label: Notes, source: 01-Areas, agg: count }\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, precision: 1 }\n  - { label: Days in a row, source: Diary, field: sleep_score, agg: streak, unit: d. }",
+      "example": "columns: 3\nitems:\n  - { label: Notes, source: 01-Areas, agg: count }\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }\n  - { label: Days in a row, source: Diary, field: sleep_score, agg: streak, unit: d. }",
       "notes": [
         "`streak` counts the longest run of consecutive days and `latest` takes the value from the newest note — both need YYYY-MM-DD note names.",
-        "Nothing to count — the card shows a dash rather than a zero: \"no data\" and \"zero\" are different answers."
+        "Nothing to count — the card shows a dash rather than a zero: \"no data\" and \"zero\" are different answers.",
+        "`trend` sketches the shape of the last N days, scaled between the smallest and largest of that window rather than from zero."
       ]
     },
     "progress": {

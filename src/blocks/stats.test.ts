@@ -72,6 +72,52 @@ describe("stats — the numbers are the real ones", () => {
     });
 });
 
+describe("stats — the trend beside the number", () => {
+    it("sketches one bar per day of the window", () => {
+        const el = card("items:\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, trend: 30d }");
+        // The vault holds ten days; a 30-day window can only show those ten.
+        expect(nodes(el, ".dashy-stat-bar")).toHaveLength(10);
+    });
+
+    it("a shorter window takes the latest days, not the first", () => {
+        const el = card("items:\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, trend: 3d }");
+        const bars = nodes(el, ".dashy-stat-bar");
+        expect(bars).toHaveLength(3);
+        // sleep_score climbs 70..79, so the last three climb too
+        const heights = bars.map((b) => Number.parseFloat(b.style.height));
+        expect(heights[0]).toBeLessThan(heights[2]!);
+    });
+
+    it("the tallest bar is full height", () => {
+        const el = card("items:\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, trend: 30d }");
+        const heights = nodes(el, ".dashy-stat-bar").map((b) => Number.parseFloat(b.style.height));
+        expect(Math.max(...heights)).toBe(100);
+    });
+
+    it("no trend asked for means no bars at all", () => {
+        const el = card("items:\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg }");
+        expect(nodes(el, ".dashy-stat-trend")).toHaveLength(0);
+    });
+
+    it("a trend without a field warns instead of drawing nothing silently", () => {
+        const el = card("items:\n  - { label: Days, source: Diary, agg: count, trend: 30d }");
+        expect(diagnostics(el, "warning")[0]).toContain("field");
+        expect(nodes(el, ".dashy-stat-bar")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value"), "the number still works").toEqual(["10"]);
+    });
+
+    it("an unreadable window warns and the card survives", () => {
+        const el = card("items:\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, trend: last month }");
+        expect(diagnostics(el, "warning")[0]).toContain("30d");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["74.5"]);
+    });
+
+    it("a selection with no dated notes draws no bars", () => {
+        const el = card("items:\n  - { label: Books, source: Books, field: rating, agg: avg, trend: 30d }");
+        expect(nodes(el, ".dashy-stat-bar")).toHaveLength(0);
+    });
+});
+
 describe("stats — nothing to count is not zero", () => {
     it("an empty selection shows a dash, marked as empty", () => {
         const el = card("items:\n  - { label: Nowhere, source: 99-Empty, field: steps, agg: sum }");

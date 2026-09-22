@@ -7,7 +7,7 @@ description: >-
   for a dashboard, a home page, a tile grid, cards with counters or averages, a
   link to today's note, a day calendar, a heatmap, a habit tracker or a visual
   entry point into the vault.
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Dashy — dashboard blocks
@@ -74,6 +74,7 @@ Number cards: one value per card, computed over a selection of notes.
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
 | `unit` | string | — | — | — | a suffix after the number: km, %, d. |
 | `precision` | number | — | — | — | decimal places, 0–6; by default a whole number stays whole and a fraction gets one decimal |
+| `trend` | string\|number | — | — | — | sketch the last N days beside the number: `30d`. Needs `field` |
 | `icon` | string | — | — | `emoji` | emoji |
 | `sub` | string | — | — | — | small caption under the title |
 
@@ -84,13 +85,14 @@ Number cards: one value per card, computed over a selection of notes.
 columns: 3
 items:
   - { label: Notes, source: 01-Areas, agg: count }
-  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, precision: 1 }
+  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }
   - { label: Days in a row, source: Diary, field: sleep_score, agg: streak, unit: d. }
 ```
 ````
 
 - `streak` counts the longest run of consecutive days and `latest` takes the value from the newest note — both need YYYY-MM-DD note names.
 - Nothing to count — the card shows a dash rather than a zero: "no data" and "zero" are different answers.
+- `trend` sketches the shape of the last N days, scaled between the smallest and largest of that window rather than from zero.
 
 ### `progress`
 

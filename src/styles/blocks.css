@@ -59,6 +59,17 @@
 /* a dash means "no data", and it should read quieter than a number */
 .dashy-stat-value.is-empty { color: var(--text-faint); font-weight: 500; }
 .dashy-stat-unit { font-size: 0.45em; font-weight: 500; opacity: 0.6; margin-left: 3px; }
+/* the shape of the last N days: scaled inside its own window, so the bars say
+ * how the run moved, not how far it sits from zero */
+.dashy-stat-trend {
+  display: flex; align-items: flex-end; justify-content: center;
+  gap: 1px; height: 18px; margin-top: 6px;
+}
+.dashy-stat-bar {
+  flex: 1 1 auto; min-width: 1px; max-width: 4px;
+  background: var(--interactive-accent);
+  border-radius: 1px; opacity: 0.55;
+}
 .dashy-stat-label { font-size: 0.85em; margin-top: 4px; }
 .dashy-stat-sub { font-size: 0.7em; opacity: 0.55; margin-top: 2px; }
 

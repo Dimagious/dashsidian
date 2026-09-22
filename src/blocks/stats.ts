@@ -1,7 +1,8 @@
 import type { NoteRecord } from "../core/source";
 import type { BlockContext } from "./context";
 import { selectNotes } from "../core/source";
-import { aggregate } from "../core/aggregate";
+import { aggregate, series } from "../core/aggregate";
+import { sparkBars } from "../core/sparkline";
 import { readStat, formatValue, type StatSpec } from "../core/stat";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics } from "../shared/render";
@@ -18,6 +19,8 @@ interface Card {
     icon?: string;
     unit?: string;
     sub?: string;
+    /** bar heights in percent, empty when no trend was asked for */
+    trend: number[];
 }
 
 export function renderStats(ctx: BlockContext, source: string, el: HTMLElement): void {
@@ -51,7 +54,14 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         const { spec, diagnostics: statDiags } = readStat(item, label);
         diags.push(...statDiags);
 
-        const card: Card = { label: label || spec?.field || "", text: cardText(notes, item, spec) };
+        const selected = selectFor(notes, item);
+        const card: Card = {
+            label: label || spec?.field || "",
+            text: cardValue(selected, spec),
+            trend: spec?.trend && spec.field
+                ? sparkBars(series(selected, spec.field, spec.trend))
+                : [],
+        };
         if (typeof item.icon === "string") card.icon = item.icon;
         if (spec?.unit) card.unit = spec.unit;
         if (typeof item.sub === "string") card.sub = item.sub;
@@ -80,22 +90,29 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
             valueEl.createSpan({ cls: "dashy-stat-unit", text: card.unit });
         }
 
+        if (card.trend.length) {
+            const spark = box.createDiv({ cls: "dashy-stat-trend" });
+            for (const height of card.trend) {
+                spark.createSpan({ cls: "dashy-stat-bar" }).style.height = `${height}%`;
+            }
+        }
+
         if (card.label) box.createDiv({ cls: "dashy-stat-label", text: card.label });
         if (card.sub) box.createDiv({ cls: "dashy-stat-sub", text: card.sub });
     }
 }
 
-/** Selection for one card, reduced to text. No spec — a card with a dash. */
-function cardText(
-    notes: readonly NoteRecord[],
-    item: Record<string, unknown>,
-    spec: StatSpec | null,
-): string {
-    if (!spec) return "—";
-    const selected = selectNotes(notes, {
+/** The notes one card works over. Taken once: the value and the trend share it. */
+function selectFor(notes: readonly NoteRecord[], item: Record<string, unknown>): NoteRecord[] {
+    return selectNotes(notes, {
         source: typeof item.source === "string" ? item.source : undefined,
         tag: typeof item.tag === "string" ? item.tag : undefined,
         where: typeof item.where === "string" ? item.where : undefined,
     });
+}
+
+/** No spec — a card with a dash. */
+function cardValue(selected: readonly NoteRecord[], spec: StatSpec | null): string {
+    if (!spec) return "—";
     return formatValue(aggregate(selected, { agg: spec.agg, field: spec.field }), spec.precision);
 }

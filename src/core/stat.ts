@@ -8,6 +8,7 @@
  */
 
 import { AGGS, isAgg, type Agg } from "./aggregate";
+import { readTrendDays } from "./sparkline";
 import { nearest, type Diagnostic } from "../shared/parse";
 import { t } from "../i18n";
 
@@ -19,6 +20,8 @@ export interface StatSpec {
     unit?: string;
     /** decimal places; when unset we format the default way */
     precision?: number;
+    /** how many days of history to sketch beside the number */
+    trend?: number;
 }
 
 /** Aggregates that need no field: they count notes, not numbers inside them. */
@@ -79,6 +82,22 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
                 level: "warning",
                 message: t("stats.badPrecision", { card, max: MAX_PRECISION, value: String(p) }),
             });
+        }
+    }
+
+    if (item.trend !== undefined) {
+        const days = readTrendDays(item.trend);
+        if (days === null) {
+            diagnostics.push({
+                level: "warning",
+                message: t("stats.trendInvalid", { card, value: String(item.trend) }),
+            });
+        } else if (!field) {
+            // `count` has a number but no series behind it: there is nothing
+            // to draw a shape from.
+            diagnostics.push({ level: "warning", message: t("stats.trendNeedsField", { card }) });
+        } else {
+            spec.trend = days;
         }
     }
 

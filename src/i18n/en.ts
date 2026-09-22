@@ -36,6 +36,9 @@ export const en = {
     "progress.goalRequired": "{card}: `goal:` needs a number — there is nothing to measure against.",
     "progress.goalNotPositive": "{card}: a goal of {goal} leaves nothing to fill — it must be above zero.",
 
+    "stats.trendNeedsField": "{card}: `trend` needs a `field:` to plot — counting notes has no shape.",
+    "stats.trendInvalid": "{card}: `trend` expects a number of days such as 30d, got \"{value}\".",
+
     "countdown.empty": "No dates to draw. Expected `items:` or a list.",
     "countdown.dateRequired": "{card}: `date:` is missing — there is nothing to count down to.",
     "countdown.dateInvalid": "{card}: \"{date}\" is not a date. Expected YYYY-MM-DD.",

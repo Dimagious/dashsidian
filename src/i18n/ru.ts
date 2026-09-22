@@ -32,6 +32,9 @@ export const ru: Catalog = {
     "progress.goalRequired": "{card}: `goal:` ожидает число — иначе не к чему стремиться.",
     "progress.goalNotPositive": "{card}: цель {goal} нечем заполнять — она должна быть больше нуля.",
 
+    "stats.trendNeedsField": "{card}: `trend` нужно `field:` — у счёта заметок нет формы.",
+    "stats.trendInvalid": "{card}: `trend` ожидает число дней, например 30d, получено «{value}».",
+
     "countdown.empty": "Список дат пуст. Ожидается `items:` или массив.",
     "countdown.dateRequired": "{card}: не задан `date:` — не до чего считать.",
     "countdown.dateInvalid": "{card}: «{date}» не похоже на дату. Ожидается YYYY-MM-DD.",
