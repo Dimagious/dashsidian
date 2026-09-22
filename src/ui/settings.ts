@@ -1,4 +1,12 @@
-import { App, Notice, PluginSettingTab, Setting, normalizePath } from "obsidian";
+import {
+    App,
+    ButtonComponent,
+    Notice,
+    PluginSettingTab,
+    normalizePath,
+    type SettingDefinitionItem,
+    type SettingGroupItem,
+} from "obsidian";
 import type DashyPlugin from "../app/plugin";
 import {
     SKILL_MARKDOWN,
@@ -12,47 +20,71 @@ import {
 import { upsertManagedSection, hasManagedSection } from "../core/agents-file";
 import { t } from "../i18n";
 
+type FolderKey = "dailyFolder" | "weeklyFolder" | "monthlyFolder";
+
+/**
+ * The settings tab, declared rather than drawn.
+ *
+ * `display()` has been deprecated since Obsidian 1.13 in favour of
+ * `getSettingDefinitions()`: the tab says what its settings are, and Obsidian
+ * renders, searches and persists them. Two things follow. The folder fields no
+ * longer carry their own onChange, since `setControlValue` is the one place a
+ * value is written; and a redraw is `update()`, not a second `display()`.
+ */
 export class DashySettingTab extends PluginSettingTab {
     constructor(app: App, private readonly plugin: DashyPlugin) {
         super(app, plugin);
     }
 
-    /**
-     * The presence of this method is what obsidianmd/settings-tab/
-     * prefer-setting-definitions checks. The empty list is deliberate: the
-     * fields below are described through Setting, there is nothing to declare.
-     */
-    getSettingDefinitions(): [] {
-        return [];
+    override getSettingDefinitions(): SettingDefinitionItem[] {
+        return [
+            {
+                type: "group",
+                heading: t("settings.periodicHeading"),
+                items: [
+                    this.folder("dailyFolder", t("settings.dailyFolder"),
+                        t("settings.dailyFolderDesc"), "01-Areas/Personal/Diary"),
+                    this.folder("weeklyFolder", t("settings.weeklyFolder"),
+                        t("settings.followPeriodic"), "01-Areas/Personal/Weekly"),
+                    this.folder("monthlyFolder", t("settings.monthlyFolder"),
+                        t("settings.followPeriodic"), "01-Areas/Personal/Monthly"),
+                ],
+            },
+            {
+                type: "group",
+                heading: t("settings.skillHeading"),
+                items: [this.skillRow(), this.agentsRow()],
+            },
+        ];
     }
 
-    display(): void {
-        const { containerEl } = this;
-        containerEl.empty();
+    /** Obsidian reads a control's value from here, by the key the control names. */
+    override getControlValue(key: string): unknown {
+        return this.plugin.settings[key as FolderKey];
+    }
 
-        new Setting(containerEl).setName(t("settings.periodicHeading")).setHeading();
+    /** And writes it back here, which is the only place a setting is stored. */
+    override async setControlValue(key: string, value: unknown): Promise<void> {
+        if (typeof value !== "string") return;
+        this.plugin.settings[key as FolderKey] = value.trim();
+        await this.plugin.saveSettings();
+    }
 
-        this.folderSetting(t("settings.dailyFolder"), t("settings.dailyFolderDesc"),
-            "01-Areas/Personal/Diary", "dailyFolder");
-        this.folderSetting(t("settings.weeklyFolder"), t("settings.followPeriodic"),
-            "01-Areas/Personal/Weekly", "weeklyFolder");
-        this.folderSetting(t("settings.monthlyFolder"), t("settings.followPeriodic"),
-            "01-Areas/Personal/Monthly", "monthlyFolder");
+    private folder(key: FolderKey, name: string, desc: string, placeholder: string): SettingGroupItem {
+        return { name, desc, control: { type: "text", key, placeholder } };
+    }
 
-        new Setting(containerEl).setName(t("settings.skillHeading")).setHeading();
-
+    private skillRow(): SettingGroupItem {
         const installed = this.plugin.settings.installedSkillVersion;
-        const desc = installed === null
-            ? t("settings.skillNotInstalled", { path: SKILL_PATH })
-            : installed === SKILL_VERSION
-                ? t("settings.skillCurrent", { version: installed })
-                : t("settings.skillOutdated", { installed, available: SKILL_VERSION });
-
-        new Setting(containerEl)
-            .setName(t("settings.skillName"))
-            .setDesc(desc)
-            .addButton((b) =>
-                b
+        return {
+            name: t("settings.skillName"),
+            desc: installed === null
+                ? t("settings.skillNotInstalled", { path: SKILL_PATH })
+                : installed === SKILL_VERSION
+                    ? t("settings.skillCurrent", { version: installed })
+                    : t("settings.skillOutdated", { installed, available: SKILL_VERSION }),
+            action: (el) => {
+                new ButtonComponent(el)
                     .setButtonText(installed === null ? t("settings.install") : t("settings.update"))
                     // Two rows carry an "Install" button; without a label they
                     // are indistinguishable to a screen reader, which reads the
@@ -61,55 +93,36 @@ export class DashySettingTab extends PluginSettingTab {
                     .setCta()
                     .onClick(() => {
                         void this.installSkill();
-                    }),
-            )
-            .addButton((b) =>
-                b.setButtonText(t("settings.copyMarkdown")).onClick(() => {
-                    void navigator.clipboard.writeText(SKILL_MARKDOWN).then(() => {
-                        new Notice(t("settings.copied"));
                     });
-                }),
-            );
+                new ButtonComponent(el)
+                    .setButtonText(t("settings.copyMarkdown"))
+                    .onClick(() => {
+                        void navigator.clipboard.writeText(SKILL_MARKDOWN).then(() => {
+                            new Notice(t("settings.copied"));
+                        });
+                    });
+            },
+        };
+    }
 
-        const agents = this.plugin.settings.installedAgentsVersion;
-        const agentsDesc = agents === null
-            ? t("settings.agentsNotInstalled", { path: AGENTS_PATH })
-            : agents === SKILL_VERSION
-                ? t("settings.agentsCurrent", { version: agents })
-                : t("settings.agentsOutdated", { installed: agents, available: SKILL_VERSION });
-
-        new Setting(containerEl)
-            .setName(t("settings.agentsName"))
-            .setDesc(agentsDesc)
-            .addButton((b) =>
-                b
-                    .setButtonText(agents === null ? t("settings.install") : t("settings.update"))
+    private agentsRow(): SettingGroupItem {
+        const installed = this.plugin.settings.installedAgentsVersion;
+        return {
+            name: t("settings.agentsName"),
+            desc: installed === null
+                ? t("settings.agentsNotInstalled", { path: AGENTS_PATH })
+                : installed === SKILL_VERSION
+                    ? t("settings.agentsCurrent", { version: installed })
+                    : t("settings.agentsOutdated", { installed, available: SKILL_VERSION }),
+            action: (el) => {
+                new ButtonComponent(el)
+                    .setButtonText(installed === null ? t("settings.install") : t("settings.update"))
                     .setTooltip(t("settings.agentsName"))
                     .onClick(() => {
                         void this.installAgents();
-                    }),
-            );
-    }
-
-    /** The three fields differ only in their label and settings key. */
-    private folderSetting(
-        name: string,
-        desc: string,
-        placeholder: string,
-        key: "dailyFolder" | "weeklyFolder" | "monthlyFolder",
-    ): void {
-        new Setting(this.containerEl)
-            .setName(name)
-            .setDesc(desc)
-            .addText((input) =>
-                input
-                    .setPlaceholder(placeholder)
-                    .setValue(this.plugin.settings[key])
-                    .onChange(async (v) => {
-                        this.plugin.settings[key] = v.trim();
-                        await this.plugin.saveSettings();
-                    }),
-            );
+                    });
+            },
+        };
     }
 
     /**
@@ -129,7 +142,7 @@ export class DashySettingTab extends PluginSettingTab {
             this.plugin.settings.installedSkillVersion = SKILL_VERSION;
             await this.plugin.saveSettings();
             new Notice(t("settings.written", { path: SKILL_PATH }));
-            this.display();
+            this.update();
         } catch (e) {
             new Notice(t("settings.writeFailed", { message: (e as Error).message }));
         }
@@ -163,7 +176,7 @@ export class DashySettingTab extends PluginSettingTab {
             this.plugin.settings.installedAgentsVersion = SKILL_VERSION;
             await this.plugin.saveSettings();
             new Notice(t("settings.written", { path: AGENTS_PATH }));
-            this.display();
+            this.update();
         } catch (e) {
             new Notice(t("settings.writeFailed", { message: (e as Error).message }));
         }
