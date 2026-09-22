@@ -1,0 +1,60 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Verify versions (package.json vs manifest.json)
+        run: node scripts/assert-versions.cjs
+
+      # Зеркало сканера community-plugins. Ловит паттерны, роняющие
+      # публичный скоркард, до того как их увидит мир.
+      - name: Scorecard regression gate
+        run: npm run scorecard:check
+
+      - name: Agent skill is in sync with block schemas
+        run: npm run build:skill -- --check
+
+      - name: Unit tests (with coverage gates)
+        run: npm run test
+
+      - name: Build release bundle
+        run: npm run build
+
+      - name: Pack plugin zip
+        run: npm run release:zip
+
+      - name: Upload plugin bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashsidian-bundle
+          path: |
+            main.js
+            manifest.json
+            styles.css
+            dashsidian-*.zip
+          if-no-files-found: error

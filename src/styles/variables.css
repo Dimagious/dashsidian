@@ -1,0 +1,35 @@
+/* Токены Dashy.
+ *
+ * Объявлены на body, а НЕ на :root. Obsidian и темы задают свои переменные
+ * именно в body; :root — это html, он лежит выше, и там --background-primary
+ * ещё не существует. color-mix от несуществующего цвета невалиден, и плашки
+ * молча схлопываются в полную прозрачность.
+ *
+ * Ни одного жёсткого цвета: всё считается от темы, поэтому дашборд едет за
+ * любой темой и за акцентным цветом пользователя.
+ */
+body {
+  --dashy-radius: 12px;
+  --dashy-gap: 14px;
+  --dashy-cell: 13px;
+  --dashy-cell-gap: 3px;
+
+  --dashy-shadow: var(--shadow-s, 0 2px 4px rgba(0, 0, 0, 0.05));
+  --dashy-shadow-hover: var(--shadow-l, 0 6px 16px rgba(0, 0, 0, 0.1));
+
+  --dashy-surface: var(--background-secondary);
+  --dashy-surface-hi: var(--background-modifier-hover);
+  --dashy-border: var(--background-modifier-border);
+  --dashy-empty: var(--background-modifier-border);
+
+  --dashy-badge: var(--color-red, #e93147);
+  --dashy-badge-empty: var(--text-faint);
+}
+
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+  body {
+    --dashy-surface: color-mix(in srgb, var(--interactive-accent) 7%, var(--background-primary));
+    --dashy-surface-hi: color-mix(in srgb, var(--interactive-accent) 15%, var(--background-primary));
+    --dashy-border: color-mix(in srgb, var(--interactive-accent) 28%, var(--background-modifier-border));
+  }
+}

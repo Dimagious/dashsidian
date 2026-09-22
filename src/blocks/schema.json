@@ -1,0 +1,45 @@
+{
+  "version": "0.1.0",
+  "blocks": {
+    "tiles": {
+      "summary": "Сетка плиток-ссылок для навигации по хранилищу.",
+      "root": {
+        "columns": { "type": "number", "default": 4, "doc": "колонок в сетке, 1–8" },
+        "items": { "type": "list", "required": true, "doc": "список плиток" }
+      },
+      "item": {
+        "label": { "type": "string", "required": true, "doc": "подпись", "aliases": ["title", "name"] },
+        "path": { "type": "string", "required": true, "doc": "куда ведёт; понимает Файл.base#Вид" },
+        "icon": { "type": "string", "doc": "эмодзи", "aliases": ["emoji"] },
+        "sub": { "type": "string", "doc": "мелкая подпись под названием" },
+        "badge": { "type": "string|number", "doc": "count — число заметок в папке, либо своя строка" },
+        "accent": { "type": "boolean", "doc": "акцентная полоса слева" }
+      },
+      "example": "columns: 4\nitems:\n  - { label: Inbox, path: 00-Inbox, icon: 📥, badge: count }\n  - { label: Sport, path: 01-Areas/Sport/Training-Log, icon: 🏆, sub: тренировки, accent: true }"
+    },
+    "heatmap": {
+      "summary": "Год по дням: клетка на каждый день, цвет по числу из frontmatter.",
+      "root": {
+        "source": { "type": "string", "doc": "папка; включает вложенные", "aliases": ["folder", "from"] },
+        "tag": { "type": "string", "doc": "тег, с решёткой или без" },
+        "where": { "type": "string", "doc": "условие вида `year = 2026`, `rating >= 4`, `tags contains книги`" },
+        "field": { "type": "string", "required": true, "doc": "числовое поле frontmatter", "aliases": ["property", "prop"] },
+        "color": { "type": "string", "default": "blue", "doc": "blue green cyan purple pink orange red gray, либо #rrggbb", "aliases": ["colour"] },
+        "bands": { "type": "list", "doc": "пороги сверху вниз: [90, 80, 60] либо [{min, alpha, label}]" },
+        "link": { "type": "boolean", "default": true, "doc": "клик по клетке открывает заметку дня" },
+        "title": { "type": "string", "doc": "свой заголовок вместо автоматического" }
+      },
+      "example": "source: 01-Areas/Personal/Дневник\nfield: sleep_score\ncolor: purple\nbands: [90, 80, 60]",
+      "notes": [
+        "Заметки должны называться датой YYYY-MM-DD — так блок понимает, в какую клетку их класть.",
+        "Годы определяются по данным: появится следующий год — нарисуется второй сеткой."
+      ]
+    }
+  },
+  "notInV1": {
+    "таблица": "Это Obsidian Bases. Сошлись на вид базы из плитки: `path: Vault.base#Мой вид`.",
+    "график": "Это плагин Obsidian Charts. Dashy графики не рисует.",
+    "канбан": "Это плагин Kanban.",
+    "задачи": "Это плагины Tasks или Dataview."
+  }
+}

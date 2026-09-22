@@ -1,0 +1,47 @@
+{
+  "name": "dashsidian",
+  "version": "0.1.0",
+  "description": "Dashboard blocks for Obsidian — tiles, stats, progress, year heatmap. YAML config, no JavaScript.",
+  "main": "main.js",
+  "type": "module",
+  "license": "MIT",
+  "author": "Dmitriy Yurkin (Dimagious)",
+  "scripts": {
+    "build": "npm run build:css && esbuild src/main.ts --bundle --outfile=main.js --minify --platform=node --format=cjs --target=es2020 --external:obsidian --external:electron --external:@codemirror/state --external:@codemirror/view --footer:js=\"module.exports = module.exports.default || module.exports;\"",
+    "build:css": "node scripts/build-css.cjs",
+    "build:skill": "node scripts/build-skill.cjs",
+    "build:vault": "node scripts/build-vault.cjs",
+    "dev:vault": "node scripts/build-vault.cjs --watch",
+    "test": "vitest run --coverage",
+    "coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "scorecard:check": "node scripts/scorecard-check.cjs",
+    "release:check": "node scripts/version-sync.cjs && npm run scorecard:check && npm run lint && npm run typecheck && npm run test && npm run build",
+    "release:zip": "node scripts/make-zip.cjs",
+    "release": "npm run release:check && npm run release:zip",
+    "release:audit": "node scripts/release-audit.cjs",
+    "e2e:setup": "./scripts/e2e-setup.sh",
+    "e2e": "./scripts/e2e-setup.sh && env -u ELECTRON_RUN_AS_NODE playwright test",
+    "e2e:headed": "./scripts/e2e-setup.sh && env -u ELECTRON_RUN_AS_NODE playwright test --headed"
+  },
+  "dependencies": {
+    "yaml": "^2.4.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@playwright/test": "^1.44.0",
+    "@types/node": "^20.0.0",
+    "@vitest/coverage-v8": "^2.0.0",
+    "electron": "^30.0.0",
+    "esbuild": "^0.21.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-obsidianmd": "^0.4.1",
+    "jsdom": "^24.0.0",
+    "obsidian": "latest",
+    "typescript": "^5.4.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^2.0.0"
+  }
+}

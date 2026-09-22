@@ -1,0 +1,170 @@
+import type { App } from "obsidian";
+import { snapshot } from "../adapters/vault";
+import { selectNotes } from "../core/source";
+import { numberAt } from "../core/aggregate";
+import { layoutYear, dateKey, eachDay, yearsOf } from "../core/calendar";
+import { toRgb, rgba, type Rgb } from "../core/palette";
+import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
+import { renderDiagnostics, internalLink } from "../shared/render";
+import schema from "./schema.json";
+
+/** Ключи берутся из schema.json — того же источника, из которого собирается скилл. */
+const KNOWN = Object.keys(schema.blocks.heatmap.root);
+
+const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const MONTHS = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
+
+/** Полосы по умолчанию, если пользователь задал только `bands: [90, 80, 60]`. */
+const ALPHAS = [1, 0.72, 0.46, 0.22];
+
+interface Band {
+    min: number;
+    alpha: number;
+    label: string;
+}
+
+function readBands(raw: unknown): Band[] {
+    if (!Array.isArray(raw) || !raw.length) {
+        return [{ min: Number.NEGATIVE_INFINITY, alpha: 1, label: "есть данные" }];
+    }
+    // Короткая форма: [90, 80, 60] — пороги, прозрачность подставляем сами.
+    if (raw.every((v) => typeof v === "number")) {
+        const nums = [...(raw as number[])].sort((a, b) => b - a);
+        return nums.map((min, i) => ({
+            min,
+            alpha: ALPHAS[Math.min(i, ALPHAS.length - 1)] ?? 0.22,
+            label: i === nums.length - 1 ? `${min}+` : `${min}–${(nums[i - 1] ?? min) - 1}`,
+        }));
+    }
+    // Полная форма: [{ min, alpha, label }]
+    return raw.filter(isRecord).map((b, i) => ({
+        min: typeof b.min === "number" ? b.min : Number.NEGATIVE_INFINITY,
+        alpha: typeof b.alpha === "number" ? b.alpha : (ALPHAS[Math.min(i, ALPHAS.length - 1)] ?? 1),
+        label: typeof b.label === "string" ? b.label : `от ${String(b.min ?? "")}`,
+    }));
+}
+
+export function renderHeatmap(app: App, source: string, el: HTMLElement): void {
+    const { value, diagnostics } = parseConfig(source);
+    const diags: Diagnostic[] = [...diagnostics];
+
+    if (!isRecord(value)) {
+        renderDiagnostics(el, "heatmap", diags.length ? diags : [{ level: "error", message: "Ожидается набор полей, например `source:` и `field:`." }]);
+        return;
+    }
+    diags.push(...unknownKeys(value, KNOWN));
+
+    const field = typeof value.field === "string" ? value.field : null;
+    if (!field) {
+        diags.push({ level: "error", message: "Не задано `field` — какое число из frontmatter красить." });
+        renderDiagnostics(el, "heatmap", diags);
+        return;
+    }
+
+    const color = toRgb(value.color);
+    const bands = readBands(value.bands).sort((a, b) => b.min - a.min);
+    const linkable = value.link !== false;
+
+    const notes = selectNotes(snapshot(app), {
+        source: typeof value.source === "string" ? value.source : undefined,
+        tag: typeof value.tag === "string" ? value.tag : undefined,
+        where: typeof value.where === "string" ? value.where : undefined,
+    });
+
+    const byDate = new Map<string, { value: number; path: string }>();
+    for (const n of notes) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(n.name)) continue;
+        const v = numberAt(n, field);
+        if (v === null) continue;
+        byDate.set(n.name, { value: v, path: n.path });
+    }
+
+    if (!byDate.size) {
+        diags.push({
+            level: "error",
+            message: `Нет заметок с именем-датой и числом в поле «${field}». Проверь \`source\`.`,
+        });
+        renderDiagnostics(el, "heatmap", diags);
+        return;
+    }
+
+    renderDiagnostics(el, "heatmap", diags);
+
+    const today = new Date();
+    for (const year of yearsOf([...byDate.keys()])) {
+        drawYear(el, year, today, byDate, { color, bands, field, linkable, title: value.title });
+    }
+}
+
+interface DrawOptions {
+    color: Rgb;
+    bands: Band[];
+    field: string;
+    linkable: boolean;
+    title: unknown;
+}
+
+function drawYear(
+    el: HTMLElement,
+    year: number,
+    today: Date,
+    byDate: Map<string, { value: number; path: string }>,
+    opts: DrawOptions,
+): void {
+    const layout = layoutYear(year, today);
+    const wrap = el.createDiv({ cls: "dashy-hm-wrap" });
+
+    const present = eachDay(year, layout.total)
+        .map((k) => byDate.get(k))
+        .filter((v): v is { value: number; path: string } => v !== undefined);
+
+    const avg = present.length
+        ? Math.round(present.reduce((s, d) => s + d.value, 0) / present.length)
+        : 0;
+    const caption = typeof opts.title === "string"
+        ? opts.title
+        : `${year} — ${opts.field}: среднее ${avg}, ${present.length} из ${layout.total} дн.`;
+    wrap.createDiv({ cls: "dashy-hm-title", text: caption });
+
+    const body = wrap.createDiv({ cls: "dashy-hm-body" });
+
+    const side = body.createDiv({ cls: "dashy-hm-side" });
+    WEEKDAYS.forEach((w, i) => side.createDiv({ cls: "dashy-hm-wd", text: i % 2 ? w : "" }));
+
+    const main = body.createDiv({ cls: "dashy-hm-main" });
+
+    const months = main.createDiv({ cls: "dashy-hm-months" });
+    months.style.gridTemplateColumns = `repeat(${layout.columns}, var(--dashy-cell))`;
+    for (const m of layout.months) {
+        const label = months.createDiv({ cls: "dashy-hm-mon", text: MONTHS[m.month] ?? "" });
+        label.style.gridColumnStart = String(m.column);
+    }
+
+    // grid-auto-flow: column по 7 строк — клетки идут по порядку,
+    // поэтому год начинается с `offset` пустых ячеек.
+    const grid = main.createDiv({ cls: "dashy-hm-grid" });
+    for (let i = 0; i < layout.offset; i++) grid.createDiv({ cls: "dashy-hm-cell dashy-hm-pad" });
+
+    for (let i = 0; i < layout.total; i++) {
+        const key = dateKey(new Date(year, 0, 1 + i));
+        const hit = byDate.get(key);
+        const cell = hit && opts.linkable
+            ? internalLink(grid, hit.path, "dashy-hm-cell")
+            : grid.createDiv({ cls: "dashy-hm-cell" });
+        if (hit) {
+            const band = opts.bands.find((b) => hit.value >= b.min);
+            cell.style.backgroundColor = rgba(opts.color, band?.alpha ?? 1);
+            cell.setAttr("aria-label", `${key} — ${opts.field} ${hit.value}`);
+            cell.setAttr("title", `${key} — ${opts.field} ${hit.value}`);
+        } else {
+            cell.setAttr("title", `${key} — нет данных`);
+        }
+    }
+
+    const legend = wrap.createDiv({ cls: "dashy-hm-legend" });
+    for (const b of opts.bands) {
+        const row = legend.createDiv({ cls: "dashy-hm-leg" });
+        row.createDiv({ cls: "dashy-hm-swatch" }).style.backgroundColor = rgba(opts.color, b.alpha);
+        row.createSpan({ text: b.label });
+    }
+}
