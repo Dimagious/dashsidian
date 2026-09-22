@@ -1,6 +1,42 @@
 import { describe, it, expect } from "vitest";
 import { parseConfig, canonicalize, asItems, unknownKeys, nearest, isRecord } from "./parse";
 
+describe("canonicalize — контекст блока", () => {
+    it("собственный ключ блока не уезжает в синоним", () => {
+        // `title` — синоним `label` для плитки, но собственный ключ heatmap.
+        expect(canonicalize({ title: "Мой сон" }, { root: ["title"] }))
+            .toEqual({ title: "Мой сон" });
+    });
+
+    it("тот же ключ вне списка канонических по-прежнему синоним", () => {
+        expect(canonicalize({ title: "Плитка" }, { root: ["columns", "items"], item: ["label"] }))
+            .toEqual({ label: "Плитка" });
+    });
+
+    it("корень и элементы списка защищены разными наборами", () => {
+        const out = canonicalize(
+            { title: "Заголовок", items: [{ title: "Плитка" }] },
+            { root: ["title", "items"], item: ["label"] },
+        );
+        expect(out).toEqual({ title: "Заголовок", items: [{ label: "Плитка" }] });
+    });
+
+    it("голый массив разбирается как элементы списка", () => {
+        expect(canonicalize([{ title: "A" }], { root: ["title"], item: [] }))
+            .toEqual([{ label: "A" }]);
+    });
+
+    it("вложенные объекты не из items защиту корня не теряют", () => {
+        expect(canonicalize({ title: "X", bands: [{ label: "верх" }] }, { root: ["title", "bands"] }))
+            .toEqual({ title: "X", bands: [{ label: "верх" }] });
+    });
+
+    it("parseConfig прокидывает контекст", () => {
+        expect(parseConfig("title: Мой сон\nfield: x", { root: ["title", "field"] }).value)
+            .toEqual({ title: "Мой сон", field: "x" });
+    });
+});
+
 describe("canonicalize", () => {
     it("приводит синонимы к каноническим ключам", () => {
         expect(canonicalize({ folder: "X", title: "Y", emoji: "📥" }))

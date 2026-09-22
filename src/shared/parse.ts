@@ -36,15 +36,40 @@ export const KEY_ALIASES: Record<string, string> = {
     colour: "color",
 };
 
-/** Приводит ключи объекта к каноническим именам, рекурсивно. */
-export function canonicalize(input: unknown): unknown {
-    if (Array.isArray(input)) return input.map(canonicalize);
+/**
+ * Канонические ключи блока — те, что переименовывать нельзя.
+ *
+ * Синонимы глобальны, а ключи блоков — нет, и они пересекаются: `title` для
+ * плитки синоним `label`, а для heatmap — собственный ключ заголовка. Без
+ * контекста заголовок heatmap молча уезжал в `label` и терялся, а автор конфига
+ * получал бессмысленное «ключ label неизвестен, возможно title».
+ */
+export interface KeyContext {
+    /** канонические ключи корня блока */
+    root?: readonly string[];
+    /** канонические ключи элемента списка */
+    item?: readonly string[];
+}
+
+/**
+ * Приводит ключи объекта к каноническим именам, рекурсивно.
+ *
+ * Без контекста ведёт себя как раньше — переименовывает всё, что нашлось
+ * в таблице синонимов.
+ */
+export function canonicalize(input: unknown, context: KeyContext = {}): unknown {
+    return walk(input, context.root ?? [], context);
+}
+
+function walk(input: unknown, keep: readonly string[], context: KeyContext): unknown {
+    if (Array.isArray(input)) return input.map((v) => walk(v, context.item ?? [], context));
     if (input === null || typeof input !== "object") return input;
 
     const out: Record<string, unknown> = {};
     for (const [rawKey, value] of Object.entries(input as Record<string, unknown>)) {
-        const key = KEY_ALIASES[rawKey] ?? rawKey;
-        out[key] = canonicalize(value);
+        const key = keep.includes(rawKey) ? rawKey : KEY_ALIASES[rawKey] ?? rawKey;
+        // за `items:` начинаются элементы списка — у них свой набор ключей
+        out[key] = walk(value, key === "items" ? context.item ?? [] : keep, context);
     }
     return out;
 }
@@ -53,13 +78,13 @@ export function canonicalize(input: unknown): unknown {
  * YAML → объект. Ошибка синтаксиса не бросается наверх, а возвращается
  * диагностикой с номером строки.
  */
-export function parseConfig(source: string): ParseOutcome<unknown> {
+export function parseConfig(source: string, context: KeyContext = {}): ParseOutcome<unknown> {
     const text = source.trim();
     if (!text) {
         return { value: null, diagnostics: [{ level: "error", message: "Блок пустой." }] };
     }
     try {
-        return { value: canonicalize(parseYaml(text)), diagnostics: [] };
+        return { value: canonicalize(parseYaml(text), context), diagnostics: [] };
     } catch (e) {
         const err = e as { message?: string; linePos?: { line: number }[] };
         return {

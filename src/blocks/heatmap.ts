@@ -16,7 +16,7 @@ const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const MONTHS = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
 
 export function renderHeatmap(app: App, source: string, el: HTMLElement): void {
-    const { value, diagnostics } = parseConfig(source);
+    const { value, diagnostics } = parseConfig(source, { root: KNOWN });
     const diags: Diagnostic[] = [...diagnostics];
 
     if (!isRecord(value)) {

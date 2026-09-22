@@ -10,7 +10,7 @@ const KNOWN_ITEM = Object.keys(schema.blocks.tiles.item);
 const KNOWN_ROOT = Object.keys(schema.blocks.tiles.root);
 
 export function renderTiles(app: App, source: string, el: HTMLElement): void {
-    const { value, diagnostics } = parseConfig(source);
+    const { value, diagnostics } = parseConfig(source, { root: KNOWN_ROOT, item: KNOWN_ITEM });
     const diags: Diagnostic[] = [...diagnostics];
     const items = asItems(value);
 
