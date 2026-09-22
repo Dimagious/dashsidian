@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
     dateKey,
+    rotateWeekdays,
     daysBetween,
     layoutYear,
     eachDay,
@@ -58,13 +59,27 @@ describe("layoutYear", () => {
         expect(l.total).toBe(366);
     });
 
-    it("every cell lands in the row of its weekday", () => {
-        const l = layoutYear(2026, new Date(2026, 11, 31));
-        for (let i = 0; i < l.total; i++) {
-            const row = (i + l.offset) % 7;
-            const weekday = (new Date(2026, 0, 1 + i).getDay() + 6) % 7;
-            expect(row).toBe(weekday);
+    it("every cell lands in the row of its weekday, whatever the week starts on", () => {
+        for (const firstDay of [0, 1, 6]) {
+            const l = layoutYear(2026, new Date(2026, 11, 31), firstDay);
+            for (let i = 0; i < l.total; i++) {
+                const row = (i + l.offset) % 7;
+                const weekday = ((new Date(2026, 0, 1 + i).getDay() - firstDay) % 7 + 7) % 7;
+                expect(row).toBe(weekday);
+            }
         }
+    });
+
+    it("a Sunday-first locale shifts the offset by one", () => {
+        // 1 January 2026 is a Thursday: three cells before it when weeks start
+        // on Monday, four when they start on Sunday.
+        expect(layoutYear(2026, new Date(2026, 8, 22), 1).offset).toBe(3);
+        expect(layoutYear(2026, new Date(2026, 8, 22), 0).offset).toBe(4);
+    });
+
+    it("Monday is the default when no locale is given", () => {
+        expect(layoutYear(2026, new Date(2026, 8, 22)).offset)
+            .toBe(layoutYear(2026, new Date(2026, 8, 22), 1).offset);
     });
 
     it("month labels stay inside the grid", () => {
@@ -118,5 +133,33 @@ describe("currentStreak", () => {
 describe("yearsOf", () => {
     it("returns years newest first, without repeats", () => {
         expect(yearsOf(["2025-01-01", "2026-05-05", "2026-01-01"])).toEqual([2026, 2025]);
+    });
+});
+
+describe("rotateWeekdays", () => {
+    const sundayFirst = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    it("Monday first drops Sunday to the end", () => {
+        expect(rotateWeekdays(sundayFirst, 1))
+            .toEqual(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
+    });
+
+    it("Sunday first leaves the list as moment gives it", () => {
+        expect(rotateWeekdays(sundayFirst, 0)).toEqual(sundayFirst);
+    });
+
+    it("Saturday first, as some locales want", () => {
+        expect(rotateWeekdays(sundayFirst, 6)[0]).toBe("Sat");
+    });
+
+    it("keeps all seven days, never loses or repeats one", () => {
+        for (let d = 0; d < 7; d++) {
+            expect(new Set(rotateWeekdays(sundayFirst, d)).size).toBe(7);
+        }
+    });
+
+    it("an out-of-range day wraps instead of producing a short list", () => {
+        expect(rotateWeekdays(sundayFirst, 8)).toEqual(rotateWeekdays(sundayFirst, 1));
+        expect(rotateWeekdays(sundayFirst, -1)).toEqual(rotateWeekdays(sundayFirst, 6));
     });
 });

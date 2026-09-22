@@ -5,6 +5,23 @@
  * blocks/heatmap.ts.
  */
 
+/**
+ * The first day of the week, moment style: 0 is Sunday, 1 is Monday.
+ * Monday is only the default for callers that have no locale to ask.
+ */
+export const DEFAULT_FIRST_DAY = 1;
+
+/**
+ * Rotates a Sunday-first list so it starts on `firstDay`.
+ *
+ * moment lists weekday names Sunday first whatever the locale, while the grid
+ * starts its weeks wherever the locale says, so the two have to be lined up.
+ */
+export function rotateWeekdays<T>(names: readonly T[], firstDay: number): T[] {
+    const at = ((firstDay % 7) + 7) % 7;
+    return [...names.slice(at), ...names.slice(0, at)];
+}
+
 /** A day key in YYYY-MM-DD form. */
 export function dateKey(d: Date): string {
     const y = d.getFullYear();
@@ -31,7 +48,8 @@ export interface YearLayout {
     year: number;
     /**
      * How many empty cells come before January 1st so that the first grid row
-     * is Monday. Computed as (weekday of January 1st + 6) % 7.
+     * is the first day of the week. Computed from the weekday of January 1st
+     * relative to `firstDay`.
      */
     offset: number;
     /** How many days of the year land in the grid: all of them, or up to today for the current year. */
@@ -46,15 +64,16 @@ export interface YearLayout {
  * Computes the layout of a year.
  *
  * `today` is passed in rather than read from `new Date()` so that tests do not
- * depend on the day they run.
+ * depend on the day they run. `firstDay` comes from the locale: a US reader
+ * expects the grid to start on Sunday, a Russian one on Monday.
  */
-export function layoutYear(year: number, today: Date): YearLayout {
+export function layoutYear(year: number, today: Date, firstDay = DEFAULT_FIRST_DAY): YearLayout {
     const jan1 = new Date(year, 0, 1);
     const dec31 = new Date(year, 11, 31);
     const cutoff = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const end = year === cutoff.getFullYear() && cutoff < dec31 ? cutoff : dec31;
 
-    const offset = (jan1.getDay() + 6) % 7;
+    const offset = ((jan1.getDay() - firstDay) % 7 + 7) % 7;
     const total = Math.round((end.getTime() - jan1.getTime()) / DAY_MS) + 1;
     const columns = Math.ceil((total + offset) / 7);
 

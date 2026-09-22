@@ -1,9 +1,9 @@
 import type { App } from "obsidian";
 import { snapshot } from "../adapters/vault";
-import { weekdayNamesShort, monthNamesShort } from "../adapters/datetime";
+import { weekdayNamesShort, monthNamesShort, firstDayOfWeek } from "../adapters/datetime";
 import { selectNotes } from "../core/source";
 import { numberAt } from "../core/aggregate";
-import { layoutYear, dateKey, eachDay, yearsOf } from "../core/calendar";
+import { layoutYear, dateKey, eachDay, yearsOf, rotateWeekdays } from "../core/calendar";
 import { toRgb, rgba, type Rgb } from "../core/palette";
 import { readBands, bandFor, type Band } from "../core/bands";
 import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
@@ -58,8 +58,9 @@ export function renderHeatmap(app: App, source: string, el: HTMLElement): void {
     renderDiagnostics(el, "heatmap", diags);
 
     const today = new Date();
+    const firstDay = firstDayOfWeek();
     for (const year of yearsOf([...byDate.keys()])) {
-        drawYear(el, year, today, byDate, { color, bands, field, linkable, title: value.title });
+        drawYear(el, year, today, byDate, { color, bands, field, linkable, title: value.title, firstDay });
     }
 }
 
@@ -69,6 +70,8 @@ interface DrawOptions {
     field: string;
     linkable: boolean;
     title: unknown;
+    /** 0 is Sunday, 1 is Monday — whatever the locale says */
+    firstDay: number;
 }
 
 function drawYear(
@@ -78,7 +81,7 @@ function drawYear(
     byDate: Map<string, { value: number; path: string }>,
     opts: DrawOptions,
 ): void {
-    const layout = layoutYear(year, today);
+    const layout = layoutYear(year, today, opts.firstDay);
     const wrap = el.createDiv({ cls: "dashy-hm-wrap" });
 
     const present = eachDay(year, layout.total)
@@ -102,7 +105,8 @@ function drawYear(
     const body = wrap.createDiv({ cls: "dashy-hm-body" });
 
     const side = body.createDiv({ cls: "dashy-hm-side" });
-    weekdayNamesShort().forEach((w, i) => side.createDiv({ cls: "dashy-hm-wd", text: i % 2 ? w : "" }));
+    rotateWeekdays(weekdayNamesShort(), opts.firstDay)
+        .forEach((w, i) => side.createDiv({ cls: "dashy-hm-wd", text: i % 2 ? w : "" }));
 
     const main = body.createDiv({ cls: "dashy-hm-main" });
     const months = monthNamesShort();

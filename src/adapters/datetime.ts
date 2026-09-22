@@ -20,14 +20,16 @@ export function currentLocale(): string {
 }
 
 /**
- * Short weekday names, Monday first.
- *
- * moment lists them Sunday first regardless of locale, while the heatmap grid
- * starts its weeks on Monday (see core/calendar.ts), so the list is rotated.
+ * Short weekday names, Sunday first — moment's own order, whatever the locale.
+ * Lining them up with the grid is core/calendar.ts#rotateWeekdays' job.
  */
 export function weekdayNamesShort(): string[] {
-    const names = moment.weekdaysShort();
-    return [...names.slice(1), ...names.slice(0, 1)];
+    return moment.weekdaysShort();
+}
+
+/** Which day the locale starts its week on: 0 is Sunday, 1 is Monday. */
+export function firstDayOfWeek(): number {
+    return moment.localeData().firstDayOfWeek();
 }
 
 /** Short month names, January first. */
