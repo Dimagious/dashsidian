@@ -12,8 +12,13 @@ import schema from "./schema.json";
 /** Keys come from schema.json — the same source the agent skill is built from. */
 const KNOWN = Object.keys(schema.blocks.today.root);
 
-/** Obsidian's own moment is already set to the application language. */
-const TITLE_FORMAT = "D MMMM YYYY, dddd";
+/**
+ * `LL` is moment's locale-aware long date, so the parts land in the order the
+ * language actually uses: "Tuesday, September 22, 2026" in English and
+ * "вторник, 22 сентября 2026 г." in Russian. A fixed "D MMMM YYYY" only ever
+ * looked right for languages that put the day first.
+ */
+const TITLE_FORMAT = "dddd, LL";
 
 const LABEL_KEY: Record<Period, MessageKey> = {
     daily: "today.daily",
