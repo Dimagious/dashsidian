@@ -18,7 +18,7 @@
 **Dashy** (id `dashsidian`) — плагин Obsidian, который рисует дашборд из markdown-блоков.
 Конфиг — YAML внутри блока, без JavaScript и без Dataview.
 
-- Автор: Dmitriy Yurkin (`Dimagious`), MIT, Obsidian ≥ 1.5.0, `isDesktopOnly: false`
+- Автор: Dmitriy Yurkin (`Dimagious`), MIT, Obsidian ≥ 1.13.0, `isDesktopOnly: false`
 - Полное ТЗ: `docs/SPEC.md`
 - Второй плагин автора; харнесс перенесён из [`Dimagious/snipsidian`](https://github.com/Dimagious/snipsidian)
 
@@ -37,9 +37,9 @@
 
 ## Состояние
 
-v0.1.0, до публикации. Написаны все шесть блоков ТЗ: `tiles`, `stats`, `progress`,
-`today`, `countdown`, `heatmap`. Схема блоков — 1.0.0, контракт полный.
-Схема блоков — 1.1.0.
+v0.1.0, релиз не резан. Репозиторий опубликован, в каталог не подан.
+Написаны все шесть блоков ТЗ: `tiles`, `stats`, `progress`, `today`,
+`countdown`, `heatmap`. Схема блоков — 1.3.0, контракт полный.
 
 Код, тесты и всё, что видит пользователь, на английском: проект целится
 в международный стор. Русский — через i18n, наравне с любым следующим языком.
@@ -65,6 +65,8 @@ src/
     bands.ts             пороги раскраски и их подписи
     periodic.ts          папка/формат/путь периодических заметок
     palette.ts           именованные цвета → rgb
+    vault-profile.ts     подгонка примера под чужое хранилище
+    feedback.ts          issue с подставленными версиями, сниппет блока
   adapters/            единственное место, где блоки трогают Obsidian
     vault.ts             снимок metadataCache + его кэш, существование заметки
     periodic.ts          настройки Periodic Notes / Daily notes
@@ -73,6 +75,7 @@ src/
   blocks/              отрисовка, по файлу на блок
     context.ts           что блок получает: app, снимок, настройки
     schema.json          ЕДИНЫЙ ИСТОЧНИК ПРАВДЫ по ключам блоков
+  preview/             стенд всех состояний блока для `npm run preview`
   shared/parse.ts      YAML + синонимы ключей + диагностика
   shared/render.ts     вывод диагностики, внутренние ссылки
   ui/settings.ts       настройки + кнопка установки скилла
@@ -165,7 +168,8 @@ Backlog: B-003
 - Соавторства ИИ, упоминаний ассистента и ссылок на сессии — ни в теме,
   ни в теле, ни в трейлерах. Автор — разработчик.
 
-**Пуш.** Remote нет, не заводить и не пушить без явной просьбы.
+**Пуш.** `origin` — https://github.com/Dimagious/dashsidian, дефолтная ветка
+`master`. Рабочие ветки локальные: на remote уезжает только `master`.
 
 ## Команды
 
@@ -179,9 +183,10 @@ Backlog: B-003
 | `npm run scorecard:check` | зеркало сканера community-plugins |
 | `npm run release` | полный гейт + zip |
 | `npm run dev:vault` | сборка в тестовое хранилище с watch |
+| `npm run e2e` | 36 спеков против настоящего Obsidian; в CI не гоняется |
 
 ## Ссылки
 
-- Репозиторий: https://github.com/Dimagious/dashsidian *(создать)*
+- Репозиторий: https://github.com/Dimagious/dashsidian
 - Харнесс-донор: https://github.com/Dimagious/snipsidian
 - Публичный листинг: *(после ревью)*
