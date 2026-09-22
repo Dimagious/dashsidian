@@ -6,5 +6,6 @@
   "description": "Dashboard blocks for your notes: tiles, number cards, progress bars, a day row, countdowns and a year heatmap. Configured in YAML, no JavaScript.",
   "author": "Dimagious",
   "authorUrl": "https://github.com/Dimagious",
+  "fundingUrl": "https://buymeacoffee.com/dimagious",
   "isDesktopOnly": false
 }
