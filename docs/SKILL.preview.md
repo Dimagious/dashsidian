@@ -7,7 +7,7 @@ description: >-
   for a dashboard, a home page, a tile grid, cards with counters or averages, a
   link to today's note, a day calendar, a heatmap, a habit tracker or a visual
   entry point into the vault.
-version: 0.4.0
+version: 0.5.0
 ---
 
 # Dashy — dashboard blocks
@@ -16,7 +16,7 @@ The **Dashy** plugin (`dashsidian`) draws a dashboard out of
 markdown blocks. The config is YAML inside the block. No JavaScript, and no
 Dataview required.
 
-Blocks in total: 4.
+Blocks in total: 5.
 
 ### `tiles`
 
@@ -91,6 +91,45 @@ items:
 
 - `streak` counts the longest run of consecutive days and `latest` takes the value from the newest note — both need YYYY-MM-DD note names.
 - Nothing to count — the card shows a dash rather than a zero: "no data" and "zero" are different answers.
+
+### `progress`
+
+Bars towards a goal: how far a number has come against a target.
+
+**Block root**
+
+| key | type | required | default | synonyms | what it does |
+|---|---|---|---|---|---|
+| `items` | list | yes | — | — | the list of bars |
+
+**List item**
+
+| key | type | required | default | synonyms | what it does |
+|---|---|---|---|---|---|
+| `label` | string | yes | — | `title`, `name` | caption above the bar |
+| `goal` | number | yes | — | `target` | the target to fill towards; must be above zero |
+| `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
+| `tag` | string | — | — | — | tag, with or without the hash |
+| `where` | string | — | — | — | a condition like `year = 2026`, `rating >= 4`, `tags contains books` |
+| `field` | string | — | — | `property`, `prop` | numeric frontmatter property; required for everything but count and streak |
+| `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
+| `unit` | string | — | — | — | a suffix after the numbers: km, %, d. |
+| `precision` | number | — | — | — | decimal places, 0–6; by default a whole number stays whole and a fraction gets one decimal |
+| `icon` | string | — | — | `emoji` | emoji |
+| `sub` | string | — | — | — | small caption under the bar |
+
+**Example**
+
+````markdown
+```progress
+items:
+  - { label: Books this year, source: Books, where: "year = 2026", agg: count, goal: 50 }
+  - { label: Running volume, source: Diary, field: distance_km, agg: sum, goal: 200, unit: km }
+```
+````
+
+- Going past the goal is shown as it is — 125% stays 125%; only the bar itself stops at full.
+- Nothing to count — the bar stays empty and the value shows a dash rather than a zero.
 
 ### `today`
 

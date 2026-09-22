@@ -32,6 +32,10 @@ export const en = {
     "stats.badPrecision":
         "{card}: `precision` expects a whole number from 0 to {max}, got \"{value}\" — rounding the default way.",
 
+    "progress.empty": "No bars to draw. Expected `items:` or a list.",
+    "progress.goalRequired": "{card}: `goal:` needs a number — there is nothing to measure against.",
+    "progress.goalNotPositive": "{card}: a goal of {goal} leaves nothing to fill — it must be above zero.",
+
     "today.expectFields": "Expected a set of fields, for example `daily: true`.",
     "today.nothingToShow": "Nothing to show: enable `daily`, `weekly` or `monthly`.",
     "today.notBoolean": "`{key}` expects true or false, got \"{value}\" — reading it as {read}.",

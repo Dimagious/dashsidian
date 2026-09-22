@@ -1,5 +1,5 @@
 {
-  "version": "0.4.0",
+  "version": "0.5.0",
   "blocks": {
     "tiles": {
       "summary": "A grid of link tiles for navigating the vault.",
@@ -132,6 +132,91 @@
       "notes": [
         "`streak` counts the longest run of consecutive days and `latest` takes the value from the newest note — both need YYYY-MM-DD note names.",
         "Nothing to count — the card shows a dash rather than a zero: \"no data\" and \"zero\" are different answers."
+      ]
+    },
+    "progress": {
+      "summary": "Bars towards a goal: how far a number has come against a target.",
+      "root": {
+        "items": {
+          "type": "list",
+          "required": true,
+          "doc": "the list of bars"
+        }
+      },
+      "item": {
+        "label": {
+          "type": "string",
+          "required": true,
+          "doc": "caption above the bar",
+          "aliases": [
+            "title",
+            "name"
+          ]
+        },
+        "goal": {
+          "type": "number",
+          "required": true,
+          "doc": "the target to fill towards; must be above zero",
+          "aliases": [
+            "target"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "doc": "folder; includes nested ones",
+          "aliases": [
+            "folder",
+            "from"
+          ]
+        },
+        "tag": {
+          "type": "string",
+          "doc": "tag, with or without the hash"
+        },
+        "where": {
+          "type": "string",
+          "doc": "a condition like `year = 2026`, `rating >= 4`, `tags contains books`"
+        },
+        "field": {
+          "type": "string",
+          "doc": "numeric frontmatter property; required for everything but count and streak",
+          "aliases": [
+            "property",
+            "prop"
+          ]
+        },
+        "agg": {
+          "type": "string",
+          "default": "count",
+          "doc": "count sum avg min max latest streak",
+          "aliases": [
+            "aggregate"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "doc": "a suffix after the numbers: km, %, d."
+        },
+        "precision": {
+          "type": "number",
+          "doc": "decimal places, 0–6; by default a whole number stays whole and a fraction gets one decimal"
+        },
+        "icon": {
+          "type": "string",
+          "doc": "emoji",
+          "aliases": [
+            "emoji"
+          ]
+        },
+        "sub": {
+          "type": "string",
+          "doc": "small caption under the bar"
+        }
+      },
+      "example": "items:\n  - { label: Books this year, source: Books, where: \"year = 2026\", agg: count, goal: 50 }\n  - { label: Running volume, source: Diary, field: distance_km, agg: sum, goal: 200, unit: km }",
+      "notes": [
+        "Going past the goal is shown as it is — 125% stays 125%; only the bar itself stops at full.",
+        "Nothing to count — the bar stays empty and the value shows a dash rather than a zero."
       ]
     },
     "today": {

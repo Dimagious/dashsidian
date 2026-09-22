@@ -62,6 +62,33 @@
 .dashy-stat-label { font-size: 0.85em; margin-top: 4px; }
 .dashy-stat-sub { font-size: 0.7em; opacity: 0.55; margin-top: 2px; }
 
+/* progress */
+.dashy-progress { margin: 0 0 24px; display: flex; flex-direction: column; gap: 14px; }
+.dashy-progress-head {
+  display: flex; align-items: baseline; gap: 6px;
+  margin-bottom: 5px; font-size: 0.9em;
+}
+.dashy-progress-icon { font-size: 1.05em; }
+.dashy-progress-label { font-weight: 500; }
+.dashy-progress-value {
+  margin-left: auto; color: var(--text-muted);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.dashy-progress-percent { margin-left: 8px; font-weight: 600; color: var(--text-normal); }
+.dashy-progress-track {
+  height: 8px; border-radius: 4px;
+  background: var(--dashy-empty); overflow: hidden;
+}
+.dashy-progress-fill {
+  height: 100%; border-radius: 4px;
+  background: var(--interactive-accent);
+  transition: width 0.3s ease;
+}
+/* the goal is met: the bar stops growing, so say it with colour instead */
+.dashy-progress-row.is-complete .dashy-progress-fill { background: var(--color-green, var(--interactive-accent)); }
+.dashy-progress-row.is-complete .dashy-progress-percent { color: var(--color-green, var(--text-normal)); }
+.dashy-progress-sub { font-size: 0.7em; opacity: 0.55; margin-top: 4px; }
+
 /* today */
 .dashy-today { margin: 0 0 24px; }
 .dashy-today-date {

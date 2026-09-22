@@ -28,6 +28,10 @@ export const ru: Catalog = {
     "stats.badPrecision":
         "{card}: `precision` ожидает целое от 0 до {max}, получено «{value}» — округляю по умолчанию.",
 
+    "progress.empty": "Список полос пуст. Ожидается `items:` или массив.",
+    "progress.goalRequired": "{card}: `goal:` ожидает число — иначе не к чему стремиться.",
+    "progress.goalNotPositive": "{card}: цель {goal} нечем заполнять — она должна быть больше нуля.",
+
     "today.expectFields": "Ожидается набор полей, например `daily: true`.",
     "today.nothingToShow": "Нечего показывать: включи `daily`, `weekly` или `monthly`.",
     "today.notBoolean": "`{key}` ожидает true или false, получено «{value}» — считаю за {read}.",

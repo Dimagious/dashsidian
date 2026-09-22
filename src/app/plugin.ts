@@ -2,6 +2,7 @@ import { Plugin } from "obsidian";
 import { DEFAULT_SETTINGS, type DashySettings } from "../types";
 import { applyObsidianLocale } from "../adapters/locale";
 import { renderHeatmap } from "../blocks/heatmap";
+import { renderProgress } from "../blocks/progress";
 import { renderStats } from "../blocks/stats";
 import { renderToday } from "../blocks/today";
 import { renderTiles } from "../blocks/tiles";
@@ -22,6 +23,9 @@ export default class DashyPlugin extends Plugin {
         });
         this.registerMarkdownCodeBlockProcessor("stats", (source, el) => {
             renderStats(this.app, source, el);
+        });
+        this.registerMarkdownCodeBlockProcessor("progress", (source, el) => {
+            renderProgress(this.app, source, el);
         });
         this.registerMarkdownCodeBlockProcessor("today", (source, el) => {
             renderToday(this.app, this.settings, source, el);
