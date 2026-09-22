@@ -5,7 +5,7 @@ import { aggregate } from "../core/aggregate";
 import { formatValue } from "../core/stat";
 import { readProgress, percentOf, barWidth, type ProgressSpec } from "../core/progress";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
-import { renderDiagnostics } from "../shared/render";
+import { clearBlock, renderDiagnostics } from "../shared/render";
 import { t } from "../i18n";
 import schema from "./schema.json";
 
@@ -27,6 +27,7 @@ interface Bar {
 }
 
 export function renderProgress(app: App, source: string, el: HTMLElement): void {
+    clearBlock(el);
     const { value, diagnostics } = parseConfig(source, { root: KNOWN_ROOT, item: KNOWN_ITEM });
     const diags: Diagnostic[] = [...diagnostics];
     const items = asItems(value);

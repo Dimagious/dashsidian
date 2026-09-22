@@ -1,10 +1,11 @@
 import { defineConfig } from "@playwright/test";
 
 /**
- * E2E config — runs against a real Obsidian instance launched from
- * `./.obsidian-unpacked/main.js` (Obsidian's `obsidian.asar` extracted
- * via `scripts/e2e-setup.sh`). Direct launch of the `.app` binary no
- * longer works on macOS due to a 2024 Electron fuse change.
+ * E2E config — runs against a real Obsidian instance. The fixture launches
+ * Obsidian's own `app.asar` through the project-local `electron`; no asar
+ * extraction is involved. Direct launch of the `.app` binary no longer works
+ * on macOS due to a 2024 Electron fuse change, which turned off the debugging
+ * port the driver needs.
  *
  * Constraints baked in here:
  *   - `fullyParallel: false` + `workers: 1` — Obsidian opens one

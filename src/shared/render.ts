@@ -2,6 +2,16 @@ import type { Diagnostic } from "./parse";
 import { t } from "../i18n";
 
 /**
+ * Obsidian can call a code block processor again on an element it has already
+ * rendered — enabling the plugin while a note is open is enough to trigger it.
+ * Blocks append rather than replace, so without clearing first the reader sees
+ * every block twice. Found by rendering into a real Obsidian, not a DOM fake.
+ */
+export function clearBlock(el: HTMLElement): void {
+    el.empty();
+}
+
+/**
  * Diagnostics are drawn inside the block itself. A silently empty block is the
  * worst outcome: the config author (often an agent) has no other feedback
  * channel.

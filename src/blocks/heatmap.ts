@@ -7,7 +7,7 @@ import { layoutYear, dateKey, eachDay, yearsOf, rotateWeekdays, weekdayRow } fro
 import { toRgb, rgba, type Rgb } from "../core/palette";
 import { readBands, bandFor, type Band } from "../core/bands";
 import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
-import { renderDiagnostics, internalLink } from "../shared/render";
+import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
 import { t } from "../i18n";
 import schema from "./schema.json";
 
@@ -15,6 +15,7 @@ import schema from "./schema.json";
 const KNOWN = Object.keys(schema.blocks.heatmap.root);
 
 export function renderHeatmap(app: App, source: string, el: HTMLElement): void {
+    clearBlock(el);
     const { value, diagnostics } = parseConfig(source, { root: KNOWN });
     const diags: Diagnostic[] = [...diagnostics];
 

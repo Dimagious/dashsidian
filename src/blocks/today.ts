@@ -4,7 +4,7 @@ import { discoverPeriodics } from "../adapters/periodic";
 import { formatDate } from "../adapters/datetime";
 import { readToday, resolveConfig, notePath, type Period } from "../core/periodic";
 import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
-import { renderDiagnostics, internalLink } from "../shared/render";
+import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
 import { t, type MessageKey } from "../i18n";
 import type { DashySettings } from "../types";
 import schema from "./schema.json";
@@ -44,6 +44,7 @@ export function renderToday(
     source: string,
     el: HTMLElement,
 ): void {
+    clearBlock(el);
     const { value, diagnostics } = parseConfig(source, { root: KNOWN });
     const diags: Diagnostic[] = [...diagnostics];
 

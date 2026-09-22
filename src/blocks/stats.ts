@@ -4,7 +4,7 @@ import { selectNotes } from "../core/source";
 import { aggregate } from "../core/aggregate";
 import { readStat, formatValue, type StatSpec } from "../core/stat";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
-import { renderDiagnostics } from "../shared/render";
+import { clearBlock, renderDiagnostics } from "../shared/render";
 import { t } from "../i18n";
 import schema from "./schema.json";
 
@@ -21,6 +21,7 @@ interface Card {
 }
 
 export function renderStats(app: App, source: string, el: HTMLElement): void {
+    clearBlock(el);
     const { value, diagnostics } = parseConfig(source, { root: KNOWN_ROOT, item: KNOWN_ITEM });
     const diags: Diagnostic[] = [...diagnostics];
     const items = asItems(value);

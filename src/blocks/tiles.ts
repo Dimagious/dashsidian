@@ -2,7 +2,7 @@ import type { App } from "obsidian";
 import { snapshot } from "../adapters/vault";
 import { selectNotes } from "../core/source";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
-import { renderDiagnostics, internalLink } from "../shared/render";
+import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
 import { t } from "../i18n";
 import schema from "./schema.json";
 
@@ -11,6 +11,7 @@ const KNOWN_ITEM = Object.keys(schema.blocks.tiles.item);
 const KNOWN_ROOT = Object.keys(schema.blocks.tiles.root);
 
 export function renderTiles(app: App, source: string, el: HTMLElement): void {
+    clearBlock(el);
     const { value, diagnostics } = parseConfig(source, { root: KNOWN_ROOT, item: KNOWN_ITEM });
     const diags: Diagnostic[] = [...diagnostics];
     const items = asItems(value);
