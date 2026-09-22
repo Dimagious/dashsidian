@@ -23,7 +23,10 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
         renderDiagnostics(el, "tiles", diags);
         return;
     }
-    if (isRecord(value) && !Array.isArray(value)) diags.push(...unknownKeys(value, KNOWN_ROOT));
+    // Root keys are only checked for the `items:` shape. A single tile written
+    // as a bare object is a list of one, and checking its own keys against the
+    // root set told the author that `label` and `path` were unknown.
+    if (isRecord(value) && Array.isArray(value.items)) diags.push(...unknownKeys(value, KNOWN_ROOT));
 
     const columns = isRecord(value) && typeof value.columns === "number" ? value.columns : 4;
     const notes = ctx.notes();

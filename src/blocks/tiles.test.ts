@@ -111,6 +111,19 @@ describe("tiles — edges", () => {
         expect(diagnostics(el, "warning")).toHaveLength(0);
     });
 
+    it("a single tile written as a bare object draws, and warns about nothing", () => {
+        const el = host();
+        renderTiles(ctx, "{ label: Inbox, path: 00-Inbox, icon: 📥 }", el);
+        expect(texts(el, ".dashy-tile-label")).toEqual(["Inbox"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("the root keys are still checked when there is an items list", () => {
+        const el = host();
+        renderTiles(ctx, "colums: 4\nitems:\n  - { label: A, path: x }", el);
+        expect(diagnostics(el, "warning")[0]).toContain("columns");
+    });
+
     it("an unknown key warns with a suggestion but the tile is still drawn", () => {
         const el = host();
         renderTiles(ctx, "items:\n  - { lable: Inbox, path: 00-Inbox }", el);
