@@ -1,0 +1,13 @@
+# Blank issues stay on: the plugin links straight to
+# /issues/new?title=&body=&labels= with the versions already substituted
+# (src/core/feedback.ts). Turning them off would send that link to the template
+# chooser and drop the prefilled body on the way.
+blank_issues_enabled: true
+
+contact_links:
+  - name: Block reference
+    url: https://github.com/Dimagious/dashsidian#readme
+    about: Every block and every key, with examples — check here before filing.
+  - name: Full specification
+    url: https://github.com/Dimagious/dashsidian/blob/master/docs/SPEC.md
+    about: What each block is meant to do, including the where microlanguage.
