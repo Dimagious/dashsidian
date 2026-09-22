@@ -3,7 +3,7 @@ import { snapshot } from "../adapters/vault";
 import { weekdayNamesShort, monthNamesShort, firstDayOfWeek } from "../adapters/datetime";
 import { selectNotes } from "../core/source";
 import { numberAt } from "../core/aggregate";
-import { layoutYear, dateKey, eachDay, yearsOf, rotateWeekdays } from "../core/calendar";
+import { layoutYear, dateKey, eachDay, yearsOf, rotateWeekdays, weekdayRow } from "../core/calendar";
 import { toRgb, rgba, type Rgb } from "../core/palette";
 import { readBands, bandFor, type Band } from "../core/bands";
 import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
@@ -105,8 +105,14 @@ function drawYear(
     const body = wrap.createDiv({ cls: "dashy-hm-body" });
 
     const side = body.createDiv({ cls: "dashy-hm-side" });
+    // Every other row carries a name, and the run starts at Monday wherever it
+    // has landed: Mon/Wed/Fri reads as a week to everyone, Tue/Thu/Sat does not.
+    const mondayRow = weekdayRow(1, opts.firstDay);
     rotateWeekdays(weekdayNamesShort(), opts.firstDay)
-        .forEach((w, i) => side.createDiv({ cls: "dashy-hm-wd", text: i % 2 ? w : "" }));
+        .forEach((w, i) => side.createDiv({
+            cls: "dashy-hm-wd",
+            text: i % 2 === mondayRow % 2 ? w : "",
+        }));
 
     const main = body.createDiv({ cls: "dashy-hm-main" });
     const months = monthNamesShort();

@@ -22,6 +22,14 @@ export function rotateWeekdays<T>(names: readonly T[], firstDay: number): T[] {
     return [...names.slice(at), ...names.slice(0, at)];
 }
 
+/**
+ * Which grid row a weekday lands in, given where the week starts.
+ * `weekday` is a JS day number: 0 is Sunday.
+ */
+export function weekdayRow(weekday: number, firstDay: number): number {
+    return ((weekday - firstDay) % 7 + 7) % 7;
+}
+
 /** A day key in YYYY-MM-DD form. */
 export function dateKey(d: Date): string {
     const y = d.getFullYear();
@@ -73,7 +81,7 @@ export function layoutYear(year: number, today: Date, firstDay = DEFAULT_FIRST_D
     const cutoff = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const end = year === cutoff.getFullYear() && cutoff < dec31 ? cutoff : dec31;
 
-    const offset = ((jan1.getDay() - firstDay) % 7 + 7) % 7;
+    const offset = weekdayRow(jan1.getDay(), firstDay);
     const total = Math.round((end.getTime() - jan1.getTime()) / DAY_MS) + 1;
     const columns = Math.ceil((total + offset) / 7);
 

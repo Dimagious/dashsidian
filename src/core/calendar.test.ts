@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
     dateKey,
     rotateWeekdays,
+    weekdayRow,
     daysBetween,
     layoutYear,
     eachDay,
@@ -161,5 +162,31 @@ describe("rotateWeekdays", () => {
     it("an out-of-range day wraps instead of producing a short list", () => {
         expect(rotateWeekdays(sundayFirst, 8)).toEqual(rotateWeekdays(sundayFirst, 1));
         expect(rotateWeekdays(sundayFirst, -1)).toEqual(rotateWeekdays(sundayFirst, 6));
+    });
+});
+
+describe("weekdayRow", () => {
+    it("the first day of the week is row zero", () => {
+        expect(weekdayRow(0, 0)).toBe(0);
+        expect(weekdayRow(1, 1)).toBe(0);
+    });
+
+    it("Monday sits in row 1 of a Sunday-first week and row 0 of a Monday-first one", () => {
+        expect(weekdayRow(1, 0)).toBe(1);
+        expect(weekdayRow(1, 1)).toBe(0);
+    });
+
+    it("Sunday wraps to the last row when the week starts on Monday", () => {
+        expect(weekdayRow(0, 1)).toBe(6);
+    });
+
+    it("always lands inside the seven rows", () => {
+        for (let weekday = 0; weekday < 7; weekday++) {
+            for (let firstDay = 0; firstDay < 7; firstDay++) {
+                const row = weekdayRow(weekday, firstDay);
+                expect(row).toBeGreaterThanOrEqual(0);
+                expect(row).toBeLessThan(7);
+            }
+        }
     });
 });
