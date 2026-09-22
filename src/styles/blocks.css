@@ -84,6 +84,13 @@
   background: var(--interactive-accent);
   transition: width 0.3s ease;
 }
+/* the config is broken: an empty track would read as an honest zero, and the
+ * difference between "not started" and "cannot be counted" is the whole point */
+.dashy-progress-row.is-broken .dashy-progress-track {
+  background: transparent;
+  border: 1px dashed var(--dashy-border);
+}
+.dashy-progress-row.is-broken .dashy-progress-value { color: var(--text-faint); }
 /* the goal is met: the bar stops growing, so say it with colour instead */
 .dashy-progress-row.is-complete .dashy-progress-fill { background: var(--color-green, var(--interactive-accent)); }
 .dashy-progress-row.is-complete .dashy-progress-percent { color: var(--color-green, var(--text-normal)); }

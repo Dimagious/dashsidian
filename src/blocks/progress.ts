@@ -20,6 +20,8 @@ interface Bar {
     unit?: string;
     percent: number | null;
     width: number;
+    /** the config could not be read — the empty track must not read as a zero */
+    broken: boolean;
     icon?: string;
     sub?: string;
 }
@@ -56,7 +58,8 @@ export function renderProgress(app: App, source: string, el: HTMLElement): void 
     const wrap = el.createDiv({ cls: "dashy-progress" });
     for (const bar of bars) {
         const complete = bar.percent !== null && bar.percent >= 100;
-        const row = wrap.createDiv({ cls: complete ? "dashy-progress-row is-complete" : "dashy-progress-row" });
+        const state = bar.broken ? " is-broken" : complete ? " is-complete" : "";
+        const row = wrap.createDiv({ cls: `dashy-progress-row${state}` });
 
         const head = row.createDiv({ cls: "dashy-progress-head" });
         if (bar.icon) head.createSpan({ cls: "dashy-progress-icon", text: bar.icon });
@@ -87,6 +90,7 @@ function toBar(
         goal: "—",
         percent: null,
         width: 0,
+        broken: spec === null,
     };
     if (typeof item.icon === "string") bar.icon = item.icon;
     if (typeof item.sub === "string") bar.sub = item.sub;
