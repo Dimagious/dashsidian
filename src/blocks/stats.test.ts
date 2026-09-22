@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { renderStats } from "./stats";
-import { mockApp, diary, host, texts, nodes, diagnostics } from "../test/vault";
+import { mockContext, diary, host, texts, nodes, diagnostics } from "../test/vault";
 
 // 10 days, sleep_score 70..79, steps 1000..1900, two of them tagged.
-const app = mockApp({
+const ctx = mockContext({
     notes: [
         ...diary("Diary", "2026-01-01", 10, (i) => ({ sleep_score: 70 + i, steps: 1000 + i * 100 })),
         { path: "Books/one.md", frontmatter: { year: 2026, rating: 5 }, tags: ["read"] },
@@ -13,7 +13,7 @@ const app = mockApp({
 
 const card = (config: string) => {
     const el = host();
-    renderStats(app, config, el);
+    renderStats(ctx, config, el);
     return el;
 };
 

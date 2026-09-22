@@ -89,27 +89,11 @@ export const test = base.extend<Fixtures>({
             // No dialog — the vault was trusted already.
         }
 
-        // Wait for the metadata cache before enabling anything. On a cold start
-        // Obsidian lists the files long before it has parsed their frontmatter,
-        // and a block renders from a snapshot taken once — so enabling the
-        // plugin too early bakes half-empty numbers into the note. The plugin
-        // not re-rendering when the cache catches up is a real defect of its
-        // own (B-009); this only keeps the suite from measuring it by accident.
-        await win.waitForFunction(
-            () => {
-                const a = (globalThis as unknown as {
-                    app?: {
-                        vault?: { getAbstractFileByPath?: (p: string) => unknown };
-                        metadataCache?: { getFileCache?: (f: unknown) => { frontmatter?: unknown } | null };
-                    };
-                }).app;
-                const file = a?.vault?.getAbstractFileByPath?.("Diary/2026-01-10.md");
-                return Boolean(file && a?.metadataCache?.getFileCache?.(file)?.frontmatter);
-            },
-            null,
-            { timeout: 30_000 },
-        );
-
+        // Deliberately NOT waiting for the metadata cache here. On a cold
+        // start Obsidian lists the files long before it parses their
+        // frontmatter, so the first render sees a half-read vault. The plugin
+        // must catch up on its own; if it ever stops doing that, these specs
+        // go red instead of quietly measuring the wrong thing.
         // Enable plugins through the same API the button uses.
         await win
             .evaluate(async () => {

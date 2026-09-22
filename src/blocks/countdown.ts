@@ -1,4 +1,4 @@
-import type { App } from "obsidian";
+import type { BlockContext } from "./context";
 import { formatDate } from "../adapters/datetime";
 import { readCountdown, daysUntil } from "../core/countdown";
 import { dateKey } from "../core/calendar";
@@ -24,8 +24,8 @@ interface Card {
     sub?: string;
 }
 
-export function renderCountdown(app: App, source: string, el: HTMLElement): void {
-    void app; // this block reads no vault data, only the config and today's date
+export function renderCountdown(_ctx: BlockContext, source: string, el: HTMLElement): void {
+    // No vault data is read here: only the config and today's date.
 
     clearBlock(el);
     const { value, diagnostics } = parseConfig(source, { root: KNOWN_ROOT, item: KNOWN_ITEM });

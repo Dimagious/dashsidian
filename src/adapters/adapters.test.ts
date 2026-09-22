@@ -1,10 +1,10 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { snapshot, noteExists } from "./vault";
+import { snapshot, noteExists, VaultSnapshot } from "./vault";
 import { discoverPeriodics } from "./periodic";
 import { formatDate, currentLocale, weekdayNamesShort, monthNamesShort, firstDayOfWeek } from "./datetime";
 import { applyObsidianLocale } from "./locale";
 import { setLocale, getLocale } from "../i18n";
-import { mockApp } from "../test/vault";
+import { mockApp, countingContext, diary } from "../test/vault";
 
 afterEach(() => setLocale("en"));
 
@@ -134,5 +134,63 @@ describe("locale wiring", () => {
         expect(applied).toBe(getLocale());
         // moment in tests runs English, so this must land back on English.
         expect(applied).toBe("en");
+    });
+});
+
+describe("VaultSnapshot", () => {
+    it("walks the vault once, however many times it is asked", () => {
+        const { ctx, walks } = countingContext({ notes: [{ path: "a.md" }] });
+        ctx.notes();
+        ctx.notes();
+        ctx.notes();
+        expect(walks()).toBe(1);
+    });
+
+    it("hands back the same records, not a fresh copy each time", () => {
+        const { ctx } = countingContext({ notes: [{ path: "a.md" }] });
+        expect(ctx.notes()).toBe(ctx.notes());
+    });
+
+    it("walks again once invalidated, and sees what changed", () => {
+        const app = mockApp({ notes: [{ path: "a.md" }] });
+        const files = [{ path: "a.md", basename: "a", parent: { path: "" }, note: { path: "a.md" } }];
+        app.vault.getMarkdownFiles = (() => files) as typeof app.vault.getMarkdownFiles;
+        const cache = new VaultSnapshot(app);
+
+        expect(cache.get()).toHaveLength(1);
+        files.push({ path: "b.md", basename: "b", parent: { path: "" }, note: { path: "b.md" } });
+        expect(cache.get(), "still the cached answer").toHaveLength(1);
+
+        cache.invalidate();
+        expect(cache.get(), "and now the new one").toHaveLength(2);
+    });
+
+    it("invalidating twice in a row costs nothing extra", () => {
+        const { ctx, walks, invalidate } = countingContext({ notes: [{ path: "a.md" }] });
+        ctx.notes();
+        invalidate();
+        invalidate();
+        ctx.notes();
+        expect(walks()).toBe(2);
+    });
+});
+
+describe("a page full of blocks", () => {
+    it("walks the vault once between them, not once each", async () => {
+        const { ctx, walks } = countingContext({
+            notes: diary("Diary", "2026-01-01", 5, (i) => ({ v: i })),
+        });
+        const { renderTiles } = await import("../blocks/tiles");
+        const { renderStats } = await import("../blocks/stats");
+        const { renderProgress } = await import("../blocks/progress");
+        const { renderHeatmap } = await import("../blocks/heatmap");
+
+        const el = document.createElement("div");
+        renderTiles(ctx, "items:\n  - { label: A, path: Diary, badge: count }", el);
+        renderStats(ctx, "items:\n  - { label: A, source: Diary, agg: count }", document.createElement("div"));
+        renderProgress(ctx, "items:\n  - { label: A, source: Diary, agg: count, goal: 10 }", document.createElement("div"));
+        renderHeatmap(ctx, "source: Diary\nfield: v", document.createElement("div"));
+
+        expect(walks()).toBe(1);
     });
 });

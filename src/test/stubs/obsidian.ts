@@ -22,6 +22,27 @@ export class Plugin {
     async saveData(): Promise<void> { /* no-op */ }
 }
 
+export class MarkdownRenderChild {
+    constructor(public containerEl: HTMLElement) {}
+    onload(): void { /* no-op */ }
+    onunload(): void { /* no-op */ }
+    load(): void { this.onload(); }
+    unload(): void { this.onunload(); }
+}
+
+/** Obsidian's own debounce; the stub keeps the trailing-call behaviour. */
+export function debounce<A extends unknown[]>(
+    fn: (...args: A) => void,
+    timeout = 0,
+    _resetTimer = false,
+): (...args: A) => void {
+    let handle: ReturnType<typeof setTimeout> | null = null;
+    return (...args: A) => {
+        if (handle !== null) clearTimeout(handle);
+        handle = setTimeout(() => fn(...args), timeout);
+    };
+}
+
 export class PluginSettingTab {
     containerEl: HTMLElement = document.createElement("div");
     constructor(public app: unknown, public plugin: unknown) {}

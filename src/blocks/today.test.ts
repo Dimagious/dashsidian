@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { renderToday } from "./today";
 import { DEFAULT_SETTINGS } from "../types";
 import { setLocale } from "../i18n";
-import { mockApp, host, texts, nodes, diagnostics } from "../test/vault";
+import { mockContext, host, texts, nodes, diagnostics } from "../test/vault";
 
 const TODAY = new Date();
 const key = (d: Date) =>
@@ -13,7 +13,7 @@ afterEach(() => setLocale("en"));
 
 const row = (config: string, settings = DEFAULT_SETTINGS, vault = {}) => {
     const el = host();
-    renderToday(mockApp(vault), settings, config, el);
+    renderToday(mockContext(vault, settings), config, el);
     return el;
 };
 

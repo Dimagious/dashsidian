@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { renderHeatmap } from "./heatmap";
-import { mockApp, diary, host, texts, nodes, diagnostics } from "../test/vault";
+import { mockContext, diary, host, texts, nodes, diagnostics } from "../test/vault";
 
 // 2026 starts on a Thursday. With weeks starting on Sunday (the English
 // locale) that means four pad cells before January 1st.
-const app = mockApp({
+const ctx = mockContext({
     notes: [
         ...diary("Diary", "2026-01-01", 30, (i) => ({ sleep_score: 60 + i, steps: 5000 + i * 300 })),
         { path: "Diary/not-a-date.md", frontmatter: { sleep_score: 99 } },
@@ -12,9 +12,9 @@ const app = mockApp({
     ],
 });
 
-const map = (config: string, vault = app) => {
+const map = (config: string, context = ctx) => {
     const el = host();
-    renderHeatmap(vault, config, el);
+    renderHeatmap(context, config, el);
     return el;
 };
 
@@ -157,7 +157,7 @@ describe("heatmap — edges", () => {
     });
 
     it("two years give two grids, newest first", () => {
-        const twoYears = mockApp({
+        const twoYears = mockContext({
             notes: [
                 ...diary("Diary", "2025-03-01", 5, () => ({ v: 1 })),
                 ...diary("Diary", "2026-03-01", 5, () => ({ v: 1 })),

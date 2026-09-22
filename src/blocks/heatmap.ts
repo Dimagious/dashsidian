@@ -1,5 +1,4 @@
-import type { App } from "obsidian";
-import { snapshot } from "../adapters/vault";
+import type { BlockContext } from "./context";
 import { weekdayNamesShort, monthNamesShort, firstDayOfWeek } from "../adapters/datetime";
 import { selectNotes } from "../core/source";
 import { numberAt } from "../core/aggregate";
@@ -14,7 +13,7 @@ import schema from "./schema.json";
 /** Keys come from schema.json — the same source the agent skill is built from. */
 const KNOWN = Object.keys(schema.blocks.heatmap.root);
 
-export function renderHeatmap(app: App, source: string, el: HTMLElement): void {
+export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement): void {
     clearBlock(el);
     const { value, diagnostics } = parseConfig(source, { root: KNOWN });
     const diags: Diagnostic[] = [...diagnostics];
@@ -36,7 +35,7 @@ export function renderHeatmap(app: App, source: string, el: HTMLElement): void {
     const bands = readBands(value.bands);
     const linkable = value.link !== false;
 
-    const notes = selectNotes(snapshot(app), {
+    const notes = selectNotes(ctx.notes(), {
         source: typeof value.source === "string" ? value.source : undefined,
         tag: typeof value.tag === "string" ? value.tag : undefined,
         where: typeof value.where === "string" ? value.where : undefined,

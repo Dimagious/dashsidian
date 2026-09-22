@@ -1,5 +1,5 @@
-import type { App } from "obsidian";
-import { snapshot } from "../adapters/vault";
+import type { NoteRecord } from "../core/source";
+import type { BlockContext } from "./context";
 import { selectNotes } from "../core/source";
 import { aggregate } from "../core/aggregate";
 import { readStat, formatValue, type StatSpec } from "../core/stat";
@@ -20,7 +20,7 @@ interface Card {
     sub?: string;
 }
 
-export function renderStats(app: App, source: string, el: HTMLElement): void {
+export function renderStats(ctx: BlockContext, source: string, el: HTMLElement): void {
     clearBlock(el);
     const { value, diagnostics } = parseConfig(source, { root: KNOWN_ROOT, item: KNOWN_ITEM });
     const diags: Diagnostic[] = [...diagnostics];
@@ -40,8 +40,8 @@ export function renderStats(app: App, source: string, el: HTMLElement): void {
 
     const columns = isRecord(value) && typeof value.columns === "number" ? value.columns : 3;
 
-    // One snapshot per block, not per card: walking the vault is not free.
-    const notes = snapshot(app);
+    // One snapshot for the whole page, taken by the context.
+    const notes = ctx.notes();
     const cards: Card[] = [];
 
     for (const item of items) {
@@ -87,7 +87,7 @@ export function renderStats(app: App, source: string, el: HTMLElement): void {
 
 /** Selection for one card, reduced to text. No spec — a card with a dash. */
 function cardText(
-    notes: ReturnType<typeof snapshot>,
+    notes: readonly NoteRecord[],
     item: Record<string, unknown>,
     spec: StatSpec | null,
 ): string {

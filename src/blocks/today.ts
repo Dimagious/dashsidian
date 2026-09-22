@@ -1,4 +1,4 @@
-import type { App } from "obsidian";
+import type { BlockContext } from "./context";
 import { noteExists } from "../adapters/vault";
 import { discoverPeriodics } from "../adapters/periodic";
 import { formatDate } from "../adapters/datetime";
@@ -6,7 +6,6 @@ import { readToday, resolveConfig, notePath, type Period } from "../core/periodi
 import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
 import { t, type MessageKey } from "../i18n";
-import type { DashySettings } from "../types";
 import schema from "./schema.json";
 
 /** Keys come from schema.json — the same source the agent skill is built from. */
@@ -38,12 +37,7 @@ const FOLDER_KEY: Record<Period, "dailyFolder" | "weeklyFolder" | "monthlyFolder
     monthly: "monthlyFolder",
 };
 
-export function renderToday(
-    app: App,
-    settings: DashySettings,
-    source: string,
-    el: HTMLElement,
-): void {
+export function renderToday(ctx: BlockContext, source: string, el: HTMLElement): void {
     clearBlock(el);
     const { value, diagnostics } = parseConfig(source, { root: KNOWN });
     const diags: Diagnostic[] = [...diagnostics];
@@ -67,17 +61,17 @@ export function renderToday(
     renderDiagnostics(el, "today", diags);
 
     const now = new Date();
-    const discovered = discoverPeriodics(app);
+    const discovered = discoverPeriodics(ctx.app);
 
     const wrap = el.createDiv({ cls: "dashy-today" });
     wrap.createDiv({ cls: "dashy-today-date", text: spec.title ?? formatDate(now, TITLE_FORMAT) });
 
     const row = wrap.createDiv({ cls: "dashy-today-links" });
     for (const period of spec.periods) {
-        const cfg = resolveConfig(period, settings[FOLDER_KEY[period]], discovered[period]);
+        const cfg = resolveConfig(period, ctx.settings[FOLDER_KEY[period]], discovered[period]);
         const basename = formatDate(now, cfg.format);
         const path = notePath(cfg.folder, basename);
-        const exists = noteExists(app, path);
+        const exists = noteExists(ctx.app, path);
 
         // The link is drawn even for a note that does not exist: clicking it
         // creates the note. It is dimmed so that "not yet" shows before the click.

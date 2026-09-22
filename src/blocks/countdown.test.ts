@@ -1,9 +1,9 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { renderCountdown } from "./countdown";
 import { setLocale } from "../i18n";
-import { mockApp, host, texts, nodes, diagnostics } from "../test/vault";
+import { mockContext, host, texts, nodes, diagnostics } from "../test/vault";
 
-const app = mockApp();
+const ctx = mockContext();
 afterEach(() => setLocale("en"));
 
 /** A date key `days` away from today, so the specs never go stale. */
@@ -15,7 +15,7 @@ function shifted(days: number): string {
 
 const cards = (config: string) => {
     const el = host();
-    renderCountdown(app, config, el);
+    renderCountdown(ctx, config, el);
     return el;
 };
 

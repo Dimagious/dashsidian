@@ -12,6 +12,28 @@ export function snapshot(app: App): NoteRecord[] {
     return app.vault.getMarkdownFiles().map((file) => toRecord(app, file));
 }
 
+/**
+ * The snapshot, kept until something in the vault changes.
+ *
+ * Taking it is not free — every markdown file, every metadata lookup — and
+ * every block on the page needs the same one. Held here rather than in a module
+ * variable so that tests cannot leak one vault's snapshot into another's.
+ */
+export class VaultSnapshot {
+    private cached: NoteRecord[] | null = null;
+
+    constructor(private readonly app: App) {}
+
+    get(): readonly NoteRecord[] {
+        return (this.cached ??= snapshot(this.app));
+    }
+
+    /** Called when the vault or its metadata changed; the next get() rebuilds. */
+    invalidate(): void {
+        this.cached = null;
+    }
+}
+
 /** Whether such a note exists. Needed by blocks that link to what is not there yet. */
 export function noteExists(app: App, path: string): boolean {
     return app.vault.getAbstractFileByPath(path) !== null;

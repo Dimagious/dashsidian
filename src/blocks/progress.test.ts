@@ -1,14 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { renderProgress } from "./progress";
-import { mockApp, diary, host, texts, nodes, diagnostics } from "../test/vault";
+import { mockContext, diary, host, texts, nodes, diagnostics } from "../test/vault";
 
-const app = mockApp({
+const ctx = mockContext({
     notes: diary("Diary", "2026-01-01", 10, (i) => ({ km: i + 1 })),
 });
 
 const bars = (config: string) => {
     const el = host();
-    renderProgress(app, config, el);
+    renderProgress(ctx, config, el);
     return el;
 };
 

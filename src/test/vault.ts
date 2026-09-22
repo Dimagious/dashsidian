@@ -6,6 +6,9 @@
  */
 
 import type { App } from "obsidian";
+import type { BlockContext } from "../blocks/context";
+import { VaultSnapshot } from "../adapters/vault";
+import { DEFAULT_SETTINGS, type DashySettings } from "../types";
 
 export interface FakeNote {
     /** path from the vault root, with the extension */
@@ -61,6 +64,46 @@ export function mockApp(vault: FakeVault = {}): App {
     }
 
     return app as unknown as App;
+}
+
+/**
+ * What a block is handed to draw itself, over a fake vault.
+ *
+ * The snapshot is the real cached one, so a test that counts vault walks is
+ * measuring the thing that ships.
+ */
+export function mockContext(
+    vault: FakeVault = {},
+    settings: DashySettings = DEFAULT_SETTINGS,
+): BlockContext {
+    const app = mockApp(vault);
+    const snapshot = new VaultSnapshot(app);
+    return { app, notes: () => snapshot.get(), settings };
+}
+
+/**
+ * The same, but counting how many times the vault was walked. The whole point
+ * of the cache is that a page full of blocks walks it once.
+ */
+export function countingContext(vault: FakeVault = {}): {
+    ctx: BlockContext;
+    walks: () => number;
+    invalidate: () => void;
+} {
+    const app = mockApp(vault);
+    const real = app.vault.getMarkdownFiles.bind(app.vault);
+    let walks = 0;
+    app.vault.getMarkdownFiles = (() => {
+        walks += 1;
+        return real();
+    }) as typeof app.vault.getMarkdownFiles;
+
+    const snapshot = new VaultSnapshot(app);
+    return {
+        ctx: { app, notes: () => snapshot.get(), settings: DEFAULT_SETTINGS },
+        walks: () => walks,
+        invalidate: () => snapshot.invalidate(),
+    };
 }
 
 /** `days` notes named as consecutive dates starting at `from`, with frontmatter. */

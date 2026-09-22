@@ -1,5 +1,5 @@
-import type { App } from "obsidian";
-import { snapshot } from "../adapters/vault";
+import type { NoteRecord } from "../core/source";
+import type { BlockContext } from "./context";
 import { selectNotes } from "../core/source";
 import { aggregate } from "../core/aggregate";
 import { formatValue } from "../core/stat";
@@ -26,7 +26,7 @@ interface Bar {
     sub?: string;
 }
 
-export function renderProgress(app: App, source: string, el: HTMLElement): void {
+export function renderProgress(ctx: BlockContext, source: string, el: HTMLElement): void {
     clearBlock(el);
     const { value, diagnostics } = parseConfig(source, { root: KNOWN_ROOT, item: KNOWN_ITEM });
     const diags: Diagnostic[] = [...diagnostics];
@@ -42,8 +42,8 @@ export function renderProgress(app: App, source: string, el: HTMLElement): void 
     }
     if (isRecord(value) && Array.isArray(value.items)) diags.push(...unknownKeys(value, KNOWN_ROOT));
 
-    // One snapshot per block, not per bar: walking the vault is not free.
-    const notes = snapshot(app);
+    // One snapshot for the whole page, taken by the context.
+    const notes = ctx.notes();
     const bars: Bar[] = [];
 
     for (const item of items) {
@@ -87,7 +87,7 @@ export function renderProgress(app: App, source: string, el: HTMLElement): void 
 }
 
 function toBar(
-    notes: ReturnType<typeof snapshot>,
+    notes: readonly NoteRecord[],
     item: Record<string, unknown>,
     spec: ProgressSpec | null,
     label: string,

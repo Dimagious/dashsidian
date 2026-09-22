@@ -1,5 +1,4 @@
-import type { App } from "obsidian";
-import { snapshot } from "../adapters/vault";
+import type { BlockContext } from "./context";
 import { selectNotes } from "../core/source";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
@@ -10,7 +9,7 @@ import schema from "./schema.json";
 const KNOWN_ITEM = Object.keys(schema.blocks.tiles.item);
 const KNOWN_ROOT = Object.keys(schema.blocks.tiles.root);
 
-export function renderTiles(app: App, source: string, el: HTMLElement): void {
+export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement): void {
     clearBlock(el);
     const { value, diagnostics } = parseConfig(source, { root: KNOWN_ROOT, item: KNOWN_ITEM });
     const diags: Diagnostic[] = [...diagnostics];
@@ -27,7 +26,7 @@ export function renderTiles(app: App, source: string, el: HTMLElement): void {
     if (isRecord(value) && !Array.isArray(value)) diags.push(...unknownKeys(value, KNOWN_ROOT));
 
     const columns = isRecord(value) && typeof value.columns === "number" ? value.columns : 4;
-    const notes = snapshot(app);
+    const notes = ctx.notes();
 
     renderDiagnostics(el, "tiles", diags);
 
