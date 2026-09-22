@@ -101,7 +101,7 @@ export default class DashyPlugin extends Plugin {
  *
  * Tying it to the section through `ctx.addChild` is what gives us an unload
  * hook: without it a block would keep listening after its note is closed, and
- * redrawing would walk elements that are no longer in the document.
+ * redrawing would walk elements that are no longer attached to anything.
  */
 class DashyBlock extends MarkdownRenderChild {
     constructor(

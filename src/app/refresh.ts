@@ -22,7 +22,7 @@ export class BlockRefresher {
     }
 
     /**
-     * And stops when its section leaves the document. Without this the set
+     * And stops when its section is taken off the page. Without this the set
      * grows for every note ever opened, and redrawing walks detached elements.
      */
     unregister(draw: () => void): void {
