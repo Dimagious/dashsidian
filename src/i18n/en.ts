@@ -36,6 +36,23 @@ export const en = {
     "progress.goalRequired": "{card}: `goal:` needs a number — there is nothing to measure against.",
     "progress.goalNotPositive": "{card}: a goal of {goal} leaves nothing to fill — it must be above zero.",
 
+    "countdown.empty": "No dates to draw. Expected `items:` or a list.",
+    "countdown.dateRequired": "{card}: `date:` is missing — there is nothing to count down to.",
+    "countdown.dateInvalid": "{card}: \"{date}\" is not a date. Expected YYYY-MM-DD.",
+    "countdown.today": "Today",
+    // The count is drawn separately, in large type, so these carry the noun
+    // alone and must read naturally under a number. English splits one from the
+    // rest; the other slots repeat it so that every language has a key to
+    // translate. See tPlural in ./index.ts.
+    "countdown.daysLeft.one": "day left",
+    "countdown.daysLeft.few": "days left",
+    "countdown.daysLeft.many": "days left",
+    "countdown.daysLeft.other": "days left",
+    "countdown.daysAgo.one": "day ago",
+    "countdown.daysAgo.few": "days ago",
+    "countdown.daysAgo.many": "days ago",
+    "countdown.daysAgo.other": "days ago",
+
     "today.expectFields": "Expected a set of fields, for example `daily: true`.",
     "today.nothingToShow": "Nothing to show: enable `daily`, `weekly` or `monthly`.",
     "today.notBoolean": "`{key}` expects true or false, got \"{value}\" — reading it as {read}.",

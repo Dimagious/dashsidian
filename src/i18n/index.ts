@@ -9,7 +9,7 @@
 
 import { en, type Catalog, type MessageKey } from "./en";
 import { ru } from "./ru";
-import { interpolate, resolveLocale } from "./translate";
+import { interpolate, resolveLocale, pluralCategory } from "./translate";
 
 export type { MessageKey } from "./en";
 
@@ -39,4 +39,28 @@ export function getLocale(): string {
 export function t(key: MessageKey, params?: Record<string, string | number>): string {
     const message = CATALOGS[current]?.[key] ?? en[key];
     return interpolate(message, params);
+}
+
+/**
+ * Message families that come in plural forms, named by their base key.
+ * The catalogues hold `<base>.<category>` for every category we carry.
+ */
+export type PluralKey = "countdown.daysLeft" | "countdown.daysAgo";
+
+/**
+ * A count with its noun, in the right form for the language.
+ *
+ * The count is available to the template as `{count}`. A category the
+ * catalogues do not carry falls back to `other` — a slightly wrong plural is
+ * better than a missing sentence.
+ */
+export function tPlural(
+    base: PluralKey,
+    count: number,
+    params?: Record<string, string | number>,
+): string {
+    const category = pluralCategory(current, count);
+    const candidate = `${base}.${category}`;
+    const key = (candidate in en ? candidate : `${base}.other`) as MessageKey;
+    return t(key, { ...params, count });
 }

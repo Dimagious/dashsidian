@@ -34,3 +34,29 @@ export function resolveLocale(
     if (language && available.includes(language)) return language;
     return fallback;
 }
+
+/** The plural categories our catalogues carry. */
+export const PLURAL_CATEGORIES = ["one", "few", "many", "other"] as const;
+export type PluralCategory = (typeof PLURAL_CATEGORIES)[number];
+
+/**
+ * Which plural form a count takes in a language.
+ *
+ * Intl.PluralRules ships with the runtime and knows the CLDR rules, so we do
+ * not hand-roll them: English splits 1 from everything else, Russian splits
+ * 1/21/31 from 2–4 from the rest, and other languages differ again.
+ *
+ * A category we do not carry (`zero`, `two`) falls back to `other` rather than
+ * failing — a slightly wrong plural beats a missing sentence.
+ */
+export function pluralCategory(locale: string, count: number): PluralCategory {
+    let picked: string;
+    try {
+        picked = new Intl.PluralRules(locale).select(count);
+    } catch {
+        picked = "other";
+    }
+    return (PLURAL_CATEGORIES as readonly string[]).includes(picked)
+        ? (picked as PluralCategory)
+        : "other";
+}

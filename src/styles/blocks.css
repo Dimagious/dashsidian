@@ -115,6 +115,38 @@
 .dashy-today-label { font-weight: 500; }
 .dashy-today-name { font-size: 0.75em; color: var(--text-muted); }
 
+/* countdown */
+.dashy-countdown {
+  display: grid;
+  grid-template-columns: repeat(var(--dashy-countdown-columns, 3), 1fr);
+  gap: var(--dashy-gap);
+  margin: 0 0 24px;
+}
+.dashy-countdown-card {
+  background: linear-gradient(135deg, var(--dashy-surface) 0%, var(--dashy-surface-hi) 100%);
+  border: 1px solid var(--dashy-border);
+  border-radius: var(--dashy-radius);
+  padding: 16px 12px;
+  text-align: center;
+  box-shadow: var(--dashy-shadow);
+}
+.dashy-countdown-icon { display: block; font-size: 1.3em; margin-bottom: 4px; }
+.dashy-countdown-value {
+  font-size: 1.9em; font-weight: 700; line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.dashy-countdown-unit { font-size: 0.7em; color: var(--text-muted); margin-top: 1px; }
+.dashy-countdown-label { font-size: 0.85em; margin-top: 6px; }
+.dashy-countdown-date { font-size: 0.7em; opacity: 0.55; margin-top: 2px; }
+.dashy-countdown-sub { font-size: 0.7em; opacity: 0.55; margin-top: 2px; }
+/* the day itself gets the accent; a date gone by steps back instead */
+.dashy-countdown-card.is-today { border-color: var(--interactive-accent); }
+.dashy-countdown-card.is-today .dashy-countdown-value {
+  font-size: 1.4em; color: var(--interactive-accent);
+}
+.dashy-countdown-card.is-past { opacity: 0.6; }
+.dashy-countdown-card.is-broken .dashy-countdown-value { color: var(--text-faint); font-weight: 500; }
+
 /* heatmap */
 .dashy-hm-wrap { margin: 8px 0 26px; overflow-x: auto; }
 .dashy-hm-title { font-weight: 600; margin-bottom: 10px; }
@@ -156,4 +188,5 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
 @media (max-width: 768px) {
   .dashy-tiles { grid-template-columns: repeat(2, 1fr); }
   .dashy-stats { grid-template-columns: repeat(2, 1fr); }
+  .dashy-countdown { grid-template-columns: repeat(2, 1fr); }
 }

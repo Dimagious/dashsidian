@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { interpolate, resolveLocale } from "./translate";
-import { t, setLocale, getLocale, AVAILABLE_LOCALES, FALLBACK_LOCALE, CATALOGS } from "./index";
+import { interpolate, resolveLocale, pluralCategory } from "./translate";
+import { t, tPlural, setLocale, getLocale, AVAILABLE_LOCALES, FALLBACK_LOCALE, CATALOGS } from "./index";
 import { en, type MessageKey } from "./en";
 import { ru } from "./ru";
 
@@ -118,5 +118,53 @@ describe("catalogs", () => {
                 expect(slots(value), `${code} / ${key}`).toEqual(slots(en[key as MessageKey]));
             }
         }
+    });
+});
+
+describe("tPlural", () => {
+    it("English splits one from the rest", () => {
+        expect(tPlural("countdown.daysLeft", 1)).toBe("day left");
+        expect(tPlural("countdown.daysLeft", 5)).toBe("days left");
+    });
+
+    it("Russian picks all three forms", () => {
+        setLocale("ru");
+        expect(tPlural("countdown.daysLeft", 1)).toBe("день остался");
+        expect(tPlural("countdown.daysLeft", 3)).toBe("дня осталось");
+        expect(tPlural("countdown.daysLeft", 11)).toBe("дней осталось");
+        expect(tPlural("countdown.daysLeft", 21)).toBe("день остался");
+    });
+
+    it("the past tense family works the same way", () => {
+        setLocale("ru");
+        expect(tPlural("countdown.daysAgo", 2)).toBe("дня назад");
+    });
+
+    it("zero takes the many form in Russian, the plural in English", () => {
+        expect(tPlural("countdown.daysLeft", 0)).toBe("days left");
+        setLocale("ru");
+        expect(tPlural("countdown.daysLeft", 0)).toBe("дней осталось");
+    });
+});
+
+describe("pluralCategory", () => {
+    it("knows English", () => {
+        expect(pluralCategory("en", 1)).toBe("one");
+        expect(pluralCategory("en", 2)).toBe("other");
+    });
+
+    it("knows Russian", () => {
+        expect(pluralCategory("ru", 1)).toBe("one");
+        expect(pluralCategory("ru", 2)).toBe("few");
+        expect(pluralCategory("ru", 5)).toBe("many");
+    });
+
+    it("a category we do not carry falls back instead of failing", () => {
+        // Arabic has zero/two; we carry neither.
+        expect(["one", "few", "many", "other"]).toContain(pluralCategory("ar", 2));
+    });
+
+    it("a nonsense locale does not throw", () => {
+        expect(pluralCategory("not a locale", 1)).toBe("other");
     });
 });

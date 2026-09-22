@@ -7,7 +7,7 @@ description: >-
   for a dashboard, a home page, a tile grid, cards with counters or averages, a
   link to today's note, a day calendar, a heatmap, a habit tracker or a visual
   entry point into the vault.
-version: 0.5.0
+version: 1.0.0
 ---
 
 # Dashy — dashboard blocks
@@ -16,7 +16,7 @@ The **Dashy** plugin (`dashsidian`) draws a dashboard out of
 markdown blocks. The config is YAML inside the block. No JavaScript, and no
 Dataview required.
 
-Blocks in total: 5.
+Blocks in total: 6.
 
 ### `tiles`
 
@@ -157,6 +157,40 @@ monthly: true
 - Takes the folder and the name format from the Periodic Notes plugin when installed; for the day it also picks up the core "Daily notes". A folder set in the Dashy settings wins over both.
 - With none of the keys given, only the daily note is shown. With at least one given, exactly those apply.
 - If the note does not exist yet the link is still drawn, dimmed: clicking it creates the note.
+
+### `countdown`
+
+Cards counting the days to a date.
+
+**Block root**
+
+| key | type | required | default | synonyms | what it does |
+|---|---|---|---|---|---|
+| `columns` | number | — | `3` | — | columns in the grid, 1–6 |
+| `items` | list | yes | — | — | the list of dates |
+
+**List item**
+
+| key | type | required | default | synonyms | what it does |
+|---|---|---|---|---|---|
+| `label` | string | yes | — | `title`, `name` | what the date is |
+| `date` | string | yes | — | — | the date itself, YYYY-MM-DD |
+| `icon` | string | — | — | `emoji` | emoji |
+| `sub` | string | — | — | — | small caption under the label |
+
+**Example**
+
+````markdown
+```countdown
+columns: 3
+items:
+  - { label: IRONMAN 70.3, date: 2026-11-15, icon: 🏊 }
+  - { label: Holiday, date: 2026-12-20, icon: 🏖, sub: two weeks off }
+```
+````
+
+- A date that has passed is shown too, counting up instead of down — what happened yesterday is still worth seeing.
+- The day count is whole days, so a daylight saving switch cannot shift it.
 
 ### `heatmap`
 

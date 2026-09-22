@@ -1,5 +1,5 @@
 {
-  "version": "0.5.0",
+  "version": "1.0.0",
   "blocks": {
     "tiles": {
       "summary": "A grid of link tiles for navigating the vault.",
@@ -247,6 +247,53 @@
         "Takes the folder and the name format from the Periodic Notes plugin when installed; for the day it also picks up the core \"Daily notes\". A folder set in the Dashy settings wins over both.",
         "With none of the keys given, only the daily note is shown. With at least one given, exactly those apply.",
         "If the note does not exist yet the link is still drawn, dimmed: clicking it creates the note."
+      ]
+    },
+    "countdown": {
+      "summary": "Cards counting the days to a date.",
+      "root": {
+        "columns": {
+          "type": "number",
+          "default": 3,
+          "doc": "columns in the grid, 1–6"
+        },
+        "items": {
+          "type": "list",
+          "required": true,
+          "doc": "the list of dates"
+        }
+      },
+      "item": {
+        "label": {
+          "type": "string",
+          "required": true,
+          "doc": "what the date is",
+          "aliases": [
+            "title",
+            "name"
+          ]
+        },
+        "date": {
+          "type": "string",
+          "required": true,
+          "doc": "the date itself, YYYY-MM-DD"
+        },
+        "icon": {
+          "type": "string",
+          "doc": "emoji",
+          "aliases": [
+            "emoji"
+          ]
+        },
+        "sub": {
+          "type": "string",
+          "doc": "small caption under the label"
+        }
+      },
+      "example": "columns: 3\nitems:\n  - { label: IRONMAN 70.3, date: 2026-11-15, icon: 🏊 }\n  - { label: Holiday, date: 2026-12-20, icon: 🏖, sub: two weeks off }",
+      "notes": [
+        "A date that has passed is shown too, counting up instead of down — what happened yesterday is still worth seeing.",
+        "The day count is whole days, so a daylight saving switch cannot shift it."
       ]
     },
     "heatmap": {
