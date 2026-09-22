@@ -1,5 +1,6 @@
 const esbuild = require("esbuild");
 const fs = require("fs");
+const { buildCSS } = require("./build-css.cjs");
 const { id: PLUGIN_ID, name: PLUGIN_NAME } = JSON.parse(
     require("fs").readFileSync(require("path").join(__dirname, "..", "manifest.json"), "utf8")
 );
@@ -18,7 +19,10 @@ if (!OUT) {
 const outFile = path.join(OUT, "main.js");
 const watch = process.argv.includes("--watch");
 
+// styles.css is a build artefact, not a source file — it is rebuilt below
+// before being copied. manifest.json is copied as it is.
 const EXTRA_FILES = ["styles.css", "manifest.json"];
+const STYLE_SOURCES = path.join(__dirname, "..", "src", "styles");
 // docs/screens is 16 MB of README demo reels and voiceover — GitHub needs it,
 // a vault does not. Copying it here dumped the whole lot into every target vault.
 const EXTRA_DIRS = [];
@@ -55,6 +59,10 @@ function copyDirSafe(srcDir, dstDir) {
 }
 
 function copyAssets() {
+    // Rebuild the stylesheet rather than copying whatever is lying around.
+    // Copying it stale is silent and shipped a vault missing the styles of two
+    // whole blocks: the TypeScript was fresh, the CSS was three commits old.
+    buildCSS();
     for (const f of EXTRA_FILES) copyFileSafe(f, OUT);
     for (const d of EXTRA_DIRS) {
         if (!fs.existsSync(d)) continue;
@@ -96,11 +104,10 @@ function copyAssets() {
     if (watch) {
         await ctx.watch();
 
-        for (const f of EXTRA_FILES) {
-            if (fs.existsSync(f)) {
-                fs.watchFile(f, { interval: 300 }, copyAssets);
-            }
-        }
+        // Watch the CSS sources, not the artefact they produce: editing
+        // src/styles/blocks.css must reach the vault without a second command.
+        fs.watch(STYLE_SOURCES, { recursive: true }, copyAssets);
+        fs.watchFile("manifest.json", { interval: 300 }, copyAssets);
 
         for (const d of EXTRA_DIRS) {
             if (!fs.existsSync(d)) continue;
