@@ -37,8 +37,8 @@
 
 ## Состояние
 
-v0.1.0, до публикации. Работают `tiles`, `stats` и `heatmap`. `progress`, `today`,
-`countdown` описаны в ТЗ и не написаны. Ядро под `progress` (`core/aggregate.ts`)
+v0.1.0, до публикации. Работают `tiles`, `stats`, `today` и `heatmap`. `progress`
+и `countdown` описаны в ТЗ и не написаны. Ядро под `progress` (`core/aggregate.ts`)
 уже есть и покрыто тестами. Спарклайн `trend` в `stats` — отдельный пункт B-008,
 в схеме его сознательно нет.
 
@@ -52,8 +52,13 @@ src/
     calendar.ts          раскладка года, longestStreak/currentStreak
     source.ts            отбор заметок: source/tag/where + микроязык where
     aggregate.ts         count/sum/avg/min/max/latest/streak, series
+    stat.ts              разбор и формат карточки числа
+    bands.ts             пороги раскраски и их подписи
+    periodic.ts          папка/формат/путь периодических заметок
     palette.ts           именованные цвета → rgb
-  adapters/vault.ts    единственное место, где блоки трогают Obsidian
+  adapters/            единственное место, где блоки трогают Obsidian
+    vault.ts             снимок metadataCache, проверка существования заметки
+    periodic.ts          настройки Periodic Notes / Daily notes, moment
   blocks/              отрисовка, по файлу на блок
     schema.json          ЕДИНЫЙ ИСТОЧНИК ПРАВДЫ по ключам блоков
   shared/parse.ts      YAML + синонимы ключей + диагностика

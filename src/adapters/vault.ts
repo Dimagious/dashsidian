@@ -12,6 +12,11 @@ export function snapshot(app: App): NoteRecord[] {
     return app.vault.getMarkdownFiles().map((file) => toRecord(app, file));
 }
 
+/** Есть ли такая заметка. Нужно блокам, которые рисуют ссылку на ещё не созданное. */
+export function noteExists(app: App, path: string): boolean {
+    return app.vault.getAbstractFileByPath(path) !== null;
+}
+
 export function toRecord(app: App, file: TFile): NoteRecord {
     const cache = app.metadataCache.getFileCache(file);
     const frontmatter = (cache?.frontmatter ?? {}) as Record<string, unknown>;

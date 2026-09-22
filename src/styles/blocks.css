@@ -62,6 +62,32 @@
 .dashy-stat-label { font-size: 0.85em; margin-top: 4px; }
 .dashy-stat-sub { font-size: 0.7em; opacity: 0.55; margin-top: 2px; }
 
+/* today */
+.dashy-today { margin: 0 0 24px; }
+.dashy-today-date {
+  font-weight: 600; margin-bottom: 8px;
+  text-transform: capitalize;
+}
+.dashy-today-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.dashy-today-chip {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  background: var(--dashy-surface);
+  border: 1px solid var(--dashy-border);
+  border-radius: var(--dashy-radius);
+  padding: 7px 12px;
+  text-decoration: none; color: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.dashy-today-chip:hover {
+  text-decoration: none; color: inherit;
+  transform: translateY(-2px); box-shadow: var(--dashy-shadow-hover);
+}
+/* заметки ещё нет: ссылка рабочая, но видно, что она создаст файл */
+.dashy-today-chip.is-missing { border-style: dashed; opacity: 0.7; }
+.dashy-today-icon { font-size: 1.05em; }
+.dashy-today-label { font-weight: 500; }
+.dashy-today-name { font-size: 0.75em; color: var(--text-muted); }
+
 /* heatmap */
 .dashy-hm-wrap { margin: 8px 0 26px; overflow-x: auto; }
 .dashy-hm-title { font-weight: 600; margin-bottom: 10px; }

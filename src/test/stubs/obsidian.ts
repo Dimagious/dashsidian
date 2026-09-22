@@ -5,6 +5,13 @@
  * Держим минимум: чистый слой (core/, shared/) обсидиан не импортирует
  * вовсе, а mount-тесты блоков будут дописывать сюда по мере появления.
  */
+/**
+ * Настоящий Obsidian отдаёт свой moment, настроенный на язык приложения.
+ * В тестах берём пакет из node_modules — он приходит вместе с типами obsidian.
+ * В сборку он не попадает: `obsidian` для esbuild внешний.
+ */
+export { default as moment } from "moment";
+
 export class Plugin {
     app: unknown;
     constructor(app: unknown) { this.app = app; }
