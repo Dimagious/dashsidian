@@ -1,4 +1,4 @@
-import { App, Notice, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting, normalizePath } from "obsidian";
 import type DashyPlugin from "../app/plugin";
 import {
     SKILL_MARKDOWN,
@@ -112,13 +112,20 @@ export class DashySettingTab extends PluginSettingTab {
             );
     }
 
-    /** Writes the file only on a click — no silent writes outside our own folder. */
+    /**
+     * Writes the file only on a click, never on its own.
+     *
+     * The adapter rather than the Vault API, unusually: `.claude/` is a dotted
+     * folder, which Obsidian does not index, so there is no TFile to get hold
+     * of and `vault.create` has nothing to file the result under.
+     */
     private async installSkill(): Promise<void> {
         const adapter = this.app.vault.adapter;
-        const folder = SKILL_PATH.slice(0, SKILL_PATH.lastIndexOf("/"));
+        const target = normalizePath(SKILL_PATH);
+        const folder = normalizePath(SKILL_PATH.slice(0, SKILL_PATH.lastIndexOf("/")));
         try {
             if (!(await adapter.exists(folder))) await adapter.mkdir(folder);
-            await adapter.write(SKILL_PATH, SKILL_MARKDOWN);
+            await adapter.write(target, SKILL_MARKDOWN);
             this.plugin.settings.installedSkillVersion = SKILL_VERSION;
             await this.plugin.saveSettings();
             new Notice(t("settings.written", { path: SKILL_PATH }));
@@ -134,12 +141,13 @@ export class DashySettingTab extends PluginSettingTab {
      * unchanged and the user is told, rather than being quietly overwritten.
      */
     private async installAgents(): Promise<void> {
-        const adapter = this.app.vault.adapter;
         const markers = { begin: AGENTS_BEGIN, end: AGENTS_END };
+        const target = normalizePath(AGENTS_PATH);
         try {
-            const existing = (await adapter.exists(AGENTS_PATH))
-                ? await adapter.read(AGENTS_PATH)
-                : null;
+            // A plain vault file, so it goes through the Vault API: Obsidian
+            // knows about it, indexes it, and shows the change straight away.
+            const file = this.app.vault.getFileByPath(target);
+            const existing = file ? await this.app.vault.read(file) : null;
             const next = upsertManagedSection(existing, AGENTS_SECTION, markers);
 
             if (existing !== null && next === existing && !hasManagedSection(existing, markers)) {
@@ -147,7 +155,11 @@ export class DashySettingTab extends PluginSettingTab {
                 return;
             }
 
-            await adapter.write(AGENTS_PATH, next);
+            if (file) {
+                await this.app.vault.modify(file, next);
+            } else {
+                await this.app.vault.create(target, next);
+            }
             this.plugin.settings.installedAgentsVersion = SKILL_VERSION;
             await this.plugin.saveSettings();
             new Notice(t("settings.written", { path: AGENTS_PATH }));
