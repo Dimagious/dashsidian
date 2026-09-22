@@ -1,6 +1,6 @@
 import type { BlockContext } from "./context";
 import { weekdayNamesShort, monthNamesShort, firstDayOfWeek } from "../adapters/datetime";
-import { selectNotes, readSource } from "../core/source";
+import { selectNotes, readSource, unmatchedSource } from "../core/source";
 import { numberAt } from "../core/aggregate";
 import { formatValue } from "../core/stat";
 import { layoutYear, dateKey, eachDay, yearsOf, rotateWeekdays, weekdayRow } from "../core/calendar";
@@ -38,6 +38,8 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
 
     const { spec: selection, diagnostics: sourceDiags } = readSource(value);
     diags.push(...sourceDiags);
+    const missing = unmatchedSource(ctx.notes(), selection);
+    if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
     const notes = selectNotes(ctx.notes(), selection);
 
     const byDate = new Map<string, { value: number; path: string }>();

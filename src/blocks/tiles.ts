@@ -1,5 +1,5 @@
 import type { BlockContext } from "./context";
-import { selectNotes } from "../core/source";
+import { selectNotes, unmatchedSource } from "../core/source";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
 import { t } from "../i18n";
@@ -53,6 +53,10 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
 
         const labelEl = link.createSpan({ cls: "dashy-tile-label", text: label || path });
         if (item.badge === "count" || item.badge === true) {
+            const missing = unmatchedSource(notes, { source: path });
+            if (missing) {
+                diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
+            }
             const count = selectNotes(notes, { source: path }).length;
             labelEl.createSpan({
                 cls: count > 0 ? "dashy-tile-badge" : "dashy-tile-badge is-empty",

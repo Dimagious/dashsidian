@@ -63,7 +63,7 @@ export default class DashyPlugin extends Plugin {
             id: "insert-block",
             name: t("insert.name"),
             editorCallback: (editor) => {
-                new InsertBlockModal(this.app, editor).open();
+                new InsertBlockModal(this.app, editor, this.snapshot.get()).open();
             },
         });
 

@@ -1,4 +1,6 @@
 import { SuggestModal, type App, type Editor } from "obsidian";
+import type { NoteRecord } from "../core/source";
+import { profileVault, fitExample } from "../core/vault-profile";
 import { blockSnippet } from "../core/feedback";
 import { t, type MessageKey } from "../i18n";
 import schema from "../blocks/schema.json";
@@ -17,25 +19,31 @@ interface BlockChoice {
  * accepts. A second set of samples kept by hand would be wrong within a
  * release.
  */
-function choices(): BlockChoice[] {
+function choices(notes: readonly NoteRecord[]): BlockChoice[] {
     const blocks = schema.blocks as unknown as Record<string, { example: string }>;
+    // Fitted to this vault, so the first block shows the reader's own numbers
+    // rather than a zero counted from a folder that is not here.
+    const profile = profileVault(notes);
     return Object.entries(blocks).map(([name, block]) => ({
         name,
         what: t(`block.${name}` as MessageKey),
-        example: block.example,
+        example: fitExample(block.example, profile),
     }));
 }
 
 export class InsertBlockModal extends SuggestModal<BlockChoice> {
-    constructor(app: App, private readonly editor: Editor) {
+    private readonly offered: BlockChoice[];
+
+    constructor(app: App, private readonly editor: Editor, notes: readonly NoteRecord[]) {
         super(app);
+        this.offered = choices(notes);
         this.setPlaceholder(t("insert.placeholder"));
     }
 
     getSuggestions(query: string): BlockChoice[] {
         const needle = query.trim().toLowerCase();
-        if (!needle) return choices();
-        return choices().filter(
+        if (!needle) return this.offered;
+        return this.offered.filter(
             (c) => c.name.includes(needle) || c.what.toLowerCase().includes(needle),
         );
     }

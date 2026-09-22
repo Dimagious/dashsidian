@@ -156,6 +156,26 @@ function inFolder(note: NoteRecord, folder: string): boolean {
     return note.folder === f || note.folder.startsWith(`${f}/`);
 }
 
+/**
+ * A `source` that matches nothing in the vault.
+ *
+ * Silence here is indistinguishable from an honest zero, and the first block a
+ * newcomer inserts points at a folder from the author's vault. A zero that
+ * means "you named a folder that is not here" has to say so.
+ */
+export function unmatchedSource(
+    notes: readonly NoteRecord[],
+    spec: SourceSpec,
+): string | null {
+    const folder = normalize(spec.source ?? "");
+    if (!folder) return null;
+    return notes.some((n) => inFolder(n, folder)) ? null : folder;
+}
+
+function normalize(folder: string): string {
+    return folder.trim().replace(/^\/+|\/+$/g, "");
+}
+
 export function selectNotes(notes: readonly NoteRecord[], spec: SourceSpec): NoteRecord[] {
     const clause = spec.where ? parseWhere(spec.where) : null;
     const tag = spec.tag?.replace(/^#/, "").toLowerCase();

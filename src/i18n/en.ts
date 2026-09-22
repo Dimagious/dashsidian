@@ -20,6 +20,7 @@ export const en = {
     "bands.hasData": "has data",
     "bands.from": "from {min}",
 
+    "where.noSuchFolder": "Nothing is filed under `{folder}` — the numbers below count nothing. Point `source` at a folder of your own.",
     "where.unreadable":
         "`where: {where}` could not be read and was ignored — the numbers below are unfiltered. Expected something like `year = 2026`, `rating >= 4` or `tags contains books`.",
     "where.conjunction":

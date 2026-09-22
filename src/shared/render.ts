@@ -18,8 +18,18 @@ export function clearBlock(el: HTMLElement): void {
  */
 export function renderDiagnostics(el: HTMLElement, blockName: string, diagnostics: readonly Diagnostic[]): void {
     if (!diagnostics.length) return;
+    // Four cards pointing at the same missing folder are one problem, and
+    // four identical red lines read as four.
+    const seen = new Set<string>();
+    const unique = diagnostics.filter((d) => {
+        const id = `${d.level}|${d.line ?? ""}|${d.message}`;
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+    });
+
     const box = el.createDiv({ cls: "dashy-diagnostics" });
-    for (const d of diagnostics) {
+    for (const d of unique) {
         const row = box.createDiv({ cls: `dashy-diag dashy-diag-${d.level}` });
         const where = d.line ? ` (${t("render.line", { line: d.line })})` : "";
         row.setText(`${d.level === "error" ? "⛔" : "⚠️"} ${blockName}${where}: ${d.message}`);

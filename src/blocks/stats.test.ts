@@ -185,6 +185,27 @@ describe("stats — edges", () => {
         expect(children[0]).toBe("dashy-diagnostics");
     });
 
+    it("a folder nothing is filed under says so, instead of a silent zero", () => {
+        // The first block a newcomer inserts points at the author's folders.
+        const el = card("items:\n  - { label: Inbox, source: 00-Inbox, agg: count }");
+        expect(diagnostics(el, "warning")[0]).toContain("00-Inbox");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["0"]);
+    });
+
+    it("four cards on the same missing folder complain once, not four times", () => {
+        const el = card(`items:
+  - { label: A, source: Nowhere, agg: count }
+  - { label: B, source: Nowhere, agg: count }
+  - { label: C, source: Nowhere, agg: count }
+  - { label: D, source: Nowhere, agg: count }`);
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+    });
+
+    it("an existing folder that happens to be empty is not reported", () => {
+        const el = card("items:\n  - { label: Books, source: Books, agg: count }");
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+    });
+
     it("an empty block says so once and draws no grid", () => {
         const el = card("   ");
         expect(diagnostics(el, "error")).toEqual(["⛔ stats: The block is empty."]);

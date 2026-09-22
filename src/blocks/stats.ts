@@ -1,6 +1,6 @@
 import type { NoteRecord } from "../core/source";
 import type { BlockContext } from "./context";
-import { selectNotes, readSource } from "../core/source";
+import { selectNotes, readSource, unmatchedSource } from "../core/source";
 import { aggregate, series } from "../core/aggregate";
 import { sparkBars } from "../core/sparkline";
 import { readStat, formatValue, type StatSpec } from "../core/stat";
@@ -58,6 +58,8 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
 
         const { spec: source, diagnostics: sourceDiags } = readSource(item);
         diags.push(...sourceDiags);
+        const missing = unmatchedSource(notes, source);
+        if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
         const selected = selectNotes(notes, source);
         const card: Card = {
             label: label || spec?.field || "",

@@ -16,6 +16,7 @@ export const ru: Catalog = {
     "bands.hasData": "есть данные",
     "bands.from": "от {min}",
 
+    "where.noSuchFolder": "Под `{folder}` ничего нет — числа ниже посчитаны по пустоте. Укажите в `source` свою папку.",
     "where.unreadable":
         "`where: {where}` не разобрать, условие пропущено — числа ниже без фильтра. Ожидается что-то вроде `year = 2026`, `rating >= 4` или `tags contains книги`.",
     "where.conjunction":

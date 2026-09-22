@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseWhere, selectNotes, readSource, looksLikeConjunction, type NoteRecord } from "./source";
+import { parseWhere, selectNotes, readSource, unmatchedSource, looksLikeConjunction, type NoteRecord } from "./source";
 
 const note = (over: Partial<NoteRecord>): NoteRecord => ({
     path: "a.md", name: "a", folder: "", tags: [], frontmatter: {}, ...over,
@@ -134,5 +134,38 @@ describe("readSource", () => {
     it("the message quotes back what was written", () => {
         const { diagnostics } = readSource({ where: "nonsense here" });
         expect(diagnostics[0]?.message).toContain("nonsense here");
+    });
+});
+
+describe("unmatchedSource", () => {
+    it("names a folder nothing is filed under", () => {
+        expect(unmatchedSource(vault, { source: "99-Nowhere" })).toBe("99-Nowhere");
+    });
+
+    it("says nothing when the folder holds notes", () => {
+        expect(unmatchedSource(vault, { source: "01-Areas" })).toBeNull();
+        expect(unmatchedSource(vault, { source: "01-Areas/Sport" })).toBeNull();
+    });
+
+    it("no source given is nothing to complain about", () => {
+        expect(unmatchedSource(vault, {})).toBeNull();
+        expect(unmatchedSource(vault, { source: "   " })).toBeNull();
+    });
+
+    it("a folder that holds only nested notes counts as matched", () => {
+        expect(unmatchedSource([note({ folder: "a/b/c" })], { source: "a" })).toBeNull();
+    });
+
+    it("a prefix that is not a folder boundary is still unmatched", () => {
+        expect(unmatchedSource([note({ folder: "01-AreasOld" })], { source: "01-Areas" }))
+            .toBe("01-Areas");
+    });
+
+    it("slashes around the name do not change the answer", () => {
+        expect(unmatchedSource(vault, { source: "/01-Areas/" })).toBeNull();
+    });
+
+    it("an empty vault leaves every folder unmatched", () => {
+        expect(unmatchedSource([], { source: "Anything" })).toBe("Anything");
     });
 });

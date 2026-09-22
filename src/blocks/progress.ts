@@ -1,6 +1,6 @@
 import type { NoteRecord } from "../core/source";
 import type { BlockContext } from "./context";
-import { selectNotes, readSource } from "../core/source";
+import { selectNotes, readSource, unmatchedSource } from "../core/source";
 import { aggregate } from "../core/aggregate";
 import { formatValue } from "../core/stat";
 import { readProgress, percentOf, barWidth, type ProgressSpec } from "../core/progress";
@@ -55,6 +55,8 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
 
         const { spec: source, diagnostics: sourceDiags } = readSource(item);
         diags.push(...sourceDiags);
+        const missing = unmatchedSource(notes, source);
+        if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
         bars.push(toBar(selectNotes(notes, source), spec, label, item));
     }
 
