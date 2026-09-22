@@ -21,6 +21,9 @@ playwright-report/
 test-results/
 e2e-vault.pristine/.obsidian/plugins/dashsidian/
 
+# Preview stand
+.preview/
+
 # Build output
 main.js
 styles.css

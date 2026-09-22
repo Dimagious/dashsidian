@@ -26,6 +26,9 @@ export default defineConfig({
                 // Registration only: onload wiring that a mount test cannot
                 // observe without launching Obsidian. The E2E suite covers it.
                 "src/app/plugin.ts",
+                // The page wiring of the preview stand: selects, a theme switch
+                // and a mount point. Its cases and fixture are covered.
+                "src/preview/stand.ts",
                 // The settings tab is driven through Obsidian's Setting builder;
                 // covering it needs a fake of that builder, not of the DOM.
                 // Its behaviour is checked end to end instead.

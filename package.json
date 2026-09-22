@@ -12,6 +12,8 @@
     "build:skill": "node scripts/build-skill.cjs",
     "build:vault": "node scripts/build-vault.cjs",
     "dev:vault": "node scripts/build-vault.cjs --watch",
+    "preview": "node scripts/preview.cjs",
+    "preview:watch": "node scripts/preview.cjs --watch",
     "test": "vitest run --coverage",
     "coverage": "vitest run --coverage",
     "lint": "eslint .",
