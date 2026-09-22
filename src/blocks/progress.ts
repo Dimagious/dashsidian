@@ -32,7 +32,10 @@ export function renderProgress(app: App, source: string, el: HTMLElement): void 
     const items = asItems(value);
 
     if (!items.length) {
-        diags.push({ level: "error", message: t("progress.empty") });
+        // A parse failure already said what was wrong; adding "the list is
+        // empty" on top of "the block is empty" is noise, and the two read as
+        // two separate problems.
+        if (value !== null) diags.push({ level: "error", message: t("progress.empty") });
         renderDiagnostics(el, "progress", diags);
         return;
     }
@@ -68,6 +71,10 @@ export function renderProgress(app: App, source: string, el: HTMLElement): void 
         const value = head.createSpan({ cls: "dashy-progress-value" });
         value.createSpan({ text: `${bar.value} / ${bar.goal}${bar.unit ? ` ${bar.unit}` : ""}` });
         if (bar.percent !== null) {
+            // A real space, not just the CSS margin: otherwise the text reads
+            // "100 km55%" when copied or spoken, and runs together outright if
+            // the stylesheet ever fails to load.
+            value.appendText(" ");
             value.createSpan({ cls: "dashy-progress-percent", text: `${bar.percent}%` });
         }
 

@@ -32,7 +32,10 @@ export function renderCountdown(app: App, source: string, el: HTMLElement): void
     const items = asItems(value);
 
     if (!items.length) {
-        diags.push({ level: "error", message: t("countdown.empty") });
+        // A parse failure already said what was wrong; adding "the list is
+        // empty" on top of "the block is empty" is noise, and the two read as
+        // two separate problems.
+        if (value !== null) diags.push({ level: "error", message: t("countdown.empty") });
         renderDiagnostics(el, "countdown", diags);
         return;
     }

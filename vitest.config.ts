@@ -4,6 +4,9 @@ import { fileURLToPath } from "node:url";
 export default defineConfig({
     test: {
         environment: "jsdom",
+        // Obsidian's DOM helpers live on HTMLElement.prototype; blocks are
+        // written against them, so mount tests need them installed first.
+        setupFiles: ["src/test/setup-dom.ts"],
         include: ["src/**/*.test.ts"],
         coverage: {
             enabled: true,
@@ -20,18 +23,13 @@ export default defineConfig({
                 "src/**/*.test.ts",
                 // Generated file, no code of its own.
                 "src/skill/**",
-                // Thin wrappers over Obsidian and pure drawing: their logic was
-                // moved into core/ and is covered there. Once mount tests exist,
-                // drop these exclusions.
-                "src/adapters/**",
-                "src/shared/render.ts",
-                // Layers that only register and draw. Their logic lives in core/
-                // and shared/ and is covered there. Remove these as mount tests
-                // appear — do not touch the threshold, it is a noise gate, not a
-                // quality metric.
+                // Registration only: onload wiring that a mount test cannot
+                // observe without launching Obsidian. The E2E suite covers it.
                 "src/app/plugin.ts",
+                // The settings tab is driven through Obsidian's Setting builder;
+                // covering it needs a fake of that builder, not of the DOM.
+                // Its behaviour is checked end to end instead.
                 "src/ui/**",
-                "src/blocks/**",
                 "**/*.d.ts",
             ],
             thresholds: {

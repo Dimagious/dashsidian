@@ -26,7 +26,10 @@ export function renderStats(app: App, source: string, el: HTMLElement): void {
     const items = asItems(value);
 
     if (!items.length) {
-        diags.push({ level: "error", message: t("stats.empty") });
+        // A parse failure already said what was wrong; adding "the list is
+        // empty" on top of "the block is empty" is noise, and the two read as
+        // two separate problems.
+        if (value !== null) diags.push({ level: "error", message: t("stats.empty") });
         renderDiagnostics(el, "stats", diags);
         return;
     }
@@ -69,7 +72,12 @@ export function renderStats(app: App, source: string, el: HTMLElement): void {
             cls: isEmpty ? "dashy-stat-value is-empty" : "dashy-stat-value",
             text: card.text,
         });
-        if (card.unit && !isEmpty) valueEl.createSpan({ cls: "dashy-stat-unit", text: card.unit });
+        if (card.unit && !isEmpty) {
+            // A real space for the same reason as in progress: "14 500st" is
+            // what a screen reader would otherwise say.
+            valueEl.appendText(" ");
+            valueEl.createSpan({ cls: "dashy-stat-unit", text: card.unit });
+        }
 
         if (card.label) box.createDiv({ cls: "dashy-stat-label", text: card.label });
         if (card.sub) box.createDiv({ cls: "dashy-stat-sub", text: card.sub });
