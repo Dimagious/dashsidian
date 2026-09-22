@@ -1,3 +1,6 @@
+import type { Diagnostic } from "../shared/parse";
+import { t } from "../i18n";
+
 /**
  * Selecting the notes a block works on. Pure layer: it runs over a metadata
  * snapshot rather than over Obsidian itself — adapters/vault.ts takes that
@@ -35,6 +38,20 @@ export interface WhereClause {
 }
 
 /**
+ * `and` / `or` between two conditions.
+ *
+ * Quoted text is blanked out first, so `status = "waiting and ready"` is a
+ * value and not a conjunction. An unquoted one is ambiguous, and reading it as
+ * a conjunction is the safer half of the guess: the user is told to quote it,
+ * rather than silently getting the wrong notes.
+ */
+const CONJUNCTION = /\s(and|or)\s/i;
+
+export function looksLikeConjunction(expr: string): boolean {
+    return CONJUNCTION.test(expr.replace(/"[^"]*"|'[^']*'/g, " "));
+}
+
+/**
  * Parses conditions like `year = 2026`, `rating >= 4`, `status != done`,
  * `tags contains books`. A deliberately tiny language: anything richer is
  * Dataview territory, and we are not going there.
@@ -45,6 +62,12 @@ export interface WhereClause {
 export function parseWhere(expr: string): WhereClause | null {
     const trimmed = expr.trim();
     if (!trimmed) return null;
+
+    // Without this the operator scan below finds the first `=` and swallows the
+    // rest as a string value: `year = 2026 and rating >= 5` became the question
+    // "is year equal to the text '2026 and rating >= 5'", which is false for
+    // every note. A confident zero, and not a word about why.
+    if (looksLikeConjunction(trimmed)) return null;
 
     const containsMatch = /^(\S+)\s+contains\s+(.+)$/i.exec(trimmed);
     if (containsMatch?.[1] && containsMatch[2]) {
@@ -130,4 +153,38 @@ export function selectNotes(notes: readonly NoteRecord[], spec: SourceSpec): Not
         if (clause && !matchesWhere(n, clause)) return false;
         return true;
     });
+}
+
+/**
+ * The selection a block config asks for, and what could not be read in it.
+ *
+ * The three keys are read in one place because a `where` that fails to parse is
+ * dropped, and a dropped filter changes the answer without changing the look of
+ * it. Every block that takes a selection has to say so.
+ */
+export function readSource(item: Record<string, unknown>): {
+    spec: SourceSpec;
+    diagnostics: Diagnostic[];
+} {
+    const spec: SourceSpec = {};
+    const diagnostics: Diagnostic[] = [];
+
+    if (typeof item.source === "string") spec.source = item.source;
+    if (typeof item.tag === "string") spec.tag = item.tag;
+
+    if (typeof item.where === "string" && item.where.trim()) {
+        const where = item.where.trim();
+        if (parseWhere(where)) {
+            spec.where = where;
+        } else {
+            diagnostics.push({
+                level: "warning",
+                message: looksLikeConjunction(where)
+                    ? t("where.conjunction", { where })
+                    : t("where.unreadable", { where }),
+            });
+        }
+    }
+
+    return { spec, diagnostics };
 }

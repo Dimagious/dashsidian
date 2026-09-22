@@ -1,6 +1,6 @@
 import type { NoteRecord } from "../core/source";
 import type { BlockContext } from "./context";
-import { selectNotes } from "../core/source";
+import { selectNotes, readSource } from "../core/source";
 import { aggregate, series } from "../core/aggregate";
 import { sparkBars } from "../core/sparkline";
 import { readStat, formatValue, type StatSpec } from "../core/stat";
@@ -54,7 +54,9 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         const { spec, diagnostics: statDiags } = readStat(item, label);
         diags.push(...statDiags);
 
-        const selected = selectFor(notes, item);
+        const { spec: source, diagnostics: sourceDiags } = readSource(item);
+        diags.push(...sourceDiags);
+        const selected = selectNotes(notes, source);
         const card: Card = {
             label: label || spec?.field || "",
             text: cardValue(selected, spec),
@@ -100,15 +102,6 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         if (card.label) box.createDiv({ cls: "dashy-stat-label", text: card.label });
         if (card.sub) box.createDiv({ cls: "dashy-stat-sub", text: card.sub });
     }
-}
-
-/** The notes one card works over. Taken once: the value and the trend share it. */
-function selectFor(notes: readonly NoteRecord[], item: Record<string, unknown>): NoteRecord[] {
-    return selectNotes(notes, {
-        source: typeof item.source === "string" ? item.source : undefined,
-        tag: typeof item.tag === "string" ? item.tag : undefined,
-        where: typeof item.where === "string" ? item.where : undefined,
-    });
 }
 
 /** No spec — a card with a dash. */

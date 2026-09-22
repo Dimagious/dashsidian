@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "blocks": {
     "tiles": {
       "summary": "A grid of link tiles for navigating the vault.",
@@ -90,7 +90,7 @@
         },
         "where": {
           "type": "string",
-          "doc": "a condition like `year = 2026`, `rating >= 4`, `tags contains books`"
+          "doc": "a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported"
         },
         "field": {
           "type": "string",
@@ -180,7 +180,7 @@
         },
         "where": {
           "type": "string",
-          "doc": "a condition like `year = 2026`, `rating >= 4`, `tags contains books`"
+          "doc": "a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported"
         },
         "field": {
           "type": "string",
@@ -318,7 +318,7 @@
         },
         "where": {
           "type": "string",
-          "doc": "a condition like `year = 2026`, `rating >= 4`, `tags contains books`"
+          "doc": "a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported"
         },
         "field": {
           "type": "string",

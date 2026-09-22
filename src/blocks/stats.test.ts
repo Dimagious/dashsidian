@@ -182,6 +182,13 @@ describe("stats — edges", () => {
         expect(diagnostics(el, "error")[0]).toContain("items");
     });
 
+    it("a where nobody can read warns instead of quietly showing a zero", () => {
+        const el = card('items:\n  - { label: Filtered, source: Diary, where: "year = 2026 and rating >= 5", agg: count }');
+        expect(diagnostics(el, "warning")[0]).toContain("only one is supported");
+        // Unfiltered rather than an unexplained zero, and the warning says so.
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
+    });
+
     it("columns are clamped to what fits", () => {
         const el = card("columns: 99\nitems:\n  - { label: A, source: Diary, agg: count }");
         expect(nodes(el, ".dashy-stats")[0]?.style.getPropertyValue("--dashy-stat-columns")).toBe("6");

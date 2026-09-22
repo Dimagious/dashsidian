@@ -1,6 +1,6 @@
 import type { NoteRecord } from "../core/source";
 import type { BlockContext } from "./context";
-import { selectNotes } from "../core/source";
+import { selectNotes, readSource } from "../core/source";
 import { aggregate } from "../core/aggregate";
 import { formatValue } from "../core/stat";
 import { readProgress, percentOf, barWidth, type ProgressSpec } from "../core/progress";
@@ -53,7 +53,9 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
         const { spec, diagnostics: barDiags } = readProgress(item, label);
         diags.push(...barDiags);
 
-        bars.push(toBar(notes, item, spec, label));
+        const { spec: source, diagnostics: sourceDiags } = readSource(item);
+        diags.push(...sourceDiags);
+        bars.push(toBar(selectNotes(notes, source), spec, label, item));
     }
 
     // Diagnostics before the bars: an error must be seen before an empty track.
@@ -87,10 +89,10 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
 }
 
 function toBar(
-    notes: readonly NoteRecord[],
-    item: Record<string, unknown>,
+    selected: readonly NoteRecord[],
     spec: ProgressSpec | null,
     label: string,
+    item: Record<string, unknown>,
 ): Bar {
     const bar: Bar = {
         label: label || spec?.field || "",
@@ -104,11 +106,6 @@ function toBar(
     if (typeof item.sub === "string") bar.sub = item.sub;
     if (!spec) return bar;
 
-    const selected = selectNotes(notes, {
-        source: typeof item.source === "string" ? item.source : undefined,
-        tag: typeof item.tag === "string" ? item.tag : undefined,
-        where: typeof item.where === "string" ? item.where : undefined,
-    });
     const current = aggregate(selected, { agg: spec.agg, field: spec.field });
 
     bar.value = formatValue(current, spec.precision);

@@ -7,7 +7,7 @@ description: >-
   for a dashboard, a home page, a tile grid, cards with counters or averages, a
   link to today's note, a day calendar, a heatmap, a habit tracker or a visual
   entry point into the vault.
-version: 1.1.0
+version: 1.2.0
 ---
 
 # Dashy — dashboard blocks
@@ -69,7 +69,7 @@ Number cards: one value per card, computed over a selection of notes.
 | `label` | string | yes | — | `title`, `name` | caption under the number |
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
-| `where` | string | — | — | — | a condition like `year = 2026`, `rating >= 4`, `tags contains books` |
+| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported |
 | `field` | string | — | — | `property`, `prop` | numeric frontmatter property; required for everything but count and streak |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
 | `unit` | string | — | — | — | a suffix after the number: km, %, d. |
@@ -112,7 +112,7 @@ Bars towards a goal: how far a number has come against a target.
 | `goal` | number | yes | — | `target` | the target to fill towards; must be above zero |
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
-| `where` | string | — | — | — | a condition like `year = 2026`, `rating >= 4`, `tags contains books` |
+| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported |
 | `field` | string | — | — | `property`, `prop` | numeric frontmatter property; required for everything but count and streak |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
 | `unit` | string | — | — | — | a suffix after the numbers: km, %, d. |
@@ -204,7 +204,7 @@ A year by days: one cell per day, coloured by a number from frontmatter.
 |---|---|---|---|---|---|
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
-| `where` | string | — | — | — | a condition like `year = 2026`, `rating >= 4`, `tags contains books` |
+| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported |
 | `field` | string | yes | — | `property`, `prop` | numeric frontmatter property |
 | `color` | string | — | `blue` | `colour` | blue green cyan purple pink orange red gray, or #rrggbb |
 | `bands` | list | — | — | — | thresholds from the top down: [90, 80, 60] or [{min, alpha, label}] |

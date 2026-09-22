@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseWhere, selectNotes, type NoteRecord } from "./source";
+import { parseWhere, selectNotes, readSource, looksLikeConjunction, type NoteRecord } from "./source";
 
 const note = (over: Partial<NoteRecord>): NoteRecord => ({
     path: "a.md", name: "a", folder: "", tags: [], frontmatter: {}, ...over,
@@ -64,5 +64,75 @@ describe("selectNotes", () => {
 
     it("conditions combine", () => {
         expect(selectNotes(vault, { source: "01-Areas", where: "rating >= 5" })).toHaveLength(1);
+    });
+});
+
+describe("looksLikeConjunction", () => {
+    it("spots two conditions joined", () => {
+        expect(looksLikeConjunction("year = 2026 and rating >= 4")).toBe(true);
+        expect(looksLikeConjunction("year = 2026 OR year = 2025")).toBe(true);
+    });
+
+    it("a single condition is not one", () => {
+        expect(looksLikeConjunction("year = 2026")).toBe(false);
+        expect(looksLikeConjunction("tags contains books")).toBe(false);
+    });
+
+    it("the word inside quotes belongs to the value", () => {
+        expect(looksLikeConjunction('status = "waiting and ready"')).toBe(false);
+        expect(looksLikeConjunction("status = 'cats and dogs'")).toBe(false);
+    });
+
+    it("a word that merely starts with and is not a join", () => {
+        expect(looksLikeConjunction("author = Andrew")).toBe(false);
+    });
+});
+
+describe("parseWhere — more than one condition", () => {
+    it("refuses instead of reading the rest as a value", () => {
+        // This used to parse as year == "2026 and rating >= 5", which is false
+        // for every note: a confident zero with nothing said about it.
+        expect(parseWhere("year = 2026 and rating >= 5")).toBeNull();
+    });
+
+    it("still parses the single condition it was built for", () => {
+        expect(parseWhere("year = 2026")).toEqual({ field: "year", op: "=", value: 2026 });
+    });
+});
+
+describe("readSource", () => {
+    it("carries the three keys through", () => {
+        const { spec, diagnostics } = readSource({
+            source: "Diary", tag: "sport", where: "year = 2026",
+        });
+        expect(spec).toEqual({ source: "Diary", tag: "sport", where: "year = 2026" });
+        expect(diagnostics).toEqual([]);
+    });
+
+    it("keys that are not strings are ignored, not stringified", () => {
+        expect(readSource({ source: 42, tag: null, where: [] }).spec).toEqual({});
+    });
+
+    it("a blank where is nothing to complain about", () => {
+        const { spec, diagnostics } = readSource({ where: "   " });
+        expect(spec.where).toBeUndefined();
+        expect(diagnostics).toEqual([]);
+    });
+
+    it("an unreadable where warns and is dropped, so the block draws unfiltered", () => {
+        const { spec, diagnostics } = readSource({ where: "just words" });
+        expect(spec.where).toBeUndefined();
+        expect(diagnostics[0]?.level).toBe("warning");
+        expect(diagnostics[0]?.message).toContain("unfiltered");
+    });
+
+    it("two conditions get their own message, naming the limit", () => {
+        const { diagnostics } = readSource({ where: "year = 2026 and rating >= 4" });
+        expect(diagnostics[0]?.message).toContain("only one is supported");
+    });
+
+    it("the message quotes back what was written", () => {
+        const { diagnostics } = readSource({ where: "nonsense here" });
+        expect(diagnostics[0]?.message).toContain("nonsense here");
     });
 });

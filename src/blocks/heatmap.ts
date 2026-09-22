@@ -1,6 +1,6 @@
 import type { BlockContext } from "./context";
 import { weekdayNamesShort, monthNamesShort, firstDayOfWeek } from "../adapters/datetime";
-import { selectNotes } from "../core/source";
+import { selectNotes, readSource } from "../core/source";
 import { numberAt } from "../core/aggregate";
 import { layoutYear, dateKey, eachDay, yearsOf, rotateWeekdays, weekdayRow } from "../core/calendar";
 import { toRgb, rgba, type Rgb } from "../core/palette";
@@ -35,11 +35,9 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     const bands = readBands(value.bands);
     const linkable = value.link !== false;
 
-    const notes = selectNotes(ctx.notes(), {
-        source: typeof value.source === "string" ? value.source : undefined,
-        tag: typeof value.tag === "string" ? value.tag : undefined,
-        where: typeof value.where === "string" ? value.where : undefined,
-    });
+    const { spec: selection, diagnostics: sourceDiags } = readSource(value);
+    diags.push(...sourceDiags);
+    const notes = selectNotes(ctx.notes(), selection);
 
     const byDate = new Map<string, { value: number; path: string }>();
     for (const n of notes) {

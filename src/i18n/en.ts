@@ -20,6 +20,11 @@ export const en = {
     "bands.hasData": "has data",
     "bands.from": "from {min}",
 
+    "where.unreadable":
+        "`where: {where}` could not be read and was ignored — the numbers below are unfiltered. Expected something like `year = 2026`, `rating >= 4` or `tags contains books`.",
+    "where.conjunction":
+        "`where: {where}` holds more than one condition, and only one is supported — the filter was ignored. Narrow with `source` or `tag`, or quote the value if the word is part of it.",
+
     "tiles.empty": "No tiles to draw. Expected `items:` or a list.",
 
     "stats.empty": "No cards to draw. Expected `items:` or a list.",
