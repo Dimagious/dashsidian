@@ -40,21 +40,22 @@ const srcRoot = path.join(repoRoot, "src");
 
 /**
  * Walk a directory, yield every file path matching one of `extensions`.
- * Skips test-only paths and `node_modules` / `__mocks__`. Test files
- * are out of scope: they don't ship in the bundle, so anything they do
- * with bare `document` / `window` / etc. is invisible to the scanner.
+ * Skips anything that never reaches the bundle: tests, mocks, and the
+ * browser preview stand. Nothing they do with bare `document` / `window`
+ * can affect a popout window, because none of it is shipped — the stand
+ * is a standalone page and esbuild only bundles what `src/main.ts` pulls in.
  */
-const TEST_PATH_SEGMENTS = ["/test/", "/__mocks__/", "/node_modules/"];
+const UNSHIPPED_PATH_SEGMENTS = ["/test/", "/__mocks__/", "/node_modules/", "/preview/"];
 function isTestPath(p) {
     const norm = p.replace(/\\/g, "/");
-    return TEST_PATH_SEGMENTS.some((seg) => norm.includes(seg))
+    return UNSHIPPED_PATH_SEGMENTS.some((seg) => norm.includes(seg))
         || /\.test\.ts$/.test(norm)
         || /\.spec\.ts$/.test(norm);
 }
 
 function* walk(dir, extensions) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (entry.name === "node_modules" || entry.name === "__mocks__" || entry.name === "test") continue;
+        if (["node_modules", "__mocks__", "test", "preview"].includes(entry.name)) continue;
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) {
             yield* walk(full, extensions);
@@ -144,11 +145,23 @@ const timerFnAlternation = TIMER_FUNCTIONS.join("|");
  * / `window.open(` (which the scorecard permits for genuine
  * browser-tab opens) / `window.<timerFn>(` for the TIMER_FUNCTIONS set.
  */
+/**
+ * Blanks out comments so prose cannot trip a rule, keeping every newline so the
+ * line numbers still point at the right place.
+ *
+ * Per-line stripping was the previous approach and it could not see a JSDoc
+ * block: the inner lines carry neither `//` nor a complete `/* … *\/` pair, so
+ * a sentence ending in "leaves the document." counted as a violation.
+ */
+function stripComments(text) {
+    const blank = (m) => m.replace(/[^\n]/g, " ");
+    return text.replace(/\/\*[\s\S]*?\*\//g, blank).replace(/\/\/[^\n]*/g, blank);
+}
+
 function checkActiveDomBindings() {
     const hits = [];
 
     // Allow comments to mention these symbols freely.
-    const stripComment = (line) => line.replace(/\/\/.*$/, "").replace(/\/\*[\s\S]*?\*\//g, "");
     const isBareDocument = (s) => /(?<![A-Za-z0-9_.])document\./.test(s);
     const isBareWindow = (s) => /(?<![A-Za-z0-9_.])window\./.test(s);
     const isBareTimerFn = new RegExp(`(?<![A-Za-z0-9_.])(?:${timerFnAlternation})\\s*\\(`);
@@ -157,15 +170,15 @@ function checkActiveDomBindings() {
     for (const file of walk(srcRoot, [".ts"])) {
         const text = fs.readFileSync(file, "utf8");
         const lines = text.split("\n");
+        const code = stripComments(text).split("\n");
         for (let i = 0; i < lines.length; i++) {
             const raw = lines[i];
-            const code = stripComment(raw);
 
             // `window.open(` is a legitimate browser-tab open call;
             // the popup-blocked fallback in PackageSubmissionSection
             // relies on it. The scorecard treats it as expected.
             // `window.<timerFn>(` is the required form post-0.4.x.
-            const codeNoWindowOpen = code
+            const codeNoWindowOpen = (code[i] ?? "")
                 .replace(/window\.open\s*\(/g, "")
                 .replace(new RegExp(`window\\s*\\.\\s*(?:${timerFnAlternation})\\s*\\(`, "g"), "");
 
