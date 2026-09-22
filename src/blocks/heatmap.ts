@@ -4,6 +4,7 @@ import { selectNotes } from "../core/source";
 import { numberAt } from "../core/aggregate";
 import { layoutYear, dateKey, eachDay, yearsOf } from "../core/calendar";
 import { toRgb, rgba, type Rgb } from "../core/palette";
+import { readBands, bandFor, type Band } from "../core/bands";
 import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { renderDiagnostics, internalLink } from "../shared/render";
 import schema from "./schema.json";
@@ -13,36 +14,6 @@ const KNOWN = Object.keys(schema.blocks.heatmap.root);
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const MONTHS = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
-
-/** Полосы по умолчанию, если пользователь задал только `bands: [90, 80, 60]`. */
-const ALPHAS = [1, 0.72, 0.46, 0.22];
-
-interface Band {
-    min: number;
-    alpha: number;
-    label: string;
-}
-
-function readBands(raw: unknown): Band[] {
-    if (!Array.isArray(raw) || !raw.length) {
-        return [{ min: Number.NEGATIVE_INFINITY, alpha: 1, label: "есть данные" }];
-    }
-    // Короткая форма: [90, 80, 60] — пороги, прозрачность подставляем сами.
-    if (raw.every((v) => typeof v === "number")) {
-        const nums = [...(raw as number[])].sort((a, b) => b - a);
-        return nums.map((min, i) => ({
-            min,
-            alpha: ALPHAS[Math.min(i, ALPHAS.length - 1)] ?? 0.22,
-            label: i === nums.length - 1 ? `${min}+` : `${min}–${(nums[i - 1] ?? min) - 1}`,
-        }));
-    }
-    // Полная форма: [{ min, alpha, label }]
-    return raw.filter(isRecord).map((b, i) => ({
-        min: typeof b.min === "number" ? b.min : Number.NEGATIVE_INFINITY,
-        alpha: typeof b.alpha === "number" ? b.alpha : (ALPHAS[Math.min(i, ALPHAS.length - 1)] ?? 1),
-        label: typeof b.label === "string" ? b.label : `от ${String(b.min ?? "")}`,
-    }));
-}
 
 export function renderHeatmap(app: App, source: string, el: HTMLElement): void {
     const { value, diagnostics } = parseConfig(source);
@@ -62,7 +33,7 @@ export function renderHeatmap(app: App, source: string, el: HTMLElement): void {
     }
 
     const color = toRgb(value.color);
-    const bands = readBands(value.bands).sort((a, b) => b.min - a.min);
+    const bands = readBands(value.bands);
     const linkable = value.link !== false;
 
     const notes = selectNotes(snapshot(app), {
@@ -152,7 +123,7 @@ function drawYear(
             ? internalLink(grid, hit.path, "dashy-hm-cell")
             : grid.createDiv({ cls: "dashy-hm-cell" });
         if (hit) {
-            const band = opts.bands.find((b) => hit.value >= b.min);
+            const band = bandFor(opts.bands, hit.value);
             cell.style.backgroundColor = rgba(opts.color, band?.alpha ?? 1);
             cell.setAttr("aria-label", `${key} — ${opts.field} ${hit.value}`);
             cell.setAttr("title", `${key} — ${opts.field} ${hit.value}`);
