@@ -24,6 +24,9 @@ e2e-vault.pristine/.obsidian/plugins/dashsidian/
 # Preview stand
 .preview/
 
+# Capture run (the demo vault is generated)
+.capture/
+
 # Build output
 main.js
 styles.css

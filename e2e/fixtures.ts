@@ -16,7 +16,10 @@ import { fileURLToPath } from "node:url";
 // The package is ESM, so there is no __dirname to lean on.
 const ROOT = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
 const APP_ASAR = "/Applications/Obsidian.app/Contents/Resources/app.asar";
-const PRISTINE = path.join(ROOT, "e2e-vault.pristine");
+/** The capture run points this at a generated demo vault instead. */
+const PRISTINE = process.env.DASHY_VAULT
+    ? path.resolve(ROOT, process.env.DASHY_VAULT)
+    : path.join(ROOT, "e2e-vault.pristine");
 
 interface Fixtures {
     vaultPath: string;
@@ -56,6 +59,8 @@ export const test = base.extend<Fixtures>({
         const app = await _electron.launch({
             args: [APP_ASAR, `--user-data-dir=${userDataDir}`],
             env: env as Record<string, string>,
+            // The capture run needs a window of a known size and a video of it.
+            ...(process.env.DASHY_VIDEO ? { recordVideo: { dir: process.env.DASHY_VIDEO } } : {}),
         });
 
         await use(app);

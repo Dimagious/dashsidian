@@ -26,7 +26,8 @@
     "release:audit": "node scripts/release-audit.cjs",
     "e2e:setup": "./scripts/e2e-setup.sh",
     "e2e": "./scripts/e2e-setup.sh && env -u ELECTRON_RUN_AS_NODE playwright test",
-    "e2e:headed": "./scripts/e2e-setup.sh && env -u ELECTRON_RUN_AS_NODE playwright test --headed"
+    "e2e:headed": "./scripts/e2e-setup.sh && env -u ELECTRON_RUN_AS_NODE playwright test --headed",
+    "capture": "node scripts/capture.cjs"
   },
   "dependencies": {
     "yaml": "^2.4.0"
