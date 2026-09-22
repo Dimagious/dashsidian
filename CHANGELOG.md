@@ -22,6 +22,10 @@ agent can read.
   over a selection, `progress` for bars towards a goal, `today` for the day row
   linking to periodic notes, `countdown` for the days to a date, and `heatmap`
   for a year coloured by a frontmatter number.
+- **An `Insert block` command** in the palette: pick a block and a working
+  example lands in the note, fitted to your vault rather than to the one the
+  example was written in — the folder with the most notes, a number property
+  that exists, and a warning when the folder in it holds nothing.
 - **Sparklines in `stats`** through `trend: 30d`: the last N days ending today,
   scaled inside that window so the shape of the run is what shows.
 - **Diagnostics in the note.** A block that cannot draw says why, with the line
@@ -40,6 +44,8 @@ agent can read.
 - **Periodic note folders** read from the Periodic Notes plugin, from the core
   Daily notes plugin, or from this plugin's own settings, in that order of
   precedence.
+- **An About section in settings**: report a bug, ask for a feature, open the
+  docs. The issue arrives with the plugin and Obsidian versions already in it.
 
 ### Notes
 
