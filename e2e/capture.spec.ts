@@ -133,17 +133,54 @@ test("settings", async ({ app, win }) => {
         .screenshot({ path: path.join(SHOTS, "settings-dark.png") });
 });
 
-test("reel: the dashboard follows the vault", async ({ win }) => {
+/**
+ * Every block redrawing at once, which is what the README claims a page does.
+ * This replaced a 760x295 strip of `stats` alone: enough beside a heading that
+ * names the block, useless anywhere the picture stands on its own. Readable
+ * line length goes off so the note fills the pane and the reel comes out wide
+ * rather than tall, which is what a feed scales well.
+ */
+test("reel: the whole dashboard", async ({ win }) => {
     await setUp(win, "obsidian");
     const view = win.locator(READING_VIEW);
-    const region = view.locator(".dashy-stats").first();
-    const counter = view.locator(".dashy-stat-value").first();
-    const reel = new Reel("live-update");
+    const reel = new Reel("dashboard-wide");
 
-    await region.scrollIntoViewIfNeeded();
+    await win.evaluate(() => {
+        const a = (globalThis as unknown as {
+            app?: {
+                vault?: { setConfig?: (k: string, v: unknown) => void };
+                workspace?: { trigger?: (e: string) => void };
+            };
+        }).app;
+        a?.vault?.setConfig?.("readableLineLength", false);
+        a?.workspace?.trigger?.("css-change");
+    });
+    await win.locator(".markdown-preview-view").first().evaluate((el) => { el.scrollTop = 0; });
+    await win.waitForTimeout(600);
+
+    // As much of the note as fits above the fold, ending on a whole block. A
+    // clip that stops mid-card reads as a broken screenshot.
+    const sizer = await view.locator(".markdown-preview-sizer").first().boundingBox();
+    if (!sizer) throw new Error("capture: no preview sizer to clip to");
+    let bottom = sizer.y;
+    for (const selector of [".dashy-today", ".dashy-tiles", ".dashy-stats", ".dashy-progress", ".dashy-countdown"]) {
+        const box = await view.locator(selector).first().boundingBox();
+        if (box && box.y + box.height + 16 <= HEIGHT) bottom = box.y + box.height;
+    }
+    // Room around the content. Clipped to the sizer exactly, the cards touch
+    // all four edges and the progress bars read as cut off.
+    const pad = 20;
+    const x = Math.max(0, sizer.x - pad);
+    const y = Math.max(0, sizer.y - pad);
+    const clip = {
+        x, y,
+        width: Math.min(WIDTH - x, sizer.width + pad * 2),
+        height: Math.min(HEIGHT - y, bottom - y + pad),
+    };
+    const region = { screenshot: (o: { path: string }) => win.screenshot({ ...o, clip }) };
+
     await reel.hold(region, 4);
-
-    let count = Number((await counter.textContent())?.replace(/\D/g, "") ?? 0);
+    let count = Number((await view.locator(".dashy-stat-value").first().textContent())?.replace(/\D/g, "") ?? 0);
     for (let i = 1; i <= 5; i++) {
         await win.evaluate(async (n) => {
             const a = (globalThis as unknown as {
@@ -152,11 +189,11 @@ test("reel: the dashboard follows the vault", async ({ win }) => {
             await a?.vault?.create?.(`Diary/2019-01-0${n}.md`, `---\nsleep_score: 9${n}\nsteps: 1200${n}\n---\n`);
         }, i);
         count += 1;
-        await expect(counter).toHaveText(String(count));
+        await expect(view.locator(".dashy-stat-value").first()).toHaveText(String(count));
         await reel.shoot(region);
         await reel.shoot(region);
     }
-    await reel.hold(region, 6);
+    await reel.hold(region, 8);
 });
 
 test("reel: the dashboard follows the theme", async ({ win }) => {

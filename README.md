@@ -191,7 +191,7 @@ Monday here, Sunday in the US, Canada and Japan.
 Add a note, edit a number, delete something, and every block on the page redraws. No
 reopening, no command to run.
 
-![Counters and sparklines updating as notes are added to the vault](docs/screens/live-update.gif)
+![Every block on the page redrawing as notes are added to the vault](docs/screens/dashboard-wide.gif)
 
 Obsidian lists your files well before it has read their frontmatter. Without this, a
 dashboard opened right after startup would show the numbers of a half-read vault and never

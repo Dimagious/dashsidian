@@ -36,16 +36,22 @@ const fs = require("fs");
 const frames = path.join(root, ".capture", "frames");
 const shots = path.join(root, "docs", "screens");
 
+// A README picture sits beside its heading and is read at the width of the
+// column; a reel posted on its own is read at whatever the feed gives it, so it
+// keeps more pixels.
+const WIDTHS = { "dashboard-wide": 1000 };
+
 for (const reel of fs.existsSync(frames) ? fs.readdirSync(frames) : []) {
     const dir = path.join(frames, reel);
     if (!fs.statSync(dir).isDirectory()) continue;
     const out = path.join(shots, `${reel}.gif`);
+    const width = WIDTHS[reel] ?? 760;
     try {
         execFileSync("ffmpeg", [
             "-y", "-loglevel", "error",
             "-framerate", "4",
             "-i", path.join(dir, "%03d.png"),
-            "-vf", "scale=760:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=3",
+            "-vf", `scale=${width}:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=3`,
             "-loop", "0",
             out,
         ], { cwd: root, stdio: "inherit" });
