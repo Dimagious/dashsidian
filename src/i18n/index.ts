@@ -9,12 +9,15 @@
 
 import { en, type Catalog, type MessageKey } from "./en";
 import { ru } from "./ru";
+import { de } from "./de";
+import { fr } from "./fr";
+import { es } from "./es";
 import { interpolate, resolveLocale, pluralCategory } from "./translate";
 
 export type { MessageKey } from "./en";
 
 /** Add a language here and it becomes selectable. Nothing else to touch. */
-export const CATALOGS: Record<string, Catalog> = { en, ru };
+export const CATALOGS: Record<string, Catalog> = { en, ru, de, fr, es };
 
 export const FALLBACK_LOCALE = "en";
 

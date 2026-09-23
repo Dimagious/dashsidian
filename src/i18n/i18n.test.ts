@@ -99,8 +99,12 @@ describe("catalogs", () => {
         expect(AVAILABLE_LOCALES).toContain(FALLBACK_LOCALE);
     });
 
-    it("Russian is complete — every English key is translated", () => {
-        const missing = (Object.keys(en) as MessageKey[]).filter((k) => ru[k] === undefined);
+    // The per-key fallback exists so a user never sees a raw key, not as
+    // permission to ship half a language: half the catalog is diagnostics, and
+    // an error message that switches to English mid-dashboard reads as a bug.
+    it.each(["ru", "de", "fr", "es"])("%s is complete — every English key is translated", (code) => {
+        const catalog = CATALOGS[code];
+        const missing = (Object.keys(en) as MessageKey[]).filter((k) => catalog[k] === undefined);
         expect(missing).toEqual([]);
     });
 
@@ -133,6 +137,16 @@ describe("tPlural", () => {
         expect(tPlural("countdown.daysLeft", 3)).toBe("дня осталось");
         expect(tPlural("countdown.daysLeft", 11)).toBe("дней осталось");
         expect(tPlural("countdown.daysLeft", 21)).toBe("день остался");
+    });
+
+    it.each([
+        ["de", "Tag übrig", "Tage übrig"],
+        ["fr", "jour restant", "jours restants"],
+        ["es", "día restante", "días restantes"],
+    ])("%s splits one from the rest", (code, one, many) => {
+        setLocale(code);
+        expect(tPlural("countdown.daysLeft", 1)).toBe(one);
+        expect(tPlural("countdown.daysLeft", 5)).toBe(many);
     });
 
     it("the past tense family works the same way", () => {
