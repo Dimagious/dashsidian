@@ -10,6 +10,28 @@ removed public export.
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-09-23
+
+### Added
+
+- **German, French and Spanish.** A missing phrase still falls back to English,
+  so nothing can read as a raw key. The three were written by the author, who
+  speaks none of them well enough to be sure; corrections are one file and one
+  pull request away.
+- **A language setting.** Leave it empty and nothing changes: the plugin follows
+  Obsidian, as it always has. Pick a language and the blocks, the month names
+  and the weekday labels move together, for a vault whose notes are written in
+  one language while the app runs in another.
+
+### Fixed
+
+- **A heatmap too wide for the note opens where the data is**, and its caption
+  stays on screen while the year scrolls past. A year whose months sat off the
+  right edge looked like an empty copy of the year above it.
+- **The periodic folder placeholders describe your vault**, not the author's.
+  They show the folder Periodic Notes is configured with, which is what the
+  field falls back to when you leave it empty.
+
 ## [1.0.2] — 2026-09-23
 
 ### Fixed
@@ -82,7 +104,8 @@ agent can read.
 - No Dataview, no JavaScript in your notes, and not one hard-coded colour: the
   blocks take their palette from whatever theme you run.
 
-[Unreleased]: https://github.com/Dimagious/dashsidian/compare/1.0.2...HEAD
+[Unreleased]: https://github.com/Dimagious/dashsidian/compare/1.1.0...HEAD
+[1.1.0]: https://github.com/Dimagious/dashsidian/releases/tag/1.1.0
 [1.0.2]: https://github.com/Dimagious/dashsidian/releases/tag/1.0.2
 [1.0.1]: https://github.com/Dimagious/dashsidian/releases/tag/1.0.1
 [1.0.0]: https://github.com/Dimagious/dashsidian/releases/tag/1.0.0
