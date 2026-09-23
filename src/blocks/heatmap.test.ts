@@ -132,6 +132,27 @@ describe("heatmap — the caption", () => {
         expect(texts(el, ".dashy-hm-title")).toEqual(["My sleep"]);
         expect(diagnostics(el, "warning")).toHaveLength(0);
     });
+
+    // A year that spans two calendars draws two grids. Under one custom title
+    // they are indistinguishable, and the second one — whose data sits off to
+    // the right — reads as an empty copy of the first. Reported as a duplicate
+    // by the person who wrote the block.
+    it("two years under a custom title each say which year they are", () => {
+        const twoYears = mockContext({
+            notes: [
+                ...diary("Diary", "2025-11-01", 20, (i) => ({ sleep_score: 70 + i })),
+                ...diary("Diary", "2026-01-01", 20, (i) => ({ sleep_score: 60 + i })),
+            ],
+        });
+        const el = map("source: Diary\nfield: sleep_score\ntitle: My sleep", twoYears);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(2);
+        expect(texts(el, ".dashy-hm-title")).toEqual(["My sleep — 2026", "My sleep — 2025"]);
+    });
+
+    it("one year leaves the custom title alone", () => {
+        const el = map("source: Diary\nfield: sleep_score\ntitle: My sleep");
+        expect(texts(el, ".dashy-hm-title")).toEqual(["My sleep"]);
+    });
 });
 
 describe("heatmap — edges", () => {

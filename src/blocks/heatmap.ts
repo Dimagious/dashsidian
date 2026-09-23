@@ -60,8 +60,15 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
 
     const today = new Date();
     const firstDay = firstDayOfWeek();
-    for (const year of yearsOf([...byDate.keys()])) {
-        drawYear(el, year, today, byDate, { color, bands, field, linkable, title: value.title, firstDay });
+    // One grid per calendar year. With more than one, each has to say which
+    // year it is — otherwise two grids under the same custom title read as the
+    // same thing drawn twice, which is exactly how it was first reported.
+    const years = yearsOf([...byDate.keys()]);
+    for (const year of years) {
+        drawYear(el, year, today, byDate, {
+            color, bands, field, linkable, title: value.title, firstDay,
+            severalYears: years.length > 1,
+        });
     }
 }
 
@@ -73,6 +80,8 @@ interface DrawOptions {
     title: unknown;
     /** 0 is Sunday, 1 is Monday — whatever the locale says */
     firstDay: number;
+    /** Whether this grid is one of several, and so has to name its year. */
+    severalYears: boolean;
 }
 
 function drawYear(
@@ -95,7 +104,7 @@ function drawYear(
         present.length ? present.reduce((s, d) => s + d.value, 0) / present.length : 0,
     );
     const caption = typeof opts.title === "string"
-        ? opts.title
+        ? (opts.severalYears ? t("heatmap.titleYear", { title: opts.title, year }) : opts.title)
         : t("heatmap.caption", {
             year,
             field: opts.field,

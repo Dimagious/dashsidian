@@ -66,6 +66,7 @@ export const ru: Catalog = {
     "heatmap.fieldRequired": "Не задано `field` — какое число из frontmatter красить.",
     "heatmap.noData":
         "Нет заметок с именем-датой и числом в поле «{field}». Проверь `source`.",
+    "heatmap.titleYear": "{title} — {year}",
     "heatmap.caption": "{year} — {field}: среднее {average}, {present} из {total} дн.",
     "heatmap.cell": "{date} — {field} {value}",
     "heatmap.cellEmpty": "{date} — нет данных",

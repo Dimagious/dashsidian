@@ -75,6 +75,7 @@ export const en = {
     "heatmap.noData":
         "No notes with a date name and a number in \"{field}\". Check `source`.",
     "heatmap.caption": "{year} — {field}: average {average}, {present} of {total} days",
+    "heatmap.titleYear": "{title} — {year}",
     "heatmap.cell": "{date} — {field} {value}",
     "heatmap.cellEmpty": "{date} — no data",
 
