@@ -220,4 +220,8 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
   .dashy-countdown { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   /* Every pixel of gap is a pixel the bars do not get. */
   .dashy-stat-trend { gap: 0; }
+  /* A card is about 156px wide here, and `3 307 952` at the full size needs
+     two lines of it — which breaks the number mid-digits. Smaller type keeps
+     it whole; the wrap below stays as the last resort for longer ones. */
+  .dashy-stat-value { font-size: 1.6em; }
 }
