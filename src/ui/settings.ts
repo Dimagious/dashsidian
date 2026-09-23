@@ -9,6 +9,8 @@ import {
     type SettingGroupItem,
 } from "obsidian";
 import type DashyPlugin from "../app/plugin";
+import { discoverPeriodics } from "../adapters/periodic";
+import type { Period } from "../core/periodic";
 import {
     SKILL_MARKDOWN,
     SKILL_VERSION,
@@ -45,11 +47,11 @@ export class DashySettingTab extends PluginSettingTab {
                 heading: t("settings.periodicHeading"),
                 items: [
                     this.folder("dailyFolder", t("settings.dailyFolder"),
-                        t("settings.dailyFolderDesc"), "01-Areas/Personal/Diary"),
+                        t("settings.dailyFolderDesc"), this.periodicHint("daily", "Journal")),
                     this.folder("weeklyFolder", t("settings.weeklyFolder"),
-                        t("settings.followPeriodic"), "01-Areas/Personal/Weekly"),
+                        t("settings.followPeriodic"), this.periodicHint("weekly", "Journal/Weekly")),
                     this.folder("monthlyFolder", t("settings.monthlyFolder"),
-                        t("settings.followPeriodic"), "01-Areas/Personal/Monthly"),
+                        t("settings.followPeriodic"), this.periodicHint("monthly", "Journal/Monthly")),
                 ],
             },
             {
@@ -111,6 +113,20 @@ export class DashySettingTab extends PluginSettingTab {
         if (typeof value !== "string") return;
         this.plugin.settings[key as FolderKey] = value.trim();
         await this.plugin.saveSettings();
+    }
+
+    /**
+     * What the field would resolve to if left empty.
+     *
+     * The placeholders used to be the folders of the vault this plugin was
+     * written in, which told a stranger nothing and read as someone else's
+     * note left in the settings. Periodic Notes, or the core Daily notes
+     * plugin, already says where the notes live, and that is the answer the
+     * empty field gives. Where neither is installed there is nothing to read,
+     * so a plain example stands in.
+     */
+    private periodicHint(period: Period, fallback: string): string {
+        return discoverPeriodics(this.app)[period]?.folder || fallback;
     }
 
     private folder(key: FolderKey, name: string, desc: string, placeholder: string): SettingGroupItem {
