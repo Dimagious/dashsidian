@@ -1,6 +1,6 @@
 {
   "name": "dashsidian",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Dashboard blocks for your notes: tiles, number cards, progress bars, a day row, countdowns and a year heatmap. Configured in YAML, no JavaScript.",
   "main": "main.js",
   "type": "module",

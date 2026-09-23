@@ -10,6 +10,22 @@ removed public export.
 
 ## [Unreleased]
 
+## [1.0.1] — 2026-09-23
+
+### Fixed
+
+- **The blocks now render on mobile.** Every one of them failed there, showing
+  `undefined is not an object` instead of a dashboard: the bundle was built for
+  Node and pulled in a copy of the YAML parser that reads `process.env`, which
+  desktop Obsidian has and a phone does not. Nothing changes on the desktop.
+- **Blocks stay inside the note on a narrow screen.** The number cards and the
+  tiles pushed the page sideways, and a year of heatmap cells grew past the
+  edge instead of scrolling. A long sparkline now thins its bars rather than
+  widening its card.
+- **The Copy markdown button says when it cannot copy.** The clipboard is not
+  available in every context, and the failure was silent. Install writes the
+  same file and needs no clipboard at all.
+
 ## [1.0.0] — 2026-09-22
 
 The first public release. Six blocks, two languages, and a reference an AI
@@ -54,5 +70,6 @@ agent can read.
 - No Dataview, no JavaScript in your notes, and not one hard-coded colour: the
   blocks take their palette from whatever theme you run.
 
-[Unreleased]: https://github.com/Dimagious/dashsidian/compare/1.0.0...HEAD
+[Unreleased]: https://github.com/Dimagious/dashsidian/compare/1.0.1...HEAD
+[1.0.1]: https://github.com/Dimagious/dashsidian/releases/tag/1.0.1
 [1.0.0]: https://github.com/Dimagious/dashsidian/releases/tag/1.0.0

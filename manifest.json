@@ -1,7 +1,7 @@
 {
   "name": "Dashy",
   "id": "dashsidian",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "minAppVersion": "1.13.0",
   "description": "Dashboard blocks for your notes: tiles, number cards, progress bars, a day row, countdowns and a year heatmap. Configured in YAML, no JavaScript.",
   "author": "Dimagious",
