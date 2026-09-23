@@ -9,6 +9,12 @@ export default [
   // TypeScript recommended (without type checking for faster linting)
   ...tseslint.configs.recommended,
 
+  // Type-aware rules, scoped to the TypeScript sources because the config
+  // files are not in the tsconfig project. The catalogue's reviewer runs these
+  // and reported three findings we never saw; a gate that stops short of the
+  // reviewer's is a gate that tells you afterwards.
+  ...tseslint.configs.recommendedTypeChecked.map((c) => ({ ...c, files: ['**/*.ts'] })),
+
   // The plugin's own `recommended` preset, not a hand-picked subset of it.
   // Picking rules by hand is picking which parts of the review to fail: the
   // list here was 27 of the 39 the preset enables, and the twelve missing ones

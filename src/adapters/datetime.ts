@@ -9,14 +9,38 @@ import { moment } from "obsidian";
  * as external.
  */
 
+/**
+ * What this adapter needs from moment, spelled out.
+ *
+ * `obsidian` declares `moment` as `typeof import("moment")`, so the types are
+ * only as good as moment's own resolution. Where that package is not on the
+ * path — the catalogue's reviewer lints in such an environment — the whole
+ * import degrades to `any`, and every call through it is reported as an unsafe
+ * call, member access and return. One cast at the boundary, which is what an
+ * adapter is for, makes the calls typed wherever they are read from.
+ */
+interface MomentDate {
+    format(format: string): string;
+}
+
+interface MomentStatic {
+    (date: Date): MomentDate;
+    locale(): string;
+    weekdaysShort(): string[];
+    monthsShort(): string[];
+    localeData(): { firstDayOfWeek(): number };
+}
+
+const m = moment as unknown as MomentStatic;
+
 /** A date rendered with a moment format string, e.g. `gggg-[W]ww`. */
 export function formatDate(date: Date, format: string): string {
-    return moment(date).format(format);
+    return m(date).format(format);
 }
 
 /** What language Obsidian speaks, as a locale code: `en`, `ru`, `zh-cn`. */
 export function currentLocale(): string {
-    return moment.locale();
+    return m.locale();
 }
 
 /**
@@ -24,15 +48,15 @@ export function currentLocale(): string {
  * Lining them up with the grid is core/calendar.ts#rotateWeekdays' job.
  */
 export function weekdayNamesShort(): string[] {
-    return moment.weekdaysShort();
+    return m.weekdaysShort();
 }
 
 /** Which day the locale starts its week on: 0 is Sunday, 1 is Monday. */
 export function firstDayOfWeek(): number {
-    return moment.localeData().firstDayOfWeek();
+    return m.localeData().firstDayOfWeek();
 }
 
 /** Short month names, January first. */
 export function monthNamesShort(): string[] {
-    return moment.monthsShort();
+    return m.monthsShort();
 }
