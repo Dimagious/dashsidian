@@ -7,7 +7,7 @@
 /* tiles */
 .dashy-tiles {
   display: grid;
-  grid-template-columns: repeat(var(--dashy-tile-columns, 4), 1fr);
+  grid-template-columns: repeat(var(--dashy-tile-columns, 4), minmax(0, 1fr));
   gap: var(--dashy-gap);
   margin: 0 0 24px;
 }
@@ -16,6 +16,7 @@
   border: 1px solid var(--dashy-border);
   border-radius: var(--dashy-radius);
   padding: 18px 12px;
+  min-width: 0;
   text-align: center;
   box-shadow: var(--dashy-shadow);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -39,7 +40,7 @@
 /* stats */
 .dashy-stats {
   display: grid;
-  grid-template-columns: repeat(var(--dashy-stat-columns, 3), 1fr);
+  grid-template-columns: repeat(var(--dashy-stat-columns, 3), minmax(0, 1fr));
   gap: var(--dashy-gap);
   margin: 0 0 24px;
 }
@@ -48,6 +49,7 @@
   border: 1px solid var(--dashy-border);
   border-radius: var(--dashy-radius);
   padding: 16px 12px;
+  min-width: 0;
   text-align: center;
   box-shadow: var(--dashy-shadow);
 }
@@ -55,6 +57,7 @@
 .dashy-stat-value {
   font-size: 1.9em; font-weight: 700; line-height: 1.15;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 /* a dash means "no data", and it should read quieter than a number */
 .dashy-stat-value.is-empty { color: var(--text-faint); font-weight: 500; }
@@ -64,9 +67,10 @@
 .dashy-stat-trend {
   display: flex; align-items: flex-end; justify-content: center;
   gap: 1px; height: 18px; margin-top: 6px;
+  max-width: 100%;
 }
 .dashy-stat-bar {
-  flex: 1 1 auto; min-width: 1px; max-width: 4px;
+  flex: 1 1 auto; min-width: 0; max-width: 4px;
   background: var(--interactive-accent);
   border-radius: 1px; opacity: 0.55;
 }
@@ -141,7 +145,7 @@
 /* countdown */
 .dashy-countdown {
   display: grid;
-  grid-template-columns: repeat(var(--dashy-countdown-columns, 3), 1fr);
+  grid-template-columns: repeat(var(--dashy-countdown-columns, 3), minmax(0, 1fr));
   gap: var(--dashy-gap);
   margin: 0 0 24px;
 }
@@ -150,6 +154,7 @@
   border: 1px solid var(--dashy-border);
   border-radius: var(--dashy-radius);
   padding: 16px 12px;
+  min-width: 0;
   text-align: center;
   box-shadow: var(--dashy-shadow);
 }
@@ -157,6 +162,7 @@
 .dashy-countdown-value {
   font-size: 1.9em; font-weight: 700; line-height: 1.15;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 .dashy-countdown-unit { font-size: 0.7em; color: var(--text-muted); margin-top: 1px; }
 .dashy-countdown-label { font-size: 0.85em; margin-top: 6px; }
@@ -171,7 +177,7 @@
 .dashy-countdown-card.is-broken .dashy-countdown-value { color: var(--text-faint); font-weight: 500; }
 
 /* heatmap */
-.dashy-hm-wrap { margin: 8px 0 26px; overflow-x: auto; }
+.dashy-hm-wrap { margin: 8px 0 26px; overflow-x: auto; max-width: 100%; }
 .dashy-hm-title { font-weight: 600; margin-bottom: 10px; }
 .dashy-hm-body { display: flex; gap: 6px; align-items: flex-start; }
 .dashy-hm-side {
@@ -209,7 +215,9 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
 .dashy-hm-swatch { width: var(--dashy-cell); height: var(--dashy-cell); border-radius: 2px; }
 
 @media (max-width: 768px) {
-  .dashy-tiles { grid-template-columns: repeat(2, 1fr); }
-  .dashy-stats { grid-template-columns: repeat(2, 1fr); }
-  .dashy-countdown { grid-template-columns: repeat(2, 1fr); }
+  .dashy-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashy-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashy-countdown { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Every pixel of gap is a pixel the bars do not get. */
+  .dashy-stat-trend { gap: 0; }
 }
