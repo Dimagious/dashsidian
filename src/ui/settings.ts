@@ -143,9 +143,7 @@ export class DashySettingTab extends PluginSettingTab {
                 );
                 setting.addButton((b) =>
                     b.setButtonText(t("settings.copyMarkdown")).onClick(() => {
-                        void navigator.clipboard.writeText(SKILL_MARKDOWN).then(() => {
-                            new Notice(t("settings.copied"));
-                        });
+                        void this.copySkill();
                     }),
                 );
             },
@@ -194,6 +192,24 @@ export class DashySettingTab extends PluginSettingTab {
             this.update();
         } catch (e) {
             new Notice(t("settings.writeFailed", { message: (e as Error).message }));
+        }
+    }
+
+    /**
+     * The clipboard is not a given.
+     *
+     * `navigator.clipboard` is missing outside a secure context, and even
+     * where it exists the write can be refused. Unguarded, the first case
+     * throws inside the click handler and the second rejects unhandled — and
+     * either way the button does nothing and says nothing, which is the one
+     * outcome this plugin does not allow itself.
+     */
+    private async copySkill(): Promise<void> {
+        try {
+            await navigator.clipboard.writeText(SKILL_MARKDOWN);
+            new Notice(t("settings.copied"));
+        } catch (e) {
+            new Notice(t("settings.copyFailed", { message: (e as Error).message }));
         }
     }
 

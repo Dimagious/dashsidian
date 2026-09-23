@@ -124,6 +124,7 @@ export const en = {
     "settings.copied": "Skill markdown copied.",
     "settings.written": "Skill written to {path}",
     "settings.writeFailed": "Could not write the skill: {message}",
+    "settings.copyFailed": "Could not copy: {message}. Use Install instead.",
 } as const;
 
 export type MessageKey = keyof typeof en;

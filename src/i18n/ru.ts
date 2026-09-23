@@ -116,4 +116,5 @@ export const ru: Catalog = {
     "settings.copied": "Markdown скилла скопирован.",
     "settings.written": "Скилл записан в {path}",
     "settings.writeFailed": "Не удалось записать скилл: {message}",
+    "settings.copyFailed": "Не удалось скопировать: {message}. Нажмите «Установить».",
 };
