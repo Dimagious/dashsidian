@@ -10,6 +10,18 @@ removed public export.
 
 ## [Unreleased]
 
+## [1.0.2] — 2026-09-23
+
+### Fixed
+
+- **A long number keeps its digits together on a phone.** Making the cards fit
+  a narrow screen let a number like `3 307 952` break in half instead; it is
+  set smaller there now and stays on one line.
+- **A heatmap spanning two calendar years says which year each grid is.** The
+  block draws one grid per year, and a custom `title:` replaced the caption
+  that named it — so a twelve-month window read as the same grid drawn twice,
+  the second one apparently empty.
+
 ## [1.0.1] — 2026-09-23
 
 ### Fixed
@@ -70,6 +82,7 @@ agent can read.
 - No Dataview, no JavaScript in your notes, and not one hard-coded colour: the
   blocks take their palette from whatever theme you run.
 
-[Unreleased]: https://github.com/Dimagious/dashsidian/compare/1.0.1...HEAD
+[Unreleased]: https://github.com/Dimagious/dashsidian/compare/1.0.2...HEAD
+[1.0.2]: https://github.com/Dimagious/dashsidian/releases/tag/1.0.2
 [1.0.1]: https://github.com/Dimagious/dashsidian/releases/tag/1.0.1
 [1.0.0]: https://github.com/Dimagious/dashsidian/releases/tag/1.0.0
