@@ -164,4 +164,10 @@ function drawYear(
         row.createDiv({ cls: "dashy-hm-swatch" }).style.backgroundColor = rgba(opts.color, b.alpha);
         row.createSpan({ text: b.label });
     }
+
+    // Where the year does not fit, open it at the most recent day rather than
+    // at January. On a phone the visible third of a past year is empty, which
+    // reads as a broken grid; its data is at the end. A grid that fits does
+    // not move, because there is nowhere to scroll.
+    wrap.scrollLeft = wrap.scrollWidth;
 }

@@ -178,7 +178,10 @@
 
 /* heatmap */
 .dashy-hm-wrap { margin: 8px 0 26px; overflow-x: auto; max-width: 100%; }
-.dashy-hm-title { font-weight: 600; margin-bottom: 10px; }
+/* Sticks to the left edge while the year scrolls past it: the caption names
+   the year, and a year that scrolls its own name out of view is how two grids
+   came to look like one grid drawn twice. */
+.dashy-hm-title { font-weight: 600; margin-bottom: 10px; position: sticky; left: 0; }
 .dashy-hm-body { display: flex; gap: 6px; align-items: flex-start; }
 .dashy-hm-side {
   display: grid;
