@@ -152,6 +152,11 @@ node scripts/version-sync.cjs     # manifest.json + versions.json
 node scripts/assert-versions.cjs "$NEW_VERSION"
 ```
 
+`npm version` writes the number into `package-lock.json` too, in two places.
+The assertion does not read the lockfile, but `npm ci` does, and it refuses a
+lockfile whose version disagrees with `package.json` — so the lockfile belongs
+in the release commit with the rest.
+
 Then edit `CHANGELOG.md` by hand (not `sed`): insert
 `## [X.Y.Z] — YYYY-MM-DD` under `[Unreleased]`, move the entries beneath it,
 leave `[Unreleased]` empty. Use the date from the session context rather than
@@ -172,7 +177,7 @@ git diff -- package.json manifest.json versions.json CHANGELOG.md
 ## Step 5 — Commit and tag
 
 ```bash
-git add package.json manifest.json versions.json CHANGELOG.md
+git add package.json package-lock.json manifest.json versions.json CHANGELOG.md
 git commit -m "chore(release): $NEW_VERSION"   # body: why, if the bump was overridden
 git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
 ```
