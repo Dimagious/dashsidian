@@ -99,6 +99,11 @@ export const en = {
     "about.fundingDesc": "The plugin is free and stays free. This is only if you feel like it.",
     "about.open": "Open",
 
+    "settings.languageHeading": "Language",
+    "settings.language": "Plugin language",
+    "settings.languageDesc": "What the blocks say. Follows Obsidian unless you pick another one.",
+    "settings.languageAuto": "Follow Obsidian",
+
     "settings.periodicHeading": "Periodic notes",
     "settings.dailyFolder": "Daily notes folder",
     "settings.dailyFolderDesc": "Leave empty to use the Periodic Notes plugin settings when it is installed.",

@@ -93,6 +93,11 @@ export const de: Catalog = {
     "about.fundingDesc": "Das Plugin ist kostenlos und bleibt es. Nur, wenn dir danach ist.",
     "about.open": "Öffnen",
 
+    "settings.languageHeading": "Sprache",
+    "settings.language": "Sprache des Plugins",
+    "settings.languageDesc": "In welcher Sprache die Blöcke sprechen. Voreingestellt ist die von Obsidian.",
+    "settings.languageAuto": "Wie Obsidian",
+
     "settings.periodicHeading": "Periodische Notizen",
     "settings.dailyFolder": "Ordner für Tagesnotizen",
     "settings.dailyFolderDesc": "Leer lassen, um die Einstellungen von Periodic Notes zu verwenden, sofern installiert.",

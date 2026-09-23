@@ -7,6 +7,12 @@ export interface DashySettings {
     installedSkillVersion: string | null;
     /** The same for the AGENTS.md section, which other agents read. */
     installedAgentsVersion: string | null;
+    /**
+     * Language for what the blocks say. Empty follows Obsidian, which is what
+     * most people want; the override is for a vault whose notes are written in
+     * one language while the app runs in another.
+     */
+    language: string;
 }
 
 export const DEFAULT_SETTINGS: DashySettings = {
@@ -15,4 +21,5 @@ export const DEFAULT_SETTINGS: DashySettings = {
     monthlyFolder: "",
     installedSkillVersion: null,
     installedAgentsVersion: null,
+    language: "",
 };

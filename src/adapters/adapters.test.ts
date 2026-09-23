@@ -2,11 +2,11 @@ import { describe, it, expect, afterEach } from "vitest";
 import { snapshot, noteExists, VaultSnapshot } from "./vault";
 import { discoverPeriodics } from "./periodic";
 import { formatDate, currentLocale, weekdayNamesShort, monthNamesShort, firstDayOfWeek } from "./datetime";
-import { applyObsidianLocale } from "./locale";
+import { applyObsidianLocale, applyLocale } from "./locale";
 import { setLocale, getLocale } from "../i18n";
 import { mockApp, countingContext, diary } from "../test/vault";
 
-afterEach(() => setLocale("en"));
+afterEach(() => applyLocale(""));
 
 describe("vault snapshot", () => {
     it("turns files into records the pure layer can read", () => {
@@ -134,6 +134,27 @@ describe("locale wiring", () => {
         expect(applied).toBe(getLocale());
         // moment in tests runs English, so this must land back on English.
         expect(applied).toBe("en");
+    });
+
+    it("a chosen language reaches the month names too, not just the catalog", () => {
+        applyLocale("de");
+        expect(getLocale()).toBe("de");
+        // The catalog and moment have to agree, or one caption reads in each.
+        expect(formatDate(new Date(2026, 0, 15), "MMMM")).toBe("Januar");
+        expect(monthNamesShort()[0]).toBe("Jan.");
+    });
+
+    it("an empty choice follows Obsidian, which is English here", () => {
+        applyLocale("de");
+        applyLocale("");
+        expect(getLocale()).toBe("en");
+        expect(formatDate(new Date(2026, 0, 15), "MMMM")).toBe("January");
+    });
+
+    it("a language with no catalog falls back without dragging the dates along", () => {
+        // `setLocale` lands on English; the dates must not be left in Japanese.
+        expect(applyLocale("ja")).toBe("en");
+        expect(formatDate(new Date(2026, 0, 15), "MMMM")).toBe("January");
     });
 });
 

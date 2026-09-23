@@ -22,9 +22,25 @@ import {
 } from "../skill/skill-content";
 import { upsertManagedSection, hasManagedSection } from "../core/agents-file";
 import { buildIssueUrl, DOCS_URL, FUNDING_URL, type IssueKind } from "../core/feedback";
-import { t } from "../i18n";
+import { t, AVAILABLE_LOCALES } from "../i18n";
+import { applyLocale } from "../adapters/locale";
 
 type FolderKey = "dailyFolder" | "weeklyFolder" | "monthlyFolder";
+type TextKey = FolderKey | "language";
+
+/**
+ * Languages are listed under their own names, the way every list of languages
+ * is: someone looking for German is looking for "Deutsch". The empty option
+ * follows Obsidian and comes first because it is the answer for almost
+ * everyone.
+ */
+const LANGUAGE_NAMES: Record<string, string> = {
+    en: "English",
+    ru: "Русский",
+    de: "Deutsch",
+    fr: "Français",
+    es: "Español",
+};
 
 /**
  * The settings tab, declared rather than drawn.
@@ -42,6 +58,24 @@ export class DashySettingTab extends PluginSettingTab {
 
     override getSettingDefinitions(): SettingDefinitionItem[] {
         return [
+            {
+                type: "group",
+                heading: t("settings.languageHeading"),
+                items: [{
+                    name: t("settings.language"),
+                    desc: t("settings.languageDesc"),
+                    control: {
+                        type: "dropdown",
+                        key: "language",
+                        options: {
+                            "": t("settings.languageAuto"),
+                            ...Object.fromEntries(
+                                AVAILABLE_LOCALES.map((code) => [code, LANGUAGE_NAMES[code] ?? code]),
+                            ),
+                        },
+                    },
+                }],
+            },
             {
                 type: "group",
                 heading: t("settings.periodicHeading"),
@@ -105,14 +139,20 @@ export class DashySettingTab extends PluginSettingTab {
 
     /** Obsidian reads a control's value from here, by the key the control names. */
     override getControlValue(key: string): unknown {
-        return this.plugin.settings[key as FolderKey];
+        return this.plugin.settings[key as TextKey];
     }
 
     /** And writes it back here, which is the only place a setting is stored. */
     override async setControlValue(key: string, value: unknown): Promise<void> {
         if (typeof value !== "string") return;
-        this.plugin.settings[key as FolderKey] = value.trim();
+        this.plugin.settings[key as TextKey] = value.trim();
+        if (key === "language") {
+            // Ahead of the save, so the blocks that redraw on it already speak
+            // the new language; then the tab redraws to translate itself.
+            applyLocale(this.plugin.settings.language);
+        }
         await this.plugin.saveSettings();
+        if (key === "language") this.update();
     }
 
     /**

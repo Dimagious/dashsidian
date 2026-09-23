@@ -1,6 +1,6 @@
 import { MarkdownRenderChild, Plugin, debounce, type Debouncer } from "obsidian";
 import { DEFAULT_SETTINGS, type DashySettings } from "../types";
-import { applyObsidianLocale } from "../adapters/locale";
+import { applyLocale } from "../adapters/locale";
 import { VaultSnapshot } from "../adapters/vault";
 import type { BlockContext } from "../blocks/context";
 import { renderCountdown } from "../blocks/countdown";
@@ -38,9 +38,10 @@ export default class DashyPlugin extends Plugin {
     async onload(): Promise<void> {
         await this.loadSettings();
 
-        // Once, before anything renders: Obsidian needs a restart to change
-        // its own language, so there is nothing to react to later.
-        applyObsidianLocale();
+        // Before anything renders. Obsidian's own language needs a restart to
+        // change, but ours does not: the settings tab re-applies it and every
+        // block redraws.
+        applyLocale(this.settings.language);
 
         this.snapshot = new VaultSnapshot(this.app);
         this.refresher = new BlockRefresher(

@@ -21,21 +21,45 @@ import { moment } from "obsidian";
  */
 interface MomentDate {
     format(format: string): string;
+    locale(code: string): MomentDate;
+}
+
+interface MomentLocaleData {
+    firstDayOfWeek(): number;
+    weekdaysShort(): string[];
+    monthsShort(): string[];
 }
 
 interface MomentStatic {
     (date: Date): MomentDate;
     locale(): string;
-    weekdaysShort(): string[];
-    monthsShort(): string[];
-    localeData(): { firstDayOfWeek(): number };
+    localeData(code?: string): MomentLocaleData | null;
 }
 
 const m = moment as unknown as MomentStatic;
 
+/**
+ * The language the plugin was told to speak, when that is not Obsidian's own.
+ *
+ * Month and weekday names come from moment, so a chosen language has to reach
+ * it too: otherwise the settings say German and the heatmap answers in the
+ * app's language, one caption in each.
+ */
+let override: string | null = null;
+
+export function setDateLocale(code: string | null): void {
+    override = code && m.localeData(code) ? code : null;
+}
+
+/** moment's data for the chosen language, or the app's when there is none. */
+function data(): MomentLocaleData {
+    return (override ? m.localeData(override) : null) ?? (m.localeData() as MomentLocaleData);
+}
+
 /** A date rendered with a moment format string, e.g. `gggg-[W]ww`. */
 export function formatDate(date: Date, format: string): string {
-    return m(date).format(format);
+    const at = m(date);
+    return (override ? at.locale(override) : at).format(format);
 }
 
 /** What language Obsidian speaks, as a locale code: `en`, `ru`, `zh-cn`. */
@@ -48,15 +72,15 @@ export function currentLocale(): string {
  * Lining them up with the grid is core/calendar.ts#rotateWeekdays' job.
  */
 export function weekdayNamesShort(): string[] {
-    return m.weekdaysShort();
+    return data().weekdaysShort();
 }
 
 /** Which day the locale starts its week on: 0 is Sunday, 1 is Monday. */
 export function firstDayOfWeek(): number {
-    return m.localeData().firstDayOfWeek();
+    return data().firstDayOfWeek();
 }
 
 /** Short month names, January first. */
 export function monthNamesShort(): string[] {
-    return m.monthsShort();
+    return data().monthsShort();
 }

@@ -245,13 +245,16 @@ change one is to say what you tried to build and could not.
 
 ## Languages
 
-The plugin speaks the language of your Obsidian interface. English and Russian ship today.
+The plugin speaks the language of your Obsidian interface. English, Russian, German,
+French and Spanish ship today. Settings has a dropdown if you want another one: a vault
+whose notes are German does not have to run Obsidian in German to get a German dashboard.
 Anything missing from a translation falls back to English rather than showing you a key.
 
-To add a language, copy [`src/i18n/en.ts`](src/i18n/en.ts), translate the values and
-register the file. No TypeScript needed, and a partial translation is a valid one. Dates,
-month names and the first day of the week come from Obsidian itself, so they are right in
-every language it supports.
+The German, French and Spanish catalogues were written by the author, who speaks none of
+the three well enough to be sure of them. Corrections are welcome and cheap: copy
+[`src/i18n/en.ts`](src/i18n/en.ts), translate the values, register the file. No TypeScript
+needed, and a partial translation is a valid one. Dates, month names and the first day of
+the week come from Obsidian itself, so they are right in every language it supports.
 
 ## Development
 

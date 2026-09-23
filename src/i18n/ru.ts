@@ -91,6 +91,11 @@ export const ru: Catalog = {
     "about.fundingDesc": "Плагин бесплатный и останется таким. Это только если захочется.",
     "about.open": "Открыть",
 
+    "settings.languageHeading": "Язык",
+    "settings.language": "Язык плагина",
+    "settings.languageDesc": "На каком языке говорят блоки. По умолчанию — как в Obsidian.",
+    "settings.languageAuto": "Как в Obsidian",
+
     "settings.periodicHeading": "Периодические заметки",
     "settings.dailyFolder": "Папка заметок дня",
     "settings.dailyFolderDesc": "Оставьте пустым, чтобы взять настройки плагина Periodic Notes.",

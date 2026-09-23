@@ -93,6 +93,11 @@ export const es: Catalog = {
     "about.fundingDesc": "El plugin es gratis y seguirá siéndolo. Esto es solo si te apetece.",
     "about.open": "Abrir",
 
+    "settings.languageHeading": "Idioma",
+    "settings.language": "Idioma del plugin",
+    "settings.languageDesc": "En qué idioma hablan los bloques. El de Obsidian por defecto.",
+    "settings.languageAuto": "Seguir a Obsidian",
+
     "settings.periodicHeading": "Notas periódicas",
     "settings.dailyFolder": "Carpeta de notas diarias",
     "settings.dailyFolderDesc": "Déjalo vacío para usar los ajustes del plugin Periodic Notes cuando esté instalado.",
