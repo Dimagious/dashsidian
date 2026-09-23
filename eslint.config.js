@@ -39,22 +39,15 @@ export default [
       },
     },
     rules: {
-      // eslint-plugin-obsidianmd 0.4.x additions (scorecard parity, 2026-08-05):
-      // `prefer-window-timers` flipped direction vs 0.1.x — it now demands
-      // bare `window.setTimeout`/`window.clearTimeout` and flags
-      // `activeWindow.*` timers (popout windows still get a `window` that
-      // resolves correctly via the timer's own closure; `activeWindow` was
-      // never required for timers specifically, only for DOM/`document`
-      // access). See src/ui/utils/ui-state.ts, SnippetPickerModal.ts,
-      // SnippetsTab.ts, BasicTab.ts for the flipped call sites.
+      // Timers go through `window`, not `activeWindow`: a popout window gets a
+      // `window` that resolves correctly through the timer's own closure.
       'obsidianmd/prefer-window-timers': 'error',
-      // Presence-only check: flags PluginSettingTab subclasses missing a
-      // getSettingDefinitions() method. See src/ui/components/SettingsTab.ts
-      // for why it returns `[]` rather than real per-field definitions.
+      // Presence-only check: it flags a PluginSettingTab without a
+      // getSettingDefinitions() method. See src/ui/settings.ts, which has one.
       'obsidianmd/settings-tab/prefer-setting-definitions': 'error',
 
-      // UI sentence case with custom options
-      // Disabled - too many false positives with validation messages, button texts, etc.
+      // Off: it reads diagnostics and button labels as headings and asks for
+      // sentence case where the text is already a sentence.
       'obsidianmd/ui/sentence-case': 'off',
 
       // Match the Obsidian scorecard scanner's strict no-unused-vars policy:
@@ -67,10 +60,9 @@ export default [
         caughtErrorsIgnorePattern: '^_',
       }],
 
-      // Scorecard parity (0.4.1): a Promise returned where a DOM listener
-      // (or other void-typed callback) expects `void` silently drops
-      // rejections. Requires parserOptions.project (already configured
-      // above) for the type information the rule needs.
+      // A Promise returned where a void-typed callback is expected, a DOM
+      // listener for instance, drops its rejection in silence. Needs the type
+      // information that parserOptions.project above provides.
       '@typescript-eslint/no-misused-promises': 'error',
     },
   },
