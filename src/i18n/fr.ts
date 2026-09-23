@@ -10,7 +10,7 @@ import type { Catalog } from "./en";
 export const fr: Catalog = {
     "parse.emptyBlock": "Le bloc est vide.",
     "parse.yamlError": "Lecture du YAML impossible : {message}",
-    "parse.unknownKey": "Clé inconnue « {key} » — ignorée.",
+    "parse.unknownKey": "Clé inconnue « {key} », ignorée.",
     "parse.unknownKeyGuess": "Clé inconnue « {key} ». Vouliez-vous dire « {guess} » ?",
 
     "render.line": "ligne {line}",
@@ -18,11 +18,11 @@ export const fr: Catalog = {
     "bands.hasData": "avec données",
     "bands.from": "à partir de {min}",
 
-    "where.noSuchFolder": "Rien n'est classé sous `{folder}` — les chiffres ci-dessous ne comptent rien. Pointez `source` vers un dossier à vous.",
+    "where.noSuchFolder": "Rien n'est classé sous `{folder}`. Les chiffres ci-dessous ne comptent rien. Pointez `source` vers un dossier à vous.",
     "where.unreadable":
-        "`where: {where}` n'a pas pu être lu et a été ignoré — les chiffres ci-dessous ne sont pas filtrés. Attendu : quelque chose comme `year = 2026`, `rating >= 4` ou `tags contains books`.",
+        "`where: {where}` n'a pas pu être lu et a été ignoré. Les chiffres ci-dessous ne sont pas filtrés. Attendu : quelque chose comme `year = 2026`, `rating >= 4` ou `tags contains books`.",
     "where.conjunction":
-        "`where: {where}` contient plus d'une condition, et une seule est prise en charge — le filtre a été ignoré. Restreignez avec `source` ou `tag`, ou mettez la valeur entre guillemets si le mot en fait partie.",
+        "`where: {where}` contient plus d'une condition, et une seule est prise en charge. Le filtre a été ignoré. Restreignez avec `source` ou `tag`, ou mettez la valeur entre guillemets si le mot en fait partie.",
 
     "tiles.empty": "Aucune tuile à dessiner. Attendu : `items:` ou une liste.",
 
@@ -32,19 +32,19 @@ export const fr: Catalog = {
     "stats.unknownAggGuess":
         "{card} : agrégat « {agg} » inconnu. Vouliez-vous dire « {guess} » ? Disponibles : {available}.",
     "stats.fieldRequired":
-        "{card} : l'agrégat « {agg} » a besoin d'un nombre — ajoutez `field:` avec une propriété du frontmatter.",
+        "{card} : l'agrégat « {agg} » a besoin d'un nombre. Ajoutez `field:` avec une propriété du frontmatter.",
     "stats.badPrecision":
-        "{card} : `precision` attend un entier de 0 à {max}, reçu « {value} » — arrondi par défaut.",
+        "{card} : `precision` attend un entier de 0 à {max}, reçu « {value} ». Arrondi par défaut.",
 
     "progress.empty": "Aucune barre à dessiner. Attendu : `items:` ou une liste.",
-    "progress.goalRequired": "{card} : `goal:` a besoin d'un nombre — il n'y a rien à mesurer.",
-    "progress.goalNotPositive": "{card} : un objectif de {goal} ne laisse rien à remplir — il doit être supérieur à zéro.",
+    "progress.goalRequired": "{card} : `goal:` a besoin d'un nombre. Il n'y a rien à mesurer.",
+    "progress.goalNotPositive": "{card} : un objectif de {goal} ne laisse rien à remplir. Il doit être supérieur à zéro.",
 
-    "stats.trendNeedsField": "{card} : `trend` a besoin d'un `field:` à tracer — compter des notes n'a pas de forme.",
+    "stats.trendNeedsField": "{card} : `trend` a besoin d'un `field:` à tracer. Compter des notes n'a pas de forme.",
     "stats.trendInvalid": "{card} : `trend` attend un nombre de jours comme 30d, reçu « {value} ».",
 
     "countdown.empty": "Aucune date à dessiner. Attendu : `items:` ou une liste.",
-    "countdown.dateRequired": "{card} : `date:` manque — il n'y a rien à décompter.",
+    "countdown.dateRequired": "{card} : `date:` manque. Il n'y a rien à décompter.",
     "countdown.dateInvalid": "{card} : « {date} » n'est pas une date. Attendu : YYYY-MM-DD.",
     "countdown.today": "Aujourd'hui",
     "countdown.daysLeft.one": "jour restant",
@@ -58,20 +58,20 @@ export const fr: Catalog = {
 
     "today.expectFields": "Attendu : un ensemble de champs, par exemple `daily: true`.",
     "today.nothingToShow": "Rien à afficher : activez `daily`, `weekly` ou `monthly`.",
-    "today.notBoolean": "`{key}` attend true ou false, reçu « {value} » — lu comme {read}.",
+    "today.notBoolean": "`{key}` attend true ou false, reçu « {value} ». Lu comme {read}.",
     "today.daily": "Aujourd'hui",
     "today.weekly": "Cette semaine",
     "today.monthly": "Ce mois-ci",
-    "today.missingNote": "{path} — la note n'existe pas encore, un clic la crée",
+    "today.missingNote": "{path}: la note n'existe pas encore, un clic la crée",
 
     "heatmap.expectFields": "Attendu : un ensemble de champs, par exemple `source:` et `field:`.",
-    "heatmap.fieldRequired": "Aucun `field` donné — il n'y a pas de nombre pour colorer.",
+    "heatmap.fieldRequired": "Aucun `field` donné. Il n'y a pas de nombre pour colorer.",
     "heatmap.noData":
         "Aucune note portant une date en nom et un nombre dans « {field} ». Vérifiez `source`.",
-    "heatmap.caption": "{year} — {field} : moyenne {average}, {present} jours sur {total}",
-    "heatmap.titleYear": "{title} — {year}",
-    "heatmap.cell": "{date} — {field} {value}",
-    "heatmap.cellEmpty": "{date} — aucune donnée",
+    "heatmap.caption": "{year}, {field} : moyenne {average}, {present} jours sur {total}",
+    "heatmap.titleYear": "{title} ({year})",
+    "heatmap.cell": "{date}: {field} {value}",
+    "heatmap.cellEmpty": "{date}: aucune donnée",
 
     "insert.name": "Insérer un bloc",
     "insert.placeholder": "Quel bloc ?",
@@ -112,7 +112,7 @@ export const fr: Catalog = {
     "settings.skillOutdated": "Version installée {installed}, disponible {available}.",
     "settings.agentsName": "AGENTS.md à la racine du coffre",
     "settings.agentsNotInstalled":
-        "Écrit {path} pour les agents qui ne lisent pas les skills Claude — Cursor, Codex et les autres. Seule la section délimitée nous appartient ; le reste du fichier n'est pas touché.",
+        "Écrit {path} pour les agents qui ne lisent pas les skills Claude: Cursor, Codex et les autres. Seule la section délimitée nous appartient ; le reste du fichier n'est pas touché.",
     "settings.agentsCurrent": "Écrit, version {version}. Rien à faire.",
     "settings.agentsOutdated": "Écrit en version {installed}, disponible {available}.",
     "settings.agentsUntouched":

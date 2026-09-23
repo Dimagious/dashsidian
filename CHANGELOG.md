@@ -10,7 +10,7 @@ removed public export.
 
 ## [Unreleased]
 
-## [1.1.0] — 2026-09-23
+## [1.1.0] - 2026-09-23
 
 ### Added
 
@@ -32,7 +32,7 @@ removed public export.
   They show the folder Periodic Notes is configured with, which is what the
   field falls back to when you leave it empty.
 
-## [1.0.2] — 2026-09-23
+## [1.0.2] - 2026-09-23
 
 ### Fixed
 
@@ -41,10 +41,10 @@ removed public export.
   set smaller there now and stays on one line.
 - **A heatmap spanning two calendar years says which year each grid is.** The
   block draws one grid per year, and a custom `title:` replaced the caption
-  that named it — so a twelve-month window read as the same grid drawn twice,
+  that named it, so a twelve-month window read as the same grid drawn twice,
   the second one apparently empty.
 
-## [1.0.1] — 2026-09-23
+## [1.0.1] - 2026-09-23
 
 ### Fixed
 
@@ -60,7 +60,7 @@ removed public export.
   available in every context, and the failure was silent. Install writes the
   same file and needs no clipboard at all.
 
-## [1.0.0] — 2026-09-22
+## [1.0.0] - 2026-09-22
 
 The first public release. Six blocks, two languages, and a reference an AI
 agent can read.
@@ -74,7 +74,7 @@ agent can read.
   for a year coloured by a frontmatter number.
 - **An `Insert block` command** in the palette: pick a block and a working
   example lands in the note, fitted to your vault rather than to the one the
-  example was written in — the folder with the most notes, a number property
+  example was written in: the folder with the most notes, a number property
   that exists, and a warning when the folder in it holds nothing.
 - **Sparklines in `stats`** through `trend: 30d`: the last N days ending today,
   scaled inside that window so the shape of the run is what shows.

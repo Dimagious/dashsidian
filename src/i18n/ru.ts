@@ -16,11 +16,11 @@ export const ru: Catalog = {
     "bands.hasData": "есть данные",
     "bands.from": "от {min}",
 
-    "where.noSuchFolder": "Под `{folder}` ничего нет — числа ниже посчитаны по пустоте. Укажите в `source` свою папку.",
+    "where.noSuchFolder": "Под `{folder}` ничего нет. Числа ниже посчитаны по пустоте. Укажите в `source` свою папку.",
     "where.unreadable":
-        "`where: {where}` не разобрать, условие пропущено — числа ниже без фильтра. Ожидается что-то вроде `year = 2026`, `rating >= 4` или `tags contains книги`.",
+        "`where: {where}` не разобрать, условие пропущено. Числа ниже без фильтра. Ожидается что-то вроде `year = 2026`, `rating >= 4` или `tags contains книги`.",
     "where.conjunction":
-        "В `where: {where}` больше одного условия, а поддерживается одно — фильтр пропущен. Сузьте через `source` или `tag`, либо возьмите значение в кавычки, если слово — его часть.",
+        "В `where: {where}` больше одного условия, а поддерживается одно. Фильтр пропущен. Сузьте через `source` или `tag`, либо возьмите значение в кавычки, если слово входит в него.",
 
     "tiles.empty": "Список плиток пуст. Ожидается `items:` или массив.",
 
@@ -30,19 +30,19 @@ export const ru: Catalog = {
     "stats.unknownAggGuess":
         "{card}: агрегат «{agg}» неизвестен. Возможно, «{guess}». Доступны: {available}.",
     "stats.fieldRequired":
-        "{card}: агрегату «{agg}» нужно число — добавь `field:` с полем frontmatter.",
+        "{card}: агрегату «{agg}» нужно число. Добавь `field:` с полем frontmatter.",
     "stats.badPrecision":
-        "{card}: `precision` ожидает целое от 0 до {max}, получено «{value}» — округляю по умолчанию.",
+        "{card}: `precision` ожидает целое от 0 до {max}, получено «{value}». Округляю по умолчанию.",
 
     "progress.empty": "Список полос пуст. Ожидается `items:` или массив.",
-    "progress.goalRequired": "{card}: `goal:` ожидает число — иначе не к чему стремиться.",
-    "progress.goalNotPositive": "{card}: цель {goal} нечем заполнять — она должна быть больше нуля.",
+    "progress.goalRequired": "{card}: `goal:` ожидает число. Иначе не к чему стремиться.",
+    "progress.goalNotPositive": "{card}: цель {goal} нечем заполнять. Она должна быть больше нуля.",
 
-    "stats.trendNeedsField": "{card}: `trend` нужно `field:` — у счёта заметок нет формы.",
+    "stats.trendNeedsField": "{card}: `trend` нужно `field:`. У счёта заметок нет формы.",
     "stats.trendInvalid": "{card}: `trend` ожидает число дней, например 30d, получено «{value}».",
 
     "countdown.empty": "Список дат пуст. Ожидается `items:` или массив.",
-    "countdown.dateRequired": "{card}: не задан `date:` — не до чего считать.",
+    "countdown.dateRequired": "{card}: не задан `date:`. Не до чего считать.",
     "countdown.dateInvalid": "{card}: «{date}» не похоже на дату. Ожидается YYYY-MM-DD.",
     "countdown.today": "Сегодня",
     "countdown.daysLeft.one": "день остался",
@@ -56,20 +56,20 @@ export const ru: Catalog = {
 
     "today.expectFields": "Ожидается набор полей, например `daily: true`.",
     "today.nothingToShow": "Нечего показывать: включи `daily`, `weekly` или `monthly`.",
-    "today.notBoolean": "`{key}` ожидает true или false, получено «{value}» — считаю за {read}.",
+    "today.notBoolean": "`{key}` ожидает true или false, получено «{value}». Считаю за {read}.",
     "today.daily": "Сегодня",
     "today.weekly": "Эта неделя",
     "today.monthly": "Этот месяц",
-    "today.missingNote": "{path} — заметки ещё нет, клик её создаст",
+    "today.missingNote": "{path}: заметки ещё нет, клик её создаст",
 
     "heatmap.expectFields": "Ожидается набор полей, например `source:` и `field:`.",
-    "heatmap.fieldRequired": "Не задано `field` — какое число из frontmatter красить.",
+    "heatmap.fieldRequired": "Не задано `field`. Какое число из frontmatter красить.",
     "heatmap.noData":
         "Нет заметок с именем-датой и числом в поле «{field}». Проверь `source`.",
-    "heatmap.titleYear": "{title} — {year}",
-    "heatmap.caption": "{year} — {field}: среднее {average}, {present} из {total} дн.",
-    "heatmap.cell": "{date} — {field} {value}",
-    "heatmap.cellEmpty": "{date} — нет данных",
+    "heatmap.titleYear": "{title} ({year})",
+    "heatmap.caption": "{year}, {field}: среднее {average}, {present} из {total} дн.",
+    "heatmap.cell": "{date}: {field} {value}",
+    "heatmap.cellEmpty": "{date}: нет данных",
 
     "insert.name": "Вставить блок",
     "insert.placeholder": "Какой блок?",
@@ -93,7 +93,7 @@ export const ru: Catalog = {
 
     "settings.languageHeading": "Язык",
     "settings.language": "Язык плагина",
-    "settings.languageDesc": "На каком языке говорят блоки. По умолчанию — как в Obsidian.",
+    "settings.languageDesc": "На каком языке говорят блоки. По умолчанию. Как в Obsidian.",
     "settings.languageAuto": "Как в Obsidian",
 
     "settings.periodicHeading": "Периодические заметки",
@@ -101,7 +101,7 @@ export const ru: Catalog = {
     "settings.dailyFolderDesc": "Оставьте пустым, чтобы взять настройки плагина Periodic Notes.",
     "settings.weeklyFolder": "Папка заметок недели",
     "settings.monthlyFolder": "Папка заметок месяца",
-    "settings.followPeriodic": "Нужна блоку today. Пусто — берём из Periodic Notes.",
+    "settings.followPeriodic": "Нужна блоку today. Пусто. Берём из Periodic Notes.",
     "settings.skillHeading": "Скилл для ИИ-агента",
     "settings.skillName": "Файл скилла в этом хранилище",
     "settings.skillNotInstalled":
@@ -110,7 +110,7 @@ export const ru: Catalog = {
     "settings.skillOutdated": "Установлена версия {installed}, доступна {available}.",
     "settings.agentsName": "AGENTS.md в корне хранилища",
     "settings.agentsNotInstalled":
-        "Запишет {path} для агентов, которые не читают скиллы Claude, — Cursor, Codex и прочих. Наша только секция между маркерами, остальное в файле не трогаем.",
+        "Запишет {path} для агентов, которые не читают скиллы Claude,: Cursor, Codex и прочих. Наша только секция между маркерами, остальное в файле не трогаем.",
     "settings.agentsCurrent": "Записан, версия {version}. Делать нечего.",
     "settings.agentsOutdated": "Записана версия {installed}, доступна {available}.",
     "settings.agentsUntouched":

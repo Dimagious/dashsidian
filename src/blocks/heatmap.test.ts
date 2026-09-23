@@ -146,7 +146,7 @@ describe("heatmap — the caption", () => {
         });
         const el = map("source: Diary\nfield: sleep_score\ntitle: My sleep", twoYears);
         expect(nodes(el, ".dashy-hm-grid")).toHaveLength(2);
-        expect(texts(el, ".dashy-hm-title")).toEqual(["My sleep — 2026", "My sleep — 2025"]);
+        expect(texts(el, ".dashy-hm-title")).toEqual(["My sleep (2026)", "My sleep (2025)"]);
     });
 
     it("one year leaves the custom title alone", () => {

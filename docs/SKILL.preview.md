@@ -26,7 +26,7 @@ A grid of link tiles for navigating the vault.
 
 | key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
-| `columns` | number | — | `4` | — | columns in the grid, 1–8 |
+| `columns` | number | — | `4` | — | columns in the grid, 1 to 8 |
 | `items` | list | yes | — | — | the list of tiles |
 
 **List item**
@@ -37,7 +37,7 @@ A grid of link tiles for navigating the vault.
 | `path` | string | yes | — | — | where it leads; understands File.base#View |
 | `icon` | string | — | — | `emoji` | emoji |
 | `sub` | string | — | — | — | small caption under the title |
-| `badge` | string\|number | — | — | — | count — the number of notes in the folder, or your own string |
+| `badge` | string\|number | — | — | — | count, meaning the number of notes in the folder, or your own string |
 | `accent` | boolean | — | — | — | accent stripe on the left |
 
 **Example**
@@ -59,7 +59,7 @@ Number cards: one value per card, computed over a selection of notes.
 
 | key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
-| `columns` | number | — | `3` | — | columns in the grid, 1–6 |
+| `columns` | number | — | `3` | — | columns in the grid, 1 to 6 |
 | `items` | list | yes | — | — | the list of cards |
 
 **List item**
@@ -73,7 +73,7 @@ Number cards: one value per card, computed over a selection of notes.
 | `field` | string | — | — | `property`, `prop` | numeric frontmatter property; required for everything but count and streak |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
 | `unit` | string | — | — | — | a suffix after the number: km, %, d. |
-| `precision` | number | — | — | — | decimal places, 0–6; by default a whole number stays whole and a fraction gets one decimal |
+| `precision` | number | — | — | — | decimal places, 0 to 6; by default a whole number stays whole and a fraction gets one decimal |
 | `trend` | string\|number | — | — | — | sketch the last N days ending today: `30d`. Needs `field` |
 | `icon` | string | — | — | `emoji` | emoji |
 | `sub` | string | — | — | — | small caption under the title |
@@ -90,8 +90,8 @@ items:
 ```
 ````
 
-- `streak` counts the longest run of consecutive days and `latest` takes the value from the newest note — both need YYYY-MM-DD note names.
-- Nothing to count — the card shows a dash rather than a zero: "no data" and "zero" are different answers.
+- `streak` counts the longest run of consecutive days and `latest` takes the value from the newest note. Both need YYYY-MM-DD note names.
+- Nothing to count, and the card shows a dash rather than a zero: "no data" and "zero" are different answers.
 - `trend` sketches the days of a trailing window ending today, scaled between the smallest and largest value in that window rather than from zero. A day without a note is left out, not drawn as a zero.
 
 ### `progress`
@@ -116,7 +116,7 @@ Bars towards a goal: how far a number has come against a target.
 | `field` | string | — | — | `property`, `prop` | numeric frontmatter property; required for everything but count and streak |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
 | `unit` | string | — | — | — | a suffix after the numbers: km, %, d. |
-| `precision` | number | — | — | — | decimal places, 0–6; by default a whole number stays whole and a fraction gets one decimal |
+| `precision` | number | — | — | — | decimal places, 0 to 6; by default a whole number stays whole and a fraction gets one decimal |
 | `icon` | string | — | — | `emoji` | emoji |
 | `sub` | string | — | — | — | small caption under the bar |
 
@@ -130,8 +130,8 @@ items:
 ```
 ````
 
-- Going past the goal is shown as it is — 125% stays 125%; only the bar itself stops at full.
-- Nothing to count — the bar stays empty and the value shows a dash rather than a zero.
+- Going past the goal is shown as it is, 125% stays 125%; only the bar itself stops at full.
+- Nothing to count, and the bar stays empty and the value shows a dash rather than a zero.
 
 ### `today`
 
@@ -168,7 +168,7 @@ Cards counting the days to a date.
 
 | key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
-| `columns` | number | — | `3` | — | columns in the grid, 1–6 |
+| `columns` | number | — | `3` | — | columns in the grid, 1 to 6 |
 | `items` | list | yes | — | — | the list of dates |
 
 **List item**
@@ -191,7 +191,7 @@ items:
 ```
 ````
 
-- A date that has passed is shown too, counting up instead of down — what happened yesterday is still worth seeing.
+- A date that has passed is shown too, counting up instead of down. What happened yesterday is still worth seeing.
 - The day count is whole days, so a daylight saving switch cannot shift it.
 
 ### `heatmap`
@@ -222,7 +222,7 @@ bands: [90, 80, 60]
 ```
 ````
 
-- Notes must be named as YYYY-MM-DD dates — that is how the block knows which cell they belong to.
+- Notes must be named as YYYY-MM-DD dates. That is how the block knows which cell they belong to.
 - Years are taken from the data: once a new year appears, a second grid is drawn.
 
 ## What the plugin does NOT do

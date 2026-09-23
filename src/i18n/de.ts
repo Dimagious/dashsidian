@@ -10,7 +10,7 @@ import type { Catalog } from "./en";
 export const de: Catalog = {
     "parse.emptyBlock": "Der Block ist leer.",
     "parse.yamlError": "YAML konnte nicht gelesen werden: {message}",
-    "parse.unknownKey": "Unbekannter Schlüssel „{key}“ — ignoriert.",
+    "parse.unknownKey": "Unbekannter Schlüssel „{key}“, ignoriert.",
     "parse.unknownKeyGuess": "Unbekannter Schlüssel „{key}“. Meintest du „{guess}“?",
 
     "render.line": "Zeile {line}",
@@ -18,11 +18,11 @@ export const de: Catalog = {
     "bands.hasData": "mit Daten",
     "bands.from": "ab {min}",
 
-    "where.noSuchFolder": "Unter `{folder}` liegt nichts — die Zahlen unten zählen nichts. Richte `source` auf einen eigenen Ordner.",
+    "where.noSuchFolder": "Unter `{folder}` liegt nichts. Die Zahlen unten zählen nichts. Richte `source` auf einen eigenen Ordner.",
     "where.unreadable":
-        "`where: {where}` konnte nicht gelesen werden und wurde ignoriert — die Zahlen unten sind ungefiltert. Erwartet wird etwas wie `year = 2026`, `rating >= 4` oder `tags contains books`.",
+        "`where: {where}` konnte nicht gelesen werden und wurde ignoriert. Die Zahlen unten sind ungefiltert. Erwartet wird etwas wie `year = 2026`, `rating >= 4` oder `tags contains books`.",
     "where.conjunction":
-        "`where: {where}` enthält mehr als eine Bedingung, unterstützt wird nur eine — der Filter wurde ignoriert. Grenze mit `source` oder `tag` ein, oder setze den Wert in Anführungszeichen, wenn das Wort dazugehört.",
+        "`where: {where}` enthält mehr als eine Bedingung, unterstützt wird nur eine. Der Filter wurde ignoriert. Grenze mit `source` oder `tag` ein, oder setze den Wert in Anführungszeichen, wenn das Wort dazugehört.",
 
     "tiles.empty": "Keine Kacheln zu zeichnen. Erwartet wird `items:` oder eine Liste.",
 
@@ -32,19 +32,19 @@ export const de: Catalog = {
     "stats.unknownAggGuess":
         "{card}: unbekannte Aggregatfunktion „{agg}“. Meintest du „{guess}“? Verfügbar: {available}.",
     "stats.fieldRequired":
-        "{card}: die Aggregatfunktion „{agg}“ braucht eine Zahl — ergänze `field:` mit einer Frontmatter-Eigenschaft.",
+        "{card}: die Aggregatfunktion „{agg}“ braucht eine Zahl. Ergänze `field:` mit einer Frontmatter-Eigenschaft.",
     "stats.badPrecision":
-        "{card}: `precision` erwartet eine ganze Zahl von 0 bis {max}, bekommen „{value}“ — es wird wie voreingestellt gerundet.",
+        "{card}: `precision` erwartet eine ganze Zahl von 0 bis {max}, bekommen „{value}“. Es wird wie voreingestellt gerundet.",
 
     "progress.empty": "Keine Balken zu zeichnen. Erwartet wird `items:` oder eine Liste.",
-    "progress.goalRequired": "{card}: `goal:` braucht eine Zahl — es gibt nichts, woran gemessen werden könnte.",
-    "progress.goalNotPositive": "{card}: ein Ziel von {goal} lässt nichts zu füllen — es muss über null liegen.",
+    "progress.goalRequired": "{card}: `goal:` braucht eine Zahl. Es gibt nichts, woran gemessen werden könnte.",
+    "progress.goalNotPositive": "{card}: ein Ziel von {goal} lässt nichts zu füllen. Es muss über null liegen.",
 
-    "stats.trendNeedsField": "{card}: `trend` braucht ein `field:` zum Zeichnen — gezählte Notizen haben keine Form.",
+    "stats.trendNeedsField": "{card}: `trend` braucht ein `field:` zum Zeichnen. Gezählte Notizen haben keine Form.",
     "stats.trendInvalid": "{card}: `trend` erwartet eine Anzahl Tage wie 30d, bekommen „{value}“.",
 
     "countdown.empty": "Keine Termine zu zeichnen. Erwartet wird `items:` oder eine Liste.",
-    "countdown.dateRequired": "{card}: `date:` fehlt — es gibt nichts, worauf gezählt werden könnte.",
+    "countdown.dateRequired": "{card}: `date:` fehlt. Es gibt nichts, worauf gezählt werden könnte.",
     "countdown.dateInvalid": "{card}: „{date}“ ist kein Datum. Erwartet wird YYYY-MM-DD.",
     "countdown.today": "Heute",
     "countdown.daysLeft.one": "Tag übrig",
@@ -58,20 +58,20 @@ export const de: Catalog = {
 
     "today.expectFields": "Erwartet wird eine Menge von Feldern, zum Beispiel `daily: true`.",
     "today.nothingToShow": "Nichts anzuzeigen: aktiviere `daily`, `weekly` oder `monthly`.",
-    "today.notBoolean": "`{key}` erwartet true oder false, bekommen „{value}“ — gelesen als {read}.",
+    "today.notBoolean": "`{key}` erwartet true oder false, bekommen „{value}“. Gelesen als {read}.",
     "today.daily": "Heute",
     "today.weekly": "Diese Woche",
     "today.monthly": "Dieser Monat",
-    "today.missingNote": "{path} — die Notiz gibt es noch nicht, ein Klick legt sie an",
+    "today.missingNote": "{path}: die Notiz gibt es noch nicht, ein Klick legt sie an",
 
     "heatmap.expectFields": "Erwartet wird eine Menge von Feldern, zum Beispiel `source:` und `field:`.",
-    "heatmap.fieldRequired": "Kein `field` angegeben — es gibt keine Zahl zum Einfärben.",
+    "heatmap.fieldRequired": "Kein `field` angegeben. Es gibt keine Zahl zum Einfärben.",
     "heatmap.noData":
         "Keine Notizen mit einem Datum als Namen und einer Zahl in „{field}“. Prüfe `source`.",
-    "heatmap.caption": "{year} — {field}: Durchschnitt {average}, {present} von {total} Tagen",
-    "heatmap.titleYear": "{title} — {year}",
-    "heatmap.cell": "{date} — {field} {value}",
-    "heatmap.cellEmpty": "{date} — keine Daten",
+    "heatmap.caption": "{year}, {field}: Durchschnitt {average}, {present} von {total} Tagen",
+    "heatmap.titleYear": "{title} ({year})",
+    "heatmap.cell": "{date}: {field} {value}",
+    "heatmap.cellEmpty": "{date}: keine Daten",
 
     "insert.name": "Block einfügen",
     "insert.placeholder": "Welcher Block?",
@@ -112,7 +112,7 @@ export const de: Catalog = {
     "settings.skillOutdated": "Installiert ist Version {installed}, verfügbar {available}.",
     "settings.agentsName": "AGENTS.md im Stammverzeichnis des Vaults",
     "settings.agentsNotInstalled":
-        "Schreibt {path} für Agenten, die keine Claude-Skills lesen — Cursor, Codex und die übrigen. Nur der eingefasste Abschnitt gehört uns; alles andere in der Datei bleibt unangetastet.",
+        "Schreibt {path} für Agenten, die keine Claude-Skills lesen: Cursor, Codex und die übrigen. Nur der eingefasste Abschnitt gehört uns; alles andere in der Datei bleibt unangetastet.",
     "settings.agentsCurrent": "Geschrieben, Version {version}. Nichts zu tun.",
     "settings.agentsOutdated": "Geschrieben mit Version {installed}, verfügbar {available}.",
     "settings.agentsUntouched":

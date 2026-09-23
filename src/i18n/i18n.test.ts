@@ -24,7 +24,7 @@ describe("interpolate", () => {
         expect(interpolate("{a} {b}", { a: "x" })).toBe("x {b}");
     });
 
-    it("no params — template as is", () => {
+    it("no params, template as is", () => {
         expect(interpolate("plain text")).toBe("plain text");
     });
 
@@ -102,7 +102,7 @@ describe("catalogs", () => {
     // The per-key fallback exists so a user never sees a raw key, not as
     // permission to ship half a language: half the catalog is diagnostics, and
     // an error message that switches to English mid-dashboard reads as a bug.
-    it.each(["ru", "de", "fr", "es"])("%s is complete — every English key is translated", (code) => {
+    it.each(["ru", "de", "fr", "es"])("%s is complete, every English key is translated", (code) => {
         const catalog = CATALOGS[code];
         const missing = (Object.keys(en) as MessageKey[]).filter((k) => catalog[k] === undefined);
         expect(missing).toEqual([]);

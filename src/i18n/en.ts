@@ -12,7 +12,7 @@
 export const en = {
     "parse.emptyBlock": "The block is empty.",
     "parse.yamlError": "Could not parse YAML: {message}",
-    "parse.unknownKey": "Unknown key \"{key}\" — ignored.",
+    "parse.unknownKey": "Unknown key \"{key}\", ignored.",
     "parse.unknownKeyGuess": "Unknown key \"{key}\". Did you mean \"{guess}\"?",
 
     "render.line": "line {line}",
@@ -20,11 +20,11 @@ export const en = {
     "bands.hasData": "has data",
     "bands.from": "from {min}",
 
-    "where.noSuchFolder": "Nothing is filed under `{folder}` — the numbers below count nothing. Point `source` at a folder of your own.",
+    "where.noSuchFolder": "Nothing is filed under `{folder}`. The numbers below count nothing. Point `source` at a folder of your own.",
     "where.unreadable":
-        "`where: {where}` could not be read and was ignored — the numbers below are unfiltered. Expected something like `year = 2026`, `rating >= 4` or `tags contains books`.",
+        "`where: {where}` could not be read and was ignored. The numbers below are unfiltered. Expected something like `year = 2026`, `rating >= 4` or `tags contains books`.",
     "where.conjunction":
-        "`where: {where}` holds more than one condition, and only one is supported — the filter was ignored. Narrow with `source` or `tag`, or quote the value if the word is part of it.",
+        "`where: {where}` holds more than one condition, and only one is supported. The filter was ignored. Narrow with `source` or `tag`, or quote the value if the word is part of it.",
 
     "tiles.empty": "No tiles to draw. Expected `items:` or a list.",
 
@@ -34,19 +34,19 @@ export const en = {
     "stats.unknownAggGuess":
         "{card}: unknown aggregate \"{agg}\". Did you mean \"{guess}\"? Available: {available}.",
     "stats.fieldRequired":
-        "{card}: the \"{agg}\" aggregate needs a number — add `field:` with a frontmatter property.",
+        "{card}: the \"{agg}\" aggregate needs a number. Add `field:` with a frontmatter property.",
     "stats.badPrecision":
-        "{card}: `precision` expects a whole number from 0 to {max}, got \"{value}\" — rounding the default way.",
+        "{card}: `precision` expects a whole number from 0 to {max}, got \"{value}\". Rounding the default way.",
 
     "progress.empty": "No bars to draw. Expected `items:` or a list.",
-    "progress.goalRequired": "{card}: `goal:` needs a number — there is nothing to measure against.",
-    "progress.goalNotPositive": "{card}: a goal of {goal} leaves nothing to fill — it must be above zero.",
+    "progress.goalRequired": "{card}: `goal:` needs a number. There is nothing to measure against.",
+    "progress.goalNotPositive": "{card}: a goal of {goal} leaves nothing to fill. It must be above zero.",
 
-    "stats.trendNeedsField": "{card}: `trend` needs a `field:` to plot — counting notes has no shape.",
+    "stats.trendNeedsField": "{card}: `trend` needs a `field:` to plot. Counting notes has no shape.",
     "stats.trendInvalid": "{card}: `trend` expects a number of days such as 30d, got \"{value}\".",
 
     "countdown.empty": "No dates to draw. Expected `items:` or a list.",
-    "countdown.dateRequired": "{card}: `date:` is missing — there is nothing to count down to.",
+    "countdown.dateRequired": "{card}: `date:` is missing. There is nothing to count down to.",
     "countdown.dateInvalid": "{card}: \"{date}\" is not a date. Expected YYYY-MM-DD.",
     "countdown.today": "Today",
     // The count is drawn separately, in large type, so these carry the noun
@@ -64,20 +64,20 @@ export const en = {
 
     "today.expectFields": "Expected a set of fields, for example `daily: true`.",
     "today.nothingToShow": "Nothing to show: enable `daily`, `weekly` or `monthly`.",
-    "today.notBoolean": "`{key}` expects true or false, got \"{value}\" — reading it as {read}.",
+    "today.notBoolean": "`{key}` expects true or false, got \"{value}\". Reading it as {read}.",
     "today.daily": "Today",
     "today.weekly": "This week",
     "today.monthly": "This month",
-    "today.missingNote": "{path} — the note does not exist yet, clicking creates it",
+    "today.missingNote": "{path}: the note does not exist yet, clicking creates it",
 
     "heatmap.expectFields": "Expected a set of fields, for example `source:` and `field:`.",
-    "heatmap.fieldRequired": "No `field` given — there is no number to colour by.",
+    "heatmap.fieldRequired": "No `field` given. There is no number to colour by.",
     "heatmap.noData":
         "No notes with a date name and a number in \"{field}\". Check `source`.",
-    "heatmap.caption": "{year} — {field}: average {average}, {present} of {total} days",
-    "heatmap.titleYear": "{title} — {year}",
-    "heatmap.cell": "{date} — {field} {value}",
-    "heatmap.cellEmpty": "{date} — no data",
+    "heatmap.caption": "{year}, {field}: average {average}, {present} of {total} days",
+    "heatmap.titleYear": "{title} ({year})",
+    "heatmap.cell": "{date}: {field} {value}",
+    "heatmap.cellEmpty": "{date}: no data",
 
     "insert.name": "Insert block",
     "insert.placeholder": "Which block?",
@@ -118,7 +118,7 @@ export const en = {
     "settings.skillOutdated": "Installed version {installed}, available {available}.",
     "settings.agentsName": "AGENTS.md in the vault root",
     "settings.agentsNotInstalled":
-        "Writes {path} for agents that do not read Claude skills — Cursor, Codex and the rest. Only the fenced section is ours; anything else in the file is left alone.",
+        "Writes {path} for agents that do not read Claude skills: Cursor, Codex and the rest. Only the fenced section is ours; anything else in the file is left alone.",
     "settings.agentsCurrent": "Written, version {version}. Nothing to do.",
     "settings.agentsOutdated": "Written at version {installed}, available {available}.",
     "settings.agentsUntouched":

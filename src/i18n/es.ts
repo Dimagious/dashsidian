@@ -10,7 +10,7 @@ import type { Catalog } from "./en";
 export const es: Catalog = {
     "parse.emptyBlock": "El bloque está vacío.",
     "parse.yamlError": "No se pudo leer el YAML: {message}",
-    "parse.unknownKey": "Clave desconocida «{key}» — ignorada.",
+    "parse.unknownKey": "Clave desconocida «{key}», ignorada.",
     "parse.unknownKeyGuess": "Clave desconocida «{key}». ¿Querías decir «{guess}»?",
 
     "render.line": "línea {line}",
@@ -18,11 +18,11 @@ export const es: Catalog = {
     "bands.hasData": "con datos",
     "bands.from": "desde {min}",
 
-    "where.noSuchFolder": "No hay nada bajo `{folder}` — los números de abajo no cuentan nada. Apunta `source` a una carpeta tuya.",
+    "where.noSuchFolder": "No hay nada bajo `{folder}`. Los números de abajo no cuentan nada. Apunta `source` a una carpeta tuya.",
     "where.unreadable":
-        "`where: {where}` no se pudo leer y se ignoró — los números de abajo están sin filtrar. Se espera algo como `year = 2026`, `rating >= 4` o `tags contains books`.",
+        "`where: {where}` no se pudo leer y se ignoró. Los números de abajo están sin filtrar. Se espera algo como `year = 2026`, `rating >= 4` o `tags contains books`.",
     "where.conjunction":
-        "`where: {where}` contiene más de una condición y solo se admite una — el filtro se ignoró. Acota con `source` o `tag`, o entrecomilla el valor si la palabra forma parte de él.",
+        "`where: {where}` contiene más de una condición y solo se admite una. El filtro se ignoró. Acota con `source` o `tag`, o entrecomilla el valor si la palabra forma parte de él.",
 
     "tiles.empty": "No hay mosaicos que dibujar. Se espera `items:` o una lista.",
 
@@ -32,19 +32,19 @@ export const es: Catalog = {
     "stats.unknownAggGuess":
         "{card}: agregado «{agg}» desconocido. ¿Querías decir «{guess}»? Disponibles: {available}.",
     "stats.fieldRequired":
-        "{card}: el agregado «{agg}» necesita un número — añade `field:` con una propiedad del frontmatter.",
+        "{card}: el agregado «{agg}» necesita un número. Añade `field:` con una propiedad del frontmatter.",
     "stats.badPrecision":
-        "{card}: `precision` espera un entero de 0 a {max}, recibido «{value}» — se redondea como por defecto.",
+        "{card}: `precision` espera un entero de 0 a {max}, recibido «{value}». Se redondea como por defecto.",
 
     "progress.empty": "No hay barras que dibujar. Se espera `items:` o una lista.",
-    "progress.goalRequired": "{card}: `goal:` necesita un número — no hay nada con lo que medir.",
-    "progress.goalNotPositive": "{card}: un objetivo de {goal} no deja nada que llenar — tiene que ser mayor que cero.",
+    "progress.goalRequired": "{card}: `goal:` necesita un número. No hay nada con lo que medir.",
+    "progress.goalNotPositive": "{card}: un objetivo de {goal} no deja nada que llenar. Tiene que ser mayor que cero.",
 
-    "stats.trendNeedsField": "{card}: `trend` necesita un `field:` que trazar — contar notas no tiene forma.",
+    "stats.trendNeedsField": "{card}: `trend` necesita un `field:` que trazar. Contar notas no tiene forma.",
     "stats.trendInvalid": "{card}: `trend` espera un número de días como 30d, recibido «{value}».",
 
     "countdown.empty": "No hay fechas que dibujar. Se espera `items:` o una lista.",
-    "countdown.dateRequired": "{card}: falta `date:` — no hay nada hacia lo que contar.",
+    "countdown.dateRequired": "{card}: falta `date:`. No hay nada hacia lo que contar.",
     "countdown.dateInvalid": "{card}: «{date}» no es una fecha. Se espera YYYY-MM-DD.",
     "countdown.today": "Hoy",
     "countdown.daysLeft.one": "día restante",
@@ -58,20 +58,20 @@ export const es: Catalog = {
 
     "today.expectFields": "Se espera un conjunto de campos, por ejemplo `daily: true`.",
     "today.nothingToShow": "Nada que mostrar: activa `daily`, `weekly` o `monthly`.",
-    "today.notBoolean": "`{key}` espera true o false, recibido «{value}» — se lee como {read}.",
+    "today.notBoolean": "`{key}` espera true o false, recibido «{value}». Se lee como {read}.",
     "today.daily": "Hoy",
     "today.weekly": "Esta semana",
     "today.monthly": "Este mes",
-    "today.missingNote": "{path} — la nota todavía no existe, al hacer clic se crea",
+    "today.missingNote": "{path}: la nota todavía no existe, al hacer clic se crea",
 
     "heatmap.expectFields": "Se espera un conjunto de campos, por ejemplo `source:` y `field:`.",
-    "heatmap.fieldRequired": "No se indicó `field` — no hay número con el que colorear.",
+    "heatmap.fieldRequired": "No se indicó `field`. No hay número con el que colorear.",
     "heatmap.noData":
         "No hay notas con una fecha por nombre y un número en «{field}». Revisa `source`.",
-    "heatmap.caption": "{year} — {field}: media {average}, {present} de {total} días",
-    "heatmap.titleYear": "{title} — {year}",
-    "heatmap.cell": "{date} — {field} {value}",
-    "heatmap.cellEmpty": "{date} — sin datos",
+    "heatmap.caption": "{year}, {field}: media {average}, {present} de {total} días",
+    "heatmap.titleYear": "{title} ({year})",
+    "heatmap.cell": "{date}: {field} {value}",
+    "heatmap.cellEmpty": "{date}: sin datos",
 
     "insert.name": "Insertar bloque",
     "insert.placeholder": "¿Qué bloque?",
@@ -112,7 +112,7 @@ export const es: Catalog = {
     "settings.skillOutdated": "Instalada la versión {installed}, disponible {available}.",
     "settings.agentsName": "AGENTS.md en la raíz de la bóveda",
     "settings.agentsNotInstalled":
-        "Escribe {path} para agentes que no leen skills de Claude — Cursor, Codex y los demás. Solo la sección delimitada es nuestra; el resto del archivo se queda como está.",
+        "Escribe {path} para agentes que no leen skills de Claude: Cursor, Codex y los demás. Solo la sección delimitada es nuestra; el resto del archivo se queda como está.",
     "settings.agentsCurrent": "Escrito, versión {version}. Nada que hacer.",
     "settings.agentsOutdated": "Escrito en la versión {installed}, disponible {available}.",
     "settings.agentsUntouched":
