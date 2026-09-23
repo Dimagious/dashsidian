@@ -78,7 +78,7 @@ function copyAssets() {
         bundle: true,
         outfile: outFile,
         format: "cjs",
-        platform: "node",
+        platform: "browser",
         target: "es2020",
         external: ["obsidian", "electron", "@codemirror/state", "@codemirror/view"],
         loader: { ".css": "text" },
