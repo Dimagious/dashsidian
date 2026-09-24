@@ -10,6 +10,17 @@ removed public export.
 
 ## [Unreleased]
 
+### Added
+
+- **Checkbox properties work as a field.** An Obsidian checkbox property
+  (`gym: true` in Properties) now counts as 1 when ticked and 0 when not,
+  everywhere a block reads a `field`: heatmap paints the ticked days, `sum`
+  on stats and progress turns into a day count, `avg` into the share of
+  ticked days (0 to 1, not a percent), and `streak` breaks on an unticked
+  day the same way it breaks on a missing one. A heatmap year that is
+  entirely booleans drops the average from its caption, since a checkbox is
+  not a quantity to average, only a tally of ticks.
+
 ## [1.1.0] - 2026-09-23
 
 ### Added

@@ -8,7 +8,7 @@
  */
 
 import type { NoteRecord } from "./source";
-import { numberAt } from "./aggregate";
+import { numberAt, isBooleanMark } from "./aggregate";
 
 export interface VaultProfile {
     /** the folder holding the most notes, or null for a vault with none */
@@ -33,6 +33,12 @@ export function profileVault(notes: readonly NoteRecord[]): VaultProfile {
     for (const note of notes) {
         if (note.folder) byFolder.set(note.folder, (byFolder.get(note.folder) ?? 0) + 1);
         for (const key of Object.keys(note.frontmatter)) {
+            // A checkbox counts as data everywhere else now, but not as the
+            // example field: `field: gym` painting itself into a stranger's
+            // vault the moment they have one habit checkbox reads as a
+            // fluke, and `bands: [90, 80, 60]` over a 1/0 value is nonsense.
+            // A real number is still the honest guess for "what field".
+            if (isBooleanMark(note, key)) continue;
             if (numberAt(note, key) !== null) byField.set(key, (byField.get(key) ?? 0) + 1);
         }
     }

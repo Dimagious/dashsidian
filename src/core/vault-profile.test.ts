@@ -29,6 +29,28 @@ describe("profileVault", () => {
         expect(profileVault(notes).field).toBeNull();
     });
 
+    // A checkbox property (`gym: true`) is numeric data everywhere else now,
+    // but not here: `field: gym` in a first-run example would draw a heatmap
+    // with `bands: [90, 80, 60]` over a 1/0 value and a "Sleep" card
+    // averaging 0.7, both nonsense the moment a checkbox happens to be the
+    // vault's most common property.
+    it("a boolean checkbox property is passed over for a real number", () => {
+        const notes = [
+            note("Diary", "a", { gym: true, sleep_score: 82 }),
+            note("Diary", "b", { gym: false, sleep_score: 74 }),
+            note("Diary", "c", { gym: true, sleep_score: 90 }),
+        ];
+        expect(profileVault(notes).field).toBe("sleep_score");
+    });
+
+    it("a vault with only a checkbox property has no field to suggest", () => {
+        const notes = [
+            note("Diary", "a", { gym: true }),
+            note("Diary", "b", { gym: false }),
+        ];
+        expect(profileVault(notes).field).toBeNull();
+    });
+
     it("an empty property in a template does not count", () => {
         const notes = [note("J", "a", { mood: 3 }), note("Templates", "Daily", { mood: "" })];
         expect(profileVault(notes).field).toBe("mood");

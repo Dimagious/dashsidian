@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { renderHeatmap } from "./heatmap";
+import { formatValue } from "../core/stat";
 import { mockContext, diary, host, texts, nodes, diagnostics } from "../test/vault";
 
 // 2026 starts on a Thursday. With weeks starting on Sunday (the English
@@ -152,6 +153,109 @@ describe("heatmap — the caption", () => {
     it("one year leaves the custom title alone", () => {
         const el = map("source: Diary\nfield: sleep_score\ntitle: My sleep");
         expect(texts(el, ".dashy-hm-title")).toEqual(["My sleep"]);
+    });
+});
+
+describe("heatmap — boolean checkbox fields", () => {
+    // A ticked Obsidian checkbox property (`gym: true`) is the most requested
+    // habit-tracker shape: a daily note with nothing but a checkbox should
+    // still paint a heatmap.
+    const gymCtx = mockContext({
+        // day 0 (Jan 1) ticked, day 1 (Jan 2) unticked, day 2 (Jan 3) ticked.
+        notes: diary("Diary", "2026-01-01", 3, (i) => ({ gym: i !== 1 })),
+    });
+
+    it("a ticked day is painted like a value of 1", () => {
+        const el = map("source: Diary\nfield: gym", gymCtx);
+        const jan1 = nodes(el, "a.dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-01"));
+        expect(jan1?.getAttribute("title")).toContain("gym 1");
+        expect(jan1?.style.backgroundColor).not.toBe("");
+    });
+
+    it("an unticked day is not painted and reads exactly like a day without data", () => {
+        const el = map("source: Diary\nfield: gym", gymCtx);
+        const jan2 = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-02"));
+        expect(jan2?.tagName).toBe("DIV");
+        expect(jan2?.style.backgroundColor).toBe("");
+        expect(jan2?.getAttribute("title")).toContain("no data");
+    });
+
+    it("only the ticked days count toward the total painted", () => {
+        const el = map("source: Diary\nfield: gym", gymCtx);
+        const coloured = nodes(el, ".dashy-hm-cell").filter((c) => c.style.backgroundColor !== "");
+        expect(coloured).toHaveLength(2);
+    });
+
+    it("a year that is entirely booleans drops the average from the caption", () => {
+        const caption = texts(map("source: Diary\nfield: gym", gymCtx), ".dashy-hm-title")[0] ?? "";
+        expect(caption).not.toContain("average");
+        expect(caption).toContain("gym");
+        expect(caption).toContain("2 of");
+    });
+
+    it("a year mixing numbers and booleans keeps the average", () => {
+        const mixedCtx = mockContext({
+            notes: [
+                ...diary("Diary", "2026-01-01", 1, () => ({ steps: true })),
+                ...diary("Diary", "2026-01-02", 1, () => ({ steps: 500 })),
+            ],
+        });
+        const caption = texts(map("source: Diary\nfield: steps", mixedCtx), ".dashy-hm-title")[0] ?? "";
+        expect(caption).toContain("average");
+    });
+
+    // The caption average has to agree with what a `stats` `avg` card would
+    // show over the same field: both sum every recognised day and divide by
+    // how many there are, a `false` counted as 0. Counting only the painted
+    // days used to inflate this to (4 + 1) / 2 = 2.5.
+    it("the caption average counts a false day as 0, the same as a stats avg would", () => {
+        const days3Ctx = mockContext({
+            notes: [
+                ...diary("Diary", "2026-01-01", 1, () => ({ steps: 4 })),
+                ...diary("Diary", "2026-01-02", 1, () => ({ steps: true })),
+                ...diary("Diary", "2026-01-03", 1, () => ({ steps: false })),
+            ],
+        });
+        const caption = texts(map("source: Diary\nfield: steps", days3Ctx), ".dashy-hm-title")[0] ?? "";
+        const expected = formatValue((4 + 1 + 0) / 3);
+        expect(caption).toContain(`average ${expected}`);
+        // The false day still is not painted, so only 2 of 3 count as "present".
+        expect(caption).toContain("2 of");
+    });
+
+    it("a field that is false every day still draws the year, not a no-data error", () => {
+        const allFalseCtx = mockContext({
+            notes: diary("Diary", "2026-01-01", 3, () => ({ gym: false })),
+        });
+        const el = map("source: Diary\nfield: gym", allFalseCtx);
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        expect(caption).toContain("0 of");
+        expect(nodes(el, ".dashy-hm-cell").filter((c) => c.style.backgroundColor !== "")).toHaveLength(0);
+    });
+
+    // Two notes named for the same day disagreeing (a ticked one in one
+    // folder, an unticked one in another) used to paint or not depending on
+    // which the vault happened to list last. `streak` never had this problem:
+    // it drops `false` notes before deduping date names, so any note that
+    // survives keeps the day, in either order. The heatmap now agrees with it.
+    it.each([
+        ["ticked note listed first", [
+            { path: "Personal/2026-01-02.md", frontmatter: { gym: true } },
+            { path: "Work/2026-01-02.md", frontmatter: { gym: false } },
+        ]],
+        ["ticked note listed last", [
+            { path: "Work/2026-01-02.md", frontmatter: { gym: false } },
+            { path: "Personal/2026-01-02.md", frontmatter: { gym: true } },
+        ]],
+    ])("a ticked twin always wins over an unticked one, regardless of order (%s)", (_label, notes) => {
+        const el = map("field: gym", mockContext({ notes }));
+        const link = nodes(el, "a.dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-02"));
+        expect(link?.getAttribute("data-href")).toBe("Personal/2026-01-02.md");
+        expect(link?.getAttribute("title")).toContain("gym 1");
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        expect(caption).toContain("1 of");
     });
 });
 

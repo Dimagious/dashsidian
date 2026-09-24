@@ -94,7 +94,7 @@
         },
         "field": {
           "type": "string",
-          "doc": "numeric frontmatter property; required for everything but count and streak",
+          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak",
           "aliases": [
             "property",
             "prop"
@@ -184,7 +184,7 @@
         },
         "field": {
           "type": "string",
-          "doc": "numeric frontmatter property; required for everything but count and streak",
+          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak",
           "aliases": [
             "property",
             "prop"
@@ -323,7 +323,7 @@
         "field": {
           "type": "string",
           "required": true,
-          "doc": "numeric frontmatter property",
+          "doc": "numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty",
           "aliases": [
             "property",
             "prop"

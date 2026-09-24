@@ -1,7 +1,7 @@
 import type { BlockContext } from "./context";
 import { weekdayNamesShort, monthNamesShort, firstDayOfWeek } from "../adapters/datetime";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
-import { numberAt } from "../core/aggregate";
+import { numberAt, isFalseMark, isBooleanMark } from "../core/aggregate";
 import { formatValue } from "../core/stat";
 import { layoutYear, dateKey, eachDay, yearsOf, rotateWeekdays, weekdayRow } from "../core/calendar";
 import { toRgb, rgba, type Rgb } from "../core/palette";
@@ -42,15 +42,33 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
     const notes = selectNotes(ctx.notes(), selection);
 
-    const byDate = new Map<string, { value: number; path: string }>();
+    // One entry per date the field resolved on at all — a boolean `false` is
+    // in here too, with `painted: false`: that day still tells the block the
+    // field exists, it just does not get coloured. Without the distinction, a
+    // field that is `false` on every day looked identical to a field nothing
+    // ever set, and a stats `avg` over the same field would silently disagree
+    // with the heatmap's own caption about what the average is.
+    const marks = new Map<string, DayMark>();
     for (const n of notes) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(n.name)) continue;
         const v = numberAt(n, field);
         if (v === null) continue;
-        byDate.set(n.name, { value: v, path: n.path });
+        const painted = !isFalseMark(n, field);
+        // A painted mark must never be displaced by a `false` one for the
+        // same date: two notes named the same day (Personal/2026-01-02 and
+        // Work/2026-01-02, one ticked and one not) used to paint or not
+        // depending on which the vault happened to iterate last. `streak`
+        // never had this problem — it dedupes date names after dropping
+        // `false` ones, so any note that passes keeps the day regardless of
+        // order — and the heatmap now agrees with it. Two painted notes for
+        // the same day (true/true, or two different numbers) still resolve
+        // last-write-wins, same as always: only "false vs. painted" has one
+        // honest answer.
+        if (!painted && marks.get(n.name)?.painted) continue;
+        marks.set(n.name, { value: v, path: n.path, isBool: isBooleanMark(n, field), painted });
     }
 
-    if (!byDate.size) {
+    if (!marks.size) {
         diags.push({ level: "error", message: t("heatmap.noData", { field }) });
         renderDiagnostics(el, "heatmap", diags);
         return;
@@ -63,13 +81,21 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     // One grid per calendar year. With more than one, each has to say which
     // year it is — otherwise two grids under the same custom title read as the
     // same thing drawn twice, which is exactly how it was first reported.
-    const years = yearsOf([...byDate.keys()]);
+    const years = yearsOf([...marks.keys()]);
     for (const year of years) {
-        drawYear(el, year, today, byDate, {
+        drawYear(el, year, today, marks, {
             color, bands, field, linkable, title: value.title, firstDay,
             severalYears: years.length > 1,
         });
     }
+}
+
+/** A day the field resolved on. `painted` is false only for a boolean `false`. */
+interface DayMark {
+    value: number;
+    path: string;
+    isBool: boolean;
+    painted: boolean;
 }
 
 interface DrawOptions {
@@ -88,30 +114,46 @@ function drawYear(
     el: HTMLElement,
     year: number,
     today: Date,
-    byDate: Map<string, { value: number; path: string }>,
+    marks: Map<string, DayMark>,
     opts: DrawOptions,
 ): void {
     const layout = layoutYear(year, today, opts.firstDay);
     const wrap = el.createDiv({ cls: "dashy-hm-wrap" });
 
-    const present = eachDay(year, layout.total)
-        .map((k) => byDate.get(k))
-        .filter((v): v is { value: number; path: string } => v !== undefined);
+    const yearMarks = eachDay(year, layout.total)
+        .map((k) => marks.get(k))
+        .filter((v): v is DayMark => v !== undefined);
+    const present = yearMarks.filter((m) => m.painted);
 
-    // Formatted the way a stat card formats it: the same data read "average 5"
-    // here and "4.6" on a card, and both are presented as facts.
+    // The average counts every recognised day, a `false` one included as 0 —
+    // the same sum a stats `avg` card over this field would show. Counting
+    // only the painted days used to read "average 1" for an all-boolean field
+    // no matter how many days were actually unticked, which is not the rate
+    // anyone reading a habit tracker would call "average".
     const average = formatValue(
-        present.length ? present.reduce((s, d) => s + d.value, 0) / present.length : 0,
+        yearMarks.length ? yearMarks.reduce((s, m) => s + m.value, 0) / yearMarks.length : 0,
     );
+
+    // Every painted day of an all-boolean field can only ever be 1: "average 1"
+    // states the obvious rather than informing, so the caption drops it.
+    const booleanOnly = yearMarks.length > 0 && yearMarks.every((m) => m.isBool);
+
     const caption = typeof opts.title === "string"
         ? (opts.severalYears ? t("heatmap.titleYear", { title: opts.title, year }) : opts.title)
-        : t("heatmap.caption", {
-            year,
-            field: opts.field,
-            average,
-            present: present.length,
-            total: layout.total,
-        });
+        : booleanOnly
+            ? t("heatmap.captionMarks", {
+                year,
+                field: opts.field,
+                present: present.length,
+                total: layout.total,
+            })
+            : t("heatmap.caption", {
+                year,
+                field: opts.field,
+                average,
+                present: present.length,
+                total: layout.total,
+            });
     wrap.createDiv({ cls: "dashy-hm-title", text: caption });
 
     const body = wrap.createDiv({ cls: "dashy-hm-body" });
@@ -143,13 +185,14 @@ function drawYear(
 
     for (let i = 0; i < layout.total; i++) {
         const date = dateKey(new Date(year, 0, 1 + i));
-        const hit = byDate.get(date);
-        const cell = hit && opts.linkable
-            ? internalLink(grid, hit.path, "dashy-hm-cell")
+        const hit = marks.get(date);
+        const paintable = hit?.painted ? hit : undefined;
+        const cell = paintable && opts.linkable
+            ? internalLink(grid, paintable.path, "dashy-hm-cell")
             : grid.createDiv({ cls: "dashy-hm-cell" });
-        if (hit) {
-            const band = bandFor(opts.bands, hit.value);
-            const tooltip = t("heatmap.cell", { date, field: opts.field, value: hit.value });
+        if (paintable) {
+            const band = bandFor(opts.bands, paintable.value);
+            const tooltip = t("heatmap.cell", { date, field: opts.field, value: paintable.value });
             cell.style.backgroundColor = rgba(opts.color, band?.alpha ?? 1);
             cell.setAttr("aria-label", tooltip);
             cell.setAttr("title", tooltip);

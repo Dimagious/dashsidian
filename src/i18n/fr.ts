@@ -67,8 +67,9 @@ export const fr: Catalog = {
     "heatmap.expectFields": "Attendu : un ensemble de champs, par exemple `source:` et `field:`.",
     "heatmap.fieldRequired": "Aucun `field` donné. Il n'y a pas de nombre pour colorer.",
     "heatmap.noData":
-        "Aucune note portant une date en nom et un nombre dans « {field} ». Vérifiez `source`.",
+        "Aucune note portant une date en nom et un nombre ou une case à cocher dans « {field} ». Vérifiez `source`.",
     "heatmap.caption": "{year}, {field} : moyenne {average}, {present} jours sur {total}",
+    "heatmap.captionMarks": "{year}, {field} : {present} jours sur {total}",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.cell": "{date}: {field} {value}",
     "heatmap.cellEmpty": "{date}: aucune donnée",

@@ -73,8 +73,9 @@ export const en = {
     "heatmap.expectFields": "Expected a set of fields, for example `source:` and `field:`.",
     "heatmap.fieldRequired": "No `field` given. There is no number to colour by.",
     "heatmap.noData":
-        "No notes with a date name and a number in \"{field}\". Check `source`.",
+        "No notes with a date name and a number or a checkbox in \"{field}\". Check `source`.",
     "heatmap.caption": "{year}, {field}: average {average}, {present} of {total} days",
+    "heatmap.captionMarks": "{year}, {field}: {present} of {total} days",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.cell": "{date}: {field} {value}",
     "heatmap.cellEmpty": "{date}: no data",

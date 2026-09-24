@@ -65,9 +65,10 @@ export const ru: Catalog = {
     "heatmap.expectFields": "Ожидается набор полей, например `source:` и `field:`.",
     "heatmap.fieldRequired": "Не задано `field`. Какое число из frontmatter красить.",
     "heatmap.noData":
-        "Нет заметок с именем-датой и числом в поле «{field}». Проверь `source`.",
+        "Нет заметок с именем-датой и числом или чекбоксом в поле «{field}». Проверь `source`.",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.caption": "{year}, {field}: среднее {average}, {present} из {total} дн.",
+    "heatmap.captionMarks": "{year}, {field}: {present} из {total} дн.",
     "heatmap.cell": "{date}: {field} {value}",
     "heatmap.cellEmpty": "{date}: нет данных",
 

@@ -186,6 +186,20 @@ Notes have to be named as `YYYY-MM-DD` dates, which is how the block knows which
 belong to. Clicking a cell opens that day. The week starts where your language starts it:
 Monday here, Sunday in the US, Canada and Japan.
 
+`field` does not have to be a number. An Obsidian checkbox property, the kind Properties
+draws as a tick box, counts as 1 when ticked and 0 when not, so a daily note with nothing
+but `gym: true` in it is already a habit tracker:
+
+````markdown
+```heatmap
+source: Diary
+field: gym
+```
+````
+
+paints the days you went, and on a `stats` card the same field turns `agg: sum` into a day
+count and `agg: streak` into your longest unbroken run.
+
 ## It keeps up with the vault
 
 Add a note, edit a number, delete something, and every block on the page redraws. No
