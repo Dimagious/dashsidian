@@ -52,6 +52,20 @@ export const en = {
     "period.noDatedNotesField": "{card}: none of the selected notes has a date in \"{field}\".",
     "period.dateFieldUnused": "{card}: `date_field` has no effect without `period`.",
 
+    "compare.notBoolean": "{card}: `compare` expects true or false, got \"{value}\". Comparison skipped.",
+    "compare.needsPeriod": "{card}: `compare` needs `period` set. There is nothing to compare against.",
+    "compare.streakUnsupported":
+        "{card}: `compare` does not work with `streak`. There is no separate value from the previous period to compare a streak against.",
+    "compare.betterUnused": "{card}: `better` has no effect without `compare: true`.",
+    "compare.badBetter": "{card}: `better` expects `up` or `down`, got \"{value}\". The delta stays neutral.",
+    "compare.vsWeek": "vs the same days last week: {value}",
+    "compare.vsMonth": "vs the same days last month: {value}",
+    "compare.vsYear": "vs the same days last year: {value}",
+    "compare.vsDays.one": "vs the day before: {value}",
+    "compare.vsDays.few": "vs the {count} days before: {value}",
+    "compare.vsDays.many": "vs the {count} days before: {value}",
+    "compare.vsDays.other": "vs the {count} days before: {value}",
+
     "countdown.empty": "No dates to draw. Expected `items:` or a list.",
     "countdown.dateRequired": "{card}: `date:` is missing. There is nothing to count down to.",
     "countdown.dateInvalid": "{card}: \"{date}\" is not a date. Expected YYYY-MM-DD.",

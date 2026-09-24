@@ -72,6 +72,8 @@ Number cards: one value per card, computed over a selection of notes.
 | `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported |
 | `period` | string\|number | — | — | — | narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. Notes without a date are left out first, then every agg, count included, runs on what remains. `streak` and `latest` keep going by YYYY-MM-DD note names either way, not by `date_field` |
 | `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name, only with `period` set: `2026-03-02` or `2026-03-02T10:30`. Has no effect without `period`, and does not change `streak`, `latest` or `trend` |
+| `compare` | boolean | — | — | — | show the delta against the same stretch of the previous period, to date: this week compares against the same weekdays last week, not the whole of last week. Only with `period` set, and not with `agg: streak` |
+| `better` | string | — | — | — | `up` colours a rise green and a fall red; `down` reverses that for a number where less is better. No change stays neutral either way. Only with `compare: true` |
 | `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
 | `unit` | string | — | — | — | a suffix after the number: km, %, d. |
@@ -89,7 +91,7 @@ items:
   - { label: Notes, source: 01-Areas, agg: count }
   - { label: Sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }
   - { label: Days in a row, source: Diary, field: sleep_score, agg: streak, unit: d. }
-  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week }
+  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }
 ```
 ````
 
@@ -97,6 +99,7 @@ items:
 - Nothing to count, and the card shows a dash rather than a zero: "no data" and "zero" are different answers.
 - `trend` sketches the days of a trailing window ending today, scaled between the smallest and largest value in that window rather than from zero. A day without a note is left out, not drawn as a zero.
 - `period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its YYYY-MM-DD name unless `date_field` names a property instead; a note with no date under either rule is left out before counting.
+- `compare` needs a note in both windows; when either the current or the previous stretch has none at all, the card shows its number alone with no delta. `streak` has no value of its own to compare and refuses `compare` outright, the way `trend` refuses `count`.
 
 ### `progress`
 

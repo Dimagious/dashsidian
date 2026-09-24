@@ -24,6 +24,9 @@ body {
 
   --dashy-badge: var(--color-red, #e93147);
   --dashy-badge-empty: var(--text-faint);
+
+  --dashy-delta-good: var(--color-green, #2f9e44);
+  --dashy-delta-bad: var(--color-red, #e93147);
 }
 
 @supports (color: color-mix(in srgb, red 50%, blue)) {

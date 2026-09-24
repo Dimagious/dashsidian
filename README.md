@@ -132,6 +132,14 @@ an empty week is not an error: `agg: count` reads the honest `0`, and a field ag
 all is worth a warning, "no note fell in this window" and "nobody here has a date" being
 different problems. `trend` keeps its own trailing window regardless of `period`.
 
+Add `compare: true` next to `period` and the card also shows the delta against the same
+stretch of the previous period, to date: a Thursday this week compares against Monday to
+Thursday last week, not the whole of last week. `better: up` colours a rise green and a fall
+red; `better: down` reverses that for a number where less is better, and with neither set the
+delta stays a neutral colour. When either window has no notes in it at all, the card shows
+its number alone rather than a made-up delta; `streak` cannot be compared this way and
+refuses `compare` outright, the same way `trend` refuses `count`.
+
 ### `progress`: how far along
 
 ````markdown
@@ -217,12 +225,13 @@ narrows to the current week instead of the whole diary:
 ````markdown
 ```stats
 items:
-  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week }
+  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }
 ```
 ````
 
 five sessions since Monday (or Sunday, wherever your week starts) reads as `5`, not the
-whole year's total.
+whole year's total, and `compare: true` adds how that stacks up against the same days last
+week, green when it is more.
 
 ## It keeps up with the vault
 

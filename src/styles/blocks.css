@@ -62,6 +62,15 @@
 /* a dash means "no data", and it should read quieter than a number */
 .dashy-stat-value.is-empty { color: var(--text-faint); font-weight: 500; }
 .dashy-stat-unit { font-size: 0.45em; font-weight: 500; opacity: 0.6; margin-left: 3px; }
+/* `compare` against the same stretch of the previous period. Neutral by
+ * default; `better` on the card picks which direction of the arrow is good. */
+.dashy-stat-delta {
+  font-size: 0.8em; font-weight: 600; margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+.dashy-stat-delta-good { color: var(--dashy-delta-good); }
+.dashy-stat-delta-bad { color: var(--dashy-delta-bad); }
 /* the shape of the last N days: scaled inside its own window, so the bars say
  * how the run moved, not how far it sits from zero */
 .dashy-stat-trend {

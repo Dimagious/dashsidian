@@ -48,7 +48,7 @@ export function t(key: MessageKey, params?: Record<string, string | number>): st
  * Message families that come in plural forms, named by their base key.
  * The catalogues hold `<base>.<category>` for every category we carry.
  */
-export type PluralKey = "countdown.daysLeft" | "countdown.daysAgo";
+export type PluralKey = "countdown.daysLeft" | "countdown.daysAgo" | "compare.vsDays";
 
 /**
  * A count with its noun, in the right form for the language.

@@ -48,6 +48,20 @@ export const ru: Catalog = {
     "period.noDatedNotesField": "{card}: ни у одной выбранной заметки нет даты в «{field}».",
     "period.dateFieldUnused": "{card}: `date_field` не действует без `period`.",
 
+    "compare.notBoolean": "{card}: `compare` ожидает true или false, получено «{value}». Сравнение пропущено.",
+    "compare.needsPeriod": "{card}: `compare` работает только вместе с `period`. Сравнивать не с чем.",
+    "compare.streakUnsupported":
+        "{card}: `compare` не работает со `streak`. У серии нет отдельного значения за предыдущий период для сравнения.",
+    "compare.betterUnused": "{card}: `better` не действует без `compare: true`.",
+    "compare.badBetter": "{card}: `better` ожидает `up` или `down`, получено «{value}». Разница остаётся нейтральной.",
+    "compare.vsWeek": "относительно тех же дней прошлой недели: {value}",
+    "compare.vsMonth": "относительно тех же дней прошлого месяца: {value}",
+    "compare.vsYear": "относительно тех же дней прошлого года: {value}",
+    "compare.vsDays.one": "за предыдущий день: {value}",
+    "compare.vsDays.few": "за предыдущие {count} дня: {value}",
+    "compare.vsDays.many": "за предыдущие {count} дней: {value}",
+    "compare.vsDays.other": "за предыдущие {count} дней: {value}",
+
     "countdown.empty": "Список дат пуст. Ожидается `items:` или массив.",
     "countdown.dateRequired": "{card}: не задан `date:`. Не до чего считать.",
     "countdown.dateInvalid": "{card}: «{date}» не похоже на дату. Ожидается YYYY-MM-DD.",

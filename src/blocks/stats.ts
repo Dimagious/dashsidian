@@ -1,10 +1,19 @@
-import type { NoteRecord } from "../core/source";
 import type { BlockContext } from "./context";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
 import { aggregate, series } from "../core/aggregate";
 import { sparkBars } from "../core/sparkline";
-import { readStat, formatValue, type StatSpec } from "../core/stat";
-import { readPeriod, filterByPeriod } from "../core/period";
+import { readStat, formatValue } from "../core/stat";
+import {
+    readPeriod,
+    readCompare,
+    filterByPeriod,
+    filterByWindow,
+    previousPeriodWindow,
+    formatDelta,
+    deltaTone,
+    compareCaption,
+    type DeltaTone,
+} from "../core/period";
 import { firstDayOfWeek } from "../adapters/datetime";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics } from "../shared/render";
@@ -15,6 +24,16 @@ import schema from "./schema.json";
 const KNOWN_ITEM = Object.keys(schema.blocks.stats.item);
 const KNOWN_ROOT = Object.keys(schema.blocks.stats.root);
 
+interface Delta {
+    /** decorative glyph, kept out of what a screen reader reads as meaningful */
+    arrow: string;
+    /** the sign-and-number part: it carries the meaning on its own */
+    text: string;
+    tone: DeltaTone;
+    /** what the number compares with, e.g. "vs the same days last week: 1" */
+    title: string;
+}
+
 interface Card {
     label: string;
     text: string;
@@ -23,6 +42,8 @@ interface Card {
     sub?: string;
     /** bar heights in percent, empty when no trend was asked for */
     trend: number[];
+    /** unset when `compare` was not asked for, or either side had nothing to count */
+    delta?: Delta;
 }
 
 export function renderStats(ctx: BlockContext, source: string, el: HTMLElement): void {
@@ -84,9 +105,15 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
             counted = windowed.notes;
         }
 
+        const { spec: compareSpec, diagnostics: compareDiags } =
+            readCompare(item, label, periodSpec !== null, spec?.agg);
+        diags.push(...compareDiags);
+
+        const current = spec ? aggregate(counted, { agg: spec.agg, field: spec.field }) : null;
+
         const card: Card = {
             label: label || spec?.field || "",
-            text: cardValue(counted, spec),
+            text: formatValue(current, spec?.precision),
             trend: spec?.trend && spec.field
                 ? sparkBars(series(selected, spec.field, spec.trend, today))
                 : [],
@@ -94,6 +121,31 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         if (typeof item.icon === "string") card.icon = item.icon;
         if (spec?.unit) card.unit = spec.unit;
         if (typeof item.sub === "string") card.sub = item.sub;
+
+        // Compared to the same stretch of the previous period, on the same
+        // selection and the same aggregate. `count` and `streak` never
+        // return null even over an empty window, so "nothing to count" is
+        // decided from the window itself (no notes at all) rather than from
+        // the aggregate — a phantom delta against a made-up 0 is worse than
+        // no delta. `current !== null` still covers a field aggregate whose
+        // window has notes but none carrying the field.
+        if (compareSpec && periodSpec && spec && counted.length && current !== null) {
+            const previousBounds = previousPeriodWindow(periodSpec.period, today, firstDay);
+            const previousFiltered = filterByWindow(selected, previousBounds, periodSpec.dateField);
+            const previous = previousFiltered.notes.length
+                ? aggregate(previousFiltered.notes, { agg: spec.agg, field: spec.field })
+                : null;
+            if (previous !== null) {
+                const format = formatDelta(current, previous, spec.precision);
+                card.delta = {
+                    arrow: format.arrow,
+                    text: format.text,
+                    tone: deltaTone(format.direction, compareSpec.better),
+                    title: compareCaption(periodSpec.period, formatValue(previous, spec.precision)),
+                };
+            }
+        }
+
         cards.push(card);
     }
 
@@ -119,6 +171,17 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
             valueEl.createSpan({ cls: "dashy-stat-unit", text: card.unit });
         }
 
+        if (card.delta) {
+            const deltaEl = box.createDiv({
+                cls: `dashy-stat-delta dashy-stat-delta-${card.delta.tone}`,
+                title: card.delta.title,
+            });
+            // The arrow is decorative; the sign on the number already carries
+            // the meaning, so a screen reader loses nothing by skipping it.
+            deltaEl.createSpan({ cls: "dashy-stat-delta-arrow", attr: { "aria-hidden": "true" }, text: card.delta.arrow });
+            deltaEl.appendText(` ${card.delta.text}`);
+        }
+
         if (card.trend.length) {
             const spark = box.createDiv({ cls: "dashy-stat-trend" });
             for (const height of card.trend) {
@@ -129,10 +192,4 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         if (card.label) box.createDiv({ cls: "dashy-stat-label", text: card.label });
         if (card.sub) box.createDiv({ cls: "dashy-stat-sub", text: card.sub });
     }
-}
-
-/** No spec — a card with a dash. */
-function cardValue(selected: readonly NoteRecord[], spec: StatSpec | null): string {
-    if (!spec) return "—";
-    return formatValue(aggregate(selected, { agg: spec.agg, field: spec.field }), spec.precision);
 }

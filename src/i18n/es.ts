@@ -50,6 +50,20 @@ export const es: Catalog = {
     "period.noDatedNotesField": "{card}: ninguna de las notas seleccionadas tiene fecha en «{field}».",
     "period.dateFieldUnused": "{card}: `date_field` no tiene efecto sin `period`.",
 
+    "compare.notBoolean": "{card}: `compare` espera true o false, recibido «{value}». Comparación omitida.",
+    "compare.needsPeriod": "{card}: `compare` necesita `period`. No hay nada con qué comparar.",
+    "compare.streakUnsupported":
+        "{card}: `compare` no funciona con `streak`. Una racha no tiene un valor propio del período anterior con el que comparar.",
+    "compare.betterUnused": "{card}: `better` no tiene efecto sin `compare: true`.",
+    "compare.badBetter": "{card}: `better` espera `up` o `down`, recibido «{value}». La diferencia queda neutra.",
+    "compare.vsWeek": "respecto a los mismos días de la semana pasada: {value}",
+    "compare.vsMonth": "respecto a los mismos días del mes pasado: {value}",
+    "compare.vsYear": "respecto a los mismos días del año pasado: {value}",
+    "compare.vsDays.one": "respecto al día anterior: {value}",
+    "compare.vsDays.few": "respecto a los {count} días anteriores: {value}",
+    "compare.vsDays.many": "respecto a los {count} días anteriores: {value}",
+    "compare.vsDays.other": "respecto a los {count} días anteriores: {value}",
+
     "countdown.empty": "No hay fechas que dibujar. Se espera `items:` o una lista.",
     "countdown.dateRequired": "{card}: falta `date:`. No hay nada hacia lo que contar.",
     "countdown.dateInvalid": "{card}: «{date}» no es una fecha. Se espera YYYY-MM-DD.",

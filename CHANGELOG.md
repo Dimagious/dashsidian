@@ -31,6 +31,22 @@ removed public export.
   aggregate shows its usual dash for nothing to count. `streak`, `latest`
   and `trend` are unaffected: they keep their own rules and their own
   windows.
+- **`compare` on a stats card.** Next to `period`, `compare: true` adds the
+  delta against the same stretch of the previous period, to date: a Thursday
+  this week compares against Monday to Thursday last week, not the whole of
+  last week, and 31 March compares against the last day of February. The
+  delta reads as a sign and a number, up or down, never a bare minus sign
+  that could pass for a hyphen, and it is computed from the same rounded
+  values the card itself shows, so a card at `precision: 0` never prints "no
+  change" for numbers that visibly differ. `better: up` colours a rise green
+  and a fall red, `better: down` reverses that for a number where less is
+  better, and with neither the delta stays a neutral colour; a change of
+  zero is always neutral. `compare` without `period` warns instead of
+  comparing against nothing, a `compare` that is not `true` or `false` warns
+  and draws no delta instead of failing silently, `streak` refuses `compare`
+  outright the way `trend` already refuses `count`, and either side of the
+  comparison having no notes at all in its window means no delta rather than
+  a made-up one.
 
 ## [1.1.0] - 2026-09-23
 

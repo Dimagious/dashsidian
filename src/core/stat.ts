@@ -105,26 +105,39 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
 }
 
 /**
- * A number turned into card text.
+ * The number as it will be displayed, before grouping: same rounding
+ * `formatValue` applies, exposed as a number rather than text.
  *
- * A dash rather than a zero: "nothing to count" and "counted zero" are
- * different answers, and passing the first off as the second lies about the
- * data.
+ * `core/period.ts` uses this to compute a delta from the values as shown
+ * rather than from the raw difference — otherwise a card rounded to whole
+ * numbers could read 11 and 10 while the delta beneath it, built from the
+ * unrounded 10.6 and 10.4, printed "no change".
  *
  * Without `precision` a whole number stays whole and a fraction is rounded to
  * one decimal: otherwise `avg` prints 72.83333333333333 and breaks the card
  * layout.
  */
-export function formatValue(value: number | null, precision?: number): string {
-    if (value === null || !Number.isFinite(value)) return "—";
+export function roundedValue(value: number, precision?: number): number {
     if (precision !== undefined) {
         const fixed = value.toFixed(precision);
         // toFixed keeps the sign of a value that rounds to nothing: -0.04 at
         // one decimal came out as "-0.0", which reads as a measurement.
-        return group(Number(fixed) === 0 ? (0).toFixed(precision) : fixed);
+        return Number(fixed) === 0 ? 0 : Number(fixed);
     }
-    if (Number.isInteger(value)) return group(String(value));
-    return group(String(Math.round(value * 10) / 10));
+    return Number.isInteger(value) ? value : Math.round(value * 10) / 10;
+}
+
+/**
+ * A number turned into card text.
+ *
+ * A dash rather than a zero: "nothing to count" and "counted zero" are
+ * different answers, and passing the first off as the second lies about the
+ * data.
+ */
+export function formatValue(value: number | null, precision?: number): string {
+    if (value === null || !Number.isFinite(value)) return "—";
+    const rounded = roundedValue(value, precision);
+    return group(precision !== undefined ? rounded.toFixed(precision) : String(rounded));
 }
 
 /** A narrow no-break space: digit groups must not wrap across lines. */

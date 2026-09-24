@@ -150,8 +150,8 @@ columns: 4
 items:
   - { label: Gym days, source: Diary, field: gym, agg: sum, icon: 🏋️ }
   - { label: Longest gym streak, source: Diary, field: gym, agg: streak, unit: days }
-  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, icon: 🏋️ }
-  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month, icon: 🏋️ }
+  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, icon: 🏋️, compare: true, better: up }
+  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month, icon: 🏋️, compare: true, better: up }
 \`\`\`
 
 \`\`\`heatmap
