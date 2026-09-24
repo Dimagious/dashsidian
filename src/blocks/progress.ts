@@ -4,6 +4,8 @@ import { selectNotes, readSource, unmatchedSource } from "../core/source";
 import { aggregate } from "../core/aggregate";
 import { formatValue } from "../core/stat";
 import { readProgress, percentOf, barWidth, type ProgressSpec } from "../core/progress";
+import { readPeriod, filterByPeriod } from "../core/period";
+import { firstDayOfWeek } from "../adapters/datetime";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics } from "../shared/render";
 import { t } from "../i18n";
@@ -44,6 +46,9 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
 
     // One snapshot for the whole page, taken by the context.
     const notes = ctx.notes();
+    // Taken once, so every bar on the page measures the same window.
+    const today = new Date();
+    const firstDay = firstDayOfWeek();
     const bars: Bar[] = [];
 
     for (const item of items) {
@@ -57,7 +62,26 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
         diags.push(...sourceDiags);
         const missing = unmatchedSource(notes, source);
         if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
-        bars.push(toBar(selectNotes(notes, source), spec, label, item));
+        const selected = selectNotes(notes, source);
+
+        const { spec: periodSpec, diagnostics: periodDiags } = readPeriod(item, label);
+        diags.push(...periodDiags);
+        let counted = selected;
+        if (periodSpec) {
+            const windowed = filterByPeriod(selected, periodSpec.period, today, firstDay, periodSpec.dateField);
+            if (selected.length && !windowed.anyDated) {
+                const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
+                diags.push({
+                    level: "warning",
+                    message: periodSpec.dateField
+                        ? t("period.noDatedNotesField", { card: cardLabel, field: periodSpec.dateField })
+                        : t("period.noDatedNotes", { card: cardLabel }),
+                });
+            }
+            counted = windowed.notes;
+        }
+
+        bars.push(toBar(counted, spec, label, item));
     }
 
     // Diagnostics before the bars: an error must be seen before an empty track.

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderStats } from "./stats";
 import { mockContext, diary, recentDiary, host, texts, nodes, diagnostics } from "../test/vault";
 
@@ -61,7 +61,17 @@ describe("stats — the numbers are the real ones", () => {
         expect(texts(el, ".dashy-stat-unit")).toEqual(["st"]);
         // A real space, not only a CSS margin: "14 500st" is what a screen
         // reader would otherwise say.
-        expect(nodes(el, ".dashy-stat-value")[0]?.textContent).toBe("14\u202F500 st");
+        const valueEl = nodes(el, ".dashy-stat-value")[0];
+        expect(valueEl?.textContent).toBe("14\u202F500 st");
+        // A <wbr> sits right after the group separator so the number can
+        // still break there and nowhere else; textContent stays identical
+        // either way, which is the point.
+        const wbrs = valueEl ? Array.from(valueEl.querySelectorAll("wbr")) : [];
+        expect(wbrs).toHaveLength(1);
+        expect(wbrs[0]?.previousSibling?.nodeType).toBe(Node.TEXT_NODE);
+        expect(wbrs[0]?.previousSibling?.textContent).toBe("\u202F");
+        // "14 500" is 6 characters: below the length-class threshold.
+        expect(valueEl?.className).toBe("dashy-stat-value");
     });
 
     it("label, icon and sub land where they were asked to", () => {
@@ -137,12 +147,17 @@ describe("stats — nothing to count is not zero", () => {
         const el = card("items:\n  - { label: Nowhere, source: 99-Empty, field: steps, agg: sum }");
         const value = nodes(el, ".dashy-stat-value")[0];
         expect(value?.textContent).toBe("—");
-        expect(value?.className).toContain("is-empty");
+        expect(value?.className).toBe("dashy-stat-value is-empty");
+        // A dash has no digit group to break between, so no <wbr> either.
+        expect(value?.querySelectorAll("wbr")).toHaveLength(0);
     });
 
     it("count over an empty selection is an honest zero, not a dash", () => {
         const el = card("items:\n  - { label: Nowhere, source: 99-Empty, agg: count }");
-        expect(nodes(el, ".dashy-stat-value")[0]?.className).not.toContain("is-empty");
+        const value = nodes(el, ".dashy-stat-value")[0];
+        expect(value?.className).not.toContain("is-empty");
+        expect(value?.className).toBe("dashy-stat-value");
+        expect(value?.querySelectorAll("wbr")).toHaveLength(0);
         expect(texts(el, ".dashy-stat-value")).toEqual(["0"]);
     });
 
@@ -233,5 +248,426 @@ describe("stats — edges", () => {
         const el = card("items:\n  - { label: Avg, source: Diary, field: sleep_score, agg: avg, precision: 9 }");
         expect(diagnostics(el, "warning")[0]).toContain("precision");
         expect(texts(el, ".dashy-stat-value")).toEqual(["74.5"]);
+    });
+});
+
+describe("stats — a wide number does not break inside its digits", () => {
+    const wideCtx = mockContext({
+        notes: [
+            { path: "Big/one.md", frontmatter: { steps: 3307952 } },
+            { path: "Big/two.md", frontmatter: { steps: 12345678 } },
+            { path: "Big/three.md", frontmatter: { steps: 123456789 } },
+        ],
+    });
+    const wide = (config: string) => {
+        const el = host();
+        renderStats(wideCtx, config, el);
+        return el;
+    };
+
+    it("a <wbr> follows every group separator, and none sits anywhere else", () => {
+        const el = wide(
+            "items:\n  - { label: Steps, source: Big, where: \"steps = 3307952\", field: steps, agg: max, unit: steps }",
+        );
+        const valueEl = nodes(el, ".dashy-stat-value")[0];
+        expect(valueEl?.textContent).toBe("3 307 952 steps");
+        const wbrs = valueEl ? Array.from(valueEl.querySelectorAll("wbr")) : [];
+        expect(wbrs).toHaveLength(2);
+        for (const wbr of wbrs) {
+            expect(wbr.previousSibling?.nodeType).toBe(Node.TEXT_NODE);
+            // The node right before the <wbr> is the separator itself, not
+            // part of a digit group: the break point is between groups.
+            expect(wbr.previousSibling?.textContent).toBe(" ");
+            expect(wbr.nextSibling?.nodeType).toBe(Node.TEXT_NODE);
+            expect(wbr.nextSibling?.textContent).toMatch(/^\d+$/);
+        }
+    });
+
+    it("a 7- or 8-digit value gets the long-value class", () => {
+        const sevenDigits = wide(
+            "items:\n  - { label: Steps, source: Big, where: \"steps = 3307952\", field: steps, agg: max }",
+        );
+        expect(nodes(sevenDigits, ".dashy-stat-value")[0]?.className).toBe("dashy-stat-value is-long");
+
+        const eightDigits = wide(
+            "items:\n  - { label: Steps, source: Big, where: \"steps = 12345678\", field: steps, agg: max }",
+        );
+        expect(nodes(eightDigits, ".dashy-stat-value")[0]?.className).toBe("dashy-stat-value is-long");
+    });
+
+    it("a 9-digit value gets the very-long-value class", () => {
+        const el = wide(
+            "items:\n  - { label: Steps, source: Big, where: \"steps = 123456789\", field: steps, agg: max }",
+        );
+        expect(nodes(el, ".dashy-stat-value")[0]?.className).toBe("dashy-stat-value is-very-long");
+    });
+
+    it("a value up to six digits never gets a length class", () => {
+        const el = wide("items:\n  - { label: Days, source: Big, agg: count }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["3"]);
+        expect(nodes(el, ".dashy-stat-value")[0]?.className).toBe("dashy-stat-value");
+    });
+});
+
+describe("stats — period narrows before counting", () => {
+    // A fixed "today" so the windows below are exact rather than relative:
+    // 2026-09-24 is a Thursday, and the English locale's week starts Sunday.
+    const TODAY = new Date(2026, 8, 24);
+
+    afterEach(() => vi.useRealTimers());
+
+    // gym: 1 in March (year only), 1 on the 18th (month only), then the
+    // current week 20..24 reads 1,0,1,1,1 — a checkbox habit tracker, the
+    // shape B-079 exists for. The 25th is tomorrow and must never count, and
+    // last year's 24th proves the year window does not reach back that far.
+    const period = mockContext({
+        notes: [
+            { path: "Diary/2026-03-01.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-18.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-20.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-21.md", frontmatter: { gym: false } },
+            { path: "Diary/2026-09-22.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-23.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-24.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-25.md", frontmatter: { gym: true } },
+            { path: "Diary/2025-09-24.md", frontmatter: { gym: true } },
+        ],
+    });
+
+    const withToday = (config: string) => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(period, config, el);
+        return el;
+    };
+
+    it("week sums only the current calendar week, ending today", () => {
+        const el = withToday("items:\n  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["4"]);
+    });
+
+    it("month reaches further back than week", () => {
+        const el = withToday("items:\n  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["5"]);
+    });
+
+    it("year reaches further back than month", () => {
+        const el = withToday("items:\n  - { label: Gym this year, source: Diary, field: gym, agg: sum, period: year }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["6"]);
+    });
+
+    it("a rolling Nd window is exact, not rounded to a calendar unit", () => {
+        const el = withToday("items:\n  - { label: Gym 3d, source: Diary, field: gym, agg: sum, period: 3d }");
+        // 22nd, 23rd, 24th: 1 + 1 + 1
+        expect(texts(el, ".dashy-stat-value")).toEqual(["3"]);
+    });
+
+    it("count also respects the window, not only a field aggregate", () => {
+        const el = withToday("items:\n  - { label: Diary entries this week, source: Diary, agg: count, period: week }");
+        // 20th, 21st, 22nd, 23rd, 24th — five entries, the 25th excluded as tomorrow
+        expect(texts(el, ".dashy-stat-value")).toEqual(["5"]);
+    });
+
+    it("trend keeps its own trailing window, independent of period", () => {
+        const el = withToday(
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: week, trend: 30d }",
+        );
+        // The trend still draws from the full selection, not the period window.
+        expect(nodes(el, ".dashy-stat-bar").length).toBeGreaterThan(5);
+    });
+
+    it("date_field reads a frontmatter property instead of the note name", () => {
+        const books = mockContext({
+            notes: [
+                { path: "Books/book-1.md", frontmatter: { finished: "2026-09-22" } },
+                { path: "Books/book-2.md", frontmatter: { finished: "2025-09-22" } },
+                { path: "Books/book-3.md", frontmatter: { rating: 5 } },
+            ],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            books,
+            "items:\n  - { label: Books this week, source: Books, agg: count, period: week, date_field: finished }",
+            el,
+        );
+        expect(texts(el, ".dashy-stat-value")).toEqual(["1"]);
+    });
+
+    it("an unreadable period warns and the card draws without a window", () => {
+        const el = withToday("items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: fortnight }");
+        expect(diagnostics(el, "warning")[0]).toContain("fortnight");
+        // Unfiltered: every gym value in the whole selection, not just a window.
+        expect(texts(el, ".dashy-stat-value")).toEqual(["8"]);
+    });
+
+    it("selected notes with no name-date and no date_field warn instead of showing a silent dash", () => {
+        const books = mockContext({
+            notes: [{ path: "Books/book-1.md", frontmatter: { rating: 5 } }],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(books, "items:\n  - { label: Books, source: Books, agg: count, period: month }", el);
+        expect(diagnostics(el, "warning")[0]).toContain("date_field");
+    });
+
+    it("a date_field that names nothing on any note warns and names the field", () => {
+        const books = mockContext({
+            notes: [{ path: "Books/book-1.md", frontmatter: { rating: 5 } }],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            books,
+            "items:\n  - { label: Books, source: Books, agg: count, period: month, date_field: finished }",
+            el,
+        );
+        expect(diagnostics(el, "warning")[0]).toContain("finished");
+    });
+
+    it("date_field without period warns that it has no effect", () => {
+        const el = withToday("items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, date_field: finished }");
+        expect(diagnostics(el, "warning")[0]).toContain("date_field");
+    });
+
+    it("an empty week is an honest zero, not a warning", () => {
+        const lastYear = mockContext({
+            notes: [{ path: "Diary/2025-09-24.md", frontmatter: { gym: true } }],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            lastYear,
+            "items:\n  - { label: Diary entries this week, source: Diary, agg: count, period: week }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["0"]);
+    });
+
+    it("a field aggregate over an empty week shows a dash, its usual rule for nothing to count", () => {
+        const lastYear = mockContext({
+            notes: [{ path: "Diary/2025-09-24.md", frontmatter: { gym: true } }],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            lastYear,
+            "items:\n  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
+    });
+});
+
+describe("stats — compare against the previous period", () => {
+    // 2026-09-24 is a Thursday, and the English locale's week starts Sunday,
+    // so the current week is Sun 20 .. Thu 24 and the previous one, the same
+    // stretch to date, is Sun 13 .. Thu 17.
+    const TODAY = new Date(2026, 8, 24);
+
+    afterEach(() => vi.useRealTimers());
+
+    const previousWeek = [
+        { path: "Diary/2026-09-13.md", frontmatter: { gym: true, mood: 5, steps: 100 } },
+        { path: "Diary/2026-09-14.md", frontmatter: { gym: false, mood: 5, steps: 100 } },
+        { path: "Diary/2026-09-15.md", frontmatter: { gym: false, mood: 5, steps: 100 } },
+        { path: "Diary/2026-09-16.md", frontmatter: { gym: false, mood: 5, steps: 100 } },
+        { path: "Diary/2026-09-17.md", frontmatter: { gym: true, mood: 5, steps: 100 } },
+        // Friday and Saturday, ticked, sit past Thursday — the same weekday
+        // today falls on. They must never count: "the same stretch to date"
+        // is Sun .. Thu, not the whole previous week. If the code ever
+        // regressed to comparing against the whole previous week, the gym
+        // sum below would read 4, not 2, and the assertions below would fail.
+        { path: "Diary/2026-09-18.md", frontmatter: { gym: true, mood: 5, steps: 100 } },
+        { path: "Diary/2026-09-19.md", frontmatter: { gym: true, mood: 5, steps: 100 } },
+    ];
+    // gym sum 2 (to date) / 4 (whole week), mood avg 5, steps sum 500 (to date).
+    const currentWeek = [
+        { path: "Diary/2026-09-20.md", frontmatter: { gym: true, mood: 3, steps: 100 } },
+        { path: "Diary/2026-09-21.md", frontmatter: { gym: false, mood: 3, steps: 100 } },
+        { path: "Diary/2026-09-22.md", frontmatter: { gym: true, mood: 3, steps: 100 } },
+        { path: "Diary/2026-09-23.md", frontmatter: { gym: true, mood: 3, steps: 100 } },
+        { path: "Diary/2026-09-24.md", frontmatter: { gym: true, mood: 3, steps: 100 } },
+    ];
+    // gym sum 4 (up 2 from last week), mood avg 3 (down 2), steps sum 500 (flat).
+    const compareCtx = mockContext({ notes: [...previousWeek, ...currentWeek] });
+
+    const withToday = (config: string) => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(compareCtx, config, el);
+        return el;
+    };
+
+    it("a rise shows an up arrow, a plus sign and what it compares with", () => {
+        const el = withToday(
+            "items:\n  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true }",
+        );
+        expect(texts(el, ".dashy-stat-value")).toEqual(["4"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +2"]);
+        const delta = nodes(el, ".dashy-stat-delta")[0];
+        expect(delta?.className).toContain("dashy-stat-delta-neutral");
+        expect(delta?.getAttribute("title")).toBe("vs the same days last week: 2");
+    });
+
+    it("`better: up` colours a rise good", () => {
+        const el = withToday(
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }",
+        );
+        expect(nodes(el, ".dashy-stat-delta")[0]?.className).toContain("dashy-stat-delta-good");
+    });
+
+    it("`better: down` colours the same rise bad, for a number where less is better", () => {
+        const el = withToday(
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: week, compare: true, better: down }",
+        );
+        expect(nodes(el, ".dashy-stat-delta")[0]?.className).toContain("dashy-stat-delta-bad");
+    });
+
+    it("a fall shows a down arrow and a real minus sign", () => {
+        const el = withToday(
+            "items:\n  - { label: Mood, source: Diary, field: mood, agg: avg, period: week, compare: true, better: down }",
+        );
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▼ −2"]);
+        expect(nodes(el, ".dashy-stat-delta")[0]?.className).toContain("dashy-stat-delta-good");
+    });
+
+    it("no change stays neutral even with `better` set", () => {
+        const el = withToday(
+            "items:\n  - { label: Steps, source: Diary, field: steps, agg: sum, period: week, compare: true, better: up }",
+        );
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["= 0"]);
+        expect(nodes(el, ".dashy-stat-delta")[0]?.className).toContain("dashy-stat-delta-neutral");
+    });
+
+    it("nothing in the previous window means no delta at all, not a made-up one", () => {
+        // The original `period` fixture above has no note dated in Sun 13 .. Thu 17.
+        const noPreviousData = mockContext({ notes: currentWeek });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            noPreviousData,
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: week, compare: true }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["4"]);
+        expect(nodes(el, ".dashy-stat-delta")).toHaveLength(0);
+    });
+
+    it("nothing in the current window either: a dash and no delta", () => {
+        const el = withToday(
+            "items:\n  - { label: Nowhere, source: 99-Empty, field: gym, agg: sum, period: week, compare: true }",
+        );
+        expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
+        expect(nodes(el, ".dashy-stat-delta")).toHaveLength(0);
+    });
+
+    it("`compare` without `period` warns and draws no delta", () => {
+        const el = withToday(
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, compare: true }",
+        );
+        expect(diagnostics(el, "warning")[0]).toContain("compare");
+        expect(nodes(el, ".dashy-stat-delta")).toHaveLength(0);
+        // Unfiltered: every gym value across both weeks, 4 (whole previous week,
+        // Fri/Sat included) + 4 (current).
+        expect(texts(el, ".dashy-stat-value")).toEqual(["8"]);
+    });
+
+    it("`better` without `compare` warns, and the card still draws its value", () => {
+        const el = withToday(
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: week, better: up }",
+        );
+        expect(diagnostics(el, "warning")[0]).toContain("better");
+        expect(nodes(el, ".dashy-stat-delta")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["4"]);
+    });
+
+    it("an unrecognised `better` warns and the delta stays neutral rather than disappearing", () => {
+        const el = withToday(
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: week, compare: true, better: sideways }",
+        );
+        expect(diagnostics(el, "warning")[0]).toContain("sideways");
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +2"]);
+        expect(nodes(el, ".dashy-stat-delta")[0]?.className).toContain("dashy-stat-delta-neutral");
+    });
+
+    it("the arrow is decorative and hidden from a screen reader", () => {
+        const el = withToday(
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: week, compare: true }",
+        );
+        const arrow = el.querySelector(".dashy-stat-delta-arrow");
+        expect(arrow?.getAttribute("aria-hidden")).toBe("true");
+    });
+
+    // The `yaml` package hands these back exactly as written — none of them
+    // is the boolean `true` — and used to draw with no delta and no warning.
+    it.each([
+        ["compare: yes", "yes"],
+        ['compare: "true"', "true"],
+        ["compare: 1", "1"],
+    ])("a non-boolean %s warns and names the value instead of silently doing nothing", (yaml, shown) => {
+        const el = withToday(`items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: week, ${yaml} }`);
+        expect(diagnostics(el, "warning")[0]).toContain(shown);
+        expect(nodes(el, ".dashy-stat-delta")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["4"]);
+    });
+
+    it("count refuses a phantom delta against an empty previous window too", () => {
+        // `count` never returns null, so a naive null-check would compare
+        // today's real count against a made-up 0 from an empty window.
+        const noPreviousData = mockContext({ notes: currentWeek });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            noPreviousData,
+            "items:\n  - { label: Diary entries, source: Diary, agg: count, period: week, compare: true }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["5"]);
+        expect(nodes(el, ".dashy-stat-delta")).toHaveLength(0);
+    });
+
+    it("streak refuses `compare` outright: a warning, and the streak itself still draws", () => {
+        const el = withToday(
+            "items:\n  - { label: Gym streak, source: Diary, field: gym, agg: streak, period: week, compare: true }",
+        );
+        expect(diagnostics(el, "warning")[0]).toContain("streak");
+        expect(nodes(el, ".dashy-stat-delta")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["3"]);
+    });
+
+    it("the delta is computed from the values as displayed, not the raw difference", () => {
+        // A single note per window: previous 10.4, current 10.6. At
+        // `precision: 0` those display as 10 and 11 — a visible difference of
+        // 1 — while the raw difference, 0.2, rounds to 0.
+        const roundingCtx = mockContext({
+            notes: [
+                { path: "Diary/2026-09-13.md", frontmatter: { score: 10.4 } },
+                { path: "Diary/2026-09-20.md", frontmatter: { score: 10.6 } },
+            ],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            roundingCtx,
+            "items:\n  - { label: Score, source: Diary, field: score, agg: avg, period: week, compare: true, precision: 0 }",
+            el,
+        );
+        expect(texts(el, ".dashy-stat-value")).toEqual(["11"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +1"]);
     });
 });

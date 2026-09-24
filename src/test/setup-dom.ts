@@ -7,6 +7,16 @@
  * should fail loudly in a test rather than be quietly faked.
  */
 
+/**
+ * Obsidian injects `activeWindow` as a global pointing at whichever window
+ * (main or popout) the active note lives in, so a block that owns a timer or
+ * an observer can target the right one. jsdom never defines it; there is only
+ * ever the one window here, so it is simply `window` itself.
+ */
+if (!("activeWindow" in globalThis)) {
+    (globalThis as unknown as { activeWindow: Window }).activeWindow = window;
+}
+
 interface DomElementInfo {
     cls?: string | string[];
     text?: string;

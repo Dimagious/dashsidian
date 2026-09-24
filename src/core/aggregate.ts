@@ -5,8 +5,12 @@
 import type { NoteRecord } from "./source";
 import { longestStreak, dateKey } from "./calendar";
 
-/** A note whose name is the day it belongs to. */
-const DATE_NAME = /^\d{4}-\d{2}-\d{2}$/;
+/**
+ * A note whose name is the day it belongs to. Exported so `core/period.ts`
+ * tests the same rule instead of a second copy of the regex drifting apart
+ * from this one.
+ */
+export const DATE_NAME = /^\d{4}-\d{2}-\d{2}$/;
 
 export const AGGS = ["count", "sum", "avg", "min", "max", "latest", "streak"] as const;
 export type Agg = (typeof AGGS)[number];
@@ -15,15 +19,37 @@ export function isAgg(v: unknown): v is Agg {
     return typeof v === "string" && (AGGS as readonly string[]).includes(v);
 }
 
-/** A number from frontmatter; anything that is not a finite number becomes null. */
+/**
+ * A number from frontmatter; anything that is not a finite number becomes
+ * null. A YAML boolean counts too — `true` as 1, `false` as 0 — so an
+ * Obsidian checkbox property doubles as a habit-tracker field. Only a real
+ * boolean qualifies: the strings `"true"`/`"false"` a user might type by hand
+ * stay non-numeric, unchanged.
+ */
 export function numberAt(note: NoteRecord, field: string): number | null {
     const raw = note.frontmatter[field];
+    if (typeof raw === "boolean") return raw ? 1 : 0;
     if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
     if (typeof raw === "string" && raw.trim() !== "") {
         const n = Number(raw);
         return Number.isFinite(n) ? n : null;
     }
     return null;
+}
+
+/**
+ * True when the field's raw value is the YAML boolean `false` — a mark that
+ * should not count as a filled day: it breaks a `streak` and stays unpainted
+ * on a heatmap. Numeric `0` is not this: it keeps counting as data, so a
+ * literal zero reading does not silently disappear from either.
+ */
+export function isFalseMark(note: NoteRecord, field: string): boolean {
+    return note.frontmatter[field] === false;
+}
+
+/** True when the field holds a genuine YAML boolean rather than a number or a numeric string. */
+export function isBooleanMark(note: NoteRecord, field: string): boolean {
+    return typeof note.frontmatter[field] === "boolean";
 }
 
 export interface AggregateSpec {
@@ -45,7 +71,9 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
 
     if (spec.agg === "streak") {
         const dates = notes
-            .filter((n) => (spec.field ? numberAt(n, spec.field) !== null : true))
+            .filter((n) => (spec.field
+                ? numberAt(n, spec.field) !== null && !isFalseMark(n, spec.field)
+                : true))
             .map((n) => n.name)
             .filter((name) => DATE_NAME.test(name));
         return longestStreak(dates);

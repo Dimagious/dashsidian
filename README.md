@@ -103,7 +103,7 @@ columns: 4
 items:
   - { label: Days logged, source: Diary, agg: count, icon: 📔 }
   - { label: Average sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }
-  - { label: Steps this year, source: Diary, field: steps, agg: sum, unit: steps }
+  - { label: Steps this week, source: Diary, field: steps, agg: sum, unit: steps, period: week }
   - { label: Longest streak, source: Diary, field: sleep_score, agg: streak, unit: days }
 ```
 ````
@@ -123,13 +123,30 @@ stopped months ago draws nothing at all, which is the honest answer.
 When there is nothing to count the card shows a dash. "No notes at all" and "the sum is
 zero" are different answers, and a zero for the first would be a lie.
 
+Add `period: week`, `month` or `year` and the card counts only the current calendar one,
+ending today; a rolling count of days works too, `period: 30d`. A note's date is its
+`YYYY-MM-DD` name unless `date_field` names a frontmatter date property instead, in which
+case the name is not consulted at all. Notes without a date are left out before counting, so
+an empty week is not an error: `agg: count` reads the honest `0`, and a field aggregate like
+`sum` shows a dash by its usual rule above. Only a selection where not one note has a date at
+all is worth a warning, "no note fell in this window" and "nobody here has a date" being
+different problems. `trend` keeps its own trailing window regardless of `period`.
+
+Add `compare: true` next to `period` and the card also shows the delta against the same
+stretch of the previous period, to date: a Thursday this week compares against Monday to
+Thursday last week, not the whole of last week. `better: up` colours a rise green and a fall
+red; `better: down` reverses that for a number where less is better, and with neither set the
+delta stays a neutral colour. When either window has no notes in it at all, the card shows
+its number alone rather than a made-up delta; `streak` cannot be compared this way and
+refuses `compare` outright, the same way `trend` refuses `count`.
+
 ### `progress`: how far along
 
 ````markdown
 ```progress
 items:
   - { label: Days logged this year, source: Diary, agg: count, goal: 365, icon: 📔 }
-  - { label: Books this year, source: Books, where: "year = 2026", agg: count, goal: 24, icon: 📚 }
+  - { label: Books this year, source: Books, period: year, date_field: finished, agg: count, goal: 24, icon: 📚 }
   - { label: Steps, source: Diary, field: steps, agg: sum, goal: 3000000, unit: steps }
 ```
 ````
@@ -141,6 +158,10 @@ items:
 </picture>
 
 Beating a goal shows as it is. 110% stays 110%, and only the bar stops at full.
+
+`period` and `date_field` work the same way they do on `stats`, narrowing what the goal is
+measured against rather than the whole selection. "Books this year" above reads a `finished`
+property on each book instead of the note name, since a book is rarely named as a date.
 
 ### `countdown`: what is coming
 
@@ -185,6 +206,38 @@ title: Sleep, last twelve months
 Notes have to be named as `YYYY-MM-DD` dates, which is how the block knows which cell they
 belong to. Clicking a cell opens that day. The week starts where your language starts it:
 Monday here, Sunday in the US, Canada and Japan.
+
+`field` does not have to be a number. An Obsidian checkbox property, the kind Properties
+draws as a tick box, counts as 1 when ticked and 0 when not, so a daily note with nothing
+but `gym: true` in it is already a habit tracker:
+
+````markdown
+```heatmap
+source: Diary
+field: gym
+```
+````
+
+paints the days you went, and on a `stats` card the same field turns `agg: sum` into a day
+count and `agg: streak` into your longest unbroken run. Add `period: week` to either and it
+narrows to the current week instead of the whole diary:
+
+````markdown
+```stats
+items:
+  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }
+```
+````
+
+five sessions since Monday (or Sunday, wherever your week starts) reads as `5`, not the
+whole year's total, and `compare: true` adds how that stacks up against the same days last
+week, green when it is more.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/habits-dark.png">
+  <img alt="A gym habit tracker: cards for days, longest streak, this week against last week and this month, over a year of ticked days"
+       src="docs/screens/habits-light.png">
+</picture>
 
 ## It keeps up with the vault
 

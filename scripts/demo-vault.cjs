@@ -23,6 +23,11 @@ function build() {
     fs.mkdirSync(path.join(out, ".obsidian"), { recursive: true });
 
     const today = new Date();
+    // Date-only: `today` still carries the hour the script happened to run
+    // at, and that hour crossing midnight nudged the last book's `finished`
+    // date computed below into tomorrow, which `period: year` then excludes
+    // (this year's book count flipped 15/16 depending on the time of day).
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     // A year of days with a believable rhythm: a slow seasonal swing, a weekly
     // one, and gaps where life got in the way. Flat noise looks generated.
@@ -35,9 +40,31 @@ function build() {
         days += 1;
         const sleep = Math.round(80 + seasonal * 8 + weekly * 5);
         const steps = Math.round(9500 + seasonal * 2500 + weekly * 2000 + (back % 5) * 300);
+
+        // A habit checkbox, not a number. Monday/Wednesday/Friday are the
+        // standing plan, kept all year so no stretch of the grid ever reads
+        // as "gave up" — a seasonal gate that zeroes out half the year was
+        // tried and rejected for exactly that. Saturday is a bonus session
+        // added only in the easier half of the year, which is what varies
+        // the adherence rate without ever emptying a season. A two-week push
+        // and a break sit on top: real training has both. The push's range
+        // (41..54 back) sits inside a stretch with no missed-day note gaps,
+        // so it reads as a real fourteen-day streak rather than one cut short
+        // by an unrelated missing note.
+        const weekday = date.getDay(); // 0 Sun .. 6 Sat
+        const gymCore = weekday === 1 || weekday === 3 || weekday === 5; // Mon/Wed/Fri
+        const gymSaturday = weekday === 6 && Math.sin((back / 365) * Math.PI * 2) > 0;
+        const gymPushRest = back === 40 || back === 55; // a rest day bracketing the push below
+        const gymPush = back >= 41 && back < 55; // a strong fortnight, every day counts
+        const gymBreak = back >= 110 && back < 129; // an off patch, months back: injury or travel
+        // The current week picks up Tuesday and Thursday too, so "this week"
+        // honestly beats the same days of last week on any run date after Monday.
+        const gymRecent = back < 7 && (weekday === 2 || weekday === 4);
+        const gym = gymBreak ? false : gymPushRest ? false : gymPush ? true : gymCore || gymSaturday || gymRecent;
+
         fs.writeFileSync(
             path.join(out, "Diary", `${key(date)}.md`),
-            `---\nsleep_score: ${sleep}\nsteps: ${steps}\n---\n\n## ${key(date)}\n`,
+            `---\nsleep_score: ${sleep}\nsteps: ${steps}\ngym: ${gym}\n---\n\n## ${key(date)}\n`,
         );
     }
 
@@ -45,10 +72,19 @@ function build() {
         fs.writeFileSync(path.join(out, "Inbox", `idea-${i}.md`), `# Idea ${i}\n`);
     }
     for (let i = 1; i <= 23; i++) {
-        const year = i % 3 === 0 ? today.getFullYear() - 1 : today.getFullYear();
+        const thisYear = i % 3 !== 0;
+        const bookYear = thisYear ? today.getFullYear() : today.getFullYear() - 1;
+        // Spread `finished` dates across the book's year so `period: year`
+        // (see the stats and progress blocks below) counts a believable
+        // subset instead of every book landing on the same day. This year's
+        // books stop at today, since a book cannot be finished tomorrow.
+        const yearStart = new Date(bookYear, 0, 1);
+        const yearEnd = thisYear ? todayMidnight : new Date(bookYear, 11, 31);
+        const span = Math.round((yearEnd.getTime() - yearStart.getTime()) / 86_400_000);
+        const finished = key(new Date(bookYear, 0, 1 + Math.floor((i / 23) * span)));
         fs.writeFileSync(
             path.join(out, "Books", `book-${i}.md`),
-            `---\nyear: ${year}\nrating: ${3 + (i % 3)}\n---\n\n# Book ${i}\n`,
+            `---\nyear: ${bookYear}\nrating: ${3 + (i % 3)}\nfinished: ${finished}\n---\n\n# Book ${i}\n`,
         );
     }
 
@@ -73,18 +109,18 @@ columns: 4
 items:
   - { label: Days logged, source: Diary, agg: count, icon: 📔 }
   - { label: Average sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }
-  - { label: Steps this year, source: Diary, field: steps, agg: sum, unit: steps }
+  - { label: Steps this week, source: Diary, field: steps, agg: sum, unit: steps, period: week }
   - { label: Best night, source: Diary, field: sleep_score, agg: max, trend: 90d }
   - { label: Longest streak, source: Diary, field: sleep_score, agg: streak, unit: days }
   - { label: Latest steps, source: Diary, field: steps, agg: latest, sub: most recent note }
   - { label: Great nights, source: Diary, where: "sleep_score >= 90", agg: count }
-  - { label: Books read, source: Books, where: "year = ${year}", agg: count, icon: 📚 }
+  - { label: Books read, source: Books, period: year, date_field: finished, agg: count, icon: 📚 }
 \`\`\`
 
 \`\`\`progress
 items:
   - { label: Days logged this year, source: Diary, agg: count, goal: 365, icon: 📔 }
-  - { label: Books this year, source: Books, where: "year = ${year}", agg: count, goal: 24, icon: 📚 }
+  - { label: Books this year, source: Books, period: year, date_field: finished, agg: count, goal: 24, icon: 📚 }
   - { label: Steps, source: Diary, field: steps, agg: sum, goal: 3000000, unit: steps, sub: three million }
 \`\`\`
 
@@ -110,6 +146,22 @@ field: steps
 color: green
 bands: [12000, 9000, 6000]
 title: Steps, last twelve months
+\`\`\`
+
+\`\`\`stats
+columns: 4
+items:
+  - { label: Gym days, source: Diary, field: gym, agg: sum, icon: 🏋️ }
+  - { label: Longest gym streak, source: Diary, field: gym, agg: streak, unit: days, icon: 🔥 }
+  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, icon: 📅, compare: true, better: up }
+  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month, icon: 🗓 }
+\`\`\`
+
+\`\`\`heatmap
+source: Diary
+field: gym
+color: orange
+title: Gym
 \`\`\`
 `);
 

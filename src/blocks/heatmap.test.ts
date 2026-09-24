@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { renderHeatmap } from "./heatmap";
+import { formatValue } from "../core/stat";
 import { mockContext, diary, host, texts, nodes, diagnostics } from "../test/vault";
 
 // 2026 starts on a Thursday. With weeks starting on Sunday (the English
@@ -155,6 +156,109 @@ describe("heatmap — the caption", () => {
     });
 });
 
+describe("heatmap — boolean checkbox fields", () => {
+    // A ticked Obsidian checkbox property (`gym: true`) is the most requested
+    // habit-tracker shape: a daily note with nothing but a checkbox should
+    // still paint a heatmap.
+    const gymCtx = mockContext({
+        // day 0 (Jan 1) ticked, day 1 (Jan 2) unticked, day 2 (Jan 3) ticked.
+        notes: diary("Diary", "2026-01-01", 3, (i) => ({ gym: i !== 1 })),
+    });
+
+    it("a ticked day is painted like a value of 1", () => {
+        const el = map("source: Diary\nfield: gym", gymCtx);
+        const jan1 = nodes(el, "a.dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-01"));
+        expect(jan1?.getAttribute("title")).toContain("gym 1");
+        expect(jan1?.style.backgroundColor).not.toBe("");
+    });
+
+    it("an unticked day is not painted and reads exactly like a day without data", () => {
+        const el = map("source: Diary\nfield: gym", gymCtx);
+        const jan2 = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-02"));
+        expect(jan2?.tagName).toBe("DIV");
+        expect(jan2?.style.backgroundColor).toBe("");
+        expect(jan2?.getAttribute("title")).toContain("no data");
+    });
+
+    it("only the ticked days count toward the total painted", () => {
+        const el = map("source: Diary\nfield: gym", gymCtx);
+        const coloured = nodes(el, ".dashy-hm-cell").filter((c) => c.style.backgroundColor !== "");
+        expect(coloured).toHaveLength(2);
+    });
+
+    it("a year that is entirely booleans drops the average from the caption", () => {
+        const caption = texts(map("source: Diary\nfield: gym", gymCtx), ".dashy-hm-title")[0] ?? "";
+        expect(caption).not.toContain("average");
+        expect(caption).toContain("gym");
+        expect(caption).toContain("2 of");
+    });
+
+    it("a year mixing numbers and booleans keeps the average", () => {
+        const mixedCtx = mockContext({
+            notes: [
+                ...diary("Diary", "2026-01-01", 1, () => ({ steps: true })),
+                ...diary("Diary", "2026-01-02", 1, () => ({ steps: 500 })),
+            ],
+        });
+        const caption = texts(map("source: Diary\nfield: steps", mixedCtx), ".dashy-hm-title")[0] ?? "";
+        expect(caption).toContain("average");
+    });
+
+    // The caption average has to agree with what a `stats` `avg` card would
+    // show over the same field: both sum every recognised day and divide by
+    // how many there are, a `false` counted as 0. Counting only the painted
+    // days used to inflate this to (4 + 1) / 2 = 2.5.
+    it("the caption average counts a false day as 0, the same as a stats avg would", () => {
+        const days3Ctx = mockContext({
+            notes: [
+                ...diary("Diary", "2026-01-01", 1, () => ({ steps: 4 })),
+                ...diary("Diary", "2026-01-02", 1, () => ({ steps: true })),
+                ...diary("Diary", "2026-01-03", 1, () => ({ steps: false })),
+            ],
+        });
+        const caption = texts(map("source: Diary\nfield: steps", days3Ctx), ".dashy-hm-title")[0] ?? "";
+        const expected = formatValue((4 + 1 + 0) / 3);
+        expect(caption).toContain(`average ${expected}`);
+        // The false day still is not painted, so only 2 of 3 count as "present".
+        expect(caption).toContain("2 of");
+    });
+
+    it("a field that is false every day still draws the year, not a no-data error", () => {
+        const allFalseCtx = mockContext({
+            notes: diary("Diary", "2026-01-01", 3, () => ({ gym: false })),
+        });
+        const el = map("source: Diary\nfield: gym", allFalseCtx);
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        expect(caption).toContain("0 of");
+        expect(nodes(el, ".dashy-hm-cell").filter((c) => c.style.backgroundColor !== "")).toHaveLength(0);
+    });
+
+    // Two notes named for the same day disagreeing (a ticked one in one
+    // folder, an unticked one in another) used to paint or not depending on
+    // which the vault happened to list last. `streak` never had this problem:
+    // it drops `false` notes before deduping date names, so any note that
+    // survives keeps the day, in either order. The heatmap now agrees with it.
+    it.each([
+        ["ticked note listed first", [
+            { path: "Personal/2026-01-02.md", frontmatter: { gym: true } },
+            { path: "Work/2026-01-02.md", frontmatter: { gym: false } },
+        ]],
+        ["ticked note listed last", [
+            { path: "Work/2026-01-02.md", frontmatter: { gym: false } },
+            { path: "Personal/2026-01-02.md", frontmatter: { gym: true } },
+        ]],
+    ])("a ticked twin always wins over an unticked one, regardless of order (%s)", (_label, notes) => {
+        const el = map("field: gym", mockContext({ notes }));
+        const link = nodes(el, "a.dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-02"));
+        expect(link?.getAttribute("data-href")).toBe("Personal/2026-01-02.md");
+        expect(link?.getAttribute("title")).toContain("gym 1");
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        expect(caption).toContain("1 of");
+    });
+});
+
 describe("heatmap — edges", () => {
     it("no field is an error naming what is missing", () => {
         const el = map("source: Diary");
@@ -195,5 +299,239 @@ describe("heatmap — edges", () => {
     it("a list where a set of fields was expected is reported", () => {
         const el = map("- source: Diary");
         expect(diagnostics(el, "error")).toHaveLength(1);
+    });
+});
+
+/**
+ * jsdom never lays anything out, so `scrollWidth` / `clientWidth` are 0 on
+ * every element (see the comment on `settled` in heatmap.ts). These tests
+ * stand the scroller's metrics up by hand instead of trusting layout, the
+ * same way a real browser would report them once the grid is wider than its
+ * note. `.dashy-hm-scroll` is the scroller, not `.dashy-hm-wrap`: the title
+ * and the weekday column live outside it and never move or fade (the fade
+ * is a CSS mask keyed off the classes asserted here, not a separate
+ * element, so there is nothing further to assert about it in a DOM that
+ * never lays out).
+ *
+ * `updateScrollState` is driven by a `ResizeObserver`, not a timer, so
+ * these tests install a fake one and fire it by hand rather than waiting on
+ * anything — no fake timers needed here, unlike an earlier version of this
+ * mechanism.
+ */
+describe("heatmap — the scroller says when there is more to see", () => {
+    function stubMetrics(scroller: HTMLElement, scrollLeft: number, clientWidth: number, scrollWidth: number): void {
+        // `writable: true` on `scrollLeft`: production code assigns to it
+        // (the deferred initial scroll, below), and a non-writable stub
+        // would throw the moment it tried.
+        Object.defineProperty(scroller, "scrollLeft", { value: scrollLeft, configurable: true, writable: true });
+        Object.defineProperty(scroller, "clientWidth", { value: clientWidth, configurable: true });
+        Object.defineProperty(scroller, "scrollWidth", { value: scrollWidth, configurable: true });
+    }
+
+    /** A `ResizeObserver` stand-in the test fires on demand instead of waiting for a real resize. */
+    class ManualResizeObserver implements ResizeObserver {
+        static instances: ManualResizeObserver[] = [];
+        constructor(private readonly callback: ResizeObserverCallback) {
+            ManualResizeObserver.instances.push(this);
+        }
+        observe(): void { /* not exercised */ }
+        unobserve(): void { /* not exercised */ }
+        disconnect(): void { /* not exercised */ }
+        /** Runs this observer's callback, the way a real resize would. */
+        fire(): void {
+            this.callback([], this);
+        }
+    }
+
+    function withManualResizeObserver(run: () => void): void {
+        const original = window.ResizeObserver;
+        ManualResizeObserver.instances = [];
+        window.ResizeObserver = ManualResizeObserver;
+        try {
+            run();
+        } finally {
+            window.ResizeObserver = original;
+        }
+    }
+
+    it("a grid that fits (jsdom's default 0/0/0) carries neither class", () => {
+        const el = map("source: Diary\nfield: sleep_score");
+        const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+        expect(scroller.classList.contains("can-scroll-left")).toBe(false);
+        expect(scroller.classList.contains("can-scroll-right")).toBe(false);
+    });
+
+    it("scrolls to the end once the observer reports a real, wider-than-the-note width", () => {
+        withManualResizeObserver(() => {
+            const el = map("source: Diary\nfield: sleep_score");
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+            expect(scroller.scrollLeft).toBe(0);
+
+            stubMetrics(scroller, 0, 300, 600);
+            ManualResizeObserver.instances[0]!.fire();
+
+            expect(scroller.scrollLeft).toBe(600);
+            expect(scroller.classList.contains("can-scroll-left")).toBe(true);
+            expect(scroller.classList.contains("can-scroll-right")).toBe(false);
+        });
+    });
+
+    it("stops re-asserting the end once the reader has actually scrolled", () => {
+        withManualResizeObserver(() => {
+            const el = map("source: Diary\nfield: sleep_score");
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            stubMetrics(scroller, 0, 300, 600);
+            ManualResizeObserver.instances[0]!.fire();
+            expect(scroller.scrollLeft).toBe(600);
+
+            // A wheel event on the scroller is the reader taking over.
+            scroller.dispatchEvent(new Event("wheel"));
+
+            // A later resize with a real width no longer forces the end, or
+            // a reader who scrolled back to January would get yanked
+            // forward again on every later resize.
+            stubMetrics(scroller, 50, 300, 600);
+            ManualResizeObserver.instances[0]!.fire();
+            expect(scroller.scrollLeft).toBe(50);
+        });
+    });
+
+    it("an unstyled reading (scrollWidth equal to clientWidth) neither scrolls nor settles", () => {
+        withManualResizeObserver(() => {
+            const el = map("source: Diary\nfield: sleep_score");
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            // The plugin's own stylesheet has not applied yet: the browser
+            // default `overflow-x: visible` reports the same number for
+            // both, wider than the note or not.
+            stubMetrics(scroller, 0, 452, 452);
+            ManualResizeObserver.instances[0]!.fire();
+            expect(scroller.scrollLeft).toBe(0);
+            expect(scroller.classList.contains("can-scroll-left")).toBe(false);
+            expect(scroller.classList.contains("can-scroll-right")).toBe(false);
+
+            // The stylesheet lands: still not settled, so the real, styled
+            // reading still gets its turn.
+            stubMetrics(scroller, 0, 300, 600);
+            ManualResizeObserver.instances[0]!.fire();
+            expect(scroller.scrollLeft).toBe(600);
+        });
+    });
+
+    it("a scroll event recomputes the classes from the scroller's current metrics", () => {
+        withManualResizeObserver(() => {
+            const el = map("source: Diary\nfield: sleep_score");
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            // Settle first (a real drag), so the positions below are not
+            // overwritten by the deferred initial scroll mid-test.
+            scroller.dispatchEvent(new Event("wheel"));
+
+            // At the left edge: only the right side has more.
+            stubMetrics(scroller, 0, 300, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+            expect(scroller.classList.contains("can-scroll-left")).toBe(false);
+            expect(scroller.classList.contains("can-scroll-right")).toBe(true);
+
+            // Scrolled into the middle: both sides have more.
+            stubMetrics(scroller, 150, 300, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+            expect(scroller.classList.contains("can-scroll-left")).toBe(true);
+            expect(scroller.classList.contains("can-scroll-right")).toBe(true);
+
+            // Scrolled to the right edge: only the left side has more.
+            stubMetrics(scroller, 300, 300, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+            expect(scroller.classList.contains("can-scroll-left")).toBe(true);
+            expect(scroller.classList.contains("can-scroll-right")).toBe(false);
+        });
+    });
+
+    it("the weekday column and the title sit outside the scroller", () => {
+        const el = map("source: Diary\nfield: sleep_score");
+        const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+        expect(scroller.querySelector(".dashy-hm-side")).toBeNull();
+        expect(scroller.querySelector(".dashy-hm-title")).toBeNull();
+    });
+
+    it("does not leak a ResizeObserver across redraws of the same element", () => {
+        class FakeResizeObserver implements ResizeObserver {
+            static observeCount = 0;
+            static disconnectCount = 0;
+            constructor(private readonly callback: ResizeObserverCallback) {}
+            observe(): void { FakeResizeObserver.observeCount += 1; }
+            unobserve(): void { /* not exercised */ }
+            disconnect(): void { FakeResizeObserver.disconnectCount += 1; }
+        }
+
+        const original = window.ResizeObserver;
+        window.ResizeObserver = FakeResizeObserver;
+        try {
+            const el = host();
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            expect(FakeResizeObserver.observeCount).toBe(1);
+            expect(FakeResizeObserver.disconnectCount).toBe(0);
+
+            // A redraw on the same element (a vault event, a settings change)
+            // must disconnect the observer it made last time before making a
+            // new one, or every redraw adds one more that never stops firing.
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            expect(FakeResizeObserver.disconnectCount).toBe(1);
+            expect(FakeResizeObserver.observeCount).toBe(2);
+
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            expect(FakeResizeObserver.disconnectCount).toBe(2);
+            expect(FakeResizeObserver.observeCount).toBe(3);
+        } finally {
+            window.ResizeObserver = original;
+        }
+    });
+
+    it("the returned disposer disconnects the observer, and is idempotent", () => {
+        class FakeResizeObserver implements ResizeObserver {
+            static observeCount = 0;
+            static disconnectCount = 0;
+            constructor(private readonly callback: ResizeObserverCallback) {}
+            observe(): void { FakeResizeObserver.observeCount += 1; }
+            unobserve(): void { /* not exercised */ }
+            disconnect(): void { FakeResizeObserver.disconnectCount += 1; }
+        }
+
+        const original = window.ResizeObserver;
+        window.ResizeObserver = FakeResizeObserver;
+        try {
+            const el = host();
+            // This is what `DashyBlock.onunload` (src/app/plugin.ts) calls
+            // when a block is removed from the note entirely, not redrawn:
+            // a redraw disconnects its own predecessor already, but nothing
+            // else ever runs this cleanup for the very last draw.
+            const dispose = renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            expect(typeof dispose).toBe("function");
+            expect(FakeResizeObserver.disconnectCount).toBe(0);
+
+            dispose?.();
+            expect(FakeResizeObserver.disconnectCount).toBe(1);
+
+            // A stray double-unload finds nothing left to disconnect rather
+            // than double-counting or throwing.
+            dispose?.();
+            expect(FakeResizeObserver.disconnectCount).toBe(1);
+        } finally {
+            window.ResizeObserver = original;
+        }
+    });
+
+    it("without a ResizeObserver the block still draws and returns no disposer", () => {
+        const original = window.ResizeObserver;
+        Reflect.deleteProperty(window, "ResizeObserver");
+        try {
+            const el = host();
+            const dispose = renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            expect(dispose).toBeUndefined();
+            expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        } finally {
+            window.ResizeObserver = original;
+        }
     });
 });

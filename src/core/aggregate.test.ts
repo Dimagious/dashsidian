@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { aggregate, numberAt, series, isAgg } from "./aggregate";
+import { aggregate, numberAt, isFalseMark, isBooleanMark, series, isAgg } from "./aggregate";
 import type { NoteRecord } from "./source";
 
 const day = (name: string, fm: Record<string, unknown>): NoteRecord => ({
@@ -20,6 +20,43 @@ describe("numberAt", () => {
         expect(numberAt(day("x", { v: "nope" }), "v")).toBeNull();
         expect(numberAt(day("x", {}), "v")).toBeNull();
         expect(numberAt(day("x", { v: "" }), "v")).toBeNull();
+    });
+
+    // A ticked Obsidian checkbox property is a real YAML boolean. It is the
+    // most requested habit-tracker shape, and before this it counted as
+    // nothing at all.
+    it("a YAML boolean true is 1", () => expect(numberAt(day("x", { v: true }), "v")).toBe(1));
+    it("a YAML boolean false is 0", () => expect(numberAt(day("x", { v: false }), "v")).toBe(0));
+    it("the strings \"true\"/\"false\" are not booleans and stay non-numeric", () => {
+        expect(numberAt(day("x", { v: "true" }), "v")).toBeNull();
+        expect(numberAt(day("x", { v: "false" }), "v")).toBeNull();
+    });
+    it("a numeric zero still reads as zero, same as always", () => {
+        expect(numberAt(day("x", { v: 0 }), "v")).toBe(0);
+    });
+});
+
+describe("isFalseMark", () => {
+    it("true only for the YAML boolean false", () => {
+        expect(isFalseMark(day("x", { v: false }), "v")).toBe(true);
+    });
+    it("false for true, for numeric 0, for a missing field and for the string \"false\"", () => {
+        expect(isFalseMark(day("x", { v: true }), "v")).toBe(false);
+        expect(isFalseMark(day("x", { v: 0 }), "v")).toBe(false);
+        expect(isFalseMark(day("x", {}), "v")).toBe(false);
+        expect(isFalseMark(day("x", { v: "false" }), "v")).toBe(false);
+    });
+});
+
+describe("isBooleanMark", () => {
+    it("true for both true and false", () => {
+        expect(isBooleanMark(day("x", { v: true }), "v")).toBe(true);
+        expect(isBooleanMark(day("x", { v: false }), "v")).toBe(true);
+    });
+    it("false for a number, a string and a missing field", () => {
+        expect(isBooleanMark(day("x", { v: 1 }), "v")).toBe(false);
+        expect(isBooleanMark(day("x", { v: "true" }), "v")).toBe(false);
+        expect(isBooleanMark(day("x", {}), "v")).toBe(false);
     });
 });
 
@@ -54,6 +91,68 @@ describe("aggregate", () => {
     });
     it("an empty selection is null", () => {
         expect(aggregate([], { agg: "avg", field: "x" })).toBeNull();
+    });
+
+    describe("boolean fields", () => {
+        const gymDays = [
+            day("2026-09-19", { gym: true }),
+            day("2026-09-20", { gym: false }),
+            day("2026-09-21", { gym: true }),
+            day("2026-09-23", { gym: true }),
+        ];
+
+        it("sum counts the ticked days", () => {
+            expect(aggregate(gymDays, { agg: "sum", field: "gym" })).toBe(3);
+        });
+        it("avg is the completion rate", () => {
+            expect(aggregate(gymDays, { agg: "avg", field: "gym" })).toBe(0.75);
+        });
+        it("min/max over a mix of ticked and unticked days", () => {
+            expect(aggregate(gymDays, { agg: "min", field: "gym" })).toBe(0);
+            expect(aggregate(gymDays, { agg: "max", field: "gym" })).toBe(1);
+        });
+        it("latest takes the freshest boolean reading", () => {
+            expect(aggregate(gymDays, { agg: "latest", field: "gym" })).toBe(1);
+        });
+
+        it("sum over a mix of numbers and booleans adds the 1/0 value in", () => {
+            const mixed = [day("2026-09-19", { steps: 5000 }), day("2026-09-20", { steps: true })];
+            expect(aggregate(mixed, { agg: "sum", field: "steps" })).toBe(5001);
+        });
+
+        it("streak breaks on a false day, exactly like a missing day", () => {
+            // Ticked Fri/Sat/Mon with an unticked Sunday in between: the run is
+            // Friday-Saturday (2), not Friday-through-Monday.
+            const week = [
+                day("2026-09-18", { gym: true }),
+                day("2026-09-19", { gym: true }),
+                day("2026-09-20", { gym: false }),
+                day("2026-09-21", { gym: true }),
+            ];
+            expect(aggregate(week, { agg: "streak", field: "gym" })).toBe(2);
+        });
+
+        it("streak breaks the same way on a day the field never mentions", () => {
+            const week = [
+                day("2026-09-18", { gym: true }),
+                day("2026-09-19", { gym: true }),
+                day("2026-09-20", {}),
+                day("2026-09-21", { gym: true }),
+            ];
+            expect(aggregate(week, { agg: "streak", field: "gym" })).toBe(2);
+        });
+
+        // Out of scope for this change, pinned so it cannot regress silently:
+        // a literal numeric 0 is data, unlike a boolean `false`, and keeps
+        // counting as a filled day.
+        it("streak treats a numeric 0 as a filled day, unlike a boolean false", () => {
+            const week = [
+                day("2026-09-18", { steps: 100 }),
+                day("2026-09-19", { steps: 0 }),
+                day("2026-09-20", { steps: 50 }),
+            ];
+            expect(aggregate(week, { agg: "streak", field: "steps" })).toBe(3);
+        });
     });
 });
 
@@ -100,6 +199,11 @@ describe("series", () => {
 
     it("notes not named for a day are never in the window", () => {
         expect(series([day("Template", { v: 99 })], "v", 30, TODAY)).toEqual([]);
+    });
+
+    it("a boolean checkbox draws as a 1/0 bar, not a gap", () => {
+        const notes = [recent(1, { gym: true }), recent(0, { gym: false })];
+        expect(series(notes, "gym", 2, TODAY)).toEqual([1, 0]);
     });
 });
 

@@ -10,6 +10,63 @@ removed public export.
 
 ## [Unreleased]
 
+### Added
+
+- **Checkbox properties work as a field.** An Obsidian checkbox property
+  (`gym: true` in Properties) now counts as 1 when ticked and 0 when not,
+  everywhere a block reads a `field`: heatmap paints the ticked days, `sum`
+  on stats and progress turns into a day count, `avg` into the share of
+  ticked days (0 to 1, not a percent), and `streak` breaks on an unticked
+  day the same way it breaks on a missing one. A heatmap year that is
+  entirely booleans drops the average from its caption, since a checkbox is
+  not a quantity to average, only a tally of ticks.
+- **A time window for `stats` and `progress`.** `period: week`, `month` or
+  `year` narrows a card or bar to the current calendar one, ending today;
+  `period: 30d` is a rolling count of days instead. "Books this year" no
+  longer needs `where: "year = 2026"`, a filter that goes stale on 1 January,
+  and "gym days this week" can finally be written at all. A note's date is
+  its `YYYY-MM-DD` name unless `date_field` names a frontmatter date property
+  instead, and notes without a date are left out before counting, so an
+  empty week is not an error: `count` reads an honest `0`, and a field
+  aggregate shows its usual dash for nothing to count. `streak`, `latest`
+  and `trend` are unaffected: they keep their own rules and their own
+  windows.
+- **`compare` on a stats card.** Next to `period`, `compare: true` adds the
+  delta against the same stretch of the previous period, to date: a Thursday
+  this week compares against Monday to Thursday last week, not the whole of
+  last week, and 31 March compares against the last day of February. The
+  delta reads as a sign and a number, up or down, never a bare minus sign
+  that could pass for a hyphen, and it is computed from the same rounded
+  values the card itself shows, so a card at `precision: 0` never prints "no
+  change" for numbers that visibly differ. `better: up` colours a rise green
+  and a fall red, `better: down` reverses that for a number where less is
+  better, and with neither the delta stays a neutral colour; a change of
+  zero is always neutral. `compare` without `period` warns instead of
+  comparing against nothing, a `compare` that is not `true` or `false` warns
+  and draws no delta instead of failing silently, `streak` refuses `compare`
+  outright the way `trend` already refuses `count`, and either side of the
+  comparison having no notes at all in its window means no delta rather than
+  a made-up one.
+
+### Fixed
+
+- **A long number on a stats card no longer breaks inside its digits.** A
+  4-column card with a value like `3 307 952` could wrap right through a
+  digit group, printing "3 307 95" on one line and "2 steps" on the next.
+  The card may now only break between groups, and a value nine characters
+  or longer as displayed (a 7-digit whole number, or `12 345.67`) also gets a
+  smaller type size so it fits the card in the first place.
+- **A heatmap that scrolls sideways says so, and actually opens where the
+  data is.** A year too wide for its note now fades whichever edge still has
+  months to scroll to: the left edge once you have scrolled past the start,
+  the right edge while there is more ahead, both in the middle, neither once
+  the year fits. Before this, a narrow note simply cut the grid off with no
+  sign there was more, and the visible third of the year read as the whole
+  thing. Opening scrolled to the most recent day, added in 1.1.0, turns out
+  never to have actually worked: the grid is built before it is attached to
+  the note, so that scroll always landed against a width of zero and stayed
+  at January. It opens at the end now.
+
 ## [1.1.0] - 2026-09-23
 
 ### Added

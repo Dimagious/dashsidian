@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderProgress } from "./progress";
 import { mockContext, diary, host, texts, nodes, diagnostics } from "../test/vault";
 
@@ -111,5 +111,110 @@ describe("progress — edges", () => {
         const el = bars("items:\n  - { label: Days, source: Diary, agg: count, goal: 40, colour2: red }");
         expect(diagnostics(el, "warning")).toHaveLength(1);
         expect(nodes(el, ".dashy-progress-row")).toHaveLength(1);
+    });
+});
+
+describe("progress — period narrows before counting", () => {
+    // Same fixed "today" and the same week/month/year shape as stats.test.ts:
+    // week reads 4, month 5. See that file for the day-by-day breakdown.
+    const TODAY = new Date(2026, 8, 24);
+
+    afterEach(() => vi.useRealTimers());
+
+    const period = mockContext({
+        notes: [
+            { path: "Diary/2026-09-18.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-20.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-21.md", frontmatter: { gym: false } },
+            { path: "Diary/2026-09-22.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-23.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-24.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-25.md", frontmatter: { gym: true } },
+        ],
+    });
+
+    const withToday = (config: string) => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderProgress(period, config, el);
+        return el;
+    };
+
+    it("the goal is measured against the period's value, not the whole selection", () => {
+        const el = withToday(
+            "items:\n  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, goal: 5 }",
+        );
+        expect(texts(el, ".dashy-progress-value")[0]).toContain("4 / 5");
+        expect(texts(el, ".dashy-progress-percent")).toEqual(["80%"]);
+    });
+
+    it("a wider window reaches a goal a narrower one would not", () => {
+        const el = withToday(
+            "items:\n  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month, goal: 5 }",
+        );
+        expect(nodes(el, ".dashy-progress-row")[0]?.className).toContain("is-complete");
+    });
+
+    it("date_field reads a frontmatter property instead of the note name", () => {
+        const books = mockContext({
+            notes: [
+                { path: "Books/book-1.md", frontmatter: { finished: "2026-09-22" } },
+                { path: "Books/book-2.md", frontmatter: { finished: "2025-09-22" } },
+            ],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderProgress(
+            books,
+            "items:\n  - { label: Books this year, source: Books, agg: count, period: year, date_field: finished, goal: 24 }",
+            el,
+        );
+        expect(texts(el, ".dashy-progress-value")[0]).toContain("1 / 24");
+    });
+
+    it("an unreadable period warns and the bar draws unfiltered, not broken or silently narrowed", () => {
+        const el = withToday(
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: fortnight, goal: 5 }",
+        );
+        expect(diagnostics(el, "warning")[0]).toContain("fortnight");
+        // The whole selection, not the (ignored) period window: six of the
+        // seven notes are true, past the goal of 5.
+        expect(texts(el, ".dashy-progress-value")[0]).toContain("6 / 5");
+        expect(texts(el, ".dashy-progress-percent")).toEqual(["120%"]);
+        expect(nodes(el, ".dashy-progress-row")[0]?.className).not.toContain("is-broken");
+    });
+
+    it("selected notes with no date and no date_field warn", () => {
+        const books = mockContext({ notes: [{ path: "Books/book-1.md", frontmatter: { rating: 5 } }] });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderProgress(books, "items:\n  - { label: Books, source: Books, agg: count, period: month, goal: 10 }", el);
+        expect(diagnostics(el, "warning")[0]).toContain("date_field");
+    });
+
+    it("date_field without period warns that it has no effect", () => {
+        const el = withToday(
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, goal: 5, date_field: finished }",
+        );
+        expect(diagnostics(el, "warning")[0]).toContain("date_field");
+    });
+
+    it("an empty week is an honest zero, not a warning", () => {
+        const lastYear = mockContext({
+            notes: [{ path: "Diary/2025-09-24.md", frontmatter: { gym: true } }],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderProgress(
+            lastYear,
+            "items:\n  - { label: Gym this week, source: Diary, agg: count, period: week, goal: 5 }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-progress-value")[0]).toContain("0 / 5");
     });
 });

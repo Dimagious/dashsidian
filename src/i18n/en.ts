@@ -45,6 +45,27 @@ export const en = {
     "stats.trendNeedsField": "{card}: `trend` needs a `field:` to plot. Counting notes has no shape.",
     "stats.trendInvalid": "{card}: `trend` expects a number of days such as 30d, got \"{value}\".",
 
+    "period.invalid":
+        "{card}: `period` expects week, month, year or a rolling window such as 30d, got \"{value}\". Drawn unfiltered.",
+    "period.noDatedNotes":
+        "{card}: none of the selected notes is named like YYYY-MM-DD. Add `date_field:` if the date lives in a property instead.",
+    "period.noDatedNotesField": "{card}: none of the selected notes has a date in \"{field}\".",
+    "period.dateFieldUnused": "{card}: `date_field` has no effect without `period`.",
+
+    "compare.notBoolean": "{card}: `compare` expects true or false, got \"{value}\". Comparison skipped.",
+    "compare.needsPeriod": "{card}: `compare` needs `period` set. There is nothing to compare against.",
+    "compare.streakUnsupported":
+        "{card}: `compare` does not work with `streak`. There is no separate value from the previous period to compare a streak against.",
+    "compare.betterUnused": "{card}: `better` has no effect without `compare: true`.",
+    "compare.badBetter": "{card}: `better` expects `up` or `down`, got \"{value}\". The delta stays neutral.",
+    "compare.vsWeek": "vs the same days last week: {value}",
+    "compare.vsMonth": "vs the same days last month: {value}",
+    "compare.vsYear": "vs the same days last year: {value}",
+    "compare.vsDays.one": "vs the day before: {value}",
+    "compare.vsDays.few": "vs the {count} days before: {value}",
+    "compare.vsDays.many": "vs the {count} days before: {value}",
+    "compare.vsDays.other": "vs the {count} days before: {value}",
+
     "countdown.empty": "No dates to draw. Expected `items:` or a list.",
     "countdown.dateRequired": "{card}: `date:` is missing. There is nothing to count down to.",
     "countdown.dateInvalid": "{card}: \"{date}\" is not a date. Expected YYYY-MM-DD.",
@@ -73,8 +94,9 @@ export const en = {
     "heatmap.expectFields": "Expected a set of fields, for example `source:` and `field:`.",
     "heatmap.fieldRequired": "No `field` given. There is no number to colour by.",
     "heatmap.noData":
-        "No notes with a date name and a number in \"{field}\". Check `source`.",
+        "No notes with a date name and a number or a checkbox in \"{field}\". Check `source`.",
     "heatmap.caption": "{year}, {field}: average {average}, {present} of {total} days",
+    "heatmap.captionMarks": "{year}, {field}: {present} of {total} days",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.cell": "{date}: {field} {value}",
     "heatmap.cellEmpty": "{date}: no data",

@@ -41,6 +41,27 @@ export const ru: Catalog = {
     "stats.trendNeedsField": "{card}: `trend` нужно `field:`. У счёта заметок нет формы.",
     "stats.trendInvalid": "{card}: `trend` ожидает число дней, например 30d, получено «{value}».",
 
+    "period.invalid":
+        "{card}: `period` ожидает week, month, year или скользящее окно вроде 30d, получено «{value}». Рисуется без окна.",
+    "period.noDatedNotes":
+        "{card}: ни у одной выбранной заметки нет имени вида YYYY-MM-DD. Добавьте `date_field:`, если дата лежит в свойстве.",
+    "period.noDatedNotesField": "{card}: ни у одной выбранной заметки нет даты в «{field}».",
+    "period.dateFieldUnused": "{card}: `date_field` не действует без `period`.",
+
+    "compare.notBoolean": "{card}: `compare` ожидает true или false, получено «{value}». Сравнение пропущено.",
+    "compare.needsPeriod": "{card}: `compare` работает только вместе с `period`. Сравнивать не с чем.",
+    "compare.streakUnsupported":
+        "{card}: `compare` не работает со `streak`. У серии нет отдельного значения за предыдущий период для сравнения.",
+    "compare.betterUnused": "{card}: `better` не действует без `compare: true`.",
+    "compare.badBetter": "{card}: `better` ожидает `up` или `down`, получено «{value}». Разница остаётся нейтральной.",
+    "compare.vsWeek": "относительно тех же дней прошлой недели: {value}",
+    "compare.vsMonth": "относительно тех же дней прошлого месяца: {value}",
+    "compare.vsYear": "относительно тех же дней прошлого года: {value}",
+    "compare.vsDays.one": "за предыдущий день: {value}",
+    "compare.vsDays.few": "за предыдущие {count} дня: {value}",
+    "compare.vsDays.many": "за предыдущие {count} дней: {value}",
+    "compare.vsDays.other": "за предыдущие {count} дней: {value}",
+
     "countdown.empty": "Список дат пуст. Ожидается `items:` или массив.",
     "countdown.dateRequired": "{card}: не задан `date:`. Не до чего считать.",
     "countdown.dateInvalid": "{card}: «{date}» не похоже на дату. Ожидается YYYY-MM-DD.",
@@ -65,9 +86,10 @@ export const ru: Catalog = {
     "heatmap.expectFields": "Ожидается набор полей, например `source:` и `field:`.",
     "heatmap.fieldRequired": "Не задано `field`. Какое число из frontmatter красить.",
     "heatmap.noData":
-        "Нет заметок с именем-датой и числом в поле «{field}». Проверь `source`.",
+        "Нет заметок с именем-датой и числом или чекбоксом в поле «{field}». Проверь `source`.",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.caption": "{year}, {field}: среднее {average}, {present} из {total} дн.",
+    "heatmap.captionMarks": "{year}, {field}: {present} из {total} дн.",
     "heatmap.cell": "{date}: {field} {value}",
     "heatmap.cellEmpty": "{date}: нет данных",
 

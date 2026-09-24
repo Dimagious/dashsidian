@@ -96,6 +96,28 @@ for (const theme of ["obsidian", "moonstone"] as const) {
             await block.scrollIntoViewIfNeeded();
             await block.screenshot({ path: path.join(SHOTS, `${name}-${suffix}.png`) });
         }
+
+        // The habit tracker is two blocks read as one picture: the gym cards
+        // and the current year of the gym heatmap under them. Both are the
+        // last of their kind on the demo dashboard, so the shot is the union
+        // of their boxes. The older year is left out: the demo diary covers
+        // twelve months, so that grid is mostly empty weeks before it began.
+        const cards = view.locator(".block-language-stats").last();
+        const grid = view.locator(".block-language-heatmap").last().locator(".dashy-hm-wrap").first();
+        // Obsidian scrolls the note, not the page: bring the cards to the top
+        // so both blocks fit in the window the clip is taken from.
+        await cards.evaluate((el) => el.scrollIntoView({ block: "start" }));
+        await win.waitForTimeout(300);
+        const top = await cards.boundingBox();
+        const bottom = await grid.boundingBox();
+        if (!top || !bottom) throw new Error("habit blocks are not on screen");
+        const clip = {
+            x: Math.min(top.x, bottom.x),
+            y: top.y,
+            width: Math.max(top.x + top.width, bottom.x + bottom.width) - Math.min(top.x, bottom.x),
+            height: bottom.y + bottom.height - top.y,
+        };
+        await win.screenshot({ path: path.join(SHOTS, `habits-${suffix}.png`), clip });
     });
 }
 

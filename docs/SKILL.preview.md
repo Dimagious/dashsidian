@@ -7,7 +7,7 @@ description: >-
   for a dashboard, a home page, a tile grid, cards with counters or averages, a
   link to today's note, a day calendar, a heatmap, a habit tracker or a visual
   entry point into the vault.
-version: 1.3.0
+version: 1.4.0
 ---
 
 # Dashy — dashboard blocks
@@ -70,11 +70,15 @@ Number cards: one value per card, computed over a selection of notes.
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
 | `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported |
-| `field` | string | — | — | `property`, `prop` | numeric frontmatter property; required for everything but count and streak |
+| `period` | string\|number | — | — | — | narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. Notes without a date are left out first, then every agg, count included, runs on what remains. `streak` and `latest` keep going by YYYY-MM-DD note names either way, not by `date_field` |
+| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name, only with `period` set: `2026-03-02` or `2026-03-02T10:30`. Has no effect without `period`, and does not change `streak`, `latest` or `trend` |
+| `compare` | boolean | — | — | — | show the delta against the same stretch of the previous period, to date: this week compares against the same weekdays last week, not the whole of last week. Only with `period` set, and not with `agg: streak` |
+| `better` | string | — | — | — | `up` colours a rise green and a fall red; `down` reverses that for a number where less is better. No change stays neutral either way. Only with `compare: true` |
+| `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
 | `unit` | string | — | — | — | a suffix after the number: km, %, d. |
 | `precision` | number | — | — | — | decimal places, 0 to 6; by default a whole number stays whole and a fraction gets one decimal |
-| `trend` | string\|number | — | — | — | sketch the last N days ending today: `30d`. Needs `field` |
+| `trend` | string\|number | — | — | — | sketch the last N days ending today: `30d`. Needs `field`. Its own trailing window, independent of `period` |
 | `icon` | string | — | — | `emoji` | emoji |
 | `sub` | string | — | — | — | small caption under the title |
 
@@ -87,12 +91,15 @@ items:
   - { label: Notes, source: 01-Areas, agg: count }
   - { label: Sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }
   - { label: Days in a row, source: Diary, field: sleep_score, agg: streak, unit: d. }
+  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }
 ```
 ````
 
 - `streak` counts the longest run of consecutive days and `latest` takes the value from the newest note. Both need YYYY-MM-DD note names.
 - Nothing to count, and the card shows a dash rather than a zero: "no data" and "zero" are different answers.
 - `trend` sketches the days of a trailing window ending today, scaled between the smallest and largest value in that window rather than from zero. A day without a note is left out, not drawn as a zero.
+- `period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its YYYY-MM-DD name unless `date_field` names a property instead; a note with no date under either rule is left out before counting.
+- `compare` needs a note in both windows; when either the current or the previous stretch has none at all, the card shows its number alone with no delta. `streak` has no value of its own to compare and refuses `compare` outright, the way `trend` refuses `count`.
 
 ### `progress`
 
@@ -113,7 +120,9 @@ Bars towards a goal: how far a number has come against a target.
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
 | `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported |
-| `field` | string | — | — | `property`, `prop` | numeric frontmatter property; required for everything but count and streak |
+| `period` | string\|number | — | — | — | narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. The goal is measured against the period's value; notes without a date are left out first. `streak` and `latest` keep going by YYYY-MM-DD note names either way, not by `date_field` |
+| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name, only with `period` set: `2026-03-02` or `2026-03-02T10:30`. Has no effect without `period`, and does not change `streak` or `latest` |
+| `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
 | `unit` | string | — | — | — | a suffix after the numbers: km, %, d. |
 | `precision` | number | — | — | — | decimal places, 0 to 6; by default a whole number stays whole and a fraction gets one decimal |
@@ -125,13 +134,14 @@ Bars towards a goal: how far a number has come against a target.
 ````markdown
 ```progress
 items:
-  - { label: Books this year, source: Books, where: "year = 2026", agg: count, goal: 50 }
+  - { label: Days logged this year, source: Diary, agg: count, period: year, goal: 365 }
   - { label: Running volume, source: Diary, field: distance_km, agg: sum, goal: 200, unit: km }
 ```
 ````
 
 - Going past the goal is shown as it is, 125% stays 125%; only the bar itself stops at full.
 - Nothing to count, and the bar stays empty and the value shows a dash rather than a zero.
+- `period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its YYYY-MM-DD name unless `date_field` names a property instead; a note with no date under either rule is left out before counting.
 
 ### `today`
 
@@ -205,7 +215,7 @@ A year by days: one cell per day, coloured by a number from frontmatter.
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
 | `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported |
-| `field` | string | yes | — | `property`, `prop` | numeric frontmatter property |
+| `field` | string | yes | — | `property`, `prop` | numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty |
 | `color` | string | — | `blue` | `colour` | blue green cyan purple pink orange red gray, or #rrggbb |
 | `bands` | list | — | — | — | thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band |
 | `link` | boolean | — | `true` | — | clicking a cell opens that day's note |

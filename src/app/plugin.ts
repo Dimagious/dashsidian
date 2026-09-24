@@ -14,7 +14,13 @@ import { t } from "../i18n";
 import { InsertBlockModal } from "../ui/insert-block";
 import { DashySettingTab } from "../ui/settings";
 
-type Draw = (ctx: BlockContext, source: string, el: HTMLElement) => void;
+/**
+ * A block draws itself and, if it holds onto anything that outlives a single
+ * draw (heatmap's `ResizeObserver`), returns a disposer for it. Most blocks
+ * return nothing: a `void`-returning function is assignable here regardless,
+ * so `renderTiles` and friends need no change to fit this type.
+ */
+type Draw = (ctx: BlockContext, source: string, el: HTMLElement) => void | (() => void);
 
 const BLOCKS: Record<string, Draw> = {
     tiles: renderTiles,
@@ -134,10 +140,13 @@ export default class DashyPlugin extends Plugin {
  * redrawing would walk elements that are no longer attached to anything.
  */
 class DashyBlock extends MarkdownRenderChild {
+    /** Whatever the last draw handed back to undo on unload (a heatmap's `ResizeObserver`s, most blocks: nothing). */
+    private dispose: (() => void) | undefined;
+
     constructor(
         el: HTMLElement,
         private readonly refresher: BlockRefresher,
-        private readonly draw: () => void,
+        private readonly draw: () => void | (() => void),
     ) {
         super(el);
     }
@@ -149,9 +158,15 @@ class DashyBlock extends MarkdownRenderChild {
 
     override onunload(): void {
         this.refresher.unregister(this.redraw);
+        // A redraw already disposes of its own predecessor (heatmap does
+        // this itself, before drawing); this is only for the note closing or
+        // the block being deleted, after which no further redraw would ever
+        // run this block's own cleanup.
+        this.dispose?.();
+        this.dispose = undefined;
     }
 
     private readonly redraw = (): void => {
-        this.draw();
+        this.dispose = this.draw() ?? undefined;
     };
 }

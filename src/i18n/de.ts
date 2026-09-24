@@ -43,6 +43,27 @@ export const de: Catalog = {
     "stats.trendNeedsField": "{card}: `trend` braucht ein `field:` zum Zeichnen. Gezählte Notizen haben keine Form.",
     "stats.trendInvalid": "{card}: `trend` erwartet eine Anzahl Tage wie 30d, bekommen „{value}“.",
 
+    "period.invalid":
+        "{card}: `period` erwartet week, month, year oder ein rollierendes Fenster wie 30d, bekommen „{value}“. Gezeichnet ohne das Fenster.",
+    "period.noDatedNotes":
+        "{card}: keine der ausgewählten Notizen heißt wie YYYY-MM-DD. Ergänze `date_field:`, wenn das Datum in einer Eigenschaft steckt.",
+    "period.noDatedNotesField": "{card}: keine der ausgewählten Notizen hat ein Datum in „{field}“.",
+    "period.dateFieldUnused": "{card}: `date_field` hat ohne `period` keine Wirkung.",
+
+    "compare.notBoolean": "{card}: `compare` erwartet true oder false, bekommen „{value}“. Vergleich übersprungen.",
+    "compare.needsPeriod": "{card}: `compare` braucht `period`. Es gibt nichts zum Vergleichen.",
+    "compare.streakUnsupported":
+        "{card}: `compare` funktioniert nicht mit `streak`. Eine Serie hat keinen eigenen Wert der vorherigen Periode zum Vergleichen.",
+    "compare.betterUnused": "{card}: `better` hat ohne `compare: true` keine Wirkung.",
+    "compare.badBetter": "{card}: `better` erwartet `up` oder `down`, bekommen „{value}“. Die Differenz bleibt neutral.",
+    "compare.vsWeek": "im Vergleich zu denselben Tagen letzte Woche: {value}",
+    "compare.vsMonth": "im Vergleich zu denselben Tagen letzten Monat: {value}",
+    "compare.vsYear": "im Vergleich zu denselben Tagen letztes Jahr: {value}",
+    "compare.vsDays.one": "im Vergleich zum Tag davor: {value}",
+    "compare.vsDays.few": "im Vergleich zu den {count} Tagen davor: {value}",
+    "compare.vsDays.many": "im Vergleich zu den {count} Tagen davor: {value}",
+    "compare.vsDays.other": "im Vergleich zu den {count} Tagen davor: {value}",
+
     "countdown.empty": "Keine Termine zu zeichnen. Erwartet wird `items:` oder eine Liste.",
     "countdown.dateRequired": "{card}: `date:` fehlt. Es gibt nichts, worauf gezählt werden könnte.",
     "countdown.dateInvalid": "{card}: „{date}“ ist kein Datum. Erwartet wird YYYY-MM-DD.",
@@ -67,8 +88,9 @@ export const de: Catalog = {
     "heatmap.expectFields": "Erwartet wird eine Menge von Feldern, zum Beispiel `source:` und `field:`.",
     "heatmap.fieldRequired": "Kein `field` angegeben. Es gibt keine Zahl zum Einfärben.",
     "heatmap.noData":
-        "Keine Notizen mit einem Datum als Namen und einer Zahl in „{field}“. Prüfe `source`.",
+        "Keine Notizen mit einem Datum als Namen und einer Zahl oder einer Checkbox in „{field}“. Prüfe `source`.",
     "heatmap.caption": "{year}, {field}: Durchschnitt {average}, {present} von {total} Tagen",
+    "heatmap.captionMarks": "{year}, {field}: {present} von {total} Tagen",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.cell": "{date}: {field} {value}",
     "heatmap.cellEmpty": "{date}: keine Daten",
