@@ -35,9 +35,28 @@ function build() {
         days += 1;
         const sleep = Math.round(80 + seasonal * 8 + weekly * 5);
         const steps = Math.round(9500 + seasonal * 2500 + weekly * 2000 + (back % 5) * 300);
+
+        // A habit checkbox, not a number. Monday/Wednesday/Friday are the
+        // standing plan, kept all year so no stretch of the grid ever reads
+        // as "gave up" — a seasonal gate that zeroes out half the year was
+        // tried and rejected for exactly that. Saturday is a bonus session
+        // added only in the easier half of the year, which is what varies
+        // the adherence rate without ever emptying a season. A two-week push
+        // and a break sit on top: real training has both. The push's range
+        // (41..54 back) sits inside a stretch with no missed-day note gaps,
+        // so it reads as a real fourteen-day streak rather than one cut short
+        // by an unrelated missing note.
+        const weekday = date.getDay(); // 0 Sun .. 6 Sat
+        const gymCore = weekday === 1 || weekday === 3 || weekday === 5; // Mon/Wed/Fri
+        const gymSaturday = weekday === 6 && Math.sin((back / 365) * Math.PI * 2) > 0;
+        const gymPushRest = back === 40 || back === 55; // a rest day bracketing the push below
+        const gymPush = back >= 41 && back < 55; // a strong fortnight, every day counts
+        const gymBreak = back >= 110 && back < 129; // an off patch, months back: injury or travel
+        const gym = gymBreak ? false : gymPushRest ? false : gymPush ? true : gymCore || gymSaturday;
+
         fs.writeFileSync(
             path.join(out, "Diary", `${key(date)}.md`),
-            `---\nsleep_score: ${sleep}\nsteps: ${steps}\n---\n\n## ${key(date)}\n`,
+            `---\nsleep_score: ${sleep}\nsteps: ${steps}\ngym: ${gym}\n---\n\n## ${key(date)}\n`,
         );
     }
 
@@ -110,6 +129,20 @@ field: steps
 color: green
 bands: [12000, 9000, 6000]
 title: Steps, last twelve months
+\`\`\`
+
+\`\`\`stats
+columns: 2
+items:
+  - { label: Gym days, source: Diary, field: gym, agg: sum, icon: 🏋️ }
+  - { label: Longest gym streak, source: Diary, field: gym, agg: streak, unit: days }
+\`\`\`
+
+\`\`\`heatmap
+source: Diary
+field: gym
+color: orange
+title: Gym, last twelve months
 \`\`\`
 `);
 
