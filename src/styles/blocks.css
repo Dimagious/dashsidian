@@ -192,22 +192,31 @@
 .dashy-countdown-card.is-broken .dashy-countdown-value { color: var(--text-faint); font-weight: 500; }
 
 /* heatmap */
-.dashy-hm-wrap { margin: 8px 0 26px; overflow-x: auto; max-width: 100%; }
-/* Sticks to the left edge while the year scrolls past it: the caption names
-   the year, and a year that scrolls its own name out of view is how two grids
-   came to look like one grid drawn twice. */
-.dashy-hm-title { font-weight: 600; margin-bottom: 10px; position: sticky; left: 0; }
+.dashy-hm-wrap { margin: 8px 0 26px; max-width: 100%; }
+.dashy-hm-title { font-weight: 600; margin-bottom: 10px; }
 .dashy-hm-body { display: flex; gap: 6px; align-items: flex-start; }
+/* Outside the scrolling area on purpose: the weekday column repeats the same
+   seven labels whatever the scroll position, so it never needs to move and
+   never needs to fade. `flex: 0 0 auto` keeps it from being squeezed by the
+   flex layout once `.dashy-hm-main` claims the rest of the row. */
 .dashy-hm-side {
   display: grid;
   grid-template-rows: repeat(7, var(--dashy-cell));
   gap: var(--dashy-cell-gap);
   margin-top: calc(1.2em + 4px);
+  flex: 0 0 auto;
 }
 .dashy-hm-wd {
   font-size: 0.65em; line-height: var(--dashy-cell);
   color: var(--text-muted); text-align: right; padding-right: 2px;
 }
+/* `main` frames the grid but never scrolls itself; the actual scrolling is
+   one level down, in `.dashy-hm-scroll`. `min-width: 0` overrides flexbox's
+   default of never shrinking a child below its content size, which would
+   otherwise push `.dashy-hm-wrap` wider than the note instead of letting
+   `.dashy-hm-scroll` scroll internally. */
+.dashy-hm-main { flex: 1 1 0%; min-width: 0; }
+.dashy-hm-scroll { overflow-x: auto; }
 .dashy-hm-months { display: grid; gap: var(--dashy-cell-gap); height: 1.2em; margin-bottom: 4px; }
 .dashy-hm-mon { font-size: 0.65em; color: var(--text-muted); white-space: nowrap; }
 /* column = week: cells are simply appended in order */
@@ -230,6 +239,33 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
   margin-top: 10px; font-size: 0.75em; color: var(--text-muted);
 }
 .dashy-hm-leg { display: flex; align-items: center; gap: 5px; }
+
+/* A grid too wide for its note fades the edge that still has months to
+   scroll to, and only that edge: none of this shows once the year fits. The
+   classes come from heatmap.ts, recomputed on scroll and on resize. A mask
+   needs no UI colour, `black` / `transparent` here are mask stops, not
+   paint, so it follows every theme by construction, light or dark, without
+   this stylesheet naming one. `-webkit-mask-image` is for Obsidian mobile's
+   older WebKit. No transition: a fade that animates in and out on every
+   scroll tick reads as motion the reader did not ask for. */
+.dashy-hm-scroll.can-scroll-right {
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - var(--dashy-hm-fade)), transparent);
+  mask-image: linear-gradient(to right, black calc(100% - var(--dashy-hm-fade)), transparent);
+}
+.dashy-hm-scroll.can-scroll-left {
+  -webkit-mask-image: linear-gradient(to left, black calc(100% - var(--dashy-hm-fade)), transparent);
+  mask-image: linear-gradient(to left, black calc(100% - var(--dashy-hm-fade)), transparent);
+}
+.dashy-hm-scroll.can-scroll-left.can-scroll-right {
+  -webkit-mask-image: linear-gradient(
+    to right, transparent, black var(--dashy-hm-fade),
+    black calc(100% - var(--dashy-hm-fade)), transparent
+  );
+  mask-image: linear-gradient(
+    to right, transparent, black var(--dashy-hm-fade),
+    black calc(100% - var(--dashy-hm-fade)), transparent
+  );
+}
 .dashy-hm-swatch { width: var(--dashy-cell); height: var(--dashy-cell); border-radius: 2px; }
 
 @media (max-width: 768px) {

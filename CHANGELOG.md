@@ -56,6 +56,16 @@ removed public export.
   The card may now only break between groups, and a value nine characters
   or longer as displayed (a 7-digit whole number, or `12 345.67`) also gets a
   smaller type size so it fits the card in the first place.
+- **A heatmap that scrolls sideways says so, and actually opens where the
+  data is.** A year too wide for its note now fades whichever edge still has
+  months to scroll to: the left edge once you have scrolled past the start,
+  the right edge while there is more ahead, both in the middle, neither once
+  the year fits. Before this, a narrow note simply cut the grid off with no
+  sign there was more, and the visible third of the year read as the whole
+  thing. Opening scrolled to the most recent day, added in 1.1.0, turns out
+  never to have actually worked: the grid is built before it is attached to
+  the note, so that scroll always landed against a width of zero and stayed
+  at January. It opens at the end now.
 
 ## [1.1.0] - 2026-09-23
 

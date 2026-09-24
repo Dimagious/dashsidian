@@ -26,6 +26,22 @@ async function openHabits(win: Page): Promise<void> {
     await win.waitForTimeout(800);
 }
 
+/** More screen for the note pane, so a 560px viewport is actually 560px of note. */
+async function collapseSidebars(win: Page): Promise<void> {
+    await win.evaluate(() => {
+        const a = (globalThis as unknown as {
+            app?: {
+                workspace?: {
+                    leftSplit?: { collapse?: () => void };
+                    rightSplit?: { collapse?: () => void };
+                };
+            };
+        }).app;
+        a?.workspace?.leftSplit?.collapse?.();
+        a?.workspace?.rightSplit?.collapse?.();
+    });
+}
+
 test.describe("checkbox properties feed the aggregates", () => {
     test("sum, streak and heatmap render from ticked days on load", async ({ win }) => {
         await openHabits(win);
@@ -125,5 +141,25 @@ test.describe("checkbox properties feed the aggregates", () => {
         await expect(values.nth(0)).toHaveText("6");
         await expect(values.nth(1)).toHaveText("2");
         await expect(view.locator('[title="2026-01-04: no data"]')).toHaveCount(1);
+    });
+
+    // The grid spans January through today (the e2e vault's clock sits well
+    // into the year), which does not fit a 560px pane; B-070 (9f3db44)
+    // opens it scrolled to that end rather than at January. That scroll is
+    // deferred (the block is built off-document, so its width reads 0 at
+    // draw time) to the first ResizeObserver callback after attach, so this
+    // waits for it rather than asserting immediately after open.
+    test("a heatmap too wide for its pane opens scrolled toward the end, not stuck at the start", async ({ win }) => {
+        await collapseSidebars(win);
+        await win.setViewportSize({ width: 560, height: 800 });
+        await openHabits(win);
+        const view = win.locator(READING_VIEW);
+        const scroller = view.locator(".dashy-hm-scroll");
+        await expect(scroller.locator(".dashy-hm-cell").first()).toBeVisible();
+
+        await expect
+            .poll(() => scroller.evaluate((el) => (el as HTMLElement).scrollLeft), { timeout: 5_000 })
+            .toBeGreaterThan(0);
+        await expect(scroller).toHaveClass(/can-scroll-left/);
     });
 });

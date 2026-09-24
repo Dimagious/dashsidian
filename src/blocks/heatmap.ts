@@ -6,6 +6,7 @@ import { formatValue } from "../core/stat";
 import { layoutYear, dateKey, eachDay, yearsOf, rotateWeekdays, weekdayRow } from "../core/calendar";
 import { toRgb, rgba, type Rgb } from "../core/palette";
 import { readBands, bandFor, type Band } from "../core/bands";
+import { scrollEdges } from "../core/scroll";
 import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
 import { t } from "../i18n";
@@ -14,8 +15,27 @@ import schema from "./schema.json";
 /** Keys come from schema.json — the same source the agent skill is built from. */
 const KNOWN = Object.keys(schema.blocks.heatmap.root);
 
-export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement): void {
+/**
+ * One `ResizeObserver` per year grid drawn into a block's element, so the
+ * next redraw can disconnect them before making new ones. `clearBlock` empties
+ * the element but does not touch a `ResizeObserver`: it keeps observing a
+ * detached node forever unless told to stop, and every redraw would leak one
+ * more. Keyed by the element rather than held in a closure because the block
+ * is a plain draw function called fresh each time, with nowhere else to keep
+ * state between calls.
+ */
+const observers = new WeakMap<HTMLElement, ResizeObserver[]>();
+
+/** Disconnects and forgets whatever is currently tracked for `el`, if anything. */
+function disconnectObservers(el: HTMLElement): void {
+    for (const observer of observers.get(el) ?? []) observer.disconnect();
+    observers.delete(el);
+}
+
+export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement): void | (() => void) {
     clearBlock(el);
+    disconnectObservers(el);
+
     const { value, diagnostics } = parseConfig(source, { root: KNOWN });
     const diags: Diagnostic[] = [...diagnostics];
 
@@ -82,11 +102,23 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     // year it is — otherwise two grids under the same custom title read as the
     // same thing drawn twice, which is exactly how it was first reported.
     const years = yearsOf([...marks.keys()]);
+    const drawn: ResizeObserver[] = [];
     for (const year of years) {
-        drawYear(el, year, today, marks, {
+        const observer = drawYear(el, year, today, marks, {
             color, bands, field, linkable, title: value.title, firstDay,
             severalYears: years.length > 1,
         });
+        if (observer) drawn.push(observer);
+    }
+    if (drawn.length) {
+        observers.set(el, drawn);
+        // Redraws clean up after themselves (the `disconnectObservers` call
+        // above), but the block being removed from the note entirely never
+        // redraws again; this is what `DashyBlock.onunload` (plugin.ts)
+        // calls for that case. It reads `observers` fresh rather than
+        // closing over `drawn`, so it stays correct across any further
+        // redraw between now and unload.
+        return () => disconnectObservers(el);
     }
 }
 
@@ -116,7 +148,7 @@ function drawYear(
     today: Date,
     marks: Map<string, DayMark>,
     opts: DrawOptions,
-): void {
+): ResizeObserver | null {
     const layout = layoutYear(year, today, opts.firstDay);
     const wrap = el.createDiv({ cls: "dashy-hm-wrap" });
 
@@ -168,10 +200,13 @@ function drawYear(
             text: i % 2 === mondayRow % 2 ? w : "",
         }));
 
+    // `main` never scrolls itself, it only constrains the width; the actual
+    // scrolling, and the fade mask (blocks.css), are both on `scroll`.
     const main = body.createDiv({ cls: "dashy-hm-main" });
+    const scroll = main.createDiv({ cls: "dashy-hm-scroll" });
     const months = monthNamesShort();
 
-    const monthRow = main.createDiv({ cls: "dashy-hm-months" });
+    const monthRow = scroll.createDiv({ cls: "dashy-hm-months" });
     monthRow.style.gridTemplateColumns = `repeat(${layout.columns}, var(--dashy-cell))`;
     for (const m of layout.months) {
         const label = monthRow.createDiv({ cls: "dashy-hm-mon", text: months[m.month] ?? "" });
@@ -180,7 +215,7 @@ function drawYear(
 
     // grid-auto-flow: column over 7 rows — cells are added in order, so the
     // year starts with `offset` empty ones.
-    const grid = main.createDiv({ cls: "dashy-hm-grid" });
+    const grid = scroll.createDiv({ cls: "dashy-hm-grid" });
     for (let i = 0; i < layout.offset; i++) grid.createDiv({ cls: "dashy-hm-cell dashy-hm-pad" });
 
     for (let i = 0; i < layout.total; i++) {
@@ -209,8 +244,82 @@ function drawYear(
     }
 
     // Where the year does not fit, open it at the most recent day rather than
-    // at January. On a phone the visible third of a past year is empty, which
-    // reads as a broken grid; its data is at the end. A grid that fits does
-    // not move, because there is nowhere to scroll.
-    wrap.scrollLeft = wrap.scrollWidth;
+    // at January (9f3db44): on a phone the visible third of a past year is
+    // empty, which reads as a broken grid; its data is at the end. `total`
+    // (core/calendar.ts) already stops the grid at the most recent day —
+    // today for the current year, 31 December for a past one — so "scroll to
+    // the end" and "scroll to the data" are the same target here.
+    //
+    // Getting that scroll to stick took more than "defer it until the width
+    // is real": measured against a real Obsidian start, the very first
+    // `ResizeObserver` callback fires before this plugin's own styles.css has
+    // applied. At that moment `.dashy-hm-scroll` is still `overflow-x:
+    // visible` (the browser default), so `scrollWidth` reads the same as
+    // `clientWidth` — 452 and 452, not narrower — and scrolling to that is a
+    // no-op the block cannot tell apart from "nothing to scroll to" without
+    // also checking `clientWidth`. Committing to that unstyled reading (or
+    // simply not checking it against `clientWidth`) is what "opens at
+    // January instead of the end" traced back to: 20-35ms later the
+    // stylesheet lands, `scrollWidth`/`clientWidth` become the real,
+    // narrower pair, and the observer fires again, but a one-shot flag has
+    // already spent itself on the earlier, meaningless reading.
+    //
+    // `settled` replaces that flag with an interaction gate instead of a
+    // timer: nothing here is trusted to mean "the reader has taken over"
+    // except the reader actually doing something — the first `wheel`,
+    // `touchstart`, `pointerdown` or `keydown` on the scroller, or a
+    // `scroll` event whose position does not match what this block itself
+    // last assigned (a genuine drag, not the `scrollLeft` write below firing
+    // its own `scroll` event). Until then, every real (styled) layout keeps
+    // re-asserting the end, which is what survives the unstyled-then-styled
+    // sequence above without needing to know its exact timing.
+    let settled = false;
+    let lastAssignedScrollLeft: number | null = null;
+
+    const settle = (): void => {
+        settled = true;
+    };
+
+    // `scroll` is the element that actually scrolls (see `.dashy-hm-scroll`
+    // in blocks.css, which also carries the fade mask), not `wrap`: `wrap`
+    // also holds the title and the weekday column, neither of which should
+    // ever move or fade.
+    const updateScrollState = (): void => {
+        // `>`, not just truthy: an unstyled `scrollWidth === clientWidth`
+        // reading (see above) has nothing to scroll to and must not be
+        // mistaken for "caught up with the real layout".
+        if (!settled && scroll.scrollWidth > scroll.clientWidth) {
+            scroll.scrollLeft = scroll.scrollWidth;
+            lastAssignedScrollLeft = scroll.scrollLeft;
+        }
+        const { canScrollLeft, canScrollRight } =
+            scrollEdges(scroll.scrollLeft, scroll.clientWidth, scroll.scrollWidth);
+        scroll.classList.toggle("can-scroll-left", canScrollLeft);
+        scroll.classList.toggle("can-scroll-right", canScrollRight);
+    };
+    updateScrollState();
+
+    for (const type of ["wheel", "touchstart", "pointerdown", "keydown"] as const) {
+        scroll.addEventListener(type, settle, { passive: true });
+    }
+    // A `scrollLeft` write fires its own `scroll` event; comparing against
+    // `lastAssignedScrollLeft` rather than the event's timing is what tells
+    // that apart from an actual drag.
+    const onScroll = (): void => {
+        if (scroll.scrollLeft !== lastAssignedScrollLeft) settle();
+        updateScrollState();
+    };
+    scroll.addEventListener("scroll", onScroll, { passive: true });
+
+    // Obsidian's `activeWindow` is typed as a plain `Window`, unlike the
+    // ambient `window` (`Window & typeof globalThis`), so it does not carry
+    // `ResizeObserver` in its type even though the object behind it is a real
+    // browser window and does. Popout notes make it the right one to construct
+    // from regardless; a resize inside a popout is not one the main window's
+    // observer would ever see.
+    const win = activeWindow as unknown as typeof window;
+    if (typeof win.ResizeObserver !== "function") return null;
+    const observer = new win.ResizeObserver(updateScrollState);
+    observer.observe(scroll);
+    return observer;
 }

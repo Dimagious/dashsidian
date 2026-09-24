@@ -13,6 +13,8 @@ body {
   --dashy-gap: 14px;
   --dashy-cell: 13px;
   --dashy-cell-gap: 3px;
+  /* Roughly 2.5 week columns: wide enough to read as a fade, not a hard cut. */
+  --dashy-hm-fade: calc((var(--dashy-cell) + var(--dashy-cell-gap)) * 2.5);
 
   --dashy-shadow: var(--shadow-s, 0 2px 4px rgba(0, 0, 0, 0.05));
   --dashy-shadow-hover: var(--shadow-l, 0 6px 16px rgba(0, 0, 0, 0.1));
