@@ -1,7 +1,8 @@
 # Dashy
 
 Build a dashboard inside an Obsidian note from six markdown blocks. The config is YAML,
-a few lines of it. **No JavaScript, and no Dataview.**
+a few lines of it. **No JavaScript, and no Dataview.** The same blocks turn the checkboxes
+in your daily notes into [a habit tracker](#a-habit-tracker-from-daily-note-checkboxes).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screens/dashboard-dark.png">
@@ -18,6 +19,40 @@ weekly: true
 monthly: true
 ```
 ````
+
+## A habit tracker from daily note checkboxes
+
+Tick a box in a daily note's Properties, say `gym: true`, and the note already feeds a habit
+tracker. Every block that reads a `field` counts a ticked day as 1 and an unticked one as 0.
+
+````markdown
+```stats
+columns: 3
+items:
+  - { label: Gym days, source: Diary, field: gym, agg: sum }
+  - { label: Longest streak, source: Diary, field: gym, agg: streak, unit: days }
+  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }
+```
+
+```heatmap
+source: Diary
+field: gym
+```
+````
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/habits-dark.png">
+  <img alt="A gym habit tracker: cards for days, longest streak, this week against last week and this month, over a year of ticked days"
+       src="docs/screens/habits-light.png">
+</picture>
+
+`sum` counts the days you went. `streak` finds your longest run, and an unticked day breaks
+it the way a missing note does. `period: week` narrows a card to the current week, starting
+on Monday or Sunday as your language has it, and `compare: true` sets it against the same
+days of last week, green when you went more often. The heatmap paints the ticked days.
+
+You write this once. `period` counts from today, so "this week" is always this week and a
+`period: year` card starts over on 1 January without an edit.
 
 ## How it differs from a query plugin
 
@@ -207,37 +242,8 @@ Notes have to be named as `YYYY-MM-DD` dates, which is how the block knows which
 belong to. Clicking a cell opens that day. The week starts where your language starts it:
 Monday here, Sunday in the US, Canada and Japan.
 
-`field` does not have to be a number. An Obsidian checkbox property, the kind Properties
-draws as a tick box, counts as 1 when ticked and 0 when not, so a daily note with nothing
-but `gym: true` in it is already a habit tracker:
-
-````markdown
-```heatmap
-source: Diary
-field: gym
-```
-````
-
-paints the days you went, and on a `stats` card the same field turns `agg: sum` into a day
-count and `agg: streak` into your longest unbroken run. Add `period: week` to either and it
-narrows to the current week instead of the whole diary:
-
-````markdown
-```stats
-items:
-  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }
-```
-````
-
-five sessions since Monday (or Sunday, wherever your week starts) reads as `5`, not the
-whole year's total, and `compare: true` adds how that stacks up against the same days last
-week, green when it is more.
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/habits-dark.png">
-  <img alt="A gym habit tracker: cards for days, longest streak, this week against last week and this month, over a year of ticked days"
-       src="docs/screens/habits-light.png">
-</picture>
+`field` can also be a checkbox property: a ticked day counts as 1 and paints its cell.
+That is the whole of [the habit tracker](#a-habit-tracker-from-daily-note-checkboxes).
 
 ## It keeps up with the vault
 
