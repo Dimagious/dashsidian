@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readStat, formatValue } from "./stat";
+import { readStat, formatValue, valueLengthClass } from "./stat";
 
 describe("readStat — happy path", () => {
     it("with no agg it counts notes", () => {
@@ -161,5 +161,28 @@ describe("formatValue — digit groups", () => {
 
     it("the separator is non-breaking — otherwise the number wraps", () => {
         expect(formatValue(1138758)).not.toContain(" ");
+    });
+});
+
+describe("valueLengthClass", () => {
+    it("a dash gets no class", () => {
+        expect(valueLengthClass(formatValue(null))).toBe("");
+    });
+
+    it("one to six digits get no class, grouped or not", () => {
+        expect(valueLengthClass(formatValue(7))).toBe("");
+        expect(valueLengthClass(formatValue(9999))).toBe(""); // 4 digits, unsplit
+        expect(valueLengthClass(formatValue(10000))).toBe(""); // 5 digits, "10 000"
+        expect(valueLengthClass(formatValue(999999))).toBe(""); // 6 digits, "999 999"
+    });
+
+    it("seven or eight digits are long", () => {
+        expect(valueLengthClass(formatValue(3307952))).toBe("is-long"); // "3 307 952"
+        expect(valueLengthClass(formatValue(12345678))).toBe("is-long"); // "12 345 678"
+    });
+
+    it("nine digits or more are very long", () => {
+        expect(valueLengthClass(formatValue(123456789))).toBe("is-very-long"); // "123 456 789"
+        expect(valueLengthClass(formatValue(1234567890))).toBe("is-very-long");
     });
 });

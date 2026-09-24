@@ -2,7 +2,7 @@ import type { BlockContext } from "./context";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
 import { aggregate, series } from "../core/aggregate";
 import { sparkBars } from "../core/sparkline";
-import { readStat, formatValue } from "../core/stat";
+import { readStat, formatValue, valueLengthClass, GROUP_SEPARATOR } from "../core/stat";
 import {
     readPeriod,
     readCompare,
@@ -160,10 +160,14 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         if (card.icon) box.createSpan({ cls: "dashy-stat-icon", text: card.icon });
 
         const isEmpty = card.text === "—";
-        const valueEl = box.createDiv({
-            cls: isEmpty ? "dashy-stat-value is-empty" : "dashy-stat-value",
-            text: card.text,
-        });
+        const cls = ["dashy-stat-value"];
+        if (isEmpty) cls.push("is-empty");
+        else {
+            const lengthClass = valueLengthClass(card.text);
+            if (lengthClass) cls.push(lengthClass);
+        }
+        const valueEl = box.createDiv({ cls: cls.join(" ") });
+        renderGroupedValue(valueEl, card.text);
         if (card.unit && !isEmpty) {
             // A real space for the same reason as in progress: "14 500st" is
             // what a screen reader would otherwise say.
@@ -192,4 +196,27 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         if (card.label) box.createDiv({ cls: "dashy-stat-label", text: card.label });
         if (card.sub) box.createDiv({ cls: "dashy-stat-sub", text: card.sub });
     }
+}
+
+/**
+ * Draws a formatted number so a browser may only break it between digit
+ * groups, never inside one. `overflow-wrap: anywhere` on the card used to let
+ * a value a hair too wide split mid-digit ("3 307 95" / "2 steps"), which
+ * defeats the whole point of `formatValue` grouping the digits.
+ *
+ * A `<wbr>` right after each group separator gives the browser that one
+ * legal break point, without touching the text: `textContent` comes out
+ * identical to `text`, so copy-paste and screen readers still read the plain
+ * number. A value with no separator (a dash, or up to four digits) goes
+ * through the same loop and simply appends once, with no `<wbr>` at all.
+ */
+function renderGroupedValue(el: HTMLElement, text: string): void {
+    const groups = text.split(GROUP_SEPARATOR);
+    groups.forEach((piece, i) => {
+        if (i > 0) {
+            el.appendText(GROUP_SEPARATOR);
+            el.createEl("wbr");
+        }
+        el.appendText(piece);
+    });
 }

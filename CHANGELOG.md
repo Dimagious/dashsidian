@@ -48,6 +48,15 @@ removed public export.
   comparison having no notes at all in its window means no delta rather than
   a made-up one.
 
+### Fixed
+
+- **A long number on a stats card no longer breaks inside its digits.** A
+  4-column card with a value like `3 307 952` could wrap right through a
+  digit group, printing "3 307 95" on one line and "2 steps" on the next.
+  The card may now only break between groups, and a value nine characters
+  or longer as displayed (a 7-digit whole number, or `12 345.67`) also gets a
+  smaller type size so it fits the card in the first place.
+
 ## [1.1.0] - 2026-09-23
 
 ### Added

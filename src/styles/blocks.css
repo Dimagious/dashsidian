@@ -57,10 +57,16 @@
 .dashy-stat-value {
   font-size: 1.9em; font-weight: 700; line-height: 1.15;
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
+  /* A number breaks only where a <wbr> marks a digit-group boundary, never
+     inside a group: `anywhere` used to split a wide value mid-digit. */
+  overflow-wrap: normal;
 }
 /* a dash means "no data", and it should read quieter than a number */
 .dashy-stat-value.is-empty { color: var(--text-faint); font-weight: 500; }
+/* Long values shrink instead of relying only on the <wbr> break, so a 7- or
+   8-digit number still reads as one line in a 3-4 column grid. */
+.dashy-stat-value.is-long { font-size: 1.45em; }
+.dashy-stat-value.is-very-long { font-size: 1.15em; }
 .dashy-stat-unit { font-size: 0.45em; font-weight: 500; opacity: 0.6; margin-left: 3px; }
 /* `compare` against the same stretch of the previous period. Neutral by
  * default; `better` on the card picks which direction of the arrow is good. */
@@ -232,8 +238,9 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
   .dashy-countdown { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   /* Every pixel of gap is a pixel the bars do not get. */
   .dashy-stat-trend { gap: 0; }
-  /* A card is about 156px wide here, and `3 307 952` at the full size needs
-     two lines of it — which breaks the number mid-digits. Smaller type keeps
-     it whole; the wrap below stays as the last resort for longer ones. */
+  /* A card is about 156px wide here, so the same length classes shrink
+     proportionally to the smaller base size. */
   .dashy-stat-value { font-size: 1.6em; }
+  .dashy-stat-value.is-long { font-size: 1.2em; }
+  .dashy-stat-value.is-very-long { font-size: 0.95em; }
 }

@@ -140,8 +140,13 @@ export function formatValue(value: number | null, precision?: number): string {
     return group(precision !== undefined ? rounded.toFixed(precision) : String(rounded));
 }
 
-/** A narrow no-break space: digit groups must not wrap across lines. */
-const GROUP_SEPARATOR = " ";
+/**
+ * A narrow no-break space between digit groups. Exported so the drawing
+ * layer can split the formatted text back into its groups and place a
+ * `<wbr>` right after each separator: a number may still break across
+ * lines on a narrow card, but only between groups, never inside one.
+ */
+export const GROUP_SEPARATOR = " ";
 
 /**
  * Splits the integer part into groups of three: 1138758 is unreadable on a card.
@@ -157,4 +162,21 @@ function group(text: string): string {
     const digits = sign ? int.slice(1) : int;
     if (digits.length <= 4) return text;
     return sign + digits.replace(/\B(?=(\d{3})+$)/g, GROUP_SEPARATOR) + frac;
+}
+
+/**
+ * A CSS modifier for a value too wide for the card's usual type size, decided
+ * from the length of the formatted text (the unit is excluded — it wraps to
+ * its own line before the number does, so it plays no part in this).
+ *
+ * The thresholds are picked so a value of one to six digits reads exactly as
+ * before: the widest of those, "999 999", is 7 characters, so nothing below
+ * 9 gets a class. A 7-digit value ("3 307 952", 9 characters — the card that
+ * prompted this) is the shortest one that needs to shrink. A 9-digit value
+ * ("123 456 789", 11 characters) needs the smaller size still.
+ */
+export function valueLengthClass(text: string): "" | "is-long" | "is-very-long" {
+    if (text.length >= 11) return "is-very-long";
+    if (text.length >= 9) return "is-long";
+    return "";
 }

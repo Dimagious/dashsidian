@@ -61,7 +61,17 @@ describe("stats — the numbers are the real ones", () => {
         expect(texts(el, ".dashy-stat-unit")).toEqual(["st"]);
         // A real space, not only a CSS margin: "14 500st" is what a screen
         // reader would otherwise say.
-        expect(nodes(el, ".dashy-stat-value")[0]?.textContent).toBe("14\u202F500 st");
+        const valueEl = nodes(el, ".dashy-stat-value")[0];
+        expect(valueEl?.textContent).toBe("14\u202F500 st");
+        // A <wbr> sits right after the group separator so the number can
+        // still break there and nowhere else; textContent stays identical
+        // either way, which is the point.
+        const wbrs = valueEl ? Array.from(valueEl.querySelectorAll("wbr")) : [];
+        expect(wbrs).toHaveLength(1);
+        expect(wbrs[0]?.previousSibling?.nodeType).toBe(Node.TEXT_NODE);
+        expect(wbrs[0]?.previousSibling?.textContent).toBe("\u202F");
+        // "14 500" is 6 characters: below the length-class threshold.
+        expect(valueEl?.className).toBe("dashy-stat-value");
     });
 
     it("label, icon and sub land where they were asked to", () => {
@@ -137,12 +147,17 @@ describe("stats — nothing to count is not zero", () => {
         const el = card("items:\n  - { label: Nowhere, source: 99-Empty, field: steps, agg: sum }");
         const value = nodes(el, ".dashy-stat-value")[0];
         expect(value?.textContent).toBe("—");
-        expect(value?.className).toContain("is-empty");
+        expect(value?.className).toBe("dashy-stat-value is-empty");
+        // A dash has no digit group to break between, so no <wbr> either.
+        expect(value?.querySelectorAll("wbr")).toHaveLength(0);
     });
 
     it("count over an empty selection is an honest zero, not a dash", () => {
         const el = card("items:\n  - { label: Nowhere, source: 99-Empty, agg: count }");
-        expect(nodes(el, ".dashy-stat-value")[0]?.className).not.toContain("is-empty");
+        const value = nodes(el, ".dashy-stat-value")[0];
+        expect(value?.className).not.toContain("is-empty");
+        expect(value?.className).toBe("dashy-stat-value");
+        expect(value?.querySelectorAll("wbr")).toHaveLength(0);
         expect(texts(el, ".dashy-stat-value")).toEqual(["0"]);
     });
 
@@ -233,6 +248,64 @@ describe("stats — edges", () => {
         const el = card("items:\n  - { label: Avg, source: Diary, field: sleep_score, agg: avg, precision: 9 }");
         expect(diagnostics(el, "warning")[0]).toContain("precision");
         expect(texts(el, ".dashy-stat-value")).toEqual(["74.5"]);
+    });
+});
+
+describe("stats — a wide number does not break inside its digits", () => {
+    const wideCtx = mockContext({
+        notes: [
+            { path: "Big/one.md", frontmatter: { steps: 3307952 } },
+            { path: "Big/two.md", frontmatter: { steps: 12345678 } },
+            { path: "Big/three.md", frontmatter: { steps: 123456789 } },
+        ],
+    });
+    const wide = (config: string) => {
+        const el = host();
+        renderStats(wideCtx, config, el);
+        return el;
+    };
+
+    it("a <wbr> follows every group separator, and none sits anywhere else", () => {
+        const el = wide(
+            "items:\n  - { label: Steps, source: Big, where: \"steps = 3307952\", field: steps, agg: max, unit: steps }",
+        );
+        const valueEl = nodes(el, ".dashy-stat-value")[0];
+        expect(valueEl?.textContent).toBe("3 307 952 steps");
+        const wbrs = valueEl ? Array.from(valueEl.querySelectorAll("wbr")) : [];
+        expect(wbrs).toHaveLength(2);
+        for (const wbr of wbrs) {
+            expect(wbr.previousSibling?.nodeType).toBe(Node.TEXT_NODE);
+            // The node right before the <wbr> is the separator itself, not
+            // part of a digit group: the break point is between groups.
+            expect(wbr.previousSibling?.textContent).toBe(" ");
+            expect(wbr.nextSibling?.nodeType).toBe(Node.TEXT_NODE);
+            expect(wbr.nextSibling?.textContent).toMatch(/^\d+$/);
+        }
+    });
+
+    it("a 7- or 8-digit value gets the long-value class", () => {
+        const sevenDigits = wide(
+            "items:\n  - { label: Steps, source: Big, where: \"steps = 3307952\", field: steps, agg: max }",
+        );
+        expect(nodes(sevenDigits, ".dashy-stat-value")[0]?.className).toBe("dashy-stat-value is-long");
+
+        const eightDigits = wide(
+            "items:\n  - { label: Steps, source: Big, where: \"steps = 12345678\", field: steps, agg: max }",
+        );
+        expect(nodes(eightDigits, ".dashy-stat-value")[0]?.className).toBe("dashy-stat-value is-long");
+    });
+
+    it("a 9-digit value gets the very-long-value class", () => {
+        const el = wide(
+            "items:\n  - { label: Steps, source: Big, where: \"steps = 123456789\", field: steps, agg: max }",
+        );
+        expect(nodes(el, ".dashy-stat-value")[0]?.className).toBe("dashy-stat-value is-very-long");
+    });
+
+    it("a value up to six digits never gets a length class", () => {
+        const el = wide("items:\n  - { label: Days, source: Big, agg: count }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["3"]);
+        expect(nodes(el, ".dashy-stat-value")[0]?.className).toBe("dashy-stat-value");
     });
 });
 
