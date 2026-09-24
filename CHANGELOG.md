@@ -20,6 +20,17 @@ removed public export.
   day the same way it breaks on a missing one. A heatmap year that is
   entirely booleans drops the average from its caption, since a checkbox is
   not a quantity to average, only a tally of ticks.
+- **A time window for `stats` and `progress`.** `period: week`, `month` or
+  `year` narrows a card or bar to the current calendar one, ending today;
+  `period: 30d` is a rolling count of days instead. "Books this year" no
+  longer needs `where: "year = 2026"`, a filter that goes stale on 1 January,
+  and "gym days this week" can finally be written at all. A note's date is
+  its `YYYY-MM-DD` name unless `date_field` names a frontmatter date property
+  instead, and notes without a date are left out before counting, so an
+  empty week is not an error: `count` reads an honest `0`, and a field
+  aggregate shows its usual dash for nothing to count. `streak`, `latest`
+  and `trend` are unaffected: they keep their own rules and their own
+  windows.
 
 ## [1.1.0] - 2026-09-23
 

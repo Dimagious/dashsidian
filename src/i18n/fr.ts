@@ -43,6 +43,13 @@ export const fr: Catalog = {
     "stats.trendNeedsField": "{card} : `trend` a besoin d'un `field:` à tracer. Compter des notes n'a pas de forme.",
     "stats.trendInvalid": "{card} : `trend` attend un nombre de jours comme 30d, reçu « {value} ».",
 
+    "period.invalid":
+        "{card} : `period` attend week, month, year ou une fenêtre glissante comme 30d, reçu « {value} ». Dessiné sans la fenêtre.",
+    "period.noDatedNotes":
+        "{card} : aucune des notes sélectionnées n'a un nom du type YYYY-MM-DD. Ajoutez `date_field:` si la date se trouve dans une propriété.",
+    "period.noDatedNotesField": "{card} : aucune des notes sélectionnées n'a de date dans « {field} ».",
+    "period.dateFieldUnused": "{card} : `date_field` n'a aucun effet sans `period`.",
+
     "countdown.empty": "Aucune date à dessiner. Attendu : `items:` ou une liste.",
     "countdown.dateRequired": "{card} : `date:` manque. Il n'y a rien à décompter.",
     "countdown.dateInvalid": "{card} : « {date} » n'est pas une date. Attendu : YYYY-MM-DD.",

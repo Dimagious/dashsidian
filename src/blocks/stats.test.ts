@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderStats } from "./stats";
 import { mockContext, diary, recentDiary, host, texts, nodes, diagnostics } from "../test/vault";
 
@@ -233,5 +233,163 @@ describe("stats — edges", () => {
         const el = card("items:\n  - { label: Avg, source: Diary, field: sleep_score, agg: avg, precision: 9 }");
         expect(diagnostics(el, "warning")[0]).toContain("precision");
         expect(texts(el, ".dashy-stat-value")).toEqual(["74.5"]);
+    });
+});
+
+describe("stats — period narrows before counting", () => {
+    // A fixed "today" so the windows below are exact rather than relative:
+    // 2026-09-24 is a Thursday, and the English locale's week starts Sunday.
+    const TODAY = new Date(2026, 8, 24);
+
+    afterEach(() => vi.useRealTimers());
+
+    // gym: 1 in March (year only), 1 on the 18th (month only), then the
+    // current week 20..24 reads 1,0,1,1,1 — a checkbox habit tracker, the
+    // shape B-079 exists for. The 25th is tomorrow and must never count, and
+    // last year's 24th proves the year window does not reach back that far.
+    const period = mockContext({
+        notes: [
+            { path: "Diary/2026-03-01.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-18.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-20.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-21.md", frontmatter: { gym: false } },
+            { path: "Diary/2026-09-22.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-23.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-24.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-25.md", frontmatter: { gym: true } },
+            { path: "Diary/2025-09-24.md", frontmatter: { gym: true } },
+        ],
+    });
+
+    const withToday = (config: string) => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(period, config, el);
+        return el;
+    };
+
+    it("week sums only the current calendar week, ending today", () => {
+        const el = withToday("items:\n  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["4"]);
+    });
+
+    it("month reaches further back than week", () => {
+        const el = withToday("items:\n  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["5"]);
+    });
+
+    it("year reaches further back than month", () => {
+        const el = withToday("items:\n  - { label: Gym this year, source: Diary, field: gym, agg: sum, period: year }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["6"]);
+    });
+
+    it("a rolling Nd window is exact, not rounded to a calendar unit", () => {
+        const el = withToday("items:\n  - { label: Gym 3d, source: Diary, field: gym, agg: sum, period: 3d }");
+        // 22nd, 23rd, 24th: 1 + 1 + 1
+        expect(texts(el, ".dashy-stat-value")).toEqual(["3"]);
+    });
+
+    it("count also respects the window, not only a field aggregate", () => {
+        const el = withToday("items:\n  - { label: Diary entries this week, source: Diary, agg: count, period: week }");
+        // 20th, 21st, 22nd, 23rd, 24th — five entries, the 25th excluded as tomorrow
+        expect(texts(el, ".dashy-stat-value")).toEqual(["5"]);
+    });
+
+    it("trend keeps its own trailing window, independent of period", () => {
+        const el = withToday(
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: week, trend: 30d }",
+        );
+        // The trend still draws from the full selection, not the period window.
+        expect(nodes(el, ".dashy-stat-bar").length).toBeGreaterThan(5);
+    });
+
+    it("date_field reads a frontmatter property instead of the note name", () => {
+        const books = mockContext({
+            notes: [
+                { path: "Books/book-1.md", frontmatter: { finished: "2026-09-22" } },
+                { path: "Books/book-2.md", frontmatter: { finished: "2025-09-22" } },
+                { path: "Books/book-3.md", frontmatter: { rating: 5 } },
+            ],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            books,
+            "items:\n  - { label: Books this week, source: Books, agg: count, period: week, date_field: finished }",
+            el,
+        );
+        expect(texts(el, ".dashy-stat-value")).toEqual(["1"]);
+    });
+
+    it("an unreadable period warns and the card draws without a window", () => {
+        const el = withToday("items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: fortnight }");
+        expect(diagnostics(el, "warning")[0]).toContain("fortnight");
+        // Unfiltered: every gym value in the whole selection, not just a window.
+        expect(texts(el, ".dashy-stat-value")).toEqual(["8"]);
+    });
+
+    it("selected notes with no name-date and no date_field warn instead of showing a silent dash", () => {
+        const books = mockContext({
+            notes: [{ path: "Books/book-1.md", frontmatter: { rating: 5 } }],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(books, "items:\n  - { label: Books, source: Books, agg: count, period: month }", el);
+        expect(diagnostics(el, "warning")[0]).toContain("date_field");
+    });
+
+    it("a date_field that names nothing on any note warns and names the field", () => {
+        const books = mockContext({
+            notes: [{ path: "Books/book-1.md", frontmatter: { rating: 5 } }],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            books,
+            "items:\n  - { label: Books, source: Books, agg: count, period: month, date_field: finished }",
+            el,
+        );
+        expect(diagnostics(el, "warning")[0]).toContain("finished");
+    });
+
+    it("date_field without period warns that it has no effect", () => {
+        const el = withToday("items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, date_field: finished }");
+        expect(diagnostics(el, "warning")[0]).toContain("date_field");
+    });
+
+    it("an empty week is an honest zero, not a warning", () => {
+        const lastYear = mockContext({
+            notes: [{ path: "Diary/2025-09-24.md", frontmatter: { gym: true } }],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            lastYear,
+            "items:\n  - { label: Diary entries this week, source: Diary, agg: count, period: week }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["0"]);
+    });
+
+    it("a field aggregate over an empty week shows a dash, its usual rule for nothing to count", () => {
+        const lastYear = mockContext({
+            notes: [{ path: "Diary/2025-09-24.md", frontmatter: { gym: true } }],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            lastYear,
+            "items:\n  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
     });
 });

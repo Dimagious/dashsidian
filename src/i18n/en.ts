@@ -45,6 +45,13 @@ export const en = {
     "stats.trendNeedsField": "{card}: `trend` needs a `field:` to plot. Counting notes has no shape.",
     "stats.trendInvalid": "{card}: `trend` expects a number of days such as 30d, got \"{value}\".",
 
+    "period.invalid":
+        "{card}: `period` expects week, month, year or a rolling window such as 30d, got \"{value}\". Drawn unfiltered.",
+    "period.noDatedNotes":
+        "{card}: none of the selected notes is named like YYYY-MM-DD. Add `date_field:` if the date lives in a property instead.",
+    "period.noDatedNotesField": "{card}: none of the selected notes has a date in \"{field}\".",
+    "period.dateFieldUnused": "{card}: `date_field` has no effect without `period`.",
+
     "countdown.empty": "No dates to draw. Expected `items:` or a list.",
     "countdown.dateRequired": "{card}: `date:` is missing. There is nothing to count down to.",
     "countdown.dateInvalid": "{card}: \"{date}\" is not a date. Expected YYYY-MM-DD.",

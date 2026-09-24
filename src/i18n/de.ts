@@ -43,6 +43,13 @@ export const de: Catalog = {
     "stats.trendNeedsField": "{card}: `trend` braucht ein `field:` zum Zeichnen. Gezählte Notizen haben keine Form.",
     "stats.trendInvalid": "{card}: `trend` erwartet eine Anzahl Tage wie 30d, bekommen „{value}“.",
 
+    "period.invalid":
+        "{card}: `period` erwartet week, month, year oder ein rollierendes Fenster wie 30d, bekommen „{value}“. Gezeichnet ohne das Fenster.",
+    "period.noDatedNotes":
+        "{card}: keine der ausgewählten Notizen heißt wie YYYY-MM-DD. Ergänze `date_field:`, wenn das Datum in einer Eigenschaft steckt.",
+    "period.noDatedNotesField": "{card}: keine der ausgewählten Notizen hat ein Datum in „{field}“.",
+    "period.dateFieldUnused": "{card}: `date_field` hat ohne `period` keine Wirkung.",
+
     "countdown.empty": "Keine Termine zu zeichnen. Erwartet wird `items:` oder eine Liste.",
     "countdown.dateRequired": "{card}: `date:` fehlt. Es gibt nichts, worauf gezählt werden könnte.",
     "countdown.dateInvalid": "{card}: „{date}“ ist kein Datum. Erwartet wird YYYY-MM-DD.",

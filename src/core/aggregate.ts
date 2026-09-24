@@ -5,8 +5,12 @@
 import type { NoteRecord } from "./source";
 import { longestStreak, dateKey } from "./calendar";
 
-/** A note whose name is the day it belongs to. */
-const DATE_NAME = /^\d{4}-\d{2}-\d{2}$/;
+/**
+ * A note whose name is the day it belongs to. Exported so `core/period.ts`
+ * tests the same rule instead of a second copy of the regex drifting apart
+ * from this one.
+ */
+export const DATE_NAME = /^\d{4}-\d{2}-\d{2}$/;
 
 export const AGGS = ["count", "sum", "avg", "min", "max", "latest", "streak"] as const;
 export type Agg = (typeof AGGS)[number];

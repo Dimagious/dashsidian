@@ -1,7 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { profileVault, fitExample } from "./vault-profile";
+import { dateKey } from "./calendar";
 import type { NoteRecord } from "./source";
 import schema from "../blocks/schema.json";
+import { renderStats } from "../blocks/stats";
+import { renderProgress } from "../blocks/progress";
+import { mockContext, host, diagnostics } from "../test/vault";
 
 const note = (folder: string, name: string, fm: Record<string, unknown> = {}): NoteRecord =>
     ({ path: `${folder}/${name}.md`, name, folder, tags: [], frontmatter: fm });
@@ -139,5 +143,62 @@ describe("every block's example fits the vault it lands in", () => {
         const blocks = schema.blocks as Record<string, { example: string }>;
         expect(fitExample(blocks.today!.example, profile)).toBe(blocks.today!.example);
         expect(fitExample(blocks.countdown!.example, profile)).toBe(blocks.countdown!.example);
+    });
+});
+
+/**
+ * The shape `scripts/newcomer-vault.cjs` builds for the first-run audit: a
+ * `Journal` folder of YYYY-MM-DD notes with `mood`/`ran_km`, a `Templates`
+ * note with both empty, and a `Work` folder of unrelated notes. Fitting is
+ * only half the story for `period` items: `date_field` is never rewritten
+ * (B-079 round 2 caught it live on this exact vault shape), so a schema
+ * example carrying one has to happen to name a property this vault actually
+ * has, or it silently warns instead of drawing. Rendering through the real
+ * blocks is the only check that catches that; comparing rewritten text
+ * against the profile, as the tests above do, cannot.
+ */
+function newcomerVaultNotes(today: Date): NoteRecord[] {
+    const notes: NoteRecord[] = [];
+    for (let back = 60; back >= 0; back--) {
+        if (back % 6 === 2) continue; // days they missed
+        const at = new Date(today.getFullYear(), today.getMonth(), today.getDate() - back);
+        notes.push(note("Journal", dateKey(at), { mood: 3 + (back % 3), ran_km: (back % 9) + 1 }));
+    }
+    notes.push(note("Templates", "Daily", {}));
+    for (let i = 1; i <= 12; i++) notes.push(note("Work", `meeting-${i}`, {}));
+    return notes;
+}
+
+describe("the schema examples survive a newcomer-shaped vault", () => {
+    const TODAY = new Date(2026, 8, 24);
+
+    afterEach(() => vi.useRealTimers());
+
+    it("stats and progress render every fitted example with no diagnostics", () => {
+        const notes = newcomerVaultNotes(TODAY);
+        const profile = profileVault(notes);
+        // Ties break alphabetically (see profileVault above), and every
+        // Journal note carries both fields equally, so "mood" wins over
+        // "ran_km" — asserted here so a change to that tie-break does not
+        // silently swap which field the rest of this test exercises.
+        expect(profile).toEqual({ folder: "Journal", field: "mood" });
+
+        const ctx = mockContext({
+            notes: notes.map((n) => ({ path: n.path, frontmatter: n.frontmatter, tags: n.tags })),
+        });
+
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+
+        const blocks = schema.blocks as Record<string, { example: string }>;
+        for (const name of ["stats", "progress"] as const) {
+            const fitted = fitExample(blocks[name]!.example, profile);
+            const el = host();
+            if (name === "stats") renderStats(ctx, fitted, el);
+            else renderProgress(ctx, fitted, el);
+
+            expect(diagnostics(el, "error"), `${name}:\n${fitted}`).toEqual([]);
+            expect(diagnostics(el, "warning"), `${name}:\n${fitted}`).toEqual([]);
+        }
     });
 });

@@ -41,6 +41,13 @@ export const ru: Catalog = {
     "stats.trendNeedsField": "{card}: `trend` нужно `field:`. У счёта заметок нет формы.",
     "stats.trendInvalid": "{card}: `trend` ожидает число дней, например 30d, получено «{value}».",
 
+    "period.invalid":
+        "{card}: `period` ожидает week, month, year или скользящее окно вроде 30d, получено «{value}». Рисуется без окна.",
+    "period.noDatedNotes":
+        "{card}: ни у одной выбранной заметки нет имени вида YYYY-MM-DD. Добавьте `date_field:`, если дата лежит в свойстве.",
+    "period.noDatedNotesField": "{card}: ни у одной выбранной заметки нет даты в «{field}».",
+    "period.dateFieldUnused": "{card}: `date_field` не действует без `period`.",
+
     "countdown.empty": "Список дат пуст. Ожидается `items:` или массив.",
     "countdown.dateRequired": "{card}: не задан `date:`. Не до чего считать.",
     "countdown.dateInvalid": "{card}: «{date}» не похоже на дату. Ожидается YYYY-MM-DD.",

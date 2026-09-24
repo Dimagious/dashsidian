@@ -4,6 +4,8 @@ import { selectNotes, readSource, unmatchedSource } from "../core/source";
 import { aggregate, series } from "../core/aggregate";
 import { sparkBars } from "../core/sparkline";
 import { readStat, formatValue, type StatSpec } from "../core/stat";
+import { readPeriod, filterByPeriod } from "../core/period";
+import { firstDayOfWeek } from "../adapters/datetime";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics } from "../shared/render";
 import { t } from "../i18n";
@@ -47,6 +49,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
     const notes = ctx.notes();
     // Taken once, so every card on the page measures the same window.
     const today = new Date();
+    const firstDay = firstDayOfWeek();
     const cards: Card[] = [];
 
     for (const item of items) {
@@ -61,9 +64,29 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         const missing = unmatchedSource(notes, source);
         if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
         const selected = selectNotes(notes, source);
+
+        // `trend` keeps its own trailing window and reads `selected`
+        // unfiltered — `period` narrows only what the number itself counts.
+        const { spec: periodSpec, diagnostics: periodDiags } = readPeriod(item, label);
+        diags.push(...periodDiags);
+        let counted = selected;
+        if (periodSpec) {
+            const windowed = filterByPeriod(selected, periodSpec.period, today, firstDay, periodSpec.dateField);
+            if (selected.length && !windowed.anyDated) {
+                const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
+                diags.push({
+                    level: "warning",
+                    message: periodSpec.dateField
+                        ? t("period.noDatedNotesField", { card: cardLabel, field: periodSpec.dateField })
+                        : t("period.noDatedNotes", { card: cardLabel }),
+                });
+            }
+            counted = windowed.notes;
+        }
+
         const card: Card = {
             label: label || spec?.field || "",
-            text: cardValue(selected, spec),
+            text: cardValue(counted, spec),
             trend: spec?.trend && spec.field
                 ? sparkBars(series(selected, spec.field, spec.trend, today))
                 : [],

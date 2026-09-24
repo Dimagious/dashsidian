@@ -23,6 +23,11 @@ function build() {
     fs.mkdirSync(path.join(out, ".obsidian"), { recursive: true });
 
     const today = new Date();
+    // Date-only: `today` still carries the hour the script happened to run
+    // at, and that hour crossing midnight nudged the last book's `finished`
+    // date computed below into tomorrow, which `period: year` then excludes
+    // (this year's book count flipped 15/16 depending on the time of day).
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     // A year of days with a believable rhythm: a slow seasonal swing, a weekly
     // one, and gaps where life got in the way. Flat noise looks generated.
@@ -64,10 +69,19 @@ function build() {
         fs.writeFileSync(path.join(out, "Inbox", `idea-${i}.md`), `# Idea ${i}\n`);
     }
     for (let i = 1; i <= 23; i++) {
-        const year = i % 3 === 0 ? today.getFullYear() - 1 : today.getFullYear();
+        const thisYear = i % 3 !== 0;
+        const bookYear = thisYear ? today.getFullYear() : today.getFullYear() - 1;
+        // Spread `finished` dates across the book's year so `period: year`
+        // (see the stats and progress blocks below) counts a believable
+        // subset instead of every book landing on the same day. This year's
+        // books stop at today, since a book cannot be finished tomorrow.
+        const yearStart = new Date(bookYear, 0, 1);
+        const yearEnd = thisYear ? todayMidnight : new Date(bookYear, 11, 31);
+        const span = Math.round((yearEnd.getTime() - yearStart.getTime()) / 86_400_000);
+        const finished = key(new Date(bookYear, 0, 1 + Math.floor((i / 23) * span)));
         fs.writeFileSync(
             path.join(out, "Books", `book-${i}.md`),
-            `---\nyear: ${year}\nrating: ${3 + (i % 3)}\n---\n\n# Book ${i}\n`,
+            `---\nyear: ${bookYear}\nrating: ${3 + (i % 3)}\nfinished: ${finished}\n---\n\n# Book ${i}\n`,
         );
     }
 
@@ -97,13 +111,13 @@ items:
   - { label: Longest streak, source: Diary, field: sleep_score, agg: streak, unit: days }
   - { label: Latest steps, source: Diary, field: steps, agg: latest, sub: most recent note }
   - { label: Great nights, source: Diary, where: "sleep_score >= 90", agg: count }
-  - { label: Books read, source: Books, where: "year = ${year}", agg: count, icon: 📚 }
+  - { label: Books read, source: Books, period: year, date_field: finished, agg: count, icon: 📚 }
 \`\`\`
 
 \`\`\`progress
 items:
   - { label: Days logged this year, source: Diary, agg: count, goal: 365, icon: 📔 }
-  - { label: Books this year, source: Books, where: "year = ${year}", agg: count, goal: 24, icon: 📚 }
+  - { label: Books this year, source: Books, period: year, date_field: finished, agg: count, goal: 24, icon: 📚 }
   - { label: Steps, source: Diary, field: steps, agg: sum, goal: 3000000, unit: steps, sub: three million }
 \`\`\`
 
@@ -132,10 +146,12 @@ title: Steps, last twelve months
 \`\`\`
 
 \`\`\`stats
-columns: 2
+columns: 4
 items:
   - { label: Gym days, source: Diary, field: gym, agg: sum, icon: 🏋️ }
   - { label: Longest gym streak, source: Diary, field: gym, agg: streak, unit: days }
+  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, icon: 🏋️ }
+  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month, icon: 🏋️ }
 \`\`\`
 
 \`\`\`heatmap

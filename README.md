@@ -123,13 +123,22 @@ stopped months ago draws nothing at all, which is the honest answer.
 When there is nothing to count the card shows a dash. "No notes at all" and "the sum is
 zero" are different answers, and a zero for the first would be a lie.
 
+Add `period: week`, `month` or `year` and the card counts only the current calendar one,
+ending today; a rolling count of days works too, `period: 30d`. A note's date is its
+`YYYY-MM-DD` name unless `date_field` names a frontmatter date property instead, in which
+case the name is not consulted at all. Notes without a date are left out before counting, so
+an empty week is not an error: `agg: count` reads the honest `0`, and a field aggregate like
+`sum` shows a dash by its usual rule above. Only a selection where not one note has a date at
+all is worth a warning, "no note fell in this window" and "nobody here has a date" being
+different problems. `trend` keeps its own trailing window regardless of `period`.
+
 ### `progress`: how far along
 
 ````markdown
 ```progress
 items:
   - { label: Days logged this year, source: Diary, agg: count, goal: 365, icon: 📔 }
-  - { label: Books this year, source: Books, where: "year = 2026", agg: count, goal: 24, icon: 📚 }
+  - { label: Books this year, source: Books, period: year, date_field: finished, agg: count, goal: 24, icon: 📚 }
   - { label: Steps, source: Diary, field: steps, agg: sum, goal: 3000000, unit: steps }
 ```
 ````
@@ -141,6 +150,10 @@ items:
 </picture>
 
 Beating a goal shows as it is. 110% stays 110%, and only the bar stops at full.
+
+`period` and `date_field` work the same way they do on `stats`, narrowing what the goal is
+measured against rather than the whole selection. "Books this year" above reads a `finished`
+property on each book instead of the note name, since a book is rarely named as a date.
 
 ### `countdown`: what is coming
 
@@ -198,7 +211,18 @@ field: gym
 ````
 
 paints the days you went, and on a `stats` card the same field turns `agg: sum` into a day
-count and `agg: streak` into your longest unbroken run.
+count and `agg: streak` into your longest unbroken run. Add `period: week` to either and it
+narrows to the current week instead of the whole diary:
+
+````markdown
+```stats
+items:
+  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week }
+```
+````
+
+five sessions since Monday (or Sunday, wherever your week starts) reads as `5`, not the
+whole year's total.
 
 ## It keeps up with the vault
 
