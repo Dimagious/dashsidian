@@ -103,7 +103,7 @@ columns: 4
 items:
   - { label: Days logged, source: Diary, agg: count, icon: 📔 }
   - { label: Average sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }
-  - { label: Steps this year, source: Diary, field: steps, agg: sum, unit: steps }
+  - { label: Steps this week, source: Diary, field: steps, agg: sum, unit: steps, period: week }
   - { label: Longest streak, source: Diary, field: sleep_score, agg: streak, unit: days }
 ```
 ````
@@ -232,6 +232,12 @@ items:
 five sessions since Monday (or Sunday, wherever your week starts) reads as `5`, not the
 whole year's total, and `compare: true` adds how that stacks up against the same days last
 week, green when it is more.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/habits-dark.png">
+  <img alt="A gym habit tracker: cards for days, longest streak, this week against last week and this month, over a year of ticked days"
+       src="docs/screens/habits-light.png">
+</picture>
 
 ## It keeps up with the vault
 

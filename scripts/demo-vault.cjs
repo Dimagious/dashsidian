@@ -57,7 +57,10 @@ function build() {
         const gymPushRest = back === 40 || back === 55; // a rest day bracketing the push below
         const gymPush = back >= 41 && back < 55; // a strong fortnight, every day counts
         const gymBreak = back >= 110 && back < 129; // an off patch, months back: injury or travel
-        const gym = gymBreak ? false : gymPushRest ? false : gymPush ? true : gymCore || gymSaturday;
+        // The current week picks up Tuesday and Thursday too, so "this week"
+        // honestly beats the same days of last week on any run date after Monday.
+        const gymRecent = back < 7 && (weekday === 2 || weekday === 4);
+        const gym = gymBreak ? false : gymPushRest ? false : gymPush ? true : gymCore || gymSaturday || gymRecent;
 
         fs.writeFileSync(
             path.join(out, "Diary", `${key(date)}.md`),
@@ -106,7 +109,7 @@ columns: 4
 items:
   - { label: Days logged, source: Diary, agg: count, icon: 📔 }
   - { label: Average sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }
-  - { label: Steps this year, source: Diary, field: steps, agg: sum, unit: steps }
+  - { label: Steps this week, source: Diary, field: steps, agg: sum, unit: steps, period: week }
   - { label: Best night, source: Diary, field: sleep_score, agg: max, trend: 90d }
   - { label: Longest streak, source: Diary, field: sleep_score, agg: streak, unit: days }
   - { label: Latest steps, source: Diary, field: steps, agg: latest, sub: most recent note }
@@ -149,16 +152,16 @@ title: Steps, last twelve months
 columns: 4
 items:
   - { label: Gym days, source: Diary, field: gym, agg: sum, icon: 🏋️ }
-  - { label: Longest gym streak, source: Diary, field: gym, agg: streak, unit: days }
-  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, icon: 🏋️, compare: true, better: up }
-  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month, icon: 🏋️, compare: true, better: up }
+  - { label: Longest gym streak, source: Diary, field: gym, agg: streak, unit: days, icon: 🔥 }
+  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, icon: 📅, compare: true, better: up }
+  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month, icon: 🗓 }
 \`\`\`
 
 \`\`\`heatmap
 source: Diary
 field: gym
 color: orange
-title: Gym, last twelve months
+title: Gym
 \`\`\`
 `);
 
