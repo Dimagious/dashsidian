@@ -92,4 +92,38 @@ test.describe("checkbox properties feed the aggregates", () => {
         await expect(view.locator('[title="2026-01-04: no data"]')).toHaveCount(1);
         await expect(view.locator(".dashy-hm-title")).toHaveText(/6 of \d+ days/);
     });
+
+    test("unticking the box in the Properties pane redraws the dashboard", async ({ win }) => {
+        // The same flip as above, but by a click on the checkbox a person
+        // would click: Habits in one pane, the day note in a split beside it.
+        await openHabits(win);
+        await win.evaluate(async () => {
+            const a = (globalThis as unknown as {
+                app?: {
+                    vault?: { getFileByPath?: (p: string) => unknown };
+                    workspace?: {
+                        getLeaf?: (split: string) => { openFile?: (f: unknown, s?: unknown) => Promise<void> };
+                    };
+                };
+            }).app;
+            const file = a?.vault?.getFileByPath?.("Diary/2026-01-04.md");
+            await a?.workspace?.getLeaf?.("split")?.openFile?.(file, {
+                state: { mode: "source", source: false },
+            });
+        });
+
+        const box = win.locator('.metadata-property[data-property-key="gym"] input[type="checkbox"]');
+        await expect(box).toBeChecked();
+
+        const view = win.locator(READING_VIEW).filter({ has: win.locator(".dashy-stat") });
+        const values = view.locator(".dashy-stat-value");
+        await expect(values.nth(0)).toHaveText("7");
+
+        await box.click();
+        await expect(box).not.toBeChecked();
+
+        await expect(values.nth(0)).toHaveText("6");
+        await expect(values.nth(1)).toHaveText("2");
+        await expect(view.locator('[title="2026-01-04: no data"]')).toHaveCount(1);
+    });
 });
