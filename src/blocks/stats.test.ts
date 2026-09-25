@@ -167,6 +167,116 @@ describe("stats — nothing to count is not zero", () => {
     });
 });
 
+describe("stats — a field no note carries warns, and is not a silent zero (B-111)", () => {
+    it.each(["sum", "avg", "min", "max", "latest"])(
+        "%s over a field nothing carries is a dash with a warning naming it",
+        (agg) => {
+            const el = card(`items:\n  - { label: Gym, source: Diary, field: nope, agg: ${agg} }`);
+            expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
+            expect(diagnostics(el, "warning")).toHaveLength(1);
+            expect(diagnostics(el, "warning")[0]).toContain("Gym");
+            expect(diagnostics(el, "warning")[0]).toContain("nope");
+        },
+    );
+
+    it("streak over a field nothing carries is a dash with a warning too, not an honest 0", () => {
+        const el = card("items:\n  - { label: Gym streak, source: Diary, field: nope, agg: streak }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
+        expect(diagnostics(el, "warning")[0]).toContain("nope");
+    });
+
+    it("a text field warns with a different message, mentioning where + count", () => {
+        const running = mockContext({
+            notes: [
+                { path: "Diary/2026-09-19.md", frontmatter: { running: "10 km" } },
+                { path: "Diary/2026-09-20.md", frontmatter: { running: "5 km" } },
+            ],
+        });
+        const el = host();
+        renderStats(running, "items:\n  - { label: Running, source: Diary, field: running, agg: sum }", el);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
+        const warning = diagnostics(el, "warning")[0] ?? "";
+        expect(warning).toContain("running");
+        expect(warning).toContain("where");
+        expect(warning).toContain("count");
+        // A different message from the missing-field one, not the same text
+        // with the field name swapped in.
+        expect(warning).not.toContain("Check the name");
+    });
+
+    it("a field present with only false checkboxes stays a clean 0 for streak, no warning", () => {
+        const allFalse = mockContext({
+            notes: [
+                { path: "Diary/2026-09-19.md", frontmatter: { gym: false } },
+                { path: "Diary/2026-09-20.md", frontmatter: { gym: false } },
+            ],
+        });
+        const el = host();
+        renderStats(allFalse, "items:\n  - { label: Gym streak, source: Diary, field: gym, agg: streak }", el);
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["0"]);
+    });
+
+    it("a field present only outside the period window stays an unwarned dash (B-079)", () => {
+        const TODAY = new Date(2026, 8, 24);
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const lastYear = mockContext({
+            notes: [
+                { path: "Diary/2025-09-24.md", frontmatter: { gym: true } },
+                // Inside this week's window, but without the field: this is
+                // what tells apart checking the field against the whole
+                // selection (correct: the field is fine elsewhere, so this
+                // stays quiet) from checking it against the period-narrowed
+                // window (wrong: that window alone looks field-less). A
+                // window with no notes in it at all cannot tell the two
+                // apart, since both then see an empty set either way.
+                { path: "Diary/2026-09-24.md", frontmatter: { other: 1 } },
+            ],
+        });
+        const el = host();
+        renderStats(
+            lastYear,
+            "items:\n  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
+        vi.useRealTimers();
+    });
+
+    it("streak over an empty period window is a dash too, not a zero (F4)", () => {
+        const TODAY = new Date(2026, 8, 24);
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const lastYear = mockContext({
+            notes: [{ path: "Diary/2025-09-24.md", frontmatter: { gym: true } }],
+        });
+        const el = host();
+        renderStats(
+            lastYear,
+            "items:\n  - { label: Gym streak, source: Diary, field: gym, agg: streak, period: week }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
+        vi.useRealTimers();
+    });
+
+    it("a field nothing carries over an empty selection stays quiet: the folder warning covers it", () => {
+        const el = card("items:\n  - { label: Nowhere, source: 99-Empty, field: nope, agg: sum }");
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+        expect(diagnostics(el, "warning")[0]).toContain("99-Empty");
+    });
+
+    it("count and a fieldless streak are never checked: there is no field to classify", () => {
+        const el = card(`items:
+  - { label: Days, source: Diary, agg: count }
+  - { label: Streak, source: Diary, agg: streak }`);
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+    });
+});
+
 describe("stats — edges", () => {
     it("a typo in the aggregate errors with a suggestion, and the card shows a dash", () => {
         const el = card("items:\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avgg }");

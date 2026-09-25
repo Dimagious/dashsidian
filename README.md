@@ -1,5 +1,7 @@
 # Dashy
 
+Website: [dimagious.github.io/dashsidian](https://dimagious.github.io/dashsidian/)
+
 Build a dashboard inside an Obsidian note from six markdown blocks. The config is YAML,
 a few lines of it. **No JavaScript, and no Dataview.** The same blocks turn the checkboxes
 in your daily notes into [a habit tracker](#a-habit-tracker-from-daily-note-checkboxes).
@@ -139,6 +141,23 @@ items:
 `path` also understands a Bases view (`path: Vault.base#My view`), which is the answer
 whenever you want a table.
 
+`badge: count` normally counts everything under `path`. Add `tag`, `where`, `period` and
+`date_field` to narrow it, the same keys and the same meaning as on `stats` below: a mail
+inbox where only this month's messages matter, or a calendar folder where only today's
+events do, without editing the block when the month turns.
+
+````markdown
+```tiles
+columns: 2
+items:
+  - { label: Mails, path: Mails, icon: 📥, date_field: start, period: month, badge: count }
+  - { label: Events, path: Events, icon: 📅, date_field: start, period: 1d, badge: count }
+```
+````
+
+These four keys only mean something next to `badge: count`; on a tile with no badge or a
+custom one they are ignored and warn, since there is nothing there for them to narrow.
+
 ### `stats`: the numbers
 
 One card per number, counted over whatever selection you describe.
@@ -167,8 +186,14 @@ says nothing. A day with no note is left out rather than drawn as a zero, two no
 on the same day are summed into that one day's bar, and a diary that stopped months ago draws
 nothing at all, which is the honest answer.
 
-When there is nothing to count the card shows a dash. "No notes at all" and "the sum is
-zero" are different answers, and a zero for the first would be a lie.
+With nothing to count, a field aggregate like `sum` or `avg` shows a dash rather than a
+zero: "no notes at all" and "the sum is zero" are different answers, and a zero for the
+first would be a lie. `count` has no such gap; an empty selection reads a plain `0`, the
+same as everywhere else it counts notes. The dash rule also covers a `field` that no
+selected note actually carries: the card shows a dash and a warning naming it, rather than
+a plausible-looking zero that hides a typo. A field that holds text instead of a number,
+like Garmin's `running: "10 km · 51min"`, warns too; count how many notes have it set with
+`where: "field contains ..."` and `agg: count` instead.
 
 Add `period: week`, `month` or `year` and the card counts only the current calendar one,
 ending today; a rolling count of days works too, `period: 30d`. A note's date is its name, as
@@ -178,10 +203,12 @@ which case the name is not consulted at all. `streak`, `latest` and `trend` reso
 date the same way, `date_field` included, whether or not `period` is even set, and two or
 more notes landing on the same day always count as that one day, not two. Notes without a
 date are left out before counting, so an empty week is not an error: `agg: count` reads the
-honest `0`, and a field aggregate like `sum` shows a dash by its usual rule above. Only a
-selection where not one note has a date at all is worth a warning, "no note fell in this
-window" and "nobody here has a date" being different problems. `trend` keeps its own trailing
-window regardless of `period`.
+honest `0`, and a field aggregate like `sum` shows a dash by its usual rule above. `streak`
+with a `field:` follows that same rule, a dash over an empty window included; without one it
+counts every selected note's own date instead, and reads a plain `0` there, the same as
+`count`. Only a selection where not one note has a date at all is worth a warning, "no note
+fell in this window" and "nobody here has a date" being different problems. `trend` keeps its
+own trailing window regardless of `period`.
 
 Add `compare: true` next to `period` and the card also shows the delta against the same
 stretch of the previous period, to date: a Thursday this week compares against Monday to
@@ -265,7 +292,11 @@ first by path. The week starts where your language starts it: Monday here, Sunda
 Canada and Japan.
 
 `field` can also be a checkbox property: a ticked day counts as 1 and paints its cell.
-That is the whole of [the habit tracker](#a-habit-tracker-from-daily-note-checkboxes).
+That is the whole of [the habit tracker](#a-habit-tracker-from-daily-note-checkboxes). A
+`field` nothing carries, or one that holds text rather than a number or a checkbox, is an
+error that says which, rather than an empty grid that looks like a note-taking gap. Years
+come from the data, newest first, but never one later than today: a note dated in the
+future counts nowhere in the grid.
 
 ## It keeps up with the vault
 
@@ -335,7 +366,8 @@ The German, French and Spanish catalogues were written by the author, who speaks
 the three well enough to be sure of them. Corrections are welcome and cheap: copy
 [`src/i18n/en.ts`](src/i18n/en.ts), translate the values, register the file. No TypeScript
 needed, and a partial translation is a valid one. Dates, month names and the first day of
-the week come from Obsidian itself, so they are right in every language it supports.
+the week come from the date library Obsidian ships, set to the same language as the blocks,
+so they are right in every language it supports.
 
 ## Development
 

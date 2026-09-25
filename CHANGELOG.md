@@ -12,6 +12,12 @@ removed public export.
 
 ### Added
 
+- **`tiles` can count a selection, not the whole folder.** `badge: count`
+  takes the same `tag`, `where`, `period` and `date_field` keys `stats`
+  already has, narrowing the count the same way: a mail inbox tile that only
+  counts this month's messages, a calendar tile that only counts today's
+  events, both without an edit when the month turns. The tile still opens
+  `path` unchanged. Asked for in #8.
 - **A new day can start after midnight.** The setting **New day starts at**
   (00:00 to 06:00, midnight by default) decides what "today" means for every
   block, not which day a note itself falls on: a note's own date is still
@@ -45,6 +51,12 @@ removed public export.
   average now reflects the same totals `streak` and `trend` agree on.
   `latest` keeps its usual "newest date wins" rule, with a tie on the same
   date broken by path.
+- **A project site.** `dimagious.github.io/dashsidian` shows the plugin as a
+  vault: a file tree for navigation, one note per block, and every config on
+  it real enough to paste into your own vault. It publishes itself from
+  `site/` on every tagged release, so its version and requirements are
+  always the one that actually shipped, and it carries no code of its own
+  into the plugin bundle.
 
 ### Fixed
 
@@ -65,6 +77,49 @@ removed public export.
   is not the active tab, where Obsidian lays the pane out with no size at
   all: the scroller now keeps its own last known position on itself as it
   changes, rather than asking a hidden pane what it currently measures.
+- **`streak` over a field no selected note actually carries no longer shows
+  a plausible zero.** A typo in `field:` used to read exactly like an honest
+  streak of zero; now, with `agg: streak` and a `field:` set, it shows a
+  dash and a warning naming the field, the same as `sum`, `avg`, `min`,
+  `max` and `latest` already did. This also covers an empty selection, such
+  as the only note landing outside a `period` window: `streak` with a
+  `field:` is a field aggregate like `sum`, and now reads a dash there too,
+  instead of the `0` it used to be alone in showing. A field that exists but
+  only as `false` checkboxes is unaffected: a streak of zero there stays a
+  plain zero, no warning. `streak` with no `field:` at all is also
+  unaffected: it counts every selected note's own date, and an empty
+  selection there is still a plain, honest `0`, the same as `count`.
+- **`stats` and `progress` now warn when a card's `field` is missing or is
+  text, not only when the card is empty.** Any aggregate that reads a
+  `field` shows a dash and a warning as soon as none of the selected notes
+  (before `period` narrows them) has a usable value in it. A field simply
+  absent from the current `period` window, while present elsewhere in the
+  selection, is unaffected and stays a plain, unwarned dash or zero.
+- **The heatmap's "no data" error now says whether the field is missing or
+  holds text.** "No notes with a resolvable date and a number or a checkbox
+  in <field>" pointed at `source` even when `source` was correct and the
+  field simply held text, like Garmin's `running: "10 km · 51min"`. The
+  block now tells a field nobody wrote apart from one that is real but not
+  numeric, and the second message names `where: "field contains ..."` with
+  `agg: count` on a stats card as the way to count it instead.
+- **A note dated next year no longer draws an empty grid above the real
+  data.** The heatmap never draws a year later than today's; a future-dated
+  note still counts nowhere on the grid, same as a future day within the
+  current year already did. If every dated note turns out to be in the
+  future, the current year is drawn anyway, empty, rather than nothing at
+  all.
+- **The agent skill says what a live test caught agents getting wrong.** A
+  six-agent test against a real vault found the skill's wording letting `streak` read as a currently
+  running streak, `period: week` reading as always starting Monday, and a
+  blanket "shows a dash rather than a zero" contradicting `count`'s own
+  honest `0`. `streak`'s notes now say plainly that it is the longest run on
+  record, not a current one, and the schema's own `streak` example is
+  relabelled "Best streak" rather than "Days in a row". `period` now says a
+  week starts on the first day of Obsidian's interface language. The empty
+  rule is now exact: `count` reads `0`, every other aggregate and `streak`
+  with a `field` reads a dash. `countdown` now says a date does not repeat
+  every year. README's matching paragraph had the same "dash rather than a
+  zero" contradiction and is fixed the same way.
 
 ## [1.2.0] - 2026-09-24
 

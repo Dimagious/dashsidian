@@ -25,6 +25,8 @@ export const es: Catalog = {
         "`where: {where}` contiene más de una condición y solo se admite una. El filtro se ignoró. Acota con `source` o `tag`, o entrecomilla el valor si la palabra forma parte de él.",
 
     "tiles.empty": "No hay mosaicos que dibujar. Se espera `items:` o una lista.",
+    "tiles.dateFieldUnused": "{card}: `date_field` no tiene efecto sin `period`.",
+    "tiles.selectionUnused": "{card}: `tag`, `where`, `period` y `date_field` solo acotan `badge: count`.",
 
     "stats.empty": "No hay tarjetas que dibujar. Se espera `items:` o una lista.",
     "stats.unlabeledCard": "una tarjeta sin etiqueta",
@@ -33,6 +35,10 @@ export const es: Catalog = {
         "{card}: agregado «{agg}» desconocido. ¿Querías decir «{guess}»? Disponibles: {available}.",
     "stats.fieldRequired":
         "{card}: el agregado «{agg}» necesita un número. Añade `field:` con una propiedad del frontmatter.",
+    "stats.fieldMissing":
+        "{card}: ninguna nota de la selección tiene «{field}». Revisa el nombre y `source`.",
+    "stats.fieldNotNumeric":
+        "{card}: «{field}» contiene texto u otro valor que no es un número ni una casilla. Usa `where: \"{field} contains ...\"` con `agg: count` para contarlo.",
     "stats.badPrecision":
         "{card}: `precision` espera un entero de 0 a {max}, recibido «{value}». Se redondea como por defecto.",
 
@@ -90,6 +96,10 @@ export const es: Catalog = {
     "heatmap.fieldRequired": "No se indicó `field`. No hay número con el que colorear.",
     "heatmap.noData":
         "No hay notas con una fecha reconocible y un número o una casilla en «{field}». Revisa `source`, o `date_field` si la fecha está en una propiedad.",
+    "heatmap.fieldMissing":
+        "Ninguna nota de la selección tiene «{field}». Revisa el nombre y `source`.",
+    "heatmap.fieldNotNumeric":
+        "«{field}» contiene texto u otro valor que no es un número ni una casilla. Usa `where: \"{field} contains ...\"` con `agg: count` en una tarjeta stats para contarlo.",
     "heatmap.caption": "{year}, {field}: media {average}, {present} de {total} días",
     "heatmap.captionMarks": "{year}, {field}: {present} de {total} días",
     "heatmap.titleYear": "{title} ({year})",

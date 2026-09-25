@@ -1,0 +1,1215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashy</title>
+<meta name="description" content="Dashy is an Obsidian plugin: a dashboard inside a note from six markdown blocks, configured in YAML. No JavaScript, no Dataview.">
+<link rel="canonical" href="https://dimagious.github.io/dashsidian/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%238b6cef'/%3E%3Crect x='7' y='7.5' width='11' height='3' rx='1.5' fill='%23fff'/%3E%3Crect x='7' y='13' width='8.5' height='7' rx='2' fill='%23fff' fill-opacity='.55'/%3E%3Crect x='16.5' y='13' width='8.5' height='7' rx='2' fill='%23fff'/%3E%3Crect x='7' y='22.5' width='18' height='3' rx='1.5' fill='%23fff' fill-opacity='.35'/%3E%3Crect x='7' y='22.5' width='12' height='3' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Dashy">
+<meta property="og:url" content="https://dimagious.github.io/dashsidian/">
+<meta property="og:title" content="Dashy: a dashboard inside an Obsidian note">
+<meta property="og:description" content="Six markdown blocks, configured in YAML. No JavaScript, no Dataview.">
+<meta property="og:image" content="https://dimagious.github.io/dashsidian/img/social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Dashy: a dashboard inside an Obsidian note">
+<meta name="twitter:description" content="Six markdown blocks, configured in YAML. No JavaScript, no Dataview.">
+<meta name="twitter:image" content="https://dimagious.github.io/dashsidian/img/social-preview.png">
+<style>
+/* ---------- self-hosted fonts: Inter and JetBrains Mono, latin, woff2 only ---------- */
+/* From @fontsource/inter and @fontsource/jetbrains-mono (SIL Open Font License 1.1,
+   full text in assets/fonts/OFL.txt). No request leaves this page to load them. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(assets/fonts/inter-latin-400-normal.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(assets/fonts/inter-latin-500-normal.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(assets/fonts/inter-latin-600-normal.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(assets/fonts/inter-latin-700-normal.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(assets/fonts/jetbrains-mono-latin-400-normal.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(assets/fonts/jetbrains-mono-latin-500-normal.woff2) format('woff2');
+}
+
+/* ---------- tokens: Obsidian's default theme, light first ---------- */
+:root {
+  --accent: #7c5ce8;
+  --accent-hover: #6a48dc;
+  --accent-soft: rgba(124, 92, 232, 0.12);
+  --accent-text: #6a48dc;
+  --on-accent: #ffffff;
+  --bg: #ffffff;
+  --bg-2: #f6f6f6;
+  --bg-3: #ececec;
+  --bg-code: #f5f5f5;
+  --border: #e3e3e3;
+  --border-strong: #d0d0d0;
+  --text: #222222;
+  --muted: #5c5c5c;
+  --faint: #8e8e8e;
+  --hover: rgba(0, 0, 0, 0.05);
+  --active: rgba(0, 0, 0, 0.08);
+  --shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.08);
+  --tok-key: #b3417a;
+  --tok-str: #2f7d4f;
+  --tok-num: #b06a00;
+  --tok-punc: #8e8e8e;
+  --tok-fence: #8e8e8e;
+  --callout-note: 8, 109, 221;
+  --callout-tip: 0, 150, 136;
+  --callout-warn: 205, 110, 0;
+  --callout-quote: 120, 120, 120;
+  --callout-accent: 124, 92, 232;
+  --scrim: rgba(20, 20, 20, 0.35);
+  --star: #d99a00;
+  --coffee-bg: #ffdd00;
+  --coffee-text: #1f1a00;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent: #8b6cef;
+    --accent-hover: #9d82f2;
+    --accent-soft: rgba(139, 108, 239, 0.16);
+    --accent-text: #a891f5;
+    --on-accent: #ffffff;
+    --bg: #1e1e1e;
+    --bg-2: #262626;
+    --bg-3: #2e2e2e;
+    --bg-code: #242424;
+    --border: #363636;
+    --border-strong: #454545;
+    --text: #dadada;
+    --muted: #a8a8a8;
+    --faint: #707070;
+    --hover: rgba(255, 255, 255, 0.05);
+    --active: rgba(255, 255, 255, 0.09);
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    --tok-key: #e38bb6;
+    --tok-str: #8fd19e;
+    --tok-num: #e8b465;
+    --tok-punc: #7a7a7a;
+    --tok-fence: #7a7a7a;
+    --callout-note: 2, 122, 255;
+    --callout-tip: 83, 223, 221;
+    --callout-warn: 233, 151, 63;
+    --callout-quote: 158, 158, 158;
+    --callout-accent: 168, 145, 245;
+    --scrim: rgba(0, 0, 0, 0.55);
+    --star: #f2c14e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --accent: #8b6cef;
+  --accent-hover: #9d82f2;
+  --accent-soft: rgba(139, 108, 239, 0.16);
+  --accent-text: #a891f5;
+  --on-accent: #ffffff;
+  --bg: #1e1e1e;
+  --bg-2: #262626;
+  --bg-3: #2e2e2e;
+  --bg-code: #242424;
+  --border: #363636;
+  --border-strong: #454545;
+  --text: #dadada;
+  --muted: #a8a8a8;
+  --faint: #707070;
+  --hover: rgba(255, 255, 255, 0.05);
+  --active: rgba(255, 255, 255, 0.09);
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+  --tok-key: #e38bb6;
+  --tok-str: #8fd19e;
+  --tok-num: #e8b465;
+  --tok-punc: #7a7a7a;
+  --tok-fence: #7a7a7a;
+  --callout-note: 2, 122, 255;
+  --callout-tip: 83, 223, 221;
+  --callout-warn: 233, 151, 63;
+  --callout-quote: 158, 158, 158;
+  --callout-accent: 168, 145, 245;
+  --scrim: rgba(0, 0, 0, 0.55);
+  --star: #f2c14e;
+  color-scheme: dark;
+}
+
+/* ---------- base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 56px; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.6 Inter, -apple-system, "Segoe UI", system-ui, sans-serif;
+  overflow-x: hidden;
+}
+a { color: var(--accent-text); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--accent-hover); }
+code, pre, kbd { font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace; font-variant-ligatures: none; font-feature-settings: "calt" 0, "liga" 0; }
+:not(pre) > code {
+  font-size: .86em; background: var(--bg-code); border: 1px solid var(--border);
+  padding: .08em .35em; border-radius: 4px; color: var(--tok-key); white-space: nowrap;
+}
+kbd {
+  font-size: .78em; padding: .1em .45em; border-radius: 4px; border: 1px solid var(--border-strong);
+  border-bottom-width: 2px; background: var(--bg-2); color: var(--muted);
+}
+img { max-width: 100%; display: block; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- app shell: ribbon + file explorer + note pane ---------- */
+.app { display: grid; grid-template-columns: 44px 264px minmax(0, 1fr); min-height: 100vh; }
+.ribbon {
+  position: sticky; top: 0; height: 100vh; background: var(--bg-2);
+  border-right: 1px solid var(--border); display: flex; flex-direction: column;
+  align-items: center; gap: 4px; padding: 10px 0;
+}
+.icon-btn {
+  width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 6px;
+  background: transparent; color: var(--muted); cursor: pointer; text-decoration: none;
+}
+.icon-btn:hover { background: var(--hover); color: var(--text); }
+.icon-btn svg { width: 18px; height: 18px; }
+.ribbon .spacer { flex: 1; }
+
+.explorer {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--bg-2);
+  border-right: 1px solid var(--border); padding: 12px 8px 24px; font-size: 14px;
+}
+.vault-head { display: flex; align-items: center; gap: 10px; padding: 4px 8px 14px; }
+.vault-head .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: var(--text); }
+.wordmark { font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+.wordmark .id { font: 500 11px "JetBrains Mono", monospace; color: var(--faint); margin-left: 6px; letter-spacing: 0; }
+.search-btn {
+  display: flex; align-items: center; gap: 8px; width: 100%; margin: 0 0 12px; padding: 6px 10px;
+  border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--faint);
+  cursor: pointer; font-size: 13px; text-align: left;
+}
+.search-btn:hover { border-color: var(--border-strong); }
+.search-btn kbd { margin-left: auto; }
+.tree-label { font-size: 11px; font-weight: 600; color: var(--faint); padding: 6px 8px; letter-spacing: .02em; }
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree ul { margin-left: 13px; padding-left: 8px; border-left: 1px solid var(--border); }
+.tree a, .tree .folder {
+  display: flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 5px;
+  color: var(--muted); text-decoration: none; line-height: 1.5; cursor: pointer; user-select: none;
+}
+.tree a:hover, .tree .folder:hover { background: var(--hover); color: var(--text); }
+.tree a.active { background: var(--active); color: var(--text); font-weight: 500; }
+.tree .folder { font-weight: 500; color: var(--text); }
+.tree .folder svg { width: 12px; height: 12px; transition: transform .15s; color: var(--faint); }
+.tree li.closed > .folder svg { transform: rotate(-90deg); }
+.tree li.closed > ul { display: none; }
+.tree .ext { color: var(--faint); font-size: 12px; }
+.tree code { font-size: 12.5px !important; border: 0 !important; background: none !important; padding: 0 !important; color: inherit !important; }
+.explorer-foot { margin-top: 18px; padding: 12px 8px 0; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--faint); }
+.explorer-foot a { color: var(--muted); }
+
+.pane { min-width: 0; display: flex; flex-direction: column; }
+.tabbar {
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 6px; height: 44px;
+  padding: 0 10px; background: var(--bg-2); border-bottom: 1px solid var(--border);
+}
+.tab {
+  display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; margin-top: 12px;
+  background: var(--bg); border: 1px solid var(--border); border-bottom: 0; border-radius: 8px 8px 0 0;
+  font-size: 13px; max-width: 280px; min-width: 0;
+}
+.tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab svg { width: 14px; height: 14px; color: var(--faint); flex: none; }
+.tabbar .grow { flex: 1; }
+.menu-btn { display: none; }
+.view-header {
+  display: flex; align-items: center; justify-content: center; gap: 6px; height: 38px;
+  font-size: 13px; color: var(--faint); border-bottom: 1px solid transparent; padding: 0 16px;
+  overflow: hidden; white-space: nowrap;
+}
+.view-header b { color: var(--muted); font-weight: 500; }
+
+.note { width: 100%; max-width: 860px; margin: 0 auto; padding: 18px 40px 120px; }
+.note.wide { max-width: 1120px; }
+section.file { padding-top: 34px; }
+section.file + section.file { border-top: 1px solid var(--border); margin-top: 46px; }
+.crumb { font-size: 12.5px; color: var(--faint); font-family: "JetBrains Mono", monospace; margin-bottom: 4px; }
+h1, h2, h3 { line-height: 1.25; letter-spacing: -0.015em; }
+h1.inline-title { font-size: 44px; margin: 6px 0 14px; font-weight: 700; }
+h2 { font-size: 28px; margin: 4px 0 12px; font-weight: 700; }
+h3 { font-size: 19px; margin: 30px 0 8px; font-weight: 600; }
+p { margin: 0 0 14px; }
+.lede { font-size: 19px; color: var(--text); max-width: 42em; }
+.muted { color: var(--muted); }
+h2 code.h-code { font-size: .92em; background: none; border: 0; padding: 0; color: var(--accent-text); white-space: nowrap; }
+
+/* ---------- Properties panel ---------- */
+.props { margin: 4px 0 24px; border-bottom: 1px solid var(--border); padding-bottom: 14px; }
+.props-title { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.props-title svg { width: 14px; height: 14px; }
+.prop { display: grid; grid-template-columns: 150px minmax(0, 1fr); align-items: center; font-size: 14px; min-height: 32px; border-radius: 5px; }
+.prop:hover { background: var(--hover); }
+.prop .k { display: flex; align-items: center; gap: 8px; color: var(--muted); padding: 0 6px; }
+.prop .k svg { width: 14px; height: 14px; color: var(--faint); flex: none; }
+.prop .v { padding: 3px 6px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.pill { font-size: 12.5px; background: var(--accent-soft); color: var(--accent-text); padding: 1px 9px; border-radius: 999px; }
+.check {
+  width: 15px; height: 15px; border-radius: 4px; background: var(--accent); display: inline-grid; place-items: center;
+}
+.check.off { background: transparent; border: 1.5px solid var(--border-strong); }
+.check svg { width: 11px; height: 11px; color: var(--on-accent); }
+
+/* ---------- buttons ---------- */
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0 28px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 7px;
+  font-weight: 500; font-size: 15px; text-decoration: none; border: 1px solid var(--border-strong);
+  background: var(--bg); color: var(--text); cursor: pointer;
+}
+.btn:hover { background: var(--hover); color: var(--text); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { background: var(--accent-hover); color: var(--on-accent); }
+.btn svg { width: 16px; height: 16px; }
+.btn.star svg { color: var(--star); }
+.btn.coffee { background: var(--coffee-bg); border-color: var(--coffee-bg); color: var(--coffee-text); }
+.btn.coffee:hover { filter: brightness(.95); background: var(--coffee-bg); color: var(--coffee-text); }
+.icon-btn.star-i:hover { color: var(--star); }
+.support { margin: 40px 0 0; }
+.support .actions { margin: 12px 0 0; }
+
+/* ---------- screenshots ---------- */
+.shot {
+  margin: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+  background: var(--bg-2); box-shadow: var(--shadow);
+}
+.shot img { width: 100%; height: auto; }
+.shot figcaption { font-size: 13px; color: var(--faint); padding: 8px 12px; border-top: 1px solid var(--border); background: var(--bg); }
+.crop-top { overflow: hidden; aspect-ratio: 1280 / 790; }
+.crop-top img { margin-top: -6.4%; }
+.plain { border: 0; box-shadow: none; background: transparent; border-radius: 0; }
+.plain figcaption { background: transparent; border: 0; padding: 8px 0 0; }
+
+/* ---------- fenced block + render pair ---------- */
+.pair { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin: 18px 0 8px; }
+.pair:not(.side) > figure, .pair:not(.side) > div:not(.codeblock) { max-width: 720px; }
+.note.wide .pair.side { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); align-items: start; }
+.codeblock {
+  position: relative; background: var(--bg-code); border: 1px solid var(--border); border-radius: 8px;
+  min-width: 0;
+}
+.codeblock .bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px 6px 12px;
+  border-bottom: 1px solid var(--border); font: 500 12px "JetBrains Mono", monospace; color: var(--faint);
+}
+.copy {
+  border: 1px solid var(--border); background: var(--bg); border-radius: 5px; padding: 2px 8px; cursor: pointer;
+  font: 500 12px Inter, sans-serif; color: var(--muted);
+}
+.copy:hover { color: var(--text); border-color: var(--border-strong); }
+pre { margin: 0; padding: 12px 14px; overflow-x: auto; font-size: 13px; line-height: 1.6; tab-size: 2; }
+.t-fence { color: var(--tok-fence); }
+.t-lang { color: var(--accent-text); font-weight: 500; }
+.t-key { color: var(--tok-key); }
+.t-str { color: var(--tok-str); }
+.t-num { color: var(--tok-num); }
+.t-p { color: var(--tok-punc); }
+.renders {
+  display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--faint); margin: 0 0 6px;
+  font-family: "JetBrains Mono", monospace;
+}
+.renders::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+/* ---------- callouts ---------- */
+.callout {
+  --c: var(--callout-note);
+  margin: 18px 0; padding: 12px 16px; border-radius: 6px;
+  background: rgba(var(--c), 0.09); border-left: 3px solid rgb(var(--c));
+}
+.callout.tip { --c: var(--callout-tip); }
+.callout.warn { --c: var(--callout-warn); }
+.callout.quote { --c: var(--callout-quote); }
+.callout.accent { --c: var(--callout-accent); }
+.callout-title { display: flex; align-items: center; gap: 8px; font-weight: 600; color: rgb(var(--c)); margin-bottom: 4px; }
+.callout-title svg { width: 16px; height: 16px; flex: none; }
+.callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+.callout ul { padding-left: 20px; margin: 4px 0 0; }
+details.callout > summary { list-style: none; cursor: pointer; margin: 0; }
+details.callout > summary::-webkit-details-marker { display: none; }
+details.callout > summary .chev { margin-left: auto; transition: transform .15s; width: 14px; height: 14px; }
+details.callout[open] > summary .chev { transform: rotate(90deg); }
+details.callout[open] > summary { margin-bottom: 6px; }
+details.callout .callout-title { margin-bottom: 0; }
+
+/* ---------- block index (the six) ---------- */
+.six { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
+.six a {
+  display: block; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; text-decoration: none;
+  color: var(--text); background: var(--bg);
+}
+.six a:hover { border-color: var(--accent); background: var(--accent-soft); }
+.six code { background: none !important; border: 0 !important; padding: 0 !important; font-size: 14px !important; color: var(--accent-text) !important; font-weight: 500; }
+.six span { display: block; font-size: 13.5px; color: var(--muted); margin-top: 2px; }
+
+/* ---------- command palette (install demo + site search) ---------- */
+.palette-demo {
+  border: 1px solid var(--border-strong); border-radius: 10px; background: var(--bg); box-shadow: var(--shadow);
+  overflow: hidden; margin: 18px 0; max-width: 560px;
+}
+.palette-demo .q { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text); font-size: 15px; }
+.palette-demo .q .caret { display: inline-block; width: 1px; height: 1.1em; background: var(--accent); vertical-align: -3px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.palette-demo ul { list-style: none; margin: 0; padding: 6px; }
+.palette-demo li { padding: 6px 10px; border-radius: 6px; font-size: 14px; }
+.palette-demo li.sel { background: var(--active); }
+.palette-demo li b { font-weight: 600; }
+.palette-demo li small { display: block; color: var(--faint); font-size: 12.5px; }
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 14px 0; }
+.steps li { counter-increment: s; position: relative; padding: 0 0 12px 38px; }
+.steps li::before {
+  content: counter(s); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent-text); font-weight: 600; font-size: 13px; display: grid; place-items: center;
+}
+.path { font-weight: 500; }
+.path i { font-style: normal; color: var(--faint); margin: 0 4px; }
+
+.overlay { position: fixed; inset: 0; background: var(--scrim); z-index: 60; display: none; }
+.overlay.open { display: block; }
+.palette {
+  position: fixed; left: 50%; top: 12vh; transform: translateX(-50%); width: min(600px, calc(100vw - 32px));
+  background: var(--bg); border: 1px solid var(--border-strong); border-radius: 10px; box-shadow: var(--shadow);
+  z-index: 61; display: none; overflow: hidden;
+}
+.palette.open { display: block; }
+.palette input {
+  width: 100%; border: 0; border-bottom: 1px solid var(--border); padding: 14px 16px; font: 16px Inter, sans-serif;
+  background: transparent; color: var(--text); outline: none;
+}
+.palette ul { list-style: none; margin: 0; padding: 6px; max-height: 52vh; overflow-y: auto; }
+.palette li a { display: block; padding: 7px 10px; border-radius: 6px; color: var(--text); text-decoration: none; font-size: 14.5px; }
+.palette li a small { color: var(--faint); margin-left: 8px; font-size: 12.5px; }
+.palette li a.sel { background: var(--active); }
+.palette .hint { padding: 8px 14px; border-top: 1px solid var(--border); font-size: 12px; color: var(--faint); display: flex; gap: 14px; flex-wrap: wrap; }
+
+/* ---------- misc ---------- */
+.keys { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+.keys code { font-size: 12px !important; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin: 18px 0; }
+.langs { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 16px; }
+.lang { border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 14px; background: var(--bg); }
+.lang b { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--accent-text); margin-right: 6px; font-weight: 500; }
+.nope { list-style: none; padding: 0; margin: 8px 0 0; }
+.nope li { padding: 2px 0 2px 22px; position: relative; }
+.nope li::before { content: "-"; position: absolute; left: 4px; color: var(--faint); }
+footer.note-foot { border-top: 1px solid var(--border); margin-top: 56px; padding-top: 18px; font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 22px; }
+footer.note-foot a { color: var(--muted); }
+.statusbar {
+  position: fixed; right: 0; bottom: 0; z-index: 15; display: flex; gap: 14px; padding: 3px 12px;
+  font-size: 12px; color: var(--faint); background: var(--bg-2); border: 1px solid var(--border);
+  border-right: 0; border-bottom: 0; border-top-left-radius: 8px;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 1180px) {
+  .pair:not(.side) > figure, .pair:not(.side) > div:not(.codeblock) { max-width: 720px; }
+.note.wide .pair.side { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .ribbon { display: none; }
+  .explorer {
+    position: fixed; left: 0; top: 0; bottom: 0; width: min(300px, 84vw); height: auto; z-index: 50;
+    transform: translateX(-102%); transition: transform .2s ease; box-shadow: var(--shadow);
+  }
+  body.drawer .explorer { transform: none; }
+  body.drawer .overlay.drawer-scrim { display: block; z-index: 49; }
+  .menu-btn { display: grid; }
+  .tabbar { height: 48px; }
+  .tab { margin-top: 0; border-radius: 8px; border-bottom: 1px solid var(--border); }
+  .note { padding: 8px 16px 96px; }
+  h1.inline-title { font-size: 36px; }
+  h2 { font-size: 24px; }
+  .lede { font-size: 17px; }
+  .six { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .two { grid-template-columns: minmax(0, 1fr); }
+  .prop { grid-template-columns: 118px minmax(0, 1fr); }
+  .statusbar { display: none; }
+  .view-header { display: none; }
+}
+@media (max-width: 420px) {
+  .six { grid-template-columns: minmax(0, 1fr); }
+  .actions .btn { flex: 1 1 100%; justify-content: center; }
+  pre { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+    <symbol id="i-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></symbol>
+    <symbol id="i-git" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="8" r="2.5"/><path d="M6 8.5v7M18 10.5c0 4-6 3-10.5 6"/></symbol>
+    <symbol id="i-sidebar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9 4v16"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="8.5" r="1.2" fill="currentColor"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7V5h16v2M12 5v14M9 19h6"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-hash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-5 1-8.5z"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></symbol>
+    <symbol id="i-quote" viewBox="0 0 24 24" fill="currentColor"><path d="M4 11c0-3 2-5 5-6v2c-1.6.6-2.6 1.6-2.8 3H9v6H4zm10 0c0-3 2-5 5-6v2c-1.6.6-2.6 1.6-2.8 3H19v6h-5z"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></symbol>
+    <symbol id="i-plug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/></symbol>
+    <symbol id="i-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></symbol>
+    <symbol id="i-coffee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3"/></symbol>
+    <!-- Dashy mark: a note built from Dashy blocks. Day row, two number cards, a progress bar. -->
+    <symbol id="dashy-mark" viewBox="0 0 32 32">
+      <rect x="2" y="2" width="28" height="28" rx="7" fill="var(--accent)"/>
+      <rect x="7" y="7.5" width="11" height="3" rx="1.5" fill="#fff"/>
+      <rect x="7" y="13" width="8.5" height="7" rx="2" fill="#fff" fill-opacity=".55"/>
+      <rect x="16.5" y="13" width="8.5" height="7" rx="2" fill="#fff"/>
+      <rect x="7" y="22.5" width="18" height="3" rx="1.5" fill="#fff" fill-opacity=".35"/>
+      <rect x="7" y="22.5" width="12" height="3" rx="1.5" fill="#fff"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <!-- Ribbon: Obsidian's left strip of actions -->
+  <nav class="ribbon" aria-label="Actions">
+    <button class="icon-btn" data-open-palette title="Quick switcher (Ctrl/Cmd+K)"><svg><use href="#i-search"/></svg><span class="sr-only">Search the page</span></button>
+    <a class="icon-btn" href="https://github.com/Dimagious/dashsidian" title="Source on GitHub"><svg><use href="#i-git"/></svg><span class="sr-only">GitHub</span></a>
+    <a class="icon-btn" href="https://community.obsidian.md/plugins/dashsidian" title="Community plugin listing"><svg><use href="#i-plug"/></svg><span class="sr-only">Plugin listing</span></a>
+    <div class="spacer"></div>
+    <a class="icon-btn star-i" href="https://github.com/Dimagious/dashsidian" title="Star on GitHub"><svg><use href="#i-star"/></svg><span class="sr-only">Star on GitHub</span></a>
+    <a class="icon-btn" href="https://buymeacoffee.com/dimagious" title="Buy me a coffee"><svg><use href="#i-coffee"/></svg><span class="sr-only">Buy me a coffee</span></a>
+    <button class="icon-btn" data-theme-toggle title="Theme"><svg><use href="#i-auto"/></svg><span class="sr-only">Switch theme</span></button>
+  </nav>
+
+  <!-- File explorer: the site's navigation -->
+  <aside class="explorer" id="explorer" aria-label="Pages">
+    <div class="vault-head">
+      <a class="brand" href="#dashy">
+        <svg width="26" height="26" aria-hidden="true"><use href="#dashy-mark"/></svg>
+        <span class="wordmark">Dashy<span class="id">dashsidian</span></span>
+      </a>
+    </div>
+    <button class="search-btn" data-open-palette><svg width="14" height="14"><use href="#i-search"/></svg>Jump to a note<kbd>⌘K</kbd></button>
+    <div class="tree-label">DASHY VAULT</div>
+    <ul class="tree" id="tree">
+      <li><a href="#dashy"><svg width="14" height="14"><use href="#i-file"/></svg>Dashy<span class="ext">.md</span></a></li>
+      <li><a href="#install"><svg width="14" height="14"><use href="#i-file"/></svg>Install<span class="ext">.md</span></a></li>
+      <li><a href="#habits"><svg width="14" height="14"><use href="#i-file"/></svg>Habit tracker<span class="ext">.md</span></a></li>
+      <li>
+        <div class="folder" data-folder><svg><use href="#i-chev"/></svg>Blocks</div>
+        <ul>
+          <li><a href="#today"><svg width="14" height="14"><use href="#i-file"/></svg><code>today</code></a></li>
+          <li><a href="#tiles"><svg width="14" height="14"><use href="#i-file"/></svg><code>tiles</code></a></li>
+          <li><a href="#stats"><svg width="14" height="14"><use href="#i-file"/></svg><code>stats</code></a></li>
+          <li><a href="#progress"><svg width="14" height="14"><use href="#i-file"/></svg><code>progress</code></a></li>
+          <li><a href="#countdown"><svg width="14" height="14"><use href="#i-file"/></svg><code>countdown</code></a></li>
+          <li><a href="#heatmap"><svg width="14" height="14"><use href="#i-file"/></svg><code>heatmap</code></a></li>
+        </ul>
+      </li>
+      <li>
+        <div class="folder" data-folder><svg><use href="#i-chev"/></svg>Behaviour</div>
+        <ul>
+          <li><a href="#live"><svg width="14" height="14"><use href="#i-file"/></svg>Live redraw<span class="ext">.md</span></a></li>
+          <li><a href="#errors"><svg width="14" height="14"><use href="#i-file"/></svg>Config errors<span class="ext">.md</span></a></li>
+          <li><a href="#agents"><svg width="14" height="14"><use href="#i-file"/></svg>AI agents<span class="ext">.md</span></a></li>
+          <li><a href="#languages"><svg width="14" height="14"><use href="#i-file"/></svg>Languages<span class="ext">.md</span></a></li>
+        </ul>
+      </li>
+      <li><a href="#scope"><svg width="14" height="14"><use href="#i-file"/></svg>What it leaves out<span class="ext">.md</span></a></li>
+      <li><a href="#faq"><svg width="14" height="14"><use href="#i-file"/></svg>Questions<span class="ext">.md</span></a></li>
+    </ul>
+    <div class="explorer-foot">
+      <a href="https://github.com/Dimagious/dashsidian">GitHub</a> ·
+      <a href="https://github.com/Dimagious/dashsidian/blob/master/CHANGELOG.md">Changelog</a> ·
+      <a href="https://github.com/Dimagious/dashsidian/issues">Issues</a> ·
+      <a href="https://buymeacoffee.com/dimagious">Buy me a coffee</a>
+    </div>
+  </aside>
+
+  <div class="pane">
+    <header class="tabbar">
+      <button class="icon-btn menu-btn" id="menuBtn" aria-controls="explorer" aria-expanded="false" title="Pages"><svg><use href="#i-sidebar"/></svg><span class="sr-only">Open pages</span></button>
+      <div class="tab"><svg><use href="#i-file"/></svg><span id="tabTitle">Dashy</span></div>
+      <div class="grow"></div>
+      <button class="icon-btn menu-btn" data-open-palette title="Search"><svg><use href="#i-search"/></svg><span class="sr-only">Search the page</span></button>
+      <button class="icon-btn menu-btn" data-theme-toggle title="Theme"><svg><use href="#i-auto"/></svg><span class="sr-only">Switch theme</span></button>
+    </header>
+    <div class="view-header"><span>Dashy vault</span><span>/</span><b id="viewPath">Dashy</b></div>
+
+    <main class="note wide" id="note">
+
+      <!-- ============ Dashy.md ============ -->
+      <section class="file" id="dashy" data-title="Dashy" data-path="Dashy">
+        <h1 class="inline-title">Dashy</h1>
+
+        <div class="props" aria-label="Properties">
+          <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
+          <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>plugin id</div><div class="v"><code>dashsidian</code></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-tag"/></svg>blocks</div><div class="v"><span class="pill">today</span><span class="pill">tiles</span><span class="pill">stats</span><span class="pill">progress</span><span class="pill">countdown</span><span class="pill">heatmap</span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>needs dataview</div><div class="v"><span class="check off" aria-label="no"></span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>mobile</div><div class="v"><span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>version</div><div class="v">{{version}} <span class="muted" style="font-size:13px">· Obsidian {{minAppVersion}} or later</span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>license</div><div class="v">MIT</div></div>
+        </div>
+
+        <p class="lede">A dashboard inside an Obsidian note, built from six markdown blocks. Each block is a few lines of YAML. No JavaScript, and no Dataview.</p>
+
+        <div class="actions">
+          <a class="btn primary" href="#install"><svg><use href="#i-plug"/></svg>Get it from Community plugins</a>
+          <a class="btn" href="#habits">Track habits with it</a>
+          <a class="btn star" href="https://github.com/Dimagious/dashsidian"><svg><use href="#i-star"/></svg>Star on GitHub</a>
+        </div>
+
+        <figure class="shot">
+          <div class="crop-top">
+            <picture>
+              <source data-dark srcset="img/dashboard-dark.png" media="(prefers-color-scheme: dark)">
+              <img src="img/dashboard-light.png" width="1280" height="900" alt="A Dashy dashboard in Obsidian: a day row, four navigation tiles, eight number cards and three progress bars">
+            </picture>
+          </div>
+          <figcaption>One note in a demo vault. Every part of it is a Dashy block.</figcaption>
+        </figure>
+
+        <p style="margin-top:22px">The first block on that page is this, in full:</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span>Dashboard.md</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```today
+daily: true
+weekly: true
+monthly: true
+```</code></pre>
+        </div>
+
+        <h3>Six blocks, one job each</h3>
+        <div class="six">
+          <a href="#today"><code>today</code><span>Today's date and links to the daily, weekly and monthly notes</span></a>
+          <a href="#tiles"><code>tiles</code><span>Link tiles into the vault, with note counts</span></a>
+          <a href="#stats"><code>stats</code><span>Number cards over a selection of notes</span></a>
+          <a href="#progress"><code>progress</code><span>Bars towards a goal</span></a>
+          <a href="#countdown"><code>countdown</code><span>Days until a date</span></a>
+          <a href="#heatmap"><code>heatmap</code><span>A year of days, coloured by a number</span></a>
+        </div>
+
+        <div class="callout accent">
+          <div class="callout-title"><svg><use href="#i-info"/></svg>What the blocks read</div>
+          <p>Frontmatter, through Obsidian's own metadata cache. The numbers come from properties you already keep in your notes. Nothing else to install, and nothing in your notes that a person cannot read a month later.</p>
+        </div>
+      </section>
+
+      <!-- ============ Install.md ============ -->
+      <section class="file" id="install" data-title="Install" data-path="Install">
+        <div class="crumb">Install.md</div>
+        <h2>Install</h2>
+        <p>Dashy is in Obsidian's community plugin catalog.</p>
+        <ol class="steps">
+          <li><span class="path">Settings<i>›</i>Community plugins<i>›</i>Browse</span></li>
+          <li>Search for <b>Dashy</b>, then <b>Install</b> and <b>Enable</b>.</li>
+          <li>Open a note and run <b>Dashy: Insert block</b> from the command palette (<kbd>Ctrl/Cmd</kbd> <kbd>P</kbd>).</li>
+          <li>Pick a block. A working example lands at the cursor, ready to edit.</li>
+        </ol>
+
+        <div class="palette-demo" aria-label="The block picker, as it appears in Obsidian">
+          <div class="q">Which block?<span class="caret"></span></div>
+          <ul>
+            <li class="sel"><b>tiles</b><small>Navigation tiles with folder counts</small></li>
+            <li><b>stats</b><small>Number cards over a selection of notes</small></li>
+            <li><b>progress</b><small>Bars towards a goal</small></li>
+            <li><b>today</b><small>Today's date and the periodic notes</small></li>
+            <li><b>countdown</b><small>Days until a date</small></li>
+            <li><b>heatmap</b><small>A year of days, coloured by a number</small></li>
+          </ul>
+        </div>
+        <p class="muted" style="font-size:14px">The picker's own labels. Also on the <a href="https://community.obsidian.md/plugins/dashsidian">plugin listing</a>.</p>
+        <figure class="shot" style="max-width:560px">
+          <img src="img/firstrun-picker.png" width="700" height="484" loading="lazy" alt="Obsidian's own command palette open on Dashy: Insert block, listing the six blocks to pick from">
+          <figcaption>The real picker, in Obsidian.</figcaption>
+        </figure>
+      </section>
+
+      <!-- ============ Habit tracker.md ============ -->
+      <section class="file" id="habits" data-title="Habit tracker" data-path="Habit tracker">
+        <div class="crumb">Habit tracker.md</div>
+        <h2>A habit tracker from daily note checkboxes</h2>
+        <p>Tick a checkbox property in a daily note, say <code>gym: true</code>, and that note already feeds a habit tracker. Any block that reads a <code>field</code> counts a ticked day as 1 and an unticked one as 0.</p>
+
+        <div class="pair">
+          <div class="codeblock" data-code>
+            <div class="bar"><span>Habits.md</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+columns: 4
+items:
+  - { label: Gym days, source: Diary, field: gym, agg: sum }
+  - { label: Longest gym streak, source: Diary, field: gym, agg: streak, unit: days }
+  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }
+  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month }
+```
+
+```heatmap
+source: Diary
+field: gym
+color: orange
+title: Gym
+```</code></pre>
+          </div>
+          <figure class="shot">
+            <picture>
+              <source data-dark srcset="img/habits-dark.png" media="(prefers-color-scheme: dark)">
+              <img src="img/habits-light.png" width="700" height="369" loading="lazy" alt="Four cards: gym days, longest streak, this week against last week, this month; below them a year of ticked days">
+            </picture>
+          </figure>
+        </div>
+
+        <p><code>sum</code> counts the ticked days. <code>streak</code> finds the longest run on record, not a run in progress, and an unticked day breaks it the way a missing note does. <code>period: week</code> narrows a card to the current week, which starts on Monday or Sunday as your language has it. <code>compare: true</code> sets it against the same days of last week, and with <code>better: up</code> a rise shows green. The heatmap paints the ticked days.</p>
+        <div class="callout tip">
+          <div class="callout-title"><svg><use href="#i-flame"/></svg>Written once</div>
+          <p><code>period</code> counts from today. "This week" is always this week, and a <code>period: year</code> card starts over on 1 January without an edit.</p>
+        </div>
+      </section>
+
+      <!-- ============ Blocks/today.md ============ -->
+      <section class="file" id="today" data-title="today" data-path="Blocks / today">
+        <div class="crumb">Blocks/today.md</div>
+        <h2><code class="h-code">today</code>: where the day starts</h2>
+        <p>A row with today's date and links to the daily, weekly and monthly notes. Folders and filename formats come from Periodic Notes when you have it, and from the core Daily notes plugin otherwise; Dashy's own settings win over both. A note that does not exist yet gets a dimmed link, and clicking it creates the note.</p>
+        <div class="pair side">
+          <div class="codeblock" data-code>
+            <div class="bar"><span>today</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```today
+daily: true
+weekly: true
+monthly: true
+```</code></pre>
+          </div>
+          <div>
+            <div class="renders">renders as</div>
+            <figure class="shot plain">
+              <picture>
+                <source data-dark srcset="img/today-dark.png" media="(prefers-color-scheme: dark)">
+                <img src="img/today-light.png" width="700" height="74" loading="lazy" alt="The date and three chips linking to the daily, weekly and monthly notes">
+              </picture>
+            </figure>
+          </div>
+        </div>
+        <p>Dashy's own <b>New day starts at</b> setting (00:00 to 06:00, midnight by default) decides what "today" means here, and for every other block on the page: <code>period</code> and <code>compare</code> windows, the heatmap's current day, <code>countdown</code>. It moves which day this block points to, not which day a note itself falls on: a note's own date is still its name or <code>date_field</code>.</p>
+        <div class="keys"><code>daily</code><code>weekly</code><code>monthly</code><code>title</code></div>
+      </section>
+
+      <!-- ============ Blocks/tiles.md ============ -->
+      <section class="file" id="tiles" data-title="tiles" data-path="Blocks / tiles">
+        <div class="crumb">Blocks/tiles.md</div>
+        <h2><code class="h-code">tiles</code>: getting around</h2>
+        <p>A grid of links into the vault, each with a live count of the notes in its folder. <code>path</code> also takes a Bases view, <code>path: Vault.base#My view</code>, which is the answer whenever you want a table.</p>
+        <div class="pair">
+          <div class="codeblock" data-code>
+            <div class="bar"><span>tiles</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```tiles
+columns: 4
+items:
+  - { label: Inbox, path: Inbox, icon: 📥, badge: count }
+  - { label: Diary, path: Diary, icon: 📔, badge: count, sub: one note a day }
+  - { label: Books, path: Books, icon: 📚, badge: count }
+  - { label: Sport, path: Diary, icon: 🏃, accent: true, sub: training log }
+```</code></pre>
+          </div>
+          <div>
+            <div class="renders">renders as</div>
+            <figure class="shot plain">
+              <picture>
+                <source data-dark srcset="img/tiles-dark.png" media="(prefers-color-scheme: dark)">
+                <img src="img/tiles-light.png" width="700" height="127" loading="lazy" alt="Four tiles with emoji, labels and note counts">
+              </picture>
+            </figure>
+          </div>
+        </div>
+        <p><code>badge: count</code> normally counts everything under <code>path</code>. Add <code>tag</code>, <code>where</code>, <code>period</code> and <code>date_field</code> to narrow it, the same keys <code>stats</code> uses below: a mail inbox tile that only counts this month's messages, a calendar tile that only counts today's events, both without an edit when the month turns.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span>tiles</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```tiles
+columns: 2
+items:
+  - { label: Mails, path: Mails, icon: 📥, date_field: start, period: month, badge: count }
+  - { label: Events, path: Events, icon: 📅, date_field: start, period: 1d, badge: count }
+```</code></pre>
+        </div>
+        <p class="muted" style="font-size:14.5px">These four keys only mean something next to <code>badge: count</code>; on a tile with no badge, or a custom one, they are ignored and warn.</p>
+      </section>
+
+      <!-- ============ Blocks/stats.md ============ -->
+      <section class="file" id="stats" data-title="stats" data-path="Blocks / stats">
+        <div class="crumb">Blocks/stats.md</div>
+        <h2><code class="h-code">stats</code>: the numbers</h2>
+        <p>One card per number, counted over the notes you select by <code>source</code>, <code>tag</code> or a single <code>where</code> condition. <code>agg</code> is one of <code>count</code>, <code>sum</code>, <code>avg</code>, <code>min</code>, <code>max</code>, <code>latest</code>, <code>streak</code>. <code>trend: 30d</code> draws the last thirty days next to the number, scaled between their own lowest and highest value.</p>
+        <div class="pair">
+          <div class="codeblock" data-code>
+            <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+columns: 4
+items:
+  - { label: Days logged, source: Diary, agg: count, icon: 📔 }
+  - { label: Average sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }
+  - { label: Steps this week, source: Diary, field: steps, agg: sum, unit: steps, period: week }
+  - { label: Best night, source: Diary, field: sleep_score, agg: max, trend: 90d }
+  - { label: Longest streak, source: Diary, field: sleep_score, agg: streak, unit: days }
+  - { label: Latest steps, source: Diary, field: steps, agg: latest, sub: most recent note }
+  - { label: Great nights, source: Diary, where: "sleep_score >= 90", agg: count }
+  - { label: Books read, source: Books, period: year, date_field: finished, agg: count, icon: 📚 }
+```</code></pre>
+          </div>
+          <div>
+            <div class="renders">renders as</div>
+            <figure class="shot plain">
+              <picture>
+                <source data-dark srcset="img/stats-dark.png" media="(prefers-color-scheme: dark)">
+                <img src="img/stats-light.png" width="700" height="272" loading="lazy" alt="Eight number cards: counts, an average, sums, a maximum, a streak, two with sparklines">
+              </picture>
+            </figure>
+          </div>
+        </div>
+        <p><code>period: week</code>, <code>month</code> or <code>year</code> narrows a card to the current calendar one, ending today; <code>period: 30d</code> is a rolling count of days instead. A note's date is its name, as long as it starts with <code>YYYY-MM-DD</code> (<code>2026-03-02 Monday</code> and <code>2026-03-02_standup</code> both count), unless <code>date_field</code> names a frontmatter date property instead. <code>streak</code>, <code>latest</code> and <code>trend</code> resolve a note's date the same way, whether or not <code>period</code> is even set, and two or more notes landing on the same day always count as that one day, not two.</p>
+        <div class="callout quote">
+          <div class="callout-title"><svg><use href="#i-quote"/></svg>A dash, not a zero</div>
+          <p>With nothing to count, a field aggregate like <code>sum</code> or <code>avg</code> shows a dash: "no notes at all" and "the sum is zero" are different answers. <code>count</code> has no such gap; an empty selection reads a plain <code>0</code>, the same as everywhere else it counts notes. The dash also covers a <code>field</code> that no selected note actually carries, or one that holds text instead of a number: the card names which, rather than a zero that hides a typo.</p>
+        </div>
+      </section>
+
+      <!-- ============ Blocks/progress.md ============ -->
+      <section class="file" id="progress" data-title="progress" data-path="Blocks / progress">
+        <div class="crumb">Blocks/progress.md</div>
+        <h2><code class="h-code">progress</code>: how far along</h2>
+        <p>Bars towards a <code>goal</code>. Beating it shows as it is: 110% stays 110%, only the bar stops at full. <code>period</code> and <code>date_field</code> work as they do on <code>stats</code>, narrowing what the goal is measured against and feeding <code>streak</code> and <code>latest</code> too; "Books this year" reads a <code>finished</code> property, since a book is rarely named as a date.</p>
+        <div class="pair">
+          <div class="codeblock" data-code>
+            <div class="bar"><span>progress</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```progress
+items:
+  - { label: Days logged this year, source: Diary, agg: count, goal: 365, icon: 📔 }
+  - { label: Books this year, source: Books, period: year, date_field: finished, agg: count, goal: 24, icon: 📚 }
+  - { label: Steps, source: Diary, field: steps, agg: sum, goal: 3000000, unit: steps }
+```</code></pre>
+          </div>
+          <div>
+            <div class="renders">renders as</div>
+            <figure class="shot plain">
+              <picture>
+                <source data-dark srcset="img/progress-dark.png" media="(prefers-color-scheme: dark)">
+                <img src="img/progress-light.png" width="700" height="156" loading="lazy" alt="Three progress bars, one past its goal and coloured green">
+              </picture>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Blocks/countdown.md ============ -->
+      <section class="file" id="countdown" data-title="countdown" data-path="Blocks / countdown">
+        <div class="crumb">Blocks/countdown.md</div>
+        <h2><code class="h-code">countdown</code>: what is coming</h2>
+        <p>Cards counting the days to a date. A date that has passed keeps its card and counts up instead.</p>
+        <div class="pair">
+          <div class="codeblock" data-code>
+            <div class="bar"><span>countdown</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```countdown
+columns: 3
+items:
+  - { label: IRONMAN 70.3, date: 2027-06-14, icon: 🏊 }
+  - { label: Holiday, date: 2027-01-20, icon: 🏖, sub: two weeks off }
+  - { label: Review, date: 2027-03-01, icon: 🗒 }
+```</code></pre>
+          </div>
+          <div>
+            <div class="renders">renders as</div>
+            <figure class="shot plain">
+              <picture>
+                <source data-dark srcset="img/countdown-dark.png" media="(prefers-color-scheme: dark)">
+                <img src="img/countdown-light.png" width="700" height="187" loading="lazy" alt="Three cards counting the days to a race, a holiday and a review">
+              </picture>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Blocks/heatmap.md ============ -->
+      <section class="file" id="heatmap" data-title="heatmap" data-path="Blocks / heatmap">
+        <div class="crumb">Blocks/heatmap.md</div>
+        <h2><code class="h-code">heatmap</code>: the year</h2>
+        <p>A cell per day, coloured by a number from frontmatter. A note's date is its name, as long as it starts with <code>YYYY-MM-DD</code> (<code>2026-01-05 Monday</code> counts, <code>2026-01-051</code> does not), unless <code>date_field</code> names a frontmatter date property instead. <code>bands</code> set the colour thresholds. Clicking a cell opens that day's note. The week starts where your language starts it.</p>
+        <div class="pair side">
+          <div class="codeblock" data-code>
+            <div class="bar"><span>heatmap</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+field: sleep_score
+color: purple
+bands: [90, 80, 70]
+title: Sleep, last twelve months
+```</code></pre>
+          </div>
+          <div>
+            <div class="renders">renders as</div>
+            <figure class="shot plain">
+              <picture>
+                <source data-dark srcset="img/heatmap-dark.png" media="(prefers-color-scheme: dark)">
+                <img src="img/heatmap-light.png" width="700" height="196" loading="lazy" alt="A year of days coloured by sleep score, with a legend">
+              </picture>
+            </figure>
+          </div>
+        </div>
+        <p>Two or more notes landing on the same day paint one cell: their values sum, and a ticked or numeric note always outweighs a <code>false</code> one on the same day. A field nothing carries, or one that holds text rather than a number or a checkbox, is an error that says which, rather than an empty grid that looks like a note-taking gap.</p>
+        <p class="muted" style="font-size:14.5px">A checkbox property works as <code>field</code> too: a ticked day paints its cell. That is the whole <a href="#habits">habit tracker</a>.</p>
+      </section>
+
+      <!-- ============ Behaviour/Live redraw.md ============ -->
+      <section class="file" id="live" data-title="Live redraw" data-path="Behaviour / Live redraw">
+        <div class="crumb">Behaviour/Live redraw.md</div>
+        <h2>It keeps up with the vault and the theme</h2>
+        <p>Add a note, change a number, delete something, and every block on the page redraws. No reopening, no command to run. Colours are mixed from your theme's variables and accent, so a theme switch re-colours the dashboard with it.</p>
+        <div class="two">
+          <figure class="shot">
+            <img src="img/dashboard-wide.gif" width="1000" height="622" loading="lazy" alt="Every block on the page redrawing as notes are added to the vault">
+            <figcaption>Notes added to the vault, blocks redrawing.</figcaption>
+          </figure>
+          <figure class="shot">
+            <img src="img/theme-follow.gif" width="760" height="295" loading="lazy" alt="The dashboard re-colouring as the Obsidian theme changes">
+            <figcaption>The Obsidian theme changing, the dashboard following.</figcaption>
+          </figure>
+        </div>
+        <p>The heatmap keeps its own place too: scroll it by hand and a redraw reopens there instead of snapping back to the end, and on a narrow note a fading edge shows which side still has months to scroll to.</p>
+      </section>
+
+      <!-- ============ Behaviour/Config errors.md ============ -->
+      <section class="file" id="errors" data-title="Config errors" data-path="Behaviour / Config errors">
+        <div class="crumb">Behaviour/Config errors.md</div>
+        <h2>When the config is wrong, the block says so</h2>
+        <p>A block that cannot draw explains why, in the note, next to what failed. An unknown key suggests the one you probably meant. A broken YAML line reports its line number. A filter that could not be read says the numbers below it are unfiltered. A field nobody wrote and a field that holds text instead of a number get different messages, not one generic "no data": the heatmap and the stats cards both say which.</p>
+        <div class="pair">
+          <div class="codeblock" data-code>
+            <div class="bar"><span>A config with a mistake.md</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+feild: sleep_score
+```
+
+```stats
+items:
+  - { label: Average sleep, source: Diary, agg: avgg, field: sleep_score }
+  - { label: Great nights, source: Diary, where: "sleep_score >= 90 and steps > 10000", agg: count }
+```</code></pre>
+          </div>
+          <figure class="shot">
+            <img src="img/diagnostics-dark.png" width="700" height="331" loading="lazy" alt="Messages inside the note: an unknown key with a suggestion, a missing field, an unknown aggregate with the list of valid ones, and a where clause with two conditions">
+            <figcaption>What that note shows, dark theme.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ============ Behaviour/AI agents.md ============ -->
+      <section class="file" id="agents" data-title="AI agents" data-path="Behaviour / AI agents">
+        <div class="crumb">Behaviour/AI agents.md</div>
+        <h2>An AI agent can write the blocks for you</h2>
+        <div class="two" style="align-items:start">
+          <div>
+            <p>Two buttons in Dashy's settings. Each writes a file only when you press it.</p>
+            <ul>
+              <li><b>Skill file in this vault</b> writes <code>.claude/skills/dashy/SKILL.md</code>, which Claude Code picks up on its own.</li>
+              <li><b>AGENTS.md in the vault root</b> writes the same reference where Cursor, Codex and others look for it. Only the fenced Dashy section is Dashy's; the rest of that file stays as it was.</li>
+            </ul>
+            <p>Both are generated from <code>schema.json</code>, the file the plugin validates against, so the reference an agent reads matches what the plugin accepts.</p>
+            <div class="callout quote">
+              <div class="callout-title"><svg><use href="#i-quote"/></svg>Then you can ask</div>
+              <p>Make me a dashboard for my training log: a heatmap of distance, cards for weekly volume and longest run, and a countdown to the marathon in May.</p>
+            </div>
+          </div>
+          <figure class="shot">
+            <img src="img/settings-dark.png" width="1350" height="1340" loading="lazy" alt="Dashy settings: periodic note folders, and buttons that install the agent skill and AGENTS.md">
+            <figcaption>Dashy's settings tab.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ============ Behaviour/Languages.md ============ -->
+      <section class="file" id="languages" data-title="Languages" data-path="Behaviour / Languages">
+        <div class="crumb">Behaviour/Languages.md</div>
+        <h2>Five languages</h2>
+        <p>The plugin speaks the language of your Obsidian interface, or the one you pick in its settings. Anything a translation misses falls back to English. Dates, month names and the first day of the week come from Obsidian itself.</p>
+        <div class="langs">
+          <span class="lang"><b>en</b>English</span>
+          <span class="lang"><b>ru</b>Русский</span>
+          <span class="lang"><b>de</b>Deutsch</span>
+          <span class="lang"><b>fr</b>Français</span>
+          <span class="lang"><b>es</b>Español</span>
+        </div>
+        <p class="muted" style="font-size:14.5px">The German, French and Spanish text was written by the author and corrections are welcome: copy <a href="https://github.com/Dimagious/dashsidian/blob/master/src/i18n/en.ts"><code>src/i18n/en.ts</code></a>, translate the values, register the file. No TypeScript needed.</p>
+      </section>
+
+      <!-- ============ What it leaves out.md ============ -->
+      <section class="file" id="scope" data-title="What it leaves out" data-path="What it leaves out">
+        <div class="crumb">What it leaves out.md</div>
+        <h2>What it leaves out</h2>
+        <p>The list stops at six blocks on purpose. Dashy does not draw:</p>
+        <ul class="nope">
+          <li>charts (see <a href="https://github.com/phibr0/obsidian-charts">Obsidian Charts</a>)</li>
+          <li>tables and queries (Bases, Dataview)</li>
+          <li>kanban boards or task lists</li>
+        </ul>
+        <p style="margin-top:14px"><code>where</code> takes one condition. If that stops you building something, <a href="https://github.com/Dimagious/dashsidian/issues">say what you tried</a>; that is the quickest way to change it.</p>
+      </section>
+
+      <!-- ============ Questions.md ============ -->
+      <section class="file" id="faq" data-title="Questions" data-path="Questions">
+        <div class="crumb">Questions.md</div>
+        <h2>Questions</h2>
+
+        <details class="callout">
+          <summary class="callout-title"><svg><use href="#i-help"/></svg>Do I need Dataview or any other plugin?<svg class="chev"><use href="#i-right"/></svg></summary>
+          <p>No. Dashy reads frontmatter through Obsidian's own metadata cache. If you use Periodic Notes, the <code>today</code> block reads its folders and formats; it works with the core Daily notes plugin too.</p>
+        </details>
+        <details class="callout">
+          <summary class="callout-title"><svg><use href="#i-help"/></svg>Does it work on my phone?<svg class="chev"><use href="#i-right"/></svg></summary>
+          <p>Yes. The plugin is not desktop-only, and the blocks fit a narrow screen.</p>
+        </details>
+        <details class="callout">
+          <summary class="callout-title"><svg><use href="#i-help"/></svg>How does a block know a note's date?<svg class="chev"><use href="#i-right"/></svg></summary>
+          <p>From the note's name, as long as it starts with <code>YYYY-MM-DD</code>: <code>2026-03-02 Monday</code> and <code>2026-03-02_standup</code> both count. <code>date_field</code> can name a frontmatter date property instead on any block that counts by day, which is how a book note counts by the day it was finished. Notes without a date are left out of anything that counts by day.</p>
+        </details>
+        <details class="callout">
+          <summary class="callout-title"><svg><use href="#i-help"/></svg>Will it write to my notes?<svg class="chev"><use href="#i-right"/></svg></summary>
+          <p>The blocks only read. Files get written when you ask: <b>Insert block</b> puts an example at your cursor, the settings buttons write the agent reference, and clicking a dimmed link in <code>today</code> creates that periodic note.</p>
+        </details>
+        <details class="callout">
+          <summary class="callout-title"><svg><use href="#i-help"/></svg>Does it match my theme?<svg class="chev"><use href="#i-right"/></svg></summary>
+          <p>Yes. No colour is hard-coded; every surface is mixed from your theme's variables and accent colour.</p>
+        </details>
+        <details class="callout">
+          <summary class="callout-title"><svg><use href="#i-help"/></svg>How do I report a bug?<svg class="chev"><use href="#i-right"/></svg></summary>
+          <p>The settings tab has a row for it. It opens a GitHub issue with your plugin and Obsidian versions already filled in. Or go straight to <a href="https://github.com/Dimagious/dashsidian/issues">the issue tracker</a>.</p>
+        </details>
+
+        <div class="callout accent support">
+          <div class="callout-title"><svg><use href="#i-star"/></svg>If Dashy is useful to you</div>
+          <p>Dashy is free and made by one developer. A star on GitHub tells others the plugin is worth a look, and a coffee is a way to say thanks.</p>
+          <div class="actions">
+            <a class="btn star" href="https://github.com/Dimagious/dashsidian"><svg><use href="#i-star"/></svg>Star on GitHub</a>
+            <a class="btn coffee" href="https://buymeacoffee.com/dimagious"><svg><use href="#i-coffee"/></svg>Buy me a coffee</a>
+          </div>
+        </div>
+
+        <footer class="note-foot">
+          <span>MIT © Dmitriy Yurkin</span>
+          <a href="https://github.com/Dimagious/dashsidian">GitHub</a>
+          <a href="https://community.obsidian.md/plugins/dashsidian">Plugin listing</a>
+          <a href="https://github.com/Dimagious/dashsidian/blob/master/CHANGELOG.md">Changelog</a>
+          <a href="https://buymeacoffee.com/dimagious">Support the author</a>
+        </footer>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div class="statusbar" aria-hidden="true"><span>6 blocks</span><span>5 languages</span><span>MIT</span></div>
+
+<div class="overlay drawer-scrim" id="drawerScrim"></div>
+<div class="overlay" id="paletteScrim"></div>
+<div class="palette" id="palette" role="dialog" aria-modal="true" aria-label="Jump to a note">
+  <input id="paletteInput" type="text" placeholder="Find a note…" autocomplete="off" spellcheck="false">
+  <ul id="paletteList"></ul>
+  <div class="hint"><span><kbd>↑</kbd> <kbd>↓</kbd> to move</span><span><kbd>↵</kbd> to open</span><span><kbd>esc</kbd> to close</span></div>
+</div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+
+  /* ---------- theme: system, light, dark ---------- */
+  var order = ["system", "light", "dark"];
+  var icons = { system: "#i-auto", light: "#i-sun", dark: "#i-moon" };
+  function readTheme() { try { return localStorage.getItem("dashy-theme") || "system"; } catch (e) { return "system"; } }
+  function applyTheme(mode) {
+    if (mode === "system") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", mode);
+    // <picture> follows the OS on its own; a manual choice rewrites the dark source's media query.
+    var media = mode === "dark" ? "all" : mode === "light" ? "not all" : "(prefers-color-scheme: dark)";
+    document.querySelectorAll("source[data-dark]").forEach(function (s) { s.media = media; });
+    document.querySelectorAll("[data-theme-toggle]").forEach(function (b) {
+      b.querySelector("use").setAttribute("href", icons[mode]);
+      b.title = "Theme: " + mode + " (click to change)";
+    });
+  }
+  var theme = readTheme();
+  applyTheme(theme);
+  document.querySelectorAll("[data-theme-toggle]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      theme = order[(order.indexOf(theme) + 1) % order.length];
+      try { localStorage.setItem("dashy-theme", theme); } catch (e) { /* storage blocked: the choice lasts for this visit */ }
+      applyTheme(theme);
+    });
+  });
+
+  /* ---------- YAML highlighting for fenced blocks ---------- */
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function scalar(v) {
+    var t = v.trim();
+    if (!t) return esc(v);
+    var lead = v.match(/^\s*/)[0], trail = v.match(/\s*$/)[0];
+    var cls = /^-?\d[\d_.]*$/.test(t) || /^(true|false)$/.test(t) ? "t-num" : "t-str";
+    return lead + '<span class="' + cls + '">' + esc(t) + "</span>" + trail;
+  }
+  function inline(body) {
+    // { key: value, key: "value" } flow maps and [a, b] lists
+    var out = "", i = 0, buf = "", inQ = false;
+    function flush(isKey) {
+      if (!buf) return;
+      out += isKey ? '<span class="t-key">' + esc(buf) + "</span>" : scalar(buf);
+      buf = "";
+    }
+    for (; i < body.length; i++) {
+      var c = body[i];
+      if (c === '"') { inQ = !inQ; buf += c; continue; }
+      if (inQ) { buf += c; continue; }
+      if (c === ":" && body[i + 1] === " ") { flush(true); out += '<span class="t-p">:</span>'; continue; }
+      if ("{},[]".indexOf(c) >= 0) { flush(false); out += '<span class="t-p">' + c + "</span>"; continue; }
+      buf += c;
+    }
+    flush(false);
+    return out;
+  }
+  function line(l) {
+    var m;
+    if ((m = l.match(/^```(\w*)$/))) return '<span class="t-fence">```</span>' + (m[1] ? '<span class="t-lang">' + m[1] + "</span>" : "");
+    if ((m = l.match(/^(\s*-\s)(.*)$/))) return '<span class="t-p">' + m[1] + "</span>" + inline(m[2]);
+    if ((m = l.match(/^(\s*)([\w-]+):(\s?)(.*)$/))) return m[1] + '<span class="t-key">' + m[2] + '</span><span class="t-p">:</span>' + m[3] + inline(m[4]);
+    return esc(l);
+  }
+  document.querySelectorAll("code.yaml-fenced").forEach(function (el) {
+    var raw = el.textContent;
+    el.dataset.raw = raw;
+    el.innerHTML = raw.split("\n").map(line).join("\n");
+  });
+
+  /* ---------- copy buttons ---------- */
+  document.querySelectorAll("[data-code] .copy").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var code = btn.closest("[data-code]").querySelector("code");
+      var text = code.dataset.raw || code.textContent;
+      function done(msg) { btn.textContent = msg; setTimeout(function () { btn.textContent = "Copy"; }, 1600); }
+      if (!navigator.clipboard) { done("Select and copy"); return; }
+      navigator.clipboard.writeText(text).then(function () { done("Copied"); }, function () { done("Copy blocked"); });
+    });
+  });
+
+  /* ---------- folders ---------- */
+  document.querySelectorAll("[data-folder]").forEach(function (f) {
+    f.addEventListener("click", function () { f.parentElement.classList.toggle("closed"); });
+  });
+
+  /* ---------- mobile drawer ---------- */
+  var menuBtn = document.getElementById("menuBtn");
+  function drawer(open) {
+    document.body.classList.toggle("drawer", open);
+    menuBtn.setAttribute("aria-expanded", String(open));
+  }
+  menuBtn.addEventListener("click", function () { drawer(!document.body.classList.contains("drawer")); });
+  document.getElementById("drawerScrim").addEventListener("click", function () { drawer(false); });
+  document.querySelectorAll("#tree a, .vault-head a").forEach(function (a) { a.addEventListener("click", function () { drawer(false); }); });
+
+  /* ---------- the open note follows the scroll ---------- */
+  var sections = Array.prototype.slice.call(document.querySelectorAll("section.file"));
+  var links = {};
+  document.querySelectorAll("#tree a").forEach(function (a) { links[a.getAttribute("href").slice(1)] = a; });
+  var tabTitle = document.getElementById("tabTitle"), viewPath = document.getElementById("viewPath");
+  var current = null;
+  function setActive(sec) {
+    if (!sec || sec === current) return;
+    current = sec;
+    Object.keys(links).forEach(function (k) { links[k].classList.toggle("active", k === sec.id); });
+    tabTitle.textContent = sec.dataset.title;
+    viewPath.textContent = sec.dataset.path;
+  }
+  function onScroll() {
+    var y = 120, pick = sections[0];
+    sections.forEach(function (s) { if (s.getBoundingClientRect().top <= y) pick = s; });
+    setActive(pick);
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  /* ---------- quick switcher ---------- */
+  var pal = document.getElementById("palette"), palScrim = document.getElementById("paletteScrim");
+  var input = document.getElementById("paletteInput"), list = document.getElementById("paletteList");
+  var entries = sections.map(function (s) { return { id: s.id, title: s.dataset.title, path: s.dataset.path }; });
+  var sel = 0, shown = [];
+  function render() {
+    var q = input.value.trim().toLowerCase();
+    shown = entries.filter(function (e) { return !q || (e.path + " " + e.title).toLowerCase().indexOf(q) >= 0; });
+    sel = Math.min(sel, Math.max(shown.length - 1, 0));
+    list.innerHTML = shown.length ? shown.map(function (e, i) {
+      var folder = e.path.indexOf(" / ") > 0 ? e.path.split(" / ")[0] + "/" : "";
+      return '<li><a href="#' + e.id + '" class="' + (i === sel ? "sel" : "") + '">' + esc(e.title) + (folder ? "<small>" + esc(folder) + "</small>" : "") + "</a></li>";
+    }).join("") : '<li style="padding:8px 10px;color:var(--faint);font-size:14px">No note by that name.</li>';
+  }
+  function openPal() { pal.classList.add("open"); palScrim.classList.add("open"); input.value = ""; sel = 0; render(); input.focus(); drawer(false); }
+  function closePal() { pal.classList.remove("open"); palScrim.classList.remove("open"); }
+  function go(e) { closePal(); location.hash = e.id; }
+  document.querySelectorAll("[data-open-palette]").forEach(function (b) { b.addEventListener("click", openPal); });
+  palScrim.addEventListener("click", closePal);
+  input.addEventListener("input", function () { sel = 0; render(); });
+  list.addEventListener("click", function () { closePal(); });
+  input.addEventListener("keydown", function (ev) {
+    if (ev.key === "ArrowDown") { sel = Math.min(sel + 1, shown.length - 1); render(); ev.preventDefault(); }
+    else if (ev.key === "ArrowUp") { sel = Math.max(sel - 1, 0); render(); ev.preventDefault(); }
+    else if (ev.key === "Enter" && shown[sel]) { go(shown[sel]); }
+  });
+  document.addEventListener("keydown", function (ev) {
+    if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "k") { ev.preventDefault(); pal.classList.contains("open") ? closePal() : openPal(); }
+    else if (ev.key === "Escape") { closePal(); drawer(false); }
+  });
+})();
+</script>
+</body>
+</html>

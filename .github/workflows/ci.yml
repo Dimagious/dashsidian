@@ -39,6 +39,9 @@ jobs:
       - name: Agent skill is in sync with block schemas
         run: npm run build:skill -- --check
 
+      - name: Project site (broken images, dead anchors, dashes, required files)
+        run: npm run site:check
+
       - name: Unit tests (with coverage gates)
         run: npm run test
 

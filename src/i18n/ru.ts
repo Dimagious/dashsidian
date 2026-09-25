@@ -23,6 +23,8 @@ export const ru: Catalog = {
         "В `where: {where}` больше одного условия, а поддерживается одно. Фильтр пропущен. Сузьте через `source` или `tag`, либо возьмите значение в кавычки, если слово входит в него.",
 
     "tiles.empty": "Список плиток пуст. Ожидается `items:` или массив.",
+    "tiles.dateFieldUnused": "{card}: `date_field` не действует без `period`.",
+    "tiles.selectionUnused": "{card}: `tag`, `where`, `period` и `date_field` только сужают `badge: count`.",
 
     "stats.empty": "Список карточек пуст. Ожидается `items:` или массив.",
     "stats.unlabeledCard": "карточка без подписи",
@@ -31,6 +33,10 @@ export const ru: Catalog = {
         "{card}: агрегат «{agg}» неизвестен. Возможно, «{guess}». Доступны: {available}.",
     "stats.fieldRequired":
         "{card}: агрегату «{agg}» нужно число. Добавь `field:` с полем frontmatter.",
+    "stats.fieldMissing":
+        "{card}: ни у одной заметки в выборке нет «{field}». Проверьте имя и `source`.",
+    "stats.fieldNotNumeric":
+        "{card}: «{field}» хранит текст или другое значение, а не число или чекбокс. Чтобы посчитать такие заметки, используйте `where: \"{field} contains ...\"` с `agg: count`.",
     "stats.badPrecision":
         "{card}: `precision` ожидает целое от 0 до {max}, получено «{value}». Округляю по умолчанию.",
 
@@ -88,6 +94,10 @@ export const ru: Catalog = {
     "heatmap.fieldRequired": "Не задано `field`. Какое число из frontmatter красить.",
     "heatmap.noData":
         "Нет заметок с определяемой датой и числом или чекбоксом в поле «{field}». Проверь `source`, или `date_field`, если дата лежит в свойстве.",
+    "heatmap.fieldMissing":
+        "Ни у одной заметки в выборке нет «{field}». Проверьте имя и `source`.",
+    "heatmap.fieldNotNumeric":
+        "«{field}» хранит текст или другое значение, а не число или чекбокс. Чтобы посчитать такие заметки, используйте `where: \"{field} contains ...\"` с `agg: count` в карточке stats.",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.caption": "{year}, {field}: среднее {average}, {present} из {total} дн.",
     "heatmap.captionMarks": "{year}, {field}: {present} из {total} дн.",

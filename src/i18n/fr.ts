@@ -25,6 +25,8 @@ export const fr: Catalog = {
         "`where: {where}` contient plus d'une condition, et une seule est prise en charge. Le filtre a été ignoré. Restreignez avec `source` ou `tag`, ou mettez la valeur entre guillemets si le mot en fait partie.",
 
     "tiles.empty": "Aucune tuile à dessiner. Attendu : `items:` ou une liste.",
+    "tiles.dateFieldUnused": "{card} : `date_field` n'a aucun effet sans `period`.",
+    "tiles.selectionUnused": "{card} : `tag`, `where`, `period` et `date_field` ne font que restreindre `badge: count`.",
 
     "stats.empty": "Aucune carte à dessiner. Attendu : `items:` ou une liste.",
     "stats.unlabeledCard": "une carte sans libellé",
@@ -33,6 +35,10 @@ export const fr: Catalog = {
         "{card} : agrégat « {agg} » inconnu. Vouliez-vous dire « {guess} » ? Disponibles : {available}.",
     "stats.fieldRequired":
         "{card} : l'agrégat « {agg} » a besoin d'un nombre. Ajoutez `field:` avec une propriété du frontmatter.",
+    "stats.fieldMissing":
+        "{card} : aucune note de la sélection n'a « {field} ». Vérifiez le nom et `source`.",
+    "stats.fieldNotNumeric":
+        "{card} : « {field} » contient du texte ou une autre valeur qui n'est pas un nombre ni une case à cocher. Utilisez `where: \"{field} contains ...\"` avec `agg: count` pour le compter.",
     "stats.badPrecision":
         "{card} : `precision` attend un entier de 0 à {max}, reçu « {value} ». Arrondi par défaut.",
 
@@ -90,6 +96,10 @@ export const fr: Catalog = {
     "heatmap.fieldRequired": "Aucun `field` donné. Il n'y a pas de nombre pour colorer.",
     "heatmap.noData":
         "Aucune note avec une date reconnaissable et un nombre ou une case à cocher dans « {field} ». Vérifiez `source`, ou `date_field` si la date se trouve dans une propriété.",
+    "heatmap.fieldMissing":
+        "Aucune note de la sélection n'a « {field} ». Vérifiez le nom et `source`.",
+    "heatmap.fieldNotNumeric":
+        "« {field} » contient du texte ou une autre valeur qui n'est pas un nombre ni une case à cocher. Utilisez `where: \"{field} contains ...\"` avec `agg: count` dans une carte stats pour le compter.",
     "heatmap.caption": "{year}, {field} : moyenne {average}, {present} jours sur {total}",
     "heatmap.captionMarks": "{year}, {field} : {present} jours sur {total}",
     "heatmap.titleYear": "{title} ({year})",

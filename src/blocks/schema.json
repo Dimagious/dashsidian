@@ -30,6 +30,22 @@
           "required": true,
           "doc": "where it leads; understands File.base#View"
         },
+        "tag": {
+          "type": "string",
+          "doc": "tag, with or without the hash; narrows `badge: count`"
+        },
+        "where": {
+          "type": "string",
+          "doc": "a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported; narrows `badge: count`"
+        },
+        "period": {
+          "type": "string|number",
+          "doc": "narrow `badge: count` to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. Notes without a date are left out first. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages"
+        },
+        "date_field": {
+          "type": "string",
+          "doc": "a date frontmatter property to read instead of the note name for `period`: `2026-03-02` or `2026-03-02T10:30`; has no effect without `period`"
+        },
         "icon": {
           "type": "string",
           "doc": "emoji",
@@ -43,7 +59,7 @@
         },
         "badge": {
           "type": "string|number",
-          "doc": "count, meaning the number of notes in the folder, or your own string"
+          "doc": "count, meaning the number of notes in the folder narrowed by `tag`, `where` and `period` when given, or your own string"
         },
         "accent": {
           "type": "boolean",
@@ -94,7 +110,7 @@
         },
         "period": {
           "type": "string|number",
-          "doc": "narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. Notes without a date are left out first, then every agg, count included, runs on what remains"
+          "doc": "narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. Notes without a date are left out first, then every agg, count included, runs on what remains. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages"
         },
         "date_field": {
           "type": "string",
@@ -110,7 +126,7 @@
         },
         "field": {
           "type": "string",
-          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak",
+          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: \"field contains ...\"` and `agg: count`",
           "aliases": [
             "property",
             "prop"
@@ -148,10 +164,10 @@
           "doc": "small caption under the title"
         }
       },
-      "example": "columns: 3\nitems:\n  - { label: Notes, source: 01-Areas, agg: count }\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }\n  - { label: Days in a row, source: Diary, field: sleep_score, agg: streak, unit: d. }\n  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }",
+      "example": "columns: 3\nitems:\n  - { label: Notes, source: 01-Areas, agg: count }\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }\n  - { label: Best streak, source: Diary, field: sleep_score, agg: streak }\n  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }",
       "notes": [
-        "`streak` counts the longest run of consecutive days and `latest` takes the value from the newest note, a tie on the same date broken by path. Both resolve a note's date the same way `period` does, below, and two or more notes landing on the same day count as one day.",
-        "Nothing to count, and the card shows a dash rather than a zero: \"no data\" and \"zero\" are different answers.",
+        "`streak` counts the longest run of consecutive days and `latest` takes the value from the newest note, a tie on the same date broken by path. Both resolve a note's date the same way `period` does, below, and two or more notes landing on the same day count as one day. With a `field:` set, `streak` is a field aggregate like `sum` or `avg`: nothing to count shows a dash, even over an empty selection. Without a `field:` it counts every selected note's own date instead, and reads a plain `0` when there is nothing, the same as `count`. There is no current-streak aggregate, only this record: label the card \"Best streak\" or \"Longest streak\", not \"days in a row\".",
+        "`count` over nothing reads a plain `0`, the number of notes found; every other aggregate, and `streak` with a `field` set, shows a dash instead: \"no data\" and \"zero\" are different answers.",
         "`trend` sketches the days of a trailing window ending today, scaled between the smallest and largest value in that window rather than from zero. A day without a note is left out, not drawn as a zero, and two or more notes on the same day are summed into that one day's bar.",
         "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting.",
         "`compare` needs a note in both windows; when either the current or the previous stretch has none at all, the card shows its number alone with no delta. `streak` has no value of its own to compare and refuses `compare` outright, the way `trend` refuses `count`."
@@ -202,7 +218,7 @@
         },
         "period": {
           "type": "string|number",
-          "doc": "narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. The goal is measured against the period's value; notes without a date are left out first"
+          "doc": "narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. The goal is measured against the period's value; notes without a date are left out first. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages"
         },
         "date_field": {
           "type": "string",
@@ -210,7 +226,7 @@
         },
         "field": {
           "type": "string",
-          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak",
+          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: \"field contains ...\"` and `agg: count`",
           "aliases": [
             "property",
             "prop"
@@ -247,7 +263,8 @@
       "example": "items:\n  - { label: Days logged this year, source: Diary, agg: count, period: year, goal: 365 }\n  - { label: Running volume, source: Diary, field: distance_km, agg: sum, goal: 200, unit: km }",
       "notes": [
         "Going past the goal is shown as it is, 125% stays 125%; only the bar itself stops at full.",
-        "Nothing to count, and the bar stays empty and the value shows a dash rather than a zero.",
+        "`count` over nothing reads a plain `0` and an empty bar; every other aggregate, and `streak` with a `field` set, shows a dash instead: \"no data\" and \"zero\" are different answers.",
+        "`streak` counts the longest run of consecutive days on record, not the run still going today; label the bar \"Best streak\" or \"Longest streak\".",
         "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting."
       ]
     },
@@ -325,7 +342,8 @@
       "example": "columns: 3\nitems:\n  - { label: IRONMAN 70.3, date: 2026-11-15, icon: 🏊 }\n  - { label: Holiday, date: 2026-12-20, icon: 🏖, sub: two weeks off }",
       "notes": [
         "A date that has passed is shown too, counting up instead of down. What happened yesterday is still worth seeing.",
-        "The day count is whole days, so a daylight saving switch cannot shift it."
+        "The day count is whole days, so a daylight saving switch cannot shift it.",
+        "The date does not repeat every year: a birthday or anniversary needs its year moved forward by hand once it has passed."
       ]
     },
     "heatmap": {
@@ -350,7 +368,7 @@
         "field": {
           "type": "string",
           "required": true,
-          "doc": "numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty",
+          "doc": "numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: \"field contains ...\"` and `agg: count`",
           "aliases": [
             "property",
             "prop"
@@ -386,7 +404,7 @@
       "notes": [
         "A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 Monday` counts, `2026-01-051` does not), unless `date_field` names a property instead. That is how the block knows which cell it belongs to.",
         "Two or more notes landing on the same day paint one cell: its value is their sum, and a ticked or numeric note always outweighs a false one on the same day.",
-        "Years are taken from the data: once a new year appears, a second grid is drawn."
+        "Years are taken from the data, newest first, but never one later than today: a note dated in the future draws nothing extra and counts nowhere in the grid. If every dated note turns out to be in the future, the current year is still drawn, empty."
       ]
     }
   },

@@ -46,6 +46,33 @@ export function isBooleanMark(note: NoteRecord, field: string): boolean {
     return typeof note.frontmatter[field] === "boolean";
 }
 
+export type FieldStatus = "missing" | "not-numeric" | "ok";
+
+/**
+ * How usable a field is across a set of notes: `missing` when no note carries
+ * the key at all, `not-numeric` when some do but none hold a usable value
+ * (text, a list, an explicit null), `ok` once a single usable value turns up.
+ *
+ * Callers use this to tell a typo in a field name apart from a field that is
+ * real but holds text — a Garmin `running: "10 km · 51min"` and a misspelled
+ * `gym` both aggregate to "nothing to count" otherwise, and only one of them
+ * is fixed by renaming the key. Shared by the heatmap's own diagnostic and
+ * the same warning on stats/progress cards (B-111, B-112).
+ *
+ * `hasOwnProperty` rather than the `in` operator: `"constructor" in {}` is
+ * true (it resolves up the prototype chain), which would read a field named
+ * `constructor` or `__proto__` as present on every note that never set it.
+ */
+export function classifyField(notes: readonly NoteRecord[], field: string): FieldStatus {
+    let present = false;
+    for (const n of notes) {
+        if (!Object.prototype.hasOwnProperty.call(n.frontmatter, field)) continue;
+        present = true;
+        if (numberAt(n, field) !== null) return "ok";
+    }
+    return present ? "not-numeric" : "missing";
+}
+
 export interface AggregateSpec {
     agg: Agg;
     /** required for everything but count and streak */
@@ -68,6 +95,20 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
     if (spec.agg === "count") return notes.length;
 
     if (spec.agg === "streak") {
+        // A field asked for that no note here carries usably (missing,
+        // present only as text, or simply no notes at all) is not a streak
+        // of zero: zero is what the days themselves would say once the
+        // field is real. Matches `sum`/`avg`/etc., which already answer
+        // "nothing to count" with a dash rather than a zero over an empty
+        // selection — `streak` with a field is a field aggregate too, not a
+        // special case. Distinct from a field that exists with only `false`
+        // checkboxes, where classify returns "ok" (numberAt(false) is 0, not
+        // null) and the run below correctly comes out honest and zero.
+        // `streak` with no `field` at all is unaffected: without one it
+        // counts every selected note's own date, and an empty selection
+        // there is a plain, honest 0, the same as `count`.
+        if (spec.field && classifyField(notes, spec.field) !== "ok") return null;
+
         const dates = notes
             .filter((n) => (spec.field
                 ? numberAt(n, spec.field) !== null && !isFalseMark(n, spec.field)

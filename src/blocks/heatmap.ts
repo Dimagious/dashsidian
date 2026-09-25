@@ -1,7 +1,7 @@
 import type { BlockContext } from "./context";
 import { weekdayNamesShort, monthNamesShort, firstDayOfWeek } from "../adapters/datetime";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
-import { numberAt, isFalseMark, isBooleanMark } from "../core/aggregate";
+import { numberAt, isFalseMark, isBooleanMark, classifyField } from "../core/aggregate";
 import { readDateField, resolveNoteDate } from "../core/note-date";
 import { formatValue } from "../core/stat";
 import { layoutYear, dateKey, eachDay, yearsOf, rotateWeekdays, weekdayRow } from "../core/calendar";
@@ -159,7 +159,20 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     }
 
     if (!marks.size) {
-        diags.push({ level: "error", message: t("heatmap.noData", { field }) });
+        // Distinguishes "nobody ever wrote this key" from "somebody did, but
+        // as text" from the residual case where the field is genuinely fine
+        // somewhere in the selection and the real problem is dates (kept as
+        // the original, more general message): a typo in `field` and a
+        // Garmin `running: "10 km · 51min"` both used to read as the same
+        // generic "no data", which sent a reader with the right `source`
+        // chasing the wrong fix (B-112).
+        const status = classifyField(notes, field);
+        const message = status === "missing"
+            ? t("heatmap.fieldMissing", { field })
+            : status === "not-numeric"
+                ? t("heatmap.fieldNotNumeric", { field })
+                : t("heatmap.noData", { field });
+        diags.push({ level: "error", message });
         renderDiagnostics(el, "heatmap", diags);
         return;
     }
@@ -168,15 +181,23 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
 
     const today = ctx.today();
     const firstDay = firstDayOfWeek();
-    // One grid per calendar year. With more than one, each has to say which
-    // year it is — otherwise two grids under the same custom title read as the
-    // same thing drawn twice, which is exactly how it was first reported.
-    const years = yearsOf([...marks.keys()]);
+    // One grid per calendar year, never one later than today's: a note
+    // dated next year (or, with `startDayHour` set, a real-date note just
+    // after midnight before the day has effectively turned over) used to
+    // draw a full, empty grid above the real data (B-113). That note still
+    // counts nowhere in the heatmap; if every dated note turns out to be in
+    // the future, the current year is drawn anyway, empty, rather than
+    // showing nothing at all.
+    const years = yearsOf([...marks.keys()]).filter((y) => y <= today.getFullYear());
+    const yearsToDraw = years.length ? years : [today.getFullYear()];
     const drawn: ResizeObserver[] = [];
-    for (const year of years) {
+    for (const year of yearsToDraw) {
+        // With more than one grid, each has to say which year it is —
+        // otherwise two grids under the same custom title read as the same
+        // thing drawn twice, which is exactly how it was first reported.
         const observer = drawYear(el, year, today, marks, {
             color, bands, field, linkable, title: value.title, firstDay,
-            severalYears: years.length > 1,
+            severalYears: yearsToDraw.length > 1,
             restore: restoreByYear.get(year),
         });
         if (observer) drawn.push(observer);

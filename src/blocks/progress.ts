@@ -1,7 +1,7 @@
 import type { NoteRecord } from "../core/source";
 import type { BlockContext } from "./context";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
-import { aggregate } from "../core/aggregate";
+import { aggregate, classifyField } from "../core/aggregate";
 import { readDateField } from "../core/note-date";
 import { formatValue } from "../core/stat";
 import { readProgress, percentOf, barWidth, type ProgressSpec } from "../core/progress";
@@ -64,6 +64,24 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
         const missing = unmatchedSource(notes, source);
         if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
         const selected = selectNotes(notes, source);
+
+        // Same check as the stats card (B-111): a field with no usable value
+        // anywhere in the selection is a dash-worthy warning, not a silent
+        // zero — checked before `period` narrows it, so an otherwise-fine
+        // field that is merely absent from this window stays the B-079
+        // plain, unwarned zero/dash.
+        if (spec?.field && selected.length) {
+            const fieldStatus = classifyField(selected, spec.field);
+            if (fieldStatus !== "ok") {
+                const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
+                diags.push({
+                    level: "warning",
+                    message: fieldStatus === "missing"
+                        ? t("stats.fieldMissing", { card: cardLabel, field: spec.field })
+                        : t("stats.fieldNotNumeric", { card: cardLabel, field: spec.field }),
+                });
+            }
+        }
 
         // Steers `period`'s window below and, inside `aggregate`, `streak`
         // and `latest` too — whether or not `period` is even set.
