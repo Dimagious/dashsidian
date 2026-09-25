@@ -1,6 +1,6 @@
 import type { BlockContext } from "./context";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
-import { aggregate, series } from "../core/aggregate";
+import { aggregate, series, classifyField } from "../core/aggregate";
 import { readDateField } from "../core/note-date";
 import { sparkBars } from "../core/sparkline";
 import { readStat, formatValue, valueLengthClass, GROUP_SEPARATOR } from "../core/stat";
@@ -87,6 +87,26 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         const missing = unmatchedSource(notes, source);
         if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
         const selected = selectNotes(notes, source);
+
+        // A typo in `field` and a text field like Garmin's `running: "10 km"`
+        // both aggregate to "nothing to count", indistinguishable from an
+        // honest zero without this. Checked against the selection before
+        // `period` narrows it: a field that is fine elsewhere but simply has
+        // no data in this window is B-079's plain, unwarned zero/dash, not
+        // this (B-111). `count` never reads a field and `streak` only when
+        // given one, so both are naturally skipped by `spec?.field`.
+        if (spec?.field && selected.length) {
+            const fieldStatus = classifyField(selected, spec.field);
+            if (fieldStatus !== "ok") {
+                const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
+                diags.push({
+                    level: "warning",
+                    message: fieldStatus === "missing"
+                        ? t("stats.fieldMissing", { card: cardLabel, field: spec.field })
+                        : t("stats.fieldNotNumeric", { card: cardLabel, field: spec.field }),
+                });
+            }
+        }
 
         // `date_field` steers every reader of a note's date on this card:
         // `period`'s window below, and `streak`/`latest`/`trend` inside

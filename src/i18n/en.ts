@@ -35,6 +35,10 @@ export const en = {
         "{card}: unknown aggregate \"{agg}\". Did you mean \"{guess}\"? Available: {available}.",
     "stats.fieldRequired":
         "{card}: the \"{agg}\" aggregate needs a number. Add `field:` with a frontmatter property.",
+    "stats.fieldMissing":
+        "{card}: no note in the selection has \"{field}\". Check the name and `source`.",
+    "stats.fieldNotNumeric":
+        "{card}: \"{field}\" holds text or another value that is not a number or a checkbox. Use `where: \"{field} contains ...\"` with `agg: count` to count it instead.",
     "stats.badPrecision":
         "{card}: `precision` expects a whole number from 0 to {max}, got \"{value}\". Rounding the default way.",
 
@@ -96,6 +100,10 @@ export const en = {
     "heatmap.fieldRequired": "No `field` given. There is no number to colour by.",
     "heatmap.noData":
         "No notes with a resolvable date and a number or a checkbox in \"{field}\". Check `source`, or `date_field` if the date lives in a property.",
+    "heatmap.fieldMissing":
+        "No note in the selection has \"{field}\". Check the name and `source`.",
+    "heatmap.fieldNotNumeric":
+        "\"{field}\" holds text or another value that is not a number or a checkbox. Use `where: \"{field} contains ...\"` with `agg: count` in a stats card to count it instead.",
     "heatmap.caption": "{year}, {field}: average {average}, {present} of {total} days",
     "heatmap.captionMarks": "{year}, {field}: {present} of {total} days",
     "heatmap.titleYear": "{title} ({year})",

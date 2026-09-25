@@ -33,6 +33,10 @@ export const de: Catalog = {
         "{card}: unbekannte Aggregatfunktion „{agg}“. Meintest du „{guess}“? Verfügbar: {available}.",
     "stats.fieldRequired":
         "{card}: die Aggregatfunktion „{agg}“ braucht eine Zahl. Ergänze `field:` mit einer Frontmatter-Eigenschaft.",
+    "stats.fieldMissing":
+        "{card}: keine Notiz in der Auswahl hat „{field}“. Prüfe den Namen und `source`.",
+    "stats.fieldNotNumeric":
+        "{card}: „{field}“ enthält Text oder einen anderen Wert, keine Zahl oder Checkbox. Verwende `where: \"{field} contains ...\"` mit `agg: count`, um das zu zählen.",
     "stats.badPrecision":
         "{card}: `precision` erwartet eine ganze Zahl von 0 bis {max}, bekommen „{value}“. Es wird wie voreingestellt gerundet.",
 
@@ -90,6 +94,10 @@ export const de: Catalog = {
     "heatmap.fieldRequired": "Kein `field` angegeben. Es gibt keine Zahl zum Einfärben.",
     "heatmap.noData":
         "Keine Notizen mit einem erkennbaren Datum und einer Zahl oder einer Checkbox in „{field}“. Prüfe `source`, oder `date_field`, wenn das Datum in einer Eigenschaft steckt.",
+    "heatmap.fieldMissing":
+        "Keine Notiz in der Auswahl hat „{field}“. Prüfe den Namen und `source`.",
+    "heatmap.fieldNotNumeric":
+        "„{field}“ enthält Text oder einen anderen Wert, keine Zahl oder Checkbox. Verwende `where: \"{field} contains ...\"` mit `agg: count` in einer stats-Karte, um das zu zählen.",
     "heatmap.caption": "{year}, {field}: Durchschnitt {average}, {present} von {total} Tagen",
     "heatmap.captionMarks": "{year}, {field}: {present} von {total} Tagen",
     "heatmap.titleYear": "{title} ({year})",

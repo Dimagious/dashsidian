@@ -1,7 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHeatmap } from "./heatmap";
 import { formatValue } from "../core/stat";
 import { mockContext, diary, host, texts, nodes, diagnostics } from "../test/vault";
+import { DEFAULT_SETTINGS } from "../types";
 
 // 2026 starts on a Thursday. With weeks starting on Sunday (the English
 // locale) that means four pad cells before January 1st.
@@ -408,6 +409,49 @@ describe("heatmap — edges", () => {
     it("a field nothing carries is an error, not an empty grid", () => {
         const el = map("source: Diary\nfield: nowhere");
         expect(diagnostics(el, "error")[0]).toContain("nowhere");
+        expect(diagnostics(el, "error")[0]).toContain("Check the name");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    // B-112: a field that is real but holds text, like Garmin's
+    // `running: "10 km · 51min"`, used to draw the exact same "check
+    // `source`" message as a field nobody ever wrote — pointing a reader
+    // with the right `source` at the wrong fix.
+    it("a field that holds only text is a different error than a missing field", () => {
+        const el = map("source: Diary\nfield: note");
+        const message = diagnostics(el, "error")[0] ?? "";
+        expect(message).toContain("note");
+        expect(message).toContain("text");
+        expect(message).not.toContain("Check the name");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a mix of one text note and one numeric note is not an error at all", () => {
+        const mixed = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { running: "10 km" } },
+                { path: "Diary/2026-01-02.md", frontmatter: { running: 5 } },
+            ],
+        });
+        const el = map("source: Diary\nfield: running", mixed);
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+    });
+
+    // The residual case: the field itself is fine (classifyField says "ok"),
+    // but no note carrying it also has a resolvable date, so there is
+    // nothing to paint. `Template.md` is not named for a day and has no
+    // `date_field`, so it never resolves to a date at all. This must not be
+    // reported as the field missing or being text — neither is true here.
+    it("a field that is fine but no note carrying it has a resolvable date keeps the original message", () => {
+        const el = map(
+            "source: Diary\nfield: steps",
+            mockContext({ notes: [{ path: "Diary/Template.md", frontmatter: { steps: 5 } }] }),
+        );
+        const message = diagnostics(el, "error")[0] ?? "";
+        expect(message).toContain("resolvable date");
+        expect(message).not.toContain("Check the name");
+        expect(message).not.toContain("holds text");
         expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
     });
 
@@ -438,6 +482,101 @@ describe("heatmap — edges", () => {
     it("a list where a set of fields was expected is reported", () => {
         const el = map("- source: Diary");
         expect(diagnostics(el, "error")).toHaveLength(1);
+    });
+});
+
+describe("heatmap — never a year later than today (B-113)", () => {
+    const TODAY = new Date(2026, 8, 24); // 24 September 2026
+
+    afterEach(() => vi.useRealTimers());
+
+    it("a note dated next year draws only the current year, not a second empty grid", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            { path: "Diary/2026-09-01.md", frontmatter: { steps: 100 } },
+            { path: "Diary/2026-09-02.md", frontmatter: { steps: 200 } },
+            { path: "Diary/2027-01-05.md", frontmatter: { steps: 300 } }, // next year
+        ];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        expect(caption).toContain("2026");
+        expect(caption).not.toContain("2027");
+        // Only the two 2026 notes count; the future one is nowhere in it.
+        expect(caption).toContain("2 of");
+    });
+
+    // F5: with a custom `title`, the year suffix only appears once there is
+    // more than one grid to tell apart (`severalYears`, see the "two years
+    // under a custom title" suite above). Computing that flag from the raw,
+    // unfiltered years (which still include 2027) would append "(2026)"
+    // here even though only one grid is actually drawn — this pins that it
+    // is computed from what is actually drawn.
+    it("a note dated next year leaves a custom title exactly alone, no year suffix", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            { path: "Diary/2026-09-01.md", frontmatter: { steps: 100 } },
+            { path: "Diary/2027-01-05.md", frontmatter: { steps: 300 } }, // next year
+        ];
+        const el = map("source: Diary\nfield: steps\ntitle: Steps", mockContext({ notes }));
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(texts(el, ".dashy-hm-title")).toEqual(["Steps"]);
+    });
+
+    it("a note dated next year plus current data still draws only the current year", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            ...diary("Diary", "2026-09-01", 3, () => ({ steps: 100 })),
+            { path: "Diary/2027-06-01.md", frontmatter: { steps: 999 } },
+        ];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(texts(el, ".dashy-hm-title")[0]).toContain("2026");
+        expect(texts(el, ".dashy-hm-title")[0]).toContain("3 of");
+    });
+
+    it("every dated note in the future still draws the current year, empty, not an error", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [{ path: "Diary/2027-01-05.md", frontmatter: { steps: 300 } }];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        expect(caption).toContain("2026");
+        expect(caption).toContain("0 of");
+    });
+
+    // B-082: with a start-of-day hour set, a real-date note for 1 January
+    // read just after midnight is still "the future" relative to the
+    // effective today (31 December of the previous year), the same as a
+    // note dated for next calendar year is.
+    it("startDayHour 4 at 1 January 02:00: a 1 January note is future, only the previous year draws", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 0, 1, 2, 0)); // 1 January 2026, 02:00
+        const settings = { ...DEFAULT_SETTINGS, startDayHour: 4 };
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { steps: 500 } }];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }, settings));
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        // Effective today is 31 December 2025: the note's own date, 1
+        // January 2026, is next year relative to it and draws nowhere.
+        expect(caption).toContain("2025");
+        expect(caption).not.toContain("2026");
+        expect(caption).toContain("0 of");
+    });
+
+    it("a past year is unaffected: it still draws whole, same as before", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2024-01-01", 5, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(texts(el, ".dashy-hm-title")[0]).toContain("2024");
     });
 });
 

@@ -74,7 +74,7 @@ Number cards: one value per card, computed over a selection of notes.
 | `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`. Feeds `period`'s window and the `streak`, `latest` and `trend` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` |
 | `compare` | boolean | — | — | — | show the delta against the same stretch of the previous period, to date: this week compares against the same weekdays last week, not the whole of last week. Only with `period` set, and not with `agg: streak` |
 | `better` | string | — | — | — | `up` colours a rise green and a fall red; `down` reverses that for a number where less is better. No change stays neutral either way. Only with `compare: true` |
-| `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak |
+| `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: "field contains ..."` and `agg: count` |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
 | `unit` | string | — | — | — | a suffix after the number: km, %, d. |
 | `precision` | number | — | — | — | decimal places, 0 to 6; by default a whole number stays whole and a fraction gets one decimal |
@@ -95,7 +95,7 @@ items:
 ```
 ````
 
-- `streak` counts the longest run of consecutive days and `latest` takes the value from the newest note, a tie on the same date broken by path. Both resolve a note's date the same way `period` does, below, and two or more notes landing on the same day count as one day.
+- `streak` counts the longest run of consecutive days and `latest` takes the value from the newest note, a tie on the same date broken by path. Both resolve a note's date the same way `period` does, below, and two or more notes landing on the same day count as one day. With a `field:` set, `streak` is a field aggregate like `sum` or `avg`: nothing to count shows a dash, even over an empty selection. Without a `field:` it counts every selected note's own date instead, and reads a plain `0` when there is nothing, the same as `count`.
 - Nothing to count, and the card shows a dash rather than a zero: "no data" and "zero" are different answers.
 - `trend` sketches the days of a trailing window ending today, scaled between the smallest and largest value in that window rather than from zero. A day without a note is left out, not drawn as a zero, and two or more notes on the same day are summed into that one day's bar.
 - `period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting.
@@ -122,7 +122,7 @@ Bars towards a goal: how far a number has come against a target.
 | `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported |
 | `period` | string\|number | — | — | — | narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. The goal is measured against the period's value; notes without a date are left out first |
 | `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`. Feeds `period`'s window and the `streak` and `latest` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` |
-| `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak |
+| `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: "field contains ..."` and `agg: count` |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
 | `unit` | string | — | — | — | a suffix after the numbers: km, %, d. |
 | `precision` | number | — | — | — | decimal places, 0 to 6; by default a whole number stays whole and a fraction gets one decimal |
@@ -215,7 +215,7 @@ A year by days: one cell per day, coloured by a number from frontmatter.
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
 | `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported |
-| `field` | string | yes | — | `property`, `prop` | numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty |
+| `field` | string | yes | — | `property`, `prop` | numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: "field contains ..."` and `agg: count` |
 | `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30` |
 | `color` | string | — | `blue` | `colour` | blue green cyan purple pink orange red gray, or #rrggbb |
 | `bands` | list | — | — | — | thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band |
@@ -235,7 +235,7 @@ bands: [90, 80, 60]
 
 - A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 Monday` counts, `2026-01-051` does not), unless `date_field` names a property instead. That is how the block knows which cell it belongs to.
 - Two or more notes landing on the same day paint one cell: its value is their sum, and a ticked or numeric note always outweighs a false one on the same day.
-- Years are taken from the data: once a new year appears, a second grid is drawn.
+- Years are taken from the data, newest first, but never one later than today: a note dated in the future draws nothing extra and counts nowhere in the grid. If every dated note turns out to be in the future, the current year is still drawn, empty.
 
 ## What the plugin does NOT do
 

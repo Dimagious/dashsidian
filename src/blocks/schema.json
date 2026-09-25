@@ -110,7 +110,7 @@
         },
         "field": {
           "type": "string",
-          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak",
+          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: \"field contains ...\"` and `agg: count`",
           "aliases": [
             "property",
             "prop"
@@ -150,7 +150,7 @@
       },
       "example": "columns: 3\nitems:\n  - { label: Notes, source: 01-Areas, agg: count }\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }\n  - { label: Days in a row, source: Diary, field: sleep_score, agg: streak, unit: d. }\n  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }",
       "notes": [
-        "`streak` counts the longest run of consecutive days and `latest` takes the value from the newest note, a tie on the same date broken by path. Both resolve a note's date the same way `period` does, below, and two or more notes landing on the same day count as one day.",
+        "`streak` counts the longest run of consecutive days and `latest` takes the value from the newest note, a tie on the same date broken by path. Both resolve a note's date the same way `period` does, below, and two or more notes landing on the same day count as one day. With a `field:` set, `streak` is a field aggregate like `sum` or `avg`: nothing to count shows a dash, even over an empty selection. Without a `field:` it counts every selected note's own date instead, and reads a plain `0` when there is nothing, the same as `count`.",
         "Nothing to count, and the card shows a dash rather than a zero: \"no data\" and \"zero\" are different answers.",
         "`trend` sketches the days of a trailing window ending today, scaled between the smallest and largest value in that window rather than from zero. A day without a note is left out, not drawn as a zero, and two or more notes on the same day are summed into that one day's bar.",
         "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting.",
@@ -210,7 +210,7 @@
         },
         "field": {
           "type": "string",
-          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak",
+          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: \"field contains ...\"` and `agg: count`",
           "aliases": [
             "property",
             "prop"
@@ -350,7 +350,7 @@
         "field": {
           "type": "string",
           "required": true,
-          "doc": "numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty",
+          "doc": "numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: \"field contains ...\"` and `agg: count`",
           "aliases": [
             "property",
             "prop"
@@ -386,7 +386,7 @@
       "notes": [
         "A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 Monday` counts, `2026-01-051` does not), unless `date_field` names a property instead. That is how the block knows which cell it belongs to.",
         "Two or more notes landing on the same day paint one cell: its value is their sum, and a ticked or numeric note always outweighs a false one on the same day.",
-        "Years are taken from the data: once a new year appears, a second grid is drawn."
+        "Years are taken from the data, newest first, but never one later than today: a note dated in the future draws nothing extra and counts nowhere in the grid. If every dated note turns out to be in the future, the current year is still drawn, empty."
       ]
     }
   },

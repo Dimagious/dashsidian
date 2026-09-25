@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { aggregate, numberAt, isFalseMark, isBooleanMark, series, isAgg } from "./aggregate";
+import { aggregate, numberAt, isFalseMark, isBooleanMark, classifyField, series, isAgg } from "./aggregate";
 import type { NoteRecord } from "./source";
 
 const day = (name: string, fm: Record<string, unknown>): NoteRecord => ({
@@ -66,6 +66,53 @@ describe("isBooleanMark", () => {
     });
 });
 
+describe("classifyField", () => {
+    it("ok once a single note has a usable value", () => {
+        expect(classifyField(days, "sleep_score")).toBe("ok");
+    });
+    it("missing when no note carries the key at all", () => {
+        expect(classifyField(days, "gym")).toBe("missing");
+    });
+    it("missing for an empty selection", () => {
+        expect(classifyField([], "gym")).toBe("missing");
+    });
+    it("not-numeric when every note that has the key holds an unusable value", () => {
+        const notes = [day("x", { running: "10 km" }), day("y", { running: "5 km" })];
+        expect(classifyField(notes, "running")).toBe("not-numeric");
+    });
+    it("ok for a mix: one note text, another a real number", () => {
+        const notes = [day("x", { running: "10 km" }), day("y", { running: 5 })];
+        expect(classifyField(notes, "running")).toBe("ok");
+    });
+    it("ok for a field that is only ever the boolean false", () => {
+        // A streak of zero over an all-false field is honest, not a missing
+        // field: numberAt(false) is 0, not null.
+        const notes = [day("x", { gym: false }), day("y", { gym: false })];
+        expect(classifyField(notes, "gym")).toBe("ok");
+    });
+    it("does not fall for __proto__ or constructor as a field name", () => {
+        // `field in note.frontmatter` would read true for these on any plain
+        // object, prototype chain included, even though no note ever set
+        // them; classifyField uses hasOwnProperty specifically to avoid that.
+        const notes = [day("x", { sleep_score: 80 })];
+        expect(classifyField(notes, "__proto__")).toBe("missing");
+        expect(classifyField(notes, "constructor")).toBe("missing");
+    });
+
+    // F6: "not-numeric" covers every unusable shape the key can hold, not
+    // only a plain string — the key is present (`hasOwnProperty` is true),
+    // it just never turns into a number through `numberAt`.
+    it("not-numeric for an explicit null", () => {
+        expect(classifyField([day("x", { v: null })], "v")).toBe("not-numeric");
+    });
+    it("not-numeric for a list", () => {
+        expect(classifyField([day("x", { v: ["a", "b"] })], "v")).toBe("not-numeric");
+    });
+    it("not-numeric for an empty string", () => {
+        expect(classifyField([day("x", { v: "" })], "v")).toBe("not-numeric");
+    });
+});
+
 describe("aggregate", () => {
     it("count needs no field", () => expect(aggregate(days, { agg: "count" })).toBe(4));
     it("sum", () => expect(aggregate(days, { agg: "sum", field: "sleep_score" })).toBe(333));
@@ -97,6 +144,43 @@ describe("aggregate", () => {
     });
     it("an empty selection is null", () => {
         expect(aggregate([], { agg: "avg", field: "x" })).toBeNull();
+    });
+
+    describe("streak over a field no note has (B-111)", () => {
+        it("a field nothing carries is a dash, not an honest zero", () => {
+            // Before the fix: longestStreak([]) is 0, indistinguishable from
+            // a real streak of zero over a typo'd field name.
+            expect(aggregate(days, { agg: "streak", field: "gym" })).toBeNull();
+        });
+        it("a field that is only text is a dash too", () => {
+            const notes = [day("2026-09-19", { running: "10 km" }), day("2026-09-20", { running: "5 km" })];
+            expect(aggregate(notes, { agg: "streak", field: "running" })).toBeNull();
+        });
+        it("an empty selection with a field is a dash too, not a zero (F4)", () => {
+            // `streak` with a `field:` is a field aggregate like `sum`/`avg`,
+            // which already answer an empty selection with a dash. An empty
+            // one used to be carved out as a special "stays 0" case; it no
+            // longer is.
+            expect(aggregate([], { agg: "streak", field: "gym" })).toBeNull();
+        });
+        it("streak with no field at all is unaffected: it counts every dated note", () => {
+            expect(aggregate(days, { agg: "streak" })).toBe(3);
+        });
+        it("streak with no field over an empty selection is still an honest 0 (F4 pin)", () => {
+            // Without a `field:`, `streak` counts every selected note's own
+            // date — closer to `count` than to a field aggregate — and an
+            // empty selection there is a plain, unwarned 0, unaffected by
+            // the dash-over-empty-selection rule above.
+            expect(aggregate([], { agg: "streak" })).toBe(0);
+        });
+        it("a field that exists with only false checkboxes stays an honest 0, no dash", () => {
+            const notes = [
+                day("2026-09-18", { gym: false }),
+                day("2026-09-19", { gym: false }),
+                day("2026-09-20", { gym: false }),
+            ];
+            expect(aggregate(notes, { agg: "streak", field: "gym" })).toBe(0);
+        });
     });
 
     describe("boolean fields", () => {

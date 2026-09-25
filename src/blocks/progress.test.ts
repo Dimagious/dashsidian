@@ -114,6 +114,108 @@ describe("progress — edges", () => {
     });
 });
 
+describe("progress — a field no note carries warns, not a silent zero (B-111)", () => {
+    it("sum over a field nothing carries is a dash with a warning naming it", () => {
+        const el = bars("items:\n  - { label: Run, source: Diary, field: nope, agg: sum, goal: 100 }");
+        expect(texts(el, ".dashy-progress-value")[0]).toBe("— / 100");
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+        expect(diagnostics(el, "warning")[0]).toContain("Run");
+        expect(diagnostics(el, "warning")[0]).toContain("nope");
+    });
+
+    it("streak over a field nothing carries is a dash too, not an honest 0", () => {
+        const el = bars("items:\n  - { label: Gym streak, source: Diary, field: nope, agg: streak, goal: 5 }");
+        expect(texts(el, ".dashy-progress-value")[0]).toBe("— / 5");
+        expect(diagnostics(el, "warning")[0]).toContain("nope");
+    });
+
+    it("a text field warns with the not-numeric message, mentioning where + count", () => {
+        const running = mockContext({
+            notes: [
+                { path: "Diary/2026-09-19.md", frontmatter: { running: "10 km" } },
+                { path: "Diary/2026-09-20.md", frontmatter: { running: "5 km" } },
+            ],
+        });
+        const el = host();
+        renderProgress(
+            running,
+            "items:\n  - { label: Running, source: Diary, field: running, agg: sum, goal: 20 }",
+            el,
+        );
+        const warning = diagnostics(el, "warning")[0] ?? "";
+        expect(warning).toContain("running");
+        expect(warning).toContain("where");
+        expect(warning).toContain("count");
+        expect(warning).not.toContain("Check the name");
+    });
+
+    it("a field present with only false checkboxes stays a clean 0 for streak, no warning", () => {
+        const allFalse = mockContext({
+            notes: [
+                { path: "Diary/2026-09-19.md", frontmatter: { gym: false } },
+                { path: "Diary/2026-09-20.md", frontmatter: { gym: false } },
+            ],
+        });
+        const el = host();
+        renderProgress(
+            allFalse,
+            "items:\n  - { label: Gym streak, source: Diary, field: gym, agg: streak, goal: 5 }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-progress-value")[0]).toContain("0 / 5");
+    });
+
+    it("a field present only outside the period window stays an unwarned dash (B-079)", () => {
+        const TODAY = new Date(2026, 8, 24);
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const lastYear = mockContext({
+            notes: [
+                { path: "Diary/2025-09-24.md", frontmatter: { gym: true } },
+                // Inside this week's window, but without the field: without
+                // this, checking the field against the period-narrowed
+                // window (wrong) and against the whole selection (correct)
+                // both see an empty set and agree by accident.
+                { path: "Diary/2026-09-24.md", frontmatter: { other: 1 } },
+            ],
+        });
+        const el = host();
+        renderProgress(
+            lastYear,
+            "items:\n  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, goal: 5 }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-progress-value")[0]).toBe("— / 5");
+        vi.useRealTimers();
+    });
+
+    it("streak over an empty period window is a dash too, not a zero (F4)", () => {
+        const TODAY = new Date(2026, 8, 24);
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const lastYear = mockContext({
+            notes: [{ path: "Diary/2025-09-24.md", frontmatter: { gym: true } }],
+        });
+        const el = host();
+        renderProgress(
+            lastYear,
+            "items:\n  - { label: Gym streak, source: Diary, field: gym, agg: streak, period: week, goal: 5 }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-progress-value")[0]).toBe("— / 5");
+        vi.useRealTimers();
+    });
+
+    it("a field nothing carries over an empty selection stays quiet: the folder warning covers it (F2)", () => {
+        const el = bars("items:\n  - { label: Nowhere, source: 99-Empty, field: nope, agg: sum, goal: 5 }");
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+        expect(diagnostics(el, "warning")[0]).toContain("99-Empty");
+    });
+});
+
 describe("progress — period narrows before counting", () => {
     // Same fixed "today" and the same week/month/year shape as stats.test.ts:
     // week reads 4, month 5. See that file for the day-by-day breakdown.

@@ -168,7 +168,11 @@ on the same day are summed into that one day's bar, and a diary that stopped mon
 nothing at all, which is the honest answer.
 
 When there is nothing to count the card shows a dash. "No notes at all" and "the sum is
-zero" are different answers, and a zero for the first would be a lie.
+zero" are different answers, and a zero for the first would be a lie. The same goes for a
+`field` that no selected note actually carries: the card shows a dash and a warning naming
+it, rather than a plausible-looking zero that hides a typo. A field that holds text instead
+of a number, like Garmin's `running: "10 km · 51min"`, warns too; count how many notes have
+it set with `where: "field contains ..."` and `agg: count` instead.
 
 Add `period: week`, `month` or `year` and the card counts only the current calendar one,
 ending today; a rolling count of days works too, `period: 30d`. A note's date is its name, as
@@ -178,10 +182,12 @@ which case the name is not consulted at all. `streak`, `latest` and `trend` reso
 date the same way, `date_field` included, whether or not `period` is even set, and two or
 more notes landing on the same day always count as that one day, not two. Notes without a
 date are left out before counting, so an empty week is not an error: `agg: count` reads the
-honest `0`, and a field aggregate like `sum` shows a dash by its usual rule above. Only a
-selection where not one note has a date at all is worth a warning, "no note fell in this
-window" and "nobody here has a date" being different problems. `trend` keeps its own trailing
-window regardless of `period`.
+honest `0`, and a field aggregate like `sum` shows a dash by its usual rule above. `streak`
+with a `field:` follows that same rule, a dash over an empty window included; without one it
+counts every selected note's own date instead, and reads a plain `0` there, the same as
+`count`. Only a selection where not one note has a date at all is worth a warning, "no note
+fell in this window" and "nobody here has a date" being different problems. `trend` keeps its
+own trailing window regardless of `period`.
 
 Add `compare: true` next to `period` and the card also shows the delta against the same
 stretch of the previous period, to date: a Thursday this week compares against Monday to
@@ -265,7 +271,11 @@ first by path. The week starts where your language starts it: Monday here, Sunda
 Canada and Japan.
 
 `field` can also be a checkbox property: a ticked day counts as 1 and paints its cell.
-That is the whole of [the habit tracker](#a-habit-tracker-from-daily-note-checkboxes).
+That is the whole of [the habit tracker](#a-habit-tracker-from-daily-note-checkboxes). A
+`field` nothing carries, or one that holds text rather than a number or a checkbox, is an
+error that says which, rather than an empty grid that looks like a note-taking gap. Years
+come from the data, newest first, but never one later than today: a note dated in the
+future counts nowhere in the grid.
 
 ## It keeps up with the vault
 
