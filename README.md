@@ -248,7 +248,8 @@ A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 M
 `2026-01-051` does not), unless `date_field` names a frontmatter date property instead. That is
 how the block knows which cell it belongs to. Two or more notes landing on the same day paint
 one cell: their values sum, and a ticked or numeric note always outweighs a `false` one on the
-same day. Clicking a cell opens that day's note; with more than one contributing, it opens the
+same day. A sum suits steps or pages split across two notes; a mood rated 7 and then 8 reads as
+15, so keep a score like that in one note a day. Clicking a cell opens that day's note; with more than one contributing, it opens the
 first by path. The week starts where your language starts it: Monday here, Sunday in the US,
 Canada and Japan.
 
