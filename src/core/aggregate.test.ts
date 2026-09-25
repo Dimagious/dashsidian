@@ -6,6 +6,12 @@ const day = (name: string, fm: Record<string, unknown>): NoteRecord => ({
     path: `Diary/${name}.md`, name, folder: "Diary", tags: [], frontmatter: fm,
 });
 
+/** A note at an arbitrary path, for cross-folder "same day, two notes" cases. */
+const noteAt = (path: string, name: string, fm: Record<string, unknown>): NoteRecord => {
+    const slash = path.lastIndexOf("/");
+    return { path, name, folder: slash === -1 ? "" : path.slice(0, slash), tags: [], frontmatter: fm };
+};
+
 const days = [
     day("2026-09-19", { sleep_score: 92 }),
     day("2026-09-20", { sleep_score: 69 }),
@@ -153,6 +159,145 @@ describe("aggregate", () => {
             ];
             expect(aggregate(week, { agg: "streak", field: "steps" })).toBe(3);
         });
+    });
+
+    describe("dated note names beyond an exact YYYY-MM-DD (B-081)", () => {
+        it("a suffixed name is a date, in a run of otherwise exact names", () => {
+            const week = [
+                day("2026-09-18", { v: 1 }),
+                day("2026-09-19 Saturday", { v: 1 }),
+                day("2026-09-20", { v: 1 }),
+            ];
+            expect(aggregate(week, { agg: "streak", field: "v" })).toBe(3);
+        });
+
+        it("a name with an invalid calendar date does not count, even shaped like a date", () => {
+            const week = [
+                day("2026-02-28", { v: 1 }),
+                day("2026-02-30", { v: 1 }), // not a real date; 2026 is not a leap year
+                day("2026-03-01", { v: 1 }),
+            ];
+            // 2026-02-30 is dropped entirely. What remains, Feb 28 and March
+            // 1st, are themselves consecutive (February 2026 has 28 days),
+            // so the run is 2 — never 3, which is what an unvalidated day
+            // shape would let through.
+            expect(aggregate(week, { agg: "streak", field: "v" })).toBe(2);
+        });
+
+        it("two notes for the same day, in different folders, count as one day for streak", () => {
+            const week = [
+                noteAt("Personal/2026-09-18.md", "2026-09-18", { v: 1 }),
+                noteAt("Work/2026-09-18 standup.md", "2026-09-18 standup", { v: 1 }),
+                day("2026-09-19", { v: 1 }),
+            ];
+            expect(aggregate(week, { agg: "streak", field: "v" })).toBe(2);
+        });
+
+        it("two notes for the same day in the same folder count as one day for streak", () => {
+            const week = [
+                day("2026-09-18", { v: 1 }),
+                day("2026-09-18-standup", { v: 1 }),
+                day("2026-09-19", { v: 1 }),
+            ];
+            expect(aggregate(week, { agg: "streak", field: "v" })).toBe(2);
+        });
+
+        it("a run crossing a month and a year boundary, mixing suffixed and exact names", () => {
+            const week = [
+                day("2025-12-30", { v: 1 }),
+                day("2025-12-31 Wednesday", { v: 1 }),
+                day("2026-01-01", { v: 1 }),
+                day("2026-01-02 Friday", { v: 1 }),
+            ];
+            expect(aggregate(week, { agg: "streak", field: "v" })).toBe(4);
+        });
+
+        it("a false checkbox on one of two same-day notes does not break the run when the other is ticked", () => {
+            const week = [
+                day("2026-09-17", { gym: true }),
+                noteAt("Personal/2026-09-18.md", "2026-09-18", { gym: false }),
+                noteAt("Work/2026-09-18 standup.md", "2026-09-18 standup", { gym: true }),
+                day("2026-09-19", { gym: true }),
+            ];
+            expect(aggregate(week, { agg: "streak", field: "gym" })).toBe(3);
+        });
+    });
+
+    describe("streak with date_field", () => {
+        // No `field` here: `streak` without one counts every selected note's
+        // resolved date, the same as it always has — `field` and `dateField`
+        // are different properties, and a streak over "days a book was
+        // finished" has no number of its own to require.
+        const books = [
+            noteAt("Books/a.md", "a", { finished: "2026-01-01" }),
+            noteAt("Books/b.md", "b", { finished: "2026-01-02" }),
+            noteAt("Books/c.md", "c", { finished: "2026-01-04" }), // gap
+        ];
+
+        it("resolves the run from the property, ignoring the note name entirely", () => {
+            expect(aggregate(books, { agg: "streak", dateField: "finished" })).toBe(2);
+        });
+
+        it("a note whose name looks dated but has no date_field value drops out", () => {
+            const withDatedName = [...books, noteAt("Books/2026-01-03.md", "2026-01-03", {})];
+            // "2026-01-03" is not named for the `finished` property, so it
+            // has no date under `dateField` and cannot bridge the gap.
+            expect(aggregate(withDatedName, { agg: "streak", dateField: "finished" })).toBe(2);
+        });
+    });
+
+    describe("latest — ties and suffixed names", () => {
+        it("a suffixed name newer than an exact one wins", () => {
+            const notes = [
+                day("2026-09-20", { v: 1 }),
+                day("2026-09-21 Monday", { v: 2 }),
+            ];
+            expect(aggregate(notes, { agg: "latest", field: "v" })).toBe(2);
+        });
+
+        it("a tie on the same resolved date is broken by path, the same regardless of input order", () => {
+            const a = noteAt("A-note.md", "2026-09-20 A", { v: 1 });
+            const b = noteAt("B-note.md", "2026-09-20 B", { v: 2 });
+            // Both resolve to 2026-09-20; "A-note.md" sorts first by path, so
+            // its value wins whichever order the notes are handed in.
+            expect(aggregate([a, b], { agg: "latest", field: "v" })).toBe(1);
+            expect(aggregate([b, a], { agg: "latest", field: "v" })).toBe(1);
+        });
+
+        it("latest with date_field reads the property, not the name", () => {
+            const notes = [
+                noteAt("Books/a.md", "2026-09-20", { finished: "2026-01-01", rating: 3 }),
+                noteAt("Books/b.md", "b", { finished: "2026-06-01", rating: 5 }),
+            ];
+            expect(aggregate(notes, { agg: "latest", field: "rating", dateField: "finished" })).toBe(5);
+        });
+    });
+});
+
+describe("series — same-day notes sum into one bar (B-081)", () => {
+    it("two notes for one day inside the window sum, not overwrite", () => {
+        const today = new Date(2026, 8, 24);
+        const notes = [
+            day("2026-09-24", { steps: 3000 }),
+            day("2026-09-24 evening", { steps: 1500 }),
+        ];
+        expect(series(notes, "steps", 1, today)).toEqual([4500]);
+    });
+
+    it("a suffixed name inside the trailing window is picked up", () => {
+        const today = new Date(2026, 8, 24);
+        const notes = [day("2026-09-24 Thursday", { v: 7 })];
+        expect(series(notes, "v", 1, today)).toEqual([7]);
+    });
+
+    it("series with date_field groups by the property's date", () => {
+        const today = new Date(2026, 8, 24);
+        const notes = [
+            noteAt("Books/a.md", "a", { finished: "2026-09-24", pages: 100 }),
+            noteAt("Books/b.md", "b", { finished: "2026-09-24", pages: 50 }),
+            noteAt("Books/c.md", "c", { finished: "2026-09-23", pages: 20 }),
+        ];
+        expect(series(notes, "pages", 2, today, "finished")).toEqual([20, 150]);
     });
 });
 

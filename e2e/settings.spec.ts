@@ -31,6 +31,23 @@ test.describe("settings tab", () => {
         expect(saved).toBe("Diary");
     });
 
+    test("the new-day hour can be changed and persists to disk", async ({ app, win }) => {
+        const settings = await openSettings(app, win);
+        const row = settings.locator(".setting-item", { has: settings.getByText("New day starts at", { exact: true }) });
+        // Obsidian's dropdown keeps a second, hidden `select` around purely
+        // to measure its own width; `.is-measuring` is the one to skip.
+        await row.locator("select:not(.is-measuring)").selectOption({ label: "04:00" });
+        await win.waitForTimeout(500);
+
+        const saved = await win.evaluate(async () => {
+            const a = (globalThis as unknown as {
+                app?: { plugins?: { plugins?: Record<string, { settings?: { startDayHour?: number } }> } };
+            }).app;
+            return a?.plugins?.plugins?.dashsidian?.settings?.startDayHour ?? null;
+        });
+        expect(saved).toBe(4);
+    });
+
     test("AGENTS.md is written for agents that do not read Claude skills", async ({ app, win }) => {
         const settings = await openSettings(app, win);
         await settings.getByRole("button", { name: "AGENTS.md in the vault root" }).click();

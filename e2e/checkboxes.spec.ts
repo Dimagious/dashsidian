@@ -162,4 +162,100 @@ test.describe("checkbox properties feed the aggregates", () => {
             .toBeGreaterThan(0);
         await expect(scroller).toHaveClass(/can-scroll-left/);
     });
+
+    // Every vault event redraws the block from scratch (B-089): a grid the
+    // reader had scrolled by hand used to jump straight back to the end the
+    // moment anything else in the vault changed. `app.vault.create` here is
+    // the "anything else" — a plain file create, same event family as a
+    // sync pulling in a new note.
+    test("a heatmap the reader scrolled by hand keeps its position across a redraw", async ({ win }) => {
+        await collapseSidebars(win);
+        await win.setViewportSize({ width: 560, height: 800 });
+        await openHabits(win);
+        const view = win.locator(READING_VIEW);
+        const scroller = view.locator(".dashy-hm-scroll");
+        await expect(scroller.locator(".dashy-hm-cell").first()).toBeVisible();
+
+        // Let the initial pin-to-end settle first, or setting `scrollLeft`
+        // below races the block's own deferred initial scroll.
+        await expect
+            .poll(() => scroller.evaluate((el) => (el as HTMLElement).scrollLeft), { timeout: 5_000 })
+            .toBeGreaterThan(0);
+
+        // The reader drags the grid to the middle of its actual scrollable
+        // range (`scrollWidth - clientWidth`), not `scrollWidth / 2`:
+        // measured here `scrollWidth` is 621 and `clientWidth` 422, so half
+        // of `scrollWidth` (311) is past the 199px maximum and clamps
+        // straight back to the end, which would let this test pass on the
+        // pre-B-089 code too, always pinned.
+        const target = await scroller.evaluate((el) => {
+            const scrollEl = el as HTMLElement;
+            scrollEl.dispatchEvent(new Event("pointerdown"));
+            const mid = Math.round((scrollEl.scrollWidth - scrollEl.clientWidth) / 2);
+            scrollEl.scrollLeft = mid;
+            return scrollEl.scrollLeft;
+        });
+        expect(target).toBeGreaterThan(0);
+        // Genuinely mid-grid before the redraw: there is still more to the
+        // right, unlike the pinned-to-the-end starting position.
+        await expect(scroller).toHaveClass(/can-scroll-right/);
+
+        // A vault change redraws the block. The heatmap's own painted-cell
+        // count is the proof the *heatmap* redrew, not only the stats block
+        // above it: the new note is a `gym: true` day the grid did not have
+        // data for yet.
+        const painted = () => scroller.locator(".dashy-hm-cell").evaluateAll(
+            (cells) => cells.filter((c) => (c as HTMLElement).style.backgroundColor !== "").length,
+        );
+        const before = await painted();
+        await win.evaluate(async () => {
+            const a = (globalThis as unknown as {
+                app?: { vault?: { create?: (path: string, content: string) => Promise<unknown> } };
+            }).app;
+            await a?.vault?.create?.("Diary/2026-01-11.md", "---\ngym: true\n---\n");
+        });
+        await expect.poll(painted, { timeout: 5_000 }).toBe(before + 1);
+
+        // The redrawn scroller lands within a couple of pixels of where the
+        // reader left it, not back at the end.
+        await expect
+            .poll(() => scroller.evaluate((el) => (el as HTMLElement).scrollLeft), { timeout: 5_000 })
+            .toBeGreaterThan(target - 3);
+        await expect
+            .poll(() => scroller.evaluate((el) => (el as HTMLElement).scrollLeft), { timeout: 5_000 })
+            .toBeLessThan(target + 3);
+        await expect(scroller).toHaveClass(/can-scroll-right/);
+    });
+
+    test("a heatmap the reader left at the end stays at the end across a redraw", async ({ win }) => {
+        await collapseSidebars(win);
+        await win.setViewportSize({ width: 560, height: 800 });
+        await openHabits(win);
+        const view = win.locator(READING_VIEW);
+        const scroller = view.locator(".dashy-hm-scroll");
+        await expect(scroller.locator(".dashy-hm-cell").first()).toBeVisible();
+
+        await expect
+            .poll(() => scroller.evaluate((el) => (el as HTMLElement).scrollLeft), { timeout: 5_000 })
+            .toBeGreaterThan(0);
+        await expect(scroller).toHaveClass(/can-scroll-left/);
+        await expect(scroller).not.toHaveClass(/can-scroll-right/);
+
+        // Same proof as above: the heatmap itself redrew, not only the
+        // stats block sharing the note.
+        const painted = () => scroller.locator(".dashy-hm-cell").evaluateAll(
+            (cells) => cells.filter((c) => (c as HTMLElement).style.backgroundColor !== "").length,
+        );
+        const before = await painted();
+        await win.evaluate(async () => {
+            const a = (globalThis as unknown as {
+                app?: { vault?: { create?: (path: string, content: string) => Promise<unknown> } };
+            }).app;
+            await a?.vault?.create?.("Diary/2026-01-12.md", "---\ngym: true\n---\n");
+        });
+        await expect.poll(painted, { timeout: 5_000 }).toBe(before + 1);
+
+        // Still pinned to the (new) end: nothing more to scroll to on the right.
+        await expect(scroller).not.toHaveClass(/can-scroll-right/);
+    });
 });

@@ -217,4 +217,75 @@ describe("progress — period narrows before counting", () => {
         expect(diagnostics(el, "warning")).toHaveLength(0);
         expect(texts(el, ".dashy-progress-value")[0]).toContain("0 / 5");
     });
+
+    it("a suffixed name inside the period window still counts (B-081)", () => {
+        const books = mockContext({
+            notes: [
+                { path: "Diary/2026-09-20 Sunday.md", frontmatter: { gym: true } },
+                { path: "Diary/2026-09-21_Monday.md", frontmatter: { gym: true } },
+            ],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderProgress(
+            books,
+            "items:\n  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, goal: 5 }",
+            el,
+        );
+        expect(texts(el, ".dashy-progress-value")[0]).toContain("2 / 5");
+    });
+
+    it("date_field feeds streak even with no period, and is not reported unused (B-081)", () => {
+        const books = mockContext({
+            notes: [
+                { path: "Books/a.md", frontmatter: { finished: "2026-09-01" } },
+                { path: "Books/b.md", frontmatter: { finished: "2026-09-02" } },
+                { path: "Books/c.md", frontmatter: { finished: "2026-09-10" } }, // gap
+            ],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderProgress(
+            books,
+            "items:\n  - { label: Reading streak, source: Books, agg: streak, date_field: finished, goal: 5 }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-progress-value")[0]).toContain("2 / 5");
+    });
+
+    it("date_field feeds latest even with no period (B-081)", () => {
+        const books = mockContext({
+            notes: [
+                { path: "Books/a.md", frontmatter: { finished: "2026-09-01", rating: 3 } },
+                { path: "Books/b.md", frontmatter: { finished: "2026-09-10", rating: 5 } },
+            ],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderProgress(
+            books,
+            "items:\n  - { label: Last rating, source: Books, field: rating, agg: latest, date_field: finished, goal: 5 }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-progress-value")[0]).toContain("5 / 5");
+    });
+
+    it("an unreadable period next to date_field warns once, about the period, not twice (B-081 round 2)", () => {
+        const books = mockContext({ notes: [{ path: "Diary/2026-09-24.md", frontmatter: { gym: true } }] });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderProgress(
+            books,
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: fortnight, date_field: finished, goal: 5 }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+        expect(diagnostics(el, "warning")[0]).toContain("fortnight");
+    });
 });

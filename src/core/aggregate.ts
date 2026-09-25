@@ -4,13 +4,7 @@
 
 import type { NoteRecord } from "./source";
 import { longestStreak, dateKey } from "./calendar";
-
-/**
- * A note whose name is the day it belongs to. Exported so `core/period.ts`
- * tests the same rule instead of a second copy of the regex drifting apart
- * from this one.
- */
-export const DATE_NAME = /^\d{4}-\d{2}-\d{2}$/;
+import { resolveNoteDate } from "./note-date";
 
 export const AGGS = ["count", "sum", "avg", "min", "max", "latest", "streak"] as const;
 export type Agg = (typeof AGGS)[number];
@@ -56,12 +50,16 @@ export interface AggregateSpec {
     agg: Agg;
     /** required for everything but count and streak */
     field?: string;
+    /** a date frontmatter property to resolve a note's date from, instead of its name */
+    dateField?: string;
 }
 
 /**
  * `count` counts notes. `streak` counts the longest run of consecutive days
  * among notes that have the field filled in (or among all selected notes when
- * no field is given); those notes must be named as YYYY-MM-DD dates.
+ * no field is given); a day is resolved the same way `core/period.ts` resolves
+ * one (`dateField` when set, otherwise a name starting with `YYYY-MM-DD`), and
+ * two or more notes landing on the same day count as that one day.
  * The rest aggregate the numbers held in the field.
  *
  * Returns null when there is nothing to count — the caller draws a dash.
@@ -74,21 +72,28 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
             .filter((n) => (spec.field
                 ? numberAt(n, spec.field) !== null && !isFalseMark(n, spec.field)
                 : true))
-            .map((n) => n.name)
-            .filter((name) => DATE_NAME.test(name));
+            .map((n) => resolveNoteDate(n, spec.dateField))
+            .filter((d): d is string => d !== null);
         return longestStreak(dates);
     }
 
     if (!spec.field) return null;
 
     if (spec.agg === "latest") {
-        // Date-named only, as the schema promises. Without the filter a
-        // `Template.md` sitting in the diary folder sorts after every date and
-        // its placeholder number became the "latest" reading.
-        const sorted = [...notes]
-            .filter((n) => DATE_NAME.test(n.name))
-            .sort((a, b) => (a.name < b.name ? 1 : a.name > b.name ? -1 : 0));
-        for (const n of sorted) {
+        // Undated notes never compete for "latest" — without this, a
+        // `Template.md` sitting in the diary folder sorted after every date
+        // and its placeholder number became the reading. A tie on the same
+        // resolved date (two notes for one day, `date_field` or a suffixed
+        // name) breaks by path, ascending: whichever sorts first wins,
+        // regardless of the order the vault happened to hand the notes in.
+        const dated = notes
+            .map((n) => ({ n, date: resolveNoteDate(n, spec.dateField) }))
+            .filter((x): x is { n: NoteRecord; date: string } => x.date !== null)
+            .sort((a, b) => {
+                if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+                return a.n.path < b.n.path ? -1 : 1;
+            });
+        for (const { n } of dated) {
             const v = numberAt(n, spec.field);
             if (v !== null) return v;
         }
@@ -129,6 +134,7 @@ export function series(
     field: string,
     days: number,
     today: Date,
+    dateField?: string,
 ): number[] {
     // Not named `window`: it shadows the global, and both the scanner and a
     // reader take `window.has(...)` for a call on the browser object.
@@ -138,9 +144,19 @@ export function series(
         ),
     );
 
-    return [...notes]
-        .filter((n) => wanted.has(n.name))
-        .sort((a, b) => (a.name < b.name ? -1 : 1))
-        .map((n) => numberAt(n, field))
-        .filter((v): v is number => v !== null);
+    // One bar per day, same as the heatmap: two notes landing on the same
+    // day (`date_field`, or a suffixed name and an exact one) add up rather
+    // than one silently overwriting the other.
+    const sums = new Map<string, number>();
+    for (const n of notes) {
+        const day = resolveNoteDate(n, dateField);
+        if (day === null || !wanted.has(day)) continue;
+        const v = numberAt(n, field);
+        if (v === null) continue;
+        sums.set(day, (sums.get(day) ?? 0) + v);
+    }
+
+    return [...sums.entries()]
+        .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+        .map(([, v]) => v);
 }

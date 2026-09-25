@@ -19,6 +19,49 @@ const map = (config: string, context = ctx) => {
     return el;
 };
 
+/**
+ * jsdom never lays anything out, so `scrollWidth` / `clientWidth` are 0 on
+ * every element (see the comment on `settled` in heatmap.ts). These stand a
+ * scroller's metrics up by hand instead of trusting layout, the same way a
+ * real browser would report them once the grid is wider than its note.
+ * Shared by the "more to see" and the "restores scroll across a redraw"
+ * suites below, so it lives at module scope rather than in either one.
+ */
+function stubMetrics(scroller: HTMLElement, scrollLeft: number, clientWidth: number, scrollWidth: number): void {
+    // `writable: true` on `scrollLeft`: production code assigns to it (the
+    // deferred initial scroll), and a non-writable stub would throw the
+    // moment it tried.
+    Object.defineProperty(scroller, "scrollLeft", { value: scrollLeft, configurable: true, writable: true });
+    Object.defineProperty(scroller, "clientWidth", { value: clientWidth, configurable: true });
+    Object.defineProperty(scroller, "scrollWidth", { value: scrollWidth, configurable: true });
+}
+
+/** A `ResizeObserver` stand-in the test fires on demand instead of waiting for a real resize. */
+class ManualResizeObserver implements ResizeObserver {
+    static instances: ManualResizeObserver[] = [];
+    constructor(private readonly callback: ResizeObserverCallback) {
+        ManualResizeObserver.instances.push(this);
+    }
+    observe(): void { /* not exercised */ }
+    unobserve(): void { /* not exercised */ }
+    disconnect(): void { /* not exercised */ }
+    /** Runs this observer's callback, the way a real resize would. */
+    fire(): void {
+        this.callback([], this);
+    }
+}
+
+function withManualResizeObserver(run: () => void): void {
+    const original = window.ResizeObserver;
+    ManualResizeObserver.instances = [];
+    window.ResizeObserver = ManualResizeObserver;
+    try {
+        run();
+    } finally {
+        window.ResizeObserver = original;
+    }
+}
+
 describe("heatmap — the grid matches the calendar", () => {
     it("draws one grid for the one year present", () => {
         expect(nodes(map("source: Diary\nfield: sleep_score"), ".dashy-hm-grid")).toHaveLength(1);
@@ -259,6 +302,102 @@ describe("heatmap — boolean checkbox fields", () => {
     });
 });
 
+describe("heatmap — dated names beyond an exact YYYY-MM-DD, and date_field (B-081)", () => {
+    it("a name with a day-of-week suffix is painted, same as an exact one", () => {
+        const notes = [{ path: "Diary/2026-01-05 Monday.md", frontmatter: { sleep_score: 88 } }];
+        const el = map("field: sleep_score", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-05"));
+        expect(cell?.style.backgroundColor).not.toBe("");
+        expect(cell?.getAttribute("title")).toContain("sleep_score 88");
+    });
+
+    it("two numeric notes for the same day sum into one cell", () => {
+        const notes = [
+            { path: "Diary/2026-01-10.md", frontmatter: { steps: 5000 } },
+            { path: "Diary/2026-01-10 evening.md", frontmatter: { steps: 3000 } },
+        ];
+        const el = map("field: steps", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-10"));
+        expect(cell?.getAttribute("title")).toContain("steps 8000");
+    });
+
+    it("a ticked and an unticked note for the same day are painted, even with a suffixed name", () => {
+        const notes = [
+            { path: "Diary/2026-01-15.md", frontmatter: { gym: false } },
+            { path: "Diary/2026-01-15 evening.md", frontmatter: { gym: true } },
+        ];
+        const el = map("field: gym", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-15"));
+        expect(cell?.style.backgroundColor).not.toBe("");
+        // The tick makes the day painted; the value shown is still the sum
+        // (1 for the tick, 0 for the miss).
+        expect(cell?.getAttribute("title")).toContain("gym 1");
+    });
+
+    it.each([
+        ["A-folder listed first", [
+            { path: "A-folder/2026-01-11.md", frontmatter: { steps: 100 } },
+            { path: "B-folder/2026-01-11.md", frontmatter: { steps: 200 } },
+        ]],
+        ["A-folder listed last", [
+            { path: "B-folder/2026-01-11.md", frontmatter: { steps: 200 } },
+            { path: "A-folder/2026-01-11.md", frontmatter: { steps: 100 } },
+        ]],
+    ])("the link target is deterministic regardless of input order, even with two painted contributors (%s)", (_label, notes) => {
+        const el = map("field: steps", mockContext({ notes }));
+        const link = nodes(el, "a.dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-11"));
+        expect(link?.getAttribute("data-href")).toBe("A-folder/2026-01-11.md");
+        expect(link?.getAttribute("title")).toContain("steps 300");
+    });
+
+    it("date_field reads a frontmatter property instead of the note name", () => {
+        const notes = [
+            { path: "Books/rich-dad.md", frontmatter: { finished: "2026-01-12", rating: 5 } },
+            { path: "Books/poor-dad.md", frontmatter: { finished: "2026-01-12", rating: 3 } },
+        ];
+        const el = map("field: rating\ndate_field: finished", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-12"));
+        expect(cell?.getAttribute("title")).toContain("rating 8");
+    });
+
+    it("date_field is unknown-key-free and appears in the diagnostics list only when misspelled", () => {
+        const notes = [{ path: "Books/a.md", frontmatter: { finished: "2026-01-12", rating: 5 } }];
+        const el = map("field: rating\ndate_field: finished", mockContext({ notes }));
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+    });
+
+    // A name with an invalid calendar date is not asserted directly against
+    // the grid here: `layoutYear`/`eachDay` only ever generate real calendar
+    // days to look marks up by, so a fabricated key like "2026-02-30" could
+    // never be found in the grid regardless of whether `resolveNoteDate`
+    // validated it — the padding would pass even with that check removed.
+    // The resolver's own validation is pinned where it can actually fail,
+    // in `core/note-date.test.ts`, and again at the block layer in
+    // `stats.test.ts` ("a note named for an impossible date...", "a real
+    // leap day name counts..."), where a `streak`/`count` reading really
+    // does change if an invalid name is wrongly accepted.
+
+    it("same-day notes sum before the caption averages, not the last one read (B-081 round 2)", () => {
+        const notes = [
+            { path: "Diary/2026-01-13.md", frontmatter: { steps: 1000 } },
+            { path: "Diary/2026-01-13 evening.md", frontmatter: { steps: 3000 } }, // day total 4000
+            { path: "Diary/2026-01-14.md", frontmatter: { steps: 2000 } }, // day total 2000
+        ];
+        const el = map("field: steps", mockContext({ notes }));
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        // The caption always averaged over days (one Map entry per day, both
+        // before and after B-081); what changed is what a day's own value
+        // is: the sum of its notes, 4000 for the 13th, rather than whichever
+        // one note happened to be read last. Average over the two days:
+        // (4000 + 2000) / 2 = 3000, not (1000 + 3000 + 2000) / 3, which is
+        // what averaging over notes instead of days would give, and not
+        // (3000 + 2000) / 2 = 2500 either, which is what "last write wins"
+        // on the 13th would give.
+        expect(caption).toContain(`average ${formatValue((4000 + 2000) / 2)}`);
+        expect(caption).toContain("2 of");
+    });
+});
+
 describe("heatmap — edges", () => {
     it("no field is an error naming what is missing", () => {
         const el = map("source: Diary");
@@ -319,41 +458,6 @@ describe("heatmap — edges", () => {
  * mechanism.
  */
 describe("heatmap — the scroller says when there is more to see", () => {
-    function stubMetrics(scroller: HTMLElement, scrollLeft: number, clientWidth: number, scrollWidth: number): void {
-        // `writable: true` on `scrollLeft`: production code assigns to it
-        // (the deferred initial scroll, below), and a non-writable stub
-        // would throw the moment it tried.
-        Object.defineProperty(scroller, "scrollLeft", { value: scrollLeft, configurable: true, writable: true });
-        Object.defineProperty(scroller, "clientWidth", { value: clientWidth, configurable: true });
-        Object.defineProperty(scroller, "scrollWidth", { value: scrollWidth, configurable: true });
-    }
-
-    /** A `ResizeObserver` stand-in the test fires on demand instead of waiting for a real resize. */
-    class ManualResizeObserver implements ResizeObserver {
-        static instances: ManualResizeObserver[] = [];
-        constructor(private readonly callback: ResizeObserverCallback) {
-            ManualResizeObserver.instances.push(this);
-        }
-        observe(): void { /* not exercised */ }
-        unobserve(): void { /* not exercised */ }
-        disconnect(): void { /* not exercised */ }
-        /** Runs this observer's callback, the way a real resize would. */
-        fire(): void {
-            this.callback([], this);
-        }
-    }
-
-    function withManualResizeObserver(run: () => void): void {
-        const original = window.ResizeObserver;
-        ManualResizeObserver.instances = [];
-        window.ResizeObserver = ManualResizeObserver;
-        try {
-            run();
-        } finally {
-            window.ResizeObserver = original;
-        }
-    }
-
     it("a grid that fits (jsdom's default 0/0/0) carries neither class", () => {
         const el = map("source: Diary\nfield: sleep_score");
         const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
@@ -533,5 +637,394 @@ describe("heatmap — the scroller says when there is more to see", () => {
         } finally {
             window.ResizeObserver = original;
         }
+    });
+});
+
+/**
+ * Every vault event redraws the block (`clearBlock` then a fresh
+ * `drawYear`), which used to jump a grid the reader had scrolled by hand
+ * straight back to the end. These render onto the *same* element twice
+ * (`host()` once, `renderHeatmap` called on it again), the way `DashyBlock`
+ * actually redraws, rather than through the `map` helper, which always
+ * hands back a fresh one.
+ */
+describe("heatmap — restores the reader's scroll position across a redraw (B-089)", () => {
+    it("a settled, mid-position scroll survives a redraw once the new grid reports a real width", () => {
+        withManualResizeObserver(() => {
+            const el = host();
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            // The reader drags the grid to the middle by hand: a wheel
+            // settles it, and the scroll event that follows reports where
+            // it landed.
+            scroller.dispatchEvent(new Event("wheel"));
+            stubMetrics(scroller, 150, 300, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+            expect(scroller.scrollLeft).toBe(150);
+
+            // A vault event redraws the block onto the same element.
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const redrawn = nodes(el, ".dashy-hm-scroll")[0]!;
+            // Nothing assigned yet: the fresh element has not reported a
+            // real width, same as any first draw.
+            expect(redrawn.scrollLeft).toBe(0);
+
+            stubMetrics(redrawn, 0, 300, 600);
+            ManualResizeObserver.instances.at(-1)!.fire();
+
+            expect(redrawn.scrollLeft).toBe(150);
+            expect(redrawn.classList.contains("can-scroll-left")).toBe(true);
+            expect(redrawn.classList.contains("can-scroll-right")).toBe(true);
+            // The restore has to mark itself as actually achieved
+            // (`dataset.settled`, written only by `settle()`), not merely
+            // leave the seeded `pending*` snapshot sitting there unclaimed:
+            // a chain of further redraws depends on this scroller's own
+            // state being the one `captureScrollState` trusts next time.
+            expect(redrawn.dataset.settled).toBe("true");
+        });
+    });
+
+    it("a reader settled at the right edge still pins to the new grid's own end after a redraw", () => {
+        withManualResizeObserver(() => {
+            const el = host();
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            scroller.dispatchEvent(new Event("wheel"));
+            stubMetrics(scroller, 600, 300, 600); // dragged all the way to the right edge
+            scroller.dispatchEvent(new Event("scroll"));
+            expect(scroller.classList.contains("can-scroll-right")).toBe(false);
+
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const redrawn = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            // A wider grid than before (more days now have data).
+            stubMetrics(redrawn, 0, 300, 900);
+            ManualResizeObserver.instances.at(-1)!.fire();
+
+            expect(redrawn.scrollLeft).toBe(900);
+            expect(redrawn.classList.contains("can-scroll-right")).toBe(false);
+        });
+    });
+
+    it("no reader interaction before a redraw still pins the new grid to its end", () => {
+        withManualResizeObserver(() => {
+            const el = host();
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            // Only the initial auto-pin fires; the reader never touches it.
+            stubMetrics(scroller, 0, 300, 600);
+            ManualResizeObserver.instances[0]!.fire();
+            expect(scroller.scrollLeft).toBe(600);
+
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const redrawn = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            stubMetrics(redrawn, 0, 300, 700);
+            ManualResizeObserver.instances.at(-1)!.fire();
+
+            expect(redrawn.scrollLeft).toBe(700);
+        });
+    });
+
+    it("two years each restore their own scroll position independently", () => {
+        const twoYears = mockContext({
+            notes: [
+                ...diary("Diary", "2025-03-01", 5, () => ({ v: 1 })),
+                ...diary("Diary", "2026-03-01", 5, () => ({ v: 1 })),
+            ],
+        });
+        withManualResizeObserver(() => {
+            const el = host();
+            renderHeatmap(twoYears, "source: Diary\nfield: v", el);
+            // Newest first: index 0 is 2026, index 1 is 2025.
+            const [scroll2026, scroll2025] = nodes(el, ".dashy-hm-scroll");
+            expect(scroll2026?.dataset.year).toBe("2026");
+            expect(scroll2025?.dataset.year).toBe("2025");
+
+            scroll2026!.dispatchEvent(new Event("wheel"));
+            stubMetrics(scroll2026!, 100, 300, 600);
+            scroll2026!.dispatchEvent(new Event("scroll"));
+
+            scroll2025!.dispatchEvent(new Event("wheel"));
+            stubMetrics(scroll2025!, 400, 300, 900);
+            scroll2025!.dispatchEvent(new Event("scroll"));
+
+            renderHeatmap(twoYears, "source: Diary\nfield: v", el);
+            const [redrawn2026, redrawn2025] = nodes(el, ".dashy-hm-scroll");
+            expect(redrawn2026?.dataset.year).toBe("2026");
+            expect(redrawn2025?.dataset.year).toBe("2025");
+
+            stubMetrics(redrawn2026!, 0, 300, 600);
+            stubMetrics(redrawn2025!, 0, 300, 900);
+            for (const instance of ManualResizeObserver.instances.slice(-2)) instance.fire();
+
+            expect(redrawn2026!.scrollLeft).toBe(100);
+            expect(redrawn2025!.scrollLeft).toBe(400);
+        });
+    });
+
+    it("an unstyled first tick after a redraw does not consume the restore", () => {
+        withManualResizeObserver(() => {
+            const el = host();
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            scroller.dispatchEvent(new Event("wheel"));
+            stubMetrics(scroller, 150, 300, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const redrawn = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            // The unstyled reading, scrollWidth === clientWidth: the same
+            // trap a first-ever draw hits before styles.css applies. Must
+            // not spend the pending restore on it.
+            stubMetrics(redrawn, 0, 452, 452);
+            ManualResizeObserver.instances.at(-1)!.fire();
+            expect(redrawn.scrollLeft).toBe(0);
+
+            // The real, styled reading arrives on a later resize; the
+            // restore is still waiting for it.
+            stubMetrics(redrawn, 0, 300, 600);
+            ManualResizeObserver.instances.at(-1)!.fire();
+            expect(redrawn.scrollLeft).toBe(150);
+        });
+    });
+
+    it("redrawing twice without further interaction keeps the restored position", () => {
+        withManualResizeObserver(() => {
+            const el = host();
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            scroller.dispatchEvent(new Event("wheel"));
+            stubMetrics(scroller, 150, 300, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const first = nodes(el, ".dashy-hm-scroll")[0]!;
+            stubMetrics(first, 0, 300, 600);
+            ManualResizeObserver.instances.at(-1)!.fire();
+            expect(first.scrollLeft).toBe(150);
+
+            // A second redraw, with no interaction from the reader in between.
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const second = nodes(el, ".dashy-hm-scroll")[0]!;
+            stubMetrics(second, 0, 300, 600);
+            ManualResizeObserver.instances.at(-1)!.fire();
+            expect(second.scrollLeft).toBe(150);
+        });
+    });
+
+    // Obsidian lays an inactive tab's pane out at `display: none`, where
+    // `scrollLeft`/`clientWidth`/`scrollWidth` all read 0. `captureScrollState`
+    // must not ask the live DOM for these at redraw time: read live, 0/0/0
+    // looks exactly like "sitting at the end, nothing to scroll to" and the
+    // real position (150) would be thrown away in favour of the pin-to-end
+    // default (600) the very next time the reader switched back.
+    it("a hidden pane's 0/0/0 metrics at redraw time do not lose the settled position", () => {
+        withManualResizeObserver(() => {
+            const el = host();
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            scroller.dispatchEvent(new Event("wheel"));
+            stubMetrics(scroller, 150, 300, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+            expect(scroller.scrollLeft).toBe(150);
+
+            // The tab goes inactive right before the vault event that
+            // triggers the redraw.
+            stubMetrics(scroller, 0, 0, 0);
+
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const redrawn = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            stubMetrics(redrawn, 0, 300, 600);
+            ManualResizeObserver.instances.at(-1)!.fire();
+
+            expect(redrawn.scrollLeft).toBe(150);
+        });
+    });
+
+    // The new scroller's own `dataset` is seeded from the incoming snapshot
+    // the moment it is created (in `drawYear`), not only once its own
+    // `ResizeObserver` first ticks. Without that, a second vault event
+    // landing before the first one ever measures anything would find
+    // nothing to capture (`dataset.settled` never written by an element
+    // that has done nothing yet) and silently fall back to the default.
+    it("a second redraw before any real-width tick still carries the pending restore forward", () => {
+        withManualResizeObserver(() => {
+            const el = host();
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            scroller.dispatchEvent(new Event("wheel"));
+            stubMetrics(scroller, 150, 300, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+
+            // First redraw: its own scroller never gets a `ResizeObserver`
+            // tick before the next vault event arrives.
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+
+            // Second redraw, still with no tick and no reader interaction
+            // anywhere in between.
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const redrawn = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            stubMetrics(redrawn, 0, 300, 600);
+            ManualResizeObserver.instances.at(-1)!.fire();
+
+            expect(redrawn.scrollLeft).toBe(150);
+        });
+    });
+
+    it("a hidden redraw for a reader who was at the end still pins to the new end", () => {
+        withManualResizeObserver(() => {
+            const el = host();
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            scroller.dispatchEvent(new Event("wheel"));
+            stubMetrics(scroller, 600, 300, 600); // dragged to the right edge
+            scroller.dispatchEvent(new Event("scroll"));
+            expect(scroller.classList.contains("can-scroll-right")).toBe(false);
+
+            // Hidden at redraw time, same as the settled-in-the-middle case above.
+            stubMetrics(scroller, 0, 0, 0);
+
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const redrawn = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            stubMetrics(redrawn, 0, 300, 900); // a wider grid than before
+            ManualResizeObserver.instances.at(-1)!.fire();
+
+            expect(redrawn.scrollLeft).toBe(900);
+            expect(redrawn.classList.contains("can-scroll-right")).toBe(false);
+        });
+    });
+
+    it("a reader at the end stays pinned to it across two hidden redraws in a row", () => {
+        // The pane stays hidden through both redraws, so the second one has
+        // only the pending snapshot to carry forward. If it dropped the
+        // "at the end" half of it, the stale 300 would be restored into the
+        // grown grid, a few cells short of the newest day.
+        withManualResizeObserver(() => {
+            const el = host();
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            scroller.dispatchEvent(new Event("wheel"));
+            stubMetrics(scroller, 300, 300, 600); // the right edge of a 600 grid
+            scroller.dispatchEvent(new Event("scroll"));
+            stubMetrics(scroller, 0, 0, 0);
+
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            stubMetrics(nodes(el, ".dashy-hm-scroll")[0]!, 0, 0, 0);
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const redrawn = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            stubMetrics(redrawn, 0, 300, 900);
+            ManualResizeObserver.instances.at(-1)!.fire();
+
+            expect(redrawn.scrollLeft).toBe(900);
+            expect(redrawn.classList.contains("can-scroll-right")).toBe(false);
+        });
+    });
+
+    // The pre-existing pin-to-end contract, guarded here so a change that
+    // makes the default branch call `settle()` (which would freeze it at
+    // the first tick's end instead of tracking a still-growing grid) fails
+    // a test rather than only showing up as a stale scroll position in a
+    // real vault.
+    it("keeps re-asserting a moving end on every real-width tick until the reader interacts, even across a redraw", () => {
+        withManualResizeObserver(() => {
+            const el = host();
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            stubMetrics(scroller, 0, 300, 600);
+            ManualResizeObserver.instances[0]!.fire();
+            expect(scroller.scrollLeft).toBe(600);
+
+            // A later resize, still with no interaction: the end moved, and
+            // this scroller is still following it rather than having frozen
+            // at the first tick's position.
+            stubMetrics(scroller, 0, 300, 900);
+            ManualResizeObserver.instances[0]!.fire();
+            expect(scroller.scrollLeft).toBe(900);
+
+            // A redraw with no interaction ever having happened is still
+            // "default": nothing was ever settled to restore.
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const redrawn = nodes(el, ".dashy-hm-scroll")[0]!;
+            stubMetrics(redrawn, 0, 300, 700);
+            ManualResizeObserver.instances.at(-1)!.fire();
+            expect(redrawn.scrollLeft).toBe(700);
+        });
+    });
+
+    // A resize can change what `atEnd` should be with no `scroll` event at
+    // all: the pane itself narrows or widens under a `scrollLeft` the
+    // reader never touched. Recording the position only from `settle()`
+    // and `onScroll` left this stale, so a redraw right after such a resize
+    // would restore against a snapshot no longer true when it was taken.
+    it("a resize tick alone (no scroll event) keeps the recorded position current", () => {
+        withManualResizeObserver(() => {
+            const el = host();
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            // The reader settles right at the end.
+            scroller.dispatchEvent(new Event("wheel"));
+            stubMetrics(scroller, 300, 300, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+            expect(scroller.classList.contains("can-scroll-right")).toBe(false);
+
+            // The pane narrows: a resize tick only, no scroll event, and
+            // `scrollLeft` itself does not move. There is now more to the
+            // right at the same position.
+            stubMetrics(scroller, 300, 200, 600);
+            ManualResizeObserver.instances[0]!.fire();
+            expect(scroller.classList.contains("can-scroll-right")).toBe(true);
+
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const redrawn = nodes(el, ".dashy-hm-scroll")[0]!;
+            stubMetrics(redrawn, 0, 200, 600);
+            ManualResizeObserver.instances.at(-1)!.fire();
+
+            // Restored to the position it actually still was at (300), not
+            // pinned to the end (600) off a stale "atEnd: true" snapshot.
+            expect(redrawn.scrollLeft).toBe(300);
+        });
+    });
+
+    // The resize-tick recording above must not undo the hidden-pane guard
+    // `recordPosition` already has: a 0x0 tick (the pane going inactive)
+    // still has to leave whatever was last genuinely recorded alone.
+    it("a hidden 0x0 resize tick after settling leaves the recorded position untouched", () => {
+        withManualResizeObserver(() => {
+            const el = host();
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            scroller.dispatchEvent(new Event("wheel"));
+            stubMetrics(scroller, 150, 300, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+
+            // The tab goes inactive: a resize tick fires with 0x0 metrics.
+            stubMetrics(scroller, 0, 0, 0);
+            ManualResizeObserver.instances[0]!.fire();
+
+            renderHeatmap(ctx, "source: Diary\nfield: sleep_score", el);
+            const redrawn = nodes(el, ".dashy-hm-scroll")[0]!;
+            stubMetrics(redrawn, 0, 300, 600);
+            ManualResizeObserver.instances.at(-1)!.fire();
+
+            expect(redrawn.scrollLeft).toBe(150);
+        });
     });
 });

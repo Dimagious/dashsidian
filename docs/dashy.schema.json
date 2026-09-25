@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0",
+  "version": "1.5.0",
   "blocks": {
     "tiles": {
       "summary": "A grid of link tiles for navigating the vault.",
@@ -94,11 +94,11 @@
         },
         "period": {
           "type": "string|number",
-          "doc": "narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. Notes without a date are left out first, then every agg, count included, runs on what remains. `streak` and `latest` keep going by YYYY-MM-DD note names either way, not by `date_field`"
+          "doc": "narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. Notes without a date are left out first, then every agg, count included, runs on what remains"
         },
         "date_field": {
           "type": "string",
-          "doc": "a date frontmatter property to read instead of the note name, only with `period` set: `2026-03-02` or `2026-03-02T10:30`. Has no effect without `period`, and does not change `streak`, `latest` or `trend`"
+          "doc": "a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`. Feeds `period`'s window and the `streak`, `latest` and `trend` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period`"
         },
         "compare": {
           "type": "boolean",
@@ -150,10 +150,10 @@
       },
       "example": "columns: 3\nitems:\n  - { label: Notes, source: 01-Areas, agg: count }\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }\n  - { label: Days in a row, source: Diary, field: sleep_score, agg: streak, unit: d. }\n  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }",
       "notes": [
-        "`streak` counts the longest run of consecutive days and `latest` takes the value from the newest note. Both need YYYY-MM-DD note names.",
+        "`streak` counts the longest run of consecutive days and `latest` takes the value from the newest note, a tie on the same date broken by path. Both resolve a note's date the same way `period` does, below, and two or more notes landing on the same day count as one day.",
         "Nothing to count, and the card shows a dash rather than a zero: \"no data\" and \"zero\" are different answers.",
-        "`trend` sketches the days of a trailing window ending today, scaled between the smallest and largest value in that window rather than from zero. A day without a note is left out, not drawn as a zero.",
-        "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its YYYY-MM-DD name unless `date_field` names a property instead; a note with no date under either rule is left out before counting.",
+        "`trend` sketches the days of a trailing window ending today, scaled between the smallest and largest value in that window rather than from zero. A day without a note is left out, not drawn as a zero, and two or more notes on the same day are summed into that one day's bar.",
+        "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting.",
         "`compare` needs a note in both windows; when either the current or the previous stretch has none at all, the card shows its number alone with no delta. `streak` has no value of its own to compare and refuses `compare` outright, the way `trend` refuses `count`."
       ]
     },
@@ -202,11 +202,11 @@
         },
         "period": {
           "type": "string|number",
-          "doc": "narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. The goal is measured against the period's value; notes without a date are left out first. `streak` and `latest` keep going by YYYY-MM-DD note names either way, not by `date_field`"
+          "doc": "narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. The goal is measured against the period's value; notes without a date are left out first"
         },
         "date_field": {
           "type": "string",
-          "doc": "a date frontmatter property to read instead of the note name, only with `period` set: `2026-03-02` or `2026-03-02T10:30`. Has no effect without `period`, and does not change `streak` or `latest`"
+          "doc": "a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`. Feeds `period`'s window and the `streak` and `latest` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period`"
         },
         "field": {
           "type": "string",
@@ -248,7 +248,7 @@
       "notes": [
         "Going past the goal is shown as it is, 125% stays 125%; only the bar itself stops at full.",
         "Nothing to count, and the bar stays empty and the value shows a dash rather than a zero.",
-        "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its YYYY-MM-DD name unless `date_field` names a property instead; a note with no date under either rule is left out before counting."
+        "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting."
       ]
     },
     "today": {
@@ -356,6 +356,10 @@
             "prop"
           ]
         },
+        "date_field": {
+          "type": "string",
+          "doc": "a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`"
+        },
         "color": {
           "type": "string",
           "default": "blue",
@@ -380,7 +384,8 @@
       },
       "example": "source: 01-Areas/Personal/Diary\nfield: sleep_score\ncolor: purple\nbands: [90, 80, 60]",
       "notes": [
-        "Notes must be named as YYYY-MM-DD dates. That is how the block knows which cell they belong to.",
+        "A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 Monday` counts, `2026-01-051` does not), unless `date_field` names a property instead. That is how the block knows which cell it belongs to.",
+        "Two or more notes landing on the same day paint one cell: its value is their sum, and a ticked or numeric note always outweighs a false one on the same day.",
         "Years are taken from the data: once a new year appears, a second grid is drawn."
       ]
     }

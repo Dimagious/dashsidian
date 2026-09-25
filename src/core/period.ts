@@ -7,7 +7,8 @@
 
 import type { NoteRecord } from "./source";
 import { dateKey, weekdayRow } from "./calendar";
-import { DATE_NAME, type Agg } from "./aggregate";
+import type { Agg } from "./aggregate";
+import { resolveNoteDate } from "./note-date";
 import { formatValue, roundedValue } from "./stat";
 import { describeValue, type Diagnostic } from "../shared/parse";
 import { t, tPlural } from "../i18n";
@@ -127,38 +128,13 @@ export function previousPeriodWindow(period: Period, today: Date, firstDay: numb
     }
 }
 
-/** True for a real calendar date — catches `2026-02-30`, which the digit pattern alone lets through. */
-function isRealDate(y: number, m: number, d: number): boolean {
-    const at = new Date(y, m - 1, d);
-    return at.getFullYear() === y && at.getMonth() === m - 1 && at.getDate() === d;
-}
-
 /**
- * A note's date under `period`.
- *
- * Without `dateField` it is the note's own YYYY-MM-DD name, the same rule
- * `streak` and `latest` already use. With `dateField` the name is not
- * consulted at all — the date comes from that frontmatter property only. A
- * datetime string (`2026-03-02T10:30`, what an Obsidian datetime property
- * writes) is trimmed to its date part; a `Date` instance (what a date
- * property may resolve to) is read by its local year/month/day. Anything
- * else — a number, free text, a missing property — has no date here.
+ * A note's date under `period`. The single resolver in `core/note-date.ts`,
+ * re-exported here under its established name: `streak`, `latest` and
+ * `trend` (`core/aggregate.ts`) and the heatmap (`blocks/heatmap.ts`) all
+ * call it too, so a note's date can only be decided in one place.
  */
-export function noteDate(note: NoteRecord, dateField?: string): string | null {
-    if (!dateField) return DATE_NAME.test(note.name) ? note.name : null;
-
-    const raw = note.frontmatter[dateField];
-    if (raw instanceof Date) {
-        return Number.isNaN(raw.getTime()) ? null : dateKey(raw);
-    }
-    if (typeof raw === "string") {
-        const head = raw.slice(0, 10);
-        if (!DATE_NAME.test(head)) return null;
-        const [y, m, d] = head.split("-").map(Number) as [number, number, number];
-        return isRealDate(y, m, d) ? head : null;
-    }
-    return null;
-}
+export const noteDate = resolveNoteDate;
 
 function inWindow(key: string, bounds: DateWindow): boolean {
     return key >= bounds.start && key <= bounds.end;
@@ -216,26 +192,21 @@ export interface PeriodOutcome {
 }
 
 /**
- * Parses `period:` and `date_field:` off a card or bar. `label` names it in
- * diagnostics, the same way every other reader in `core/` does.
+ * Parses `period:` off a card or bar. `dateField` is what `core/note-date.ts`'s
+ * `readDateField` already read off the same item — passed in rather than
+ * re-parsed here, because whether it is "used" now depends on more than
+ * `period` alone (see `dateFieldHasEffect`), a decision this function has no
+ * view of. `label` names the card in diagnostics, the same way every other
+ * reader in `core/` does.
  */
-export function readPeriod(item: Record<string, unknown>, label: string): PeriodOutcome {
+export function readPeriod(item: Record<string, unknown>, label: string, dateField?: string): PeriodOutcome {
     const diagnostics: Diagnostic[] = [];
-    const card = label ? `"${label}"` : t("stats.unlabeledCard");
 
-    const rawField = item.date_field;
-    const dateField = typeof rawField === "string" && rawField.trim() ? rawField.trim() : undefined;
-
-    if (item.period === undefined) {
-        // `date_field` alone does nothing — it only steers where `period`
-        // looks for a date — and a silent no-op reads as a bug the config
-        // author cannot see.
-        if (dateField) diagnostics.push({ level: "warning", message: t("period.dateFieldUnused", { card }) });
-        return { spec: null, diagnostics };
-    }
+    if (item.period === undefined) return { spec: null, diagnostics };
 
     const period = parsePeriod(item.period);
     if (!period) {
+        const card = label ? `"${label}"` : t("stats.unlabeledCard");
         diagnostics.push({
             level: "warning",
             message: t("period.invalid", { card, value: describeValue(item.period) }),
@@ -246,6 +217,26 @@ export function readPeriod(item: Record<string, unknown>, label: string): Period
     const spec: PeriodSpec = { period };
     if (dateField) spec.dateField = dateField;
     return { spec, diagnostics };
+}
+
+/**
+ * Whether `date_field` does anything for this card or bar. It steers four
+ * consumers that resolve a note's date: `period`'s window, `streak`,
+ * `latest` and `trend`. Anything else — `count`, `sum`, `avg`, `min`, `max`
+ * with no `period` and no `trend` — never looks at a note's date at all, so
+ * `date_field` next to one of those is a no-op worth a warning. `hasTrend`
+ * is left `undefined` by `progress`, which has no `trend`.
+ *
+ * `hasPeriod`/`hasTrend` mean "the config asked for it", not "it parsed": the
+ * caller passes `item.period !== undefined` / `item.trend !== undefined`
+ * rather than whether `readPeriod`/`readStat` actually produced a spec. An
+ * unreadable `period: fortnight` or `trend: bogus` already has its own
+ * diagnostic; piling "date_field has no effect" on top of it would be a
+ * second warning for one mistake, and a misleading one — `date_field` would
+ * have worked fine once the real problem was fixed.
+ */
+export function dateFieldHasEffect(hasPeriod: boolean, agg?: Agg, hasTrend?: boolean): boolean {
+    return hasPeriod || agg === "streak" || agg === "latest" || Boolean(hasTrend);
 }
 
 export type BetterDirection = "up" | "down";

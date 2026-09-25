@@ -46,9 +46,10 @@ export const de: Catalog = {
     "period.invalid":
         "{card}: `period` erwartet week, month, year oder ein rollierendes Fenster wie 30d, bekommen „{value}“. Gezeichnet ohne das Fenster.",
     "period.noDatedNotes":
-        "{card}: keine der ausgewählten Notizen heißt wie YYYY-MM-DD. Ergänze `date_field:`, wenn das Datum in einer Eigenschaft steckt.",
+        "{card}: keine der ausgewählten Notizen hat einen Namen, der mit einem Datum wie YYYY-MM-DD beginnt. Ergänze `date_field:`, wenn das Datum in einer Eigenschaft steckt.",
     "period.noDatedNotesField": "{card}: keine der ausgewählten Notizen hat ein Datum in „{field}“.",
-    "period.dateFieldUnused": "{card}: `date_field` hat ohne `period` keine Wirkung.",
+    "period.dateFieldUnused":
+        "{card}: `date_field` hat hier keine Wirkung. Es steuert nur `period`, `streak`, `latest` und `trend`.",
 
     "compare.notBoolean": "{card}: `compare` erwartet true oder false, bekommen „{value}“. Vergleich übersprungen.",
     "compare.needsPeriod": "{card}: `compare` braucht `period`. Es gibt nichts zum Vergleichen.",
@@ -88,7 +89,7 @@ export const de: Catalog = {
     "heatmap.expectFields": "Erwartet wird eine Menge von Feldern, zum Beispiel `source:` und `field:`.",
     "heatmap.fieldRequired": "Kein `field` angegeben. Es gibt keine Zahl zum Einfärben.",
     "heatmap.noData":
-        "Keine Notizen mit einem Datum als Namen und einer Zahl oder einer Checkbox in „{field}“. Prüfe `source`.",
+        "Keine Notizen mit einem erkennbaren Datum und einer Zahl oder einer Checkbox in „{field}“. Prüfe `source`, oder `date_field`, wenn das Datum in einer Eigenschaft steckt.",
     "heatmap.caption": "{year}, {field}: Durchschnitt {average}, {present} von {total} Tagen",
     "heatmap.captionMarks": "{year}, {field}: {present} von {total} Tagen",
     "heatmap.titleYear": "{title} ({year})",
@@ -126,6 +127,12 @@ export const de: Catalog = {
     "settings.weeklyFolder": "Ordner für Wochennotizen",
     "settings.monthlyFolder": "Ordner für Monatsnotizen",
     "settings.followPeriodic": "Wird vom today-Block verwendet. Leer lassen, um Periodic Notes zu folgen.",
+
+    "settings.startDayHeading": "Neuer Tag",
+    "settings.startDayHour": "Neuer Tag beginnt um",
+    "settings.startDayHourDesc":
+        "Was jeder Block als heute zählt: welche Notiz der today-Block verlinkt und wo die Fenster von period, compare und trend enden. Mitternacht behält das bisherige Verhalten bei und ändert nie, welchem Tag eine Notiz selbst zugeordnet ist.",
+
     "settings.skillHeading": "Skill für KI-Agenten",
     "settings.skillName": "Skill-Datei in diesem Vault",
     "settings.skillNotInstalled":

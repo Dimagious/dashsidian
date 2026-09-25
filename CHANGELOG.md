@@ -10,6 +10,62 @@ removed public export.
 
 ## [Unreleased]
 
+### Added
+
+- **A new day can start after midnight.** The setting **New day starts at**
+  (00:00 to 06:00, midnight by default) decides what "today" means for every
+  block, not which day a note itself falls on: a note's own date is still
+  its name or `date_field`. `today` shows that day and links to its daily,
+  weekly and monthly notes; the heatmap's grid ends there; `stats` and
+  `progress` measure `period` and `compare` windows against it; `trend` ends
+  there; and `countdown` counts days left or ago from it. Useful for logging
+  a day's entry after midnight and still wanting `period`, `compare` and the
+  heatmap to treat it as yesterday's, for the forum's night owls. Changing
+  the setting redraws every open dashboard, and a dashboard left open past
+  the boundary rolls over on its own, with no vault change needed to
+  trigger it.
+- **A note's date no longer has to be its whole name.** `2024-01-01 Monday`,
+  `2024-01-01_standup` and `2024-01-01.draft` now count as dated, the single
+  most common reason a daily-note query breaks according to the forum: the
+  name only has to start with `YYYY-MM-DD`, with anything but another digit
+  right after. `period`, `streak`, `latest`, `trend` and the heatmap all
+  read a note's date through the one shared rule, so the fix applies
+  everywhere at once. `date_field` now also steers `streak`, `latest` and
+  `trend`, not only `period`, and the heatmap gains its own `date_field` key
+  to match.
+- **Two or more notes on the same day are one day, not two,** wherever days
+  are counted: `streak` treats them as a single link in the run, `trend`
+  sums them into one bar, and the heatmap paints one cell whose value is
+  their sum (steps logged in two notes add up) and whose tooltip shows that
+  total. A ticked or numeric note always outweighs a `false` one landing on
+  the same day, and the cell links to the first of its contributing notes by
+  path, deterministically. The heatmap's caption average was already a mean
+  over days, not over notes; what changes is what a day's value is: the sum
+  of its notes rather than whichever one happened to be read last, so the
+  average now reflects the same totals `streak` and `trend` agree on.
+  `latest` keeps its usual "newest date wins" rule, with a tie on the same
+  date broken by path.
+
+### Fixed
+
+- **A note named for an impossible date, like `2026-02-30`, stops silently
+  counting.** The name shape alone used to be enough; now, as with
+  `date_field`, the calendar date itself has to be real.
+- **`date_field` no longer accepts garbage stuck onto a valid date.** A
+  string like `2026-03-02garbage` used to be trimmed down to its first ten
+  characters and read as `2026-03-02`; the character right after the date
+  now has to be `T` or a space, the same as a datetime property actually
+  writes, or the value is not a date at all.
+- **A heatmap keeps the reader's scroll position across a redraw.** Every
+  vault event redraws the block, and until now that meant a year the reader
+  had scrolled by hand jumped straight back to the end. A grid the reader
+  had settled somewhere in the middle now reopens there instead; one they
+  had scrolled to the end, or never touched at all, still opens at the end
+  as before. The position also survives a redraw that lands while the note
+  is not the active tab, where Obsidian lays the pane out with no size at
+  all: the scroller now keeps its own last known position on itself as it
+  changes, rather than asking a hidden pane what it currently measures.
+
 ## [1.2.0] - 2026-09-24
 
 ### Added

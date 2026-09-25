@@ -1,6 +1,7 @@
 import type { BlockContext } from "./context";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
 import { aggregate, series } from "../core/aggregate";
+import { readDateField } from "../core/note-date";
 import { sparkBars } from "../core/sparkline";
 import { readStat, formatValue, valueLengthClass, GROUP_SEPARATOR } from "../core/stat";
 import {
@@ -12,6 +13,7 @@ import {
     formatDelta,
     deltaTone,
     compareCaption,
+    dateFieldHasEffect,
     type DeltaTone,
 } from "../core/period";
 import { firstDayOfWeek } from "../adapters/datetime";
@@ -69,7 +71,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
     // One snapshot for the whole page, taken by the context.
     const notes = ctx.notes();
     // Taken once, so every card on the page measures the same window.
-    const today = new Date();
+    const today = ctx.today();
     const firstDay = firstDayOfWeek();
     const cards: Card[] = [];
 
@@ -86,9 +88,14 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
         const selected = selectNotes(notes, source);
 
+        // `date_field` steers every reader of a note's date on this card:
+        // `period`'s window below, and `streak`/`latest`/`trend` inside
+        // `aggregate`/`series`, whether or not `period` is even set.
+        const dateField = readDateField(item);
+
         // `trend` keeps its own trailing window and reads `selected`
         // unfiltered — `period` narrows only what the number itself counts.
-        const { spec: periodSpec, diagnostics: periodDiags } = readPeriod(item, label);
+        const { spec: periodSpec, diagnostics: periodDiags } = readPeriod(item, label, dateField);
         diags.push(...periodDiags);
         let counted = selected;
         if (periodSpec) {
@@ -105,17 +112,31 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
             counted = windowed.notes;
         }
 
+        // A `date_field` that feeds nothing on this card — no `period`, an
+        // aggregate that never reads a date, and no `trend` — is a no-op the
+        // config author cannot see without being told. Judged by what the
+        // config *asked for* (`item.period`/`item.trend` written at all),
+        // not by whether it parsed: an unreadable `period` or `trend` has
+        // already earned its own diagnostic above, and this one would only
+        // double up on the same mistake. Skipped entirely when `agg` itself
+        // failed to parse: that too already has its own diagnostic.
+        if (dateField && spec
+            && !dateFieldHasEffect(item.period !== undefined, spec.agg, item.trend !== undefined)) {
+            const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
+            diags.push({ level: "warning", message: t("period.dateFieldUnused", { card: cardLabel }) });
+        }
+
         const { spec: compareSpec, diagnostics: compareDiags } =
             readCompare(item, label, periodSpec !== null, spec?.agg);
         diags.push(...compareDiags);
 
-        const current = spec ? aggregate(counted, { agg: spec.agg, field: spec.field }) : null;
+        const current = spec ? aggregate(counted, { agg: spec.agg, field: spec.field, dateField }) : null;
 
         const card: Card = {
             label: label || spec?.field || "",
             text: formatValue(current, spec?.precision),
             trend: spec?.trend && spec.field
-                ? sparkBars(series(selected, spec.field, spec.trend, today))
+                ? sparkBars(series(selected, spec.field, spec.trend, today, dateField))
                 : [],
         };
         if (typeof item.icon === "string") card.icon = item.icon;
@@ -133,7 +154,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
             const previousBounds = previousPeriodWindow(periodSpec.period, today, firstDay);
             const previousFiltered = filterByWindow(selected, previousBounds, periodSpec.dateField);
             const previous = previousFiltered.notes.length
-                ? aggregate(previousFiltered.notes, { agg: spec.agg, field: spec.field })
+                ? aggregate(previousFiltered.notes, { agg: spec.agg, field: spec.field, dateField })
                 : null;
             if (previous !== null) {
                 const format = formatDelta(current, previous, spec.precision);

@@ -46,9 +46,10 @@ export const es: Catalog = {
     "period.invalid":
         "{card}: `period` espera week, month, year o una ventana móvil como 30d, recibido «{value}». Dibujado sin la ventana.",
     "period.noDatedNotes":
-        "{card}: ninguna de las notas seleccionadas tiene un nombre como YYYY-MM-DD. Añade `date_field:` si la fecha está en una propiedad.",
+        "{card}: ninguna de las notas seleccionadas tiene un nombre que empiece con una fecha como YYYY-MM-DD. Añade `date_field:` si la fecha está en una propiedad.",
     "period.noDatedNotesField": "{card}: ninguna de las notas seleccionadas tiene fecha en «{field}».",
-    "period.dateFieldUnused": "{card}: `date_field` no tiene efecto sin `period`.",
+    "period.dateFieldUnused":
+        "{card}: `date_field` no tiene efecto aquí. Solo dirige `period`, `streak`, `latest` y `trend`.",
 
     "compare.notBoolean": "{card}: `compare` espera true o false, recibido «{value}». Comparación omitida.",
     "compare.needsPeriod": "{card}: `compare` necesita `period`. No hay nada con qué comparar.",
@@ -88,7 +89,7 @@ export const es: Catalog = {
     "heatmap.expectFields": "Se espera un conjunto de campos, por ejemplo `source:` y `field:`.",
     "heatmap.fieldRequired": "No se indicó `field`. No hay número con el que colorear.",
     "heatmap.noData":
-        "No hay notas con una fecha por nombre y un número o una casilla en «{field}». Revisa `source`.",
+        "No hay notas con una fecha reconocible y un número o una casilla en «{field}». Revisa `source`, o `date_field` si la fecha está en una propiedad.",
     "heatmap.caption": "{year}, {field}: media {average}, {present} de {total} días",
     "heatmap.captionMarks": "{year}, {field}: {present} de {total} días",
     "heatmap.titleYear": "{title} ({year})",
@@ -126,6 +127,12 @@ export const es: Catalog = {
     "settings.weeklyFolder": "Carpeta de notas semanales",
     "settings.monthlyFolder": "Carpeta de notas mensuales",
     "settings.followPeriodic": "Lo usa el bloque today. Déjalo vacío para seguir a Periodic Notes.",
+
+    "settings.startDayHeading": "Nuevo día",
+    "settings.startDayHour": "El nuevo día empieza a las",
+    "settings.startDayHourDesc":
+        "Lo que cada bloque llama hoy: qué nota enlaza el bloque today y dónde terminan las ventanas de period, compare y trend. Medianoche mantiene el comportamiento actual y nunca cambia el día de la propia nota.",
+
     "settings.skillHeading": "Skill para agentes de IA",
     "settings.skillName": "Archivo de skill en esta bóveda",
     "settings.skillNotInstalled":

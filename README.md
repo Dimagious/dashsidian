@@ -52,7 +52,10 @@ on Monday or Sunday as your language has it, and `compare: true` sets it against
 days of last week, green when you went more often. The heatmap paints the ticked days.
 
 You write this once. `period` counts from today, so "this week" is always this week and a
-`period: year` card starts over on 1 January without an edit.
+`period: year` card starts over on 1 January without an edit. If you log a day's habit after
+midnight, push **New day starts at** in Dashy's settings later: it moves where `period` and
+`compare` draw the line, and how far the heatmap's current day reaches, without touching a
+single note.
 
 ## How it differs from a query plugin
 
@@ -105,6 +108,14 @@ core **Daily notes** plugin for the day. Anything you set in Dashy's own setting
 both. A note that does not exist yet still gets a link, drawn dimmed. Clicking it creates
 the note.
 
+Dashy's own **New day starts at** setting (00:00 to 06:00, midnight by default) decides what
+"today" means here, and for every other block on the page: `period` and `compare` windows,
+the heatmap's current day, `countdown`. It changes which day this block points to, not which
+day a note itself falls on; a note's own date is still its name or `date_field`. Obsidian's
+own "Open today's daily note" command keeps creating the calendar date's note at any hour;
+push this setting later and this block keeps linking yesterday's daily note until the chosen
+hour comes around.
+
 ### `tiles`: navigation
 
 A grid of links into the vault, with a live count of what is in each folder.
@@ -152,20 +163,25 @@ items:
 `agg` is one of `count`, `sum`, `avg`, `min`, `max`, `latest`, `streak`. Add `trend: 30d`
 and the card sketches the last thirty days beside the number, scaled between its own
 smallest and largest value. Sleep scores of 70 to 80 plotted from zero are a flat line that
-says nothing. A day with no note is left out rather than drawn as a zero, and a diary that
-stopped months ago draws nothing at all, which is the honest answer.
+says nothing. A day with no note is left out rather than drawn as a zero, two notes landing
+on the same day are summed into that one day's bar, and a diary that stopped months ago draws
+nothing at all, which is the honest answer.
 
 When there is nothing to count the card shows a dash. "No notes at all" and "the sum is
 zero" are different answers, and a zero for the first would be a lie.
 
 Add `period: week`, `month` or `year` and the card counts only the current calendar one,
-ending today; a rolling count of days works too, `period: 30d`. A note's date is its
-`YYYY-MM-DD` name unless `date_field` names a frontmatter date property instead, in which
-case the name is not consulted at all. Notes without a date are left out before counting, so
-an empty week is not an error: `agg: count` reads the honest `0`, and a field aggregate like
-`sum` shows a dash by its usual rule above. Only a selection where not one note has a date at
-all is worth a warning, "no note fell in this window" and "nobody here has a date" being
-different problems. `trend` keeps its own trailing window regardless of `period`.
+ending today; a rolling count of days works too, `period: 30d`. A note's date is its name, as
+long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` and `2026-03-02_standup` both count,
+`2026-03-021` does not), unless `date_field` names a frontmatter date property instead, in
+which case the name is not consulted at all. `streak`, `latest` and `trend` resolve a note's
+date the same way, `date_field` included, whether or not `period` is even set, and two or
+more notes landing on the same day always count as that one day, not two. Notes without a
+date are left out before counting, so an empty week is not an error: `agg: count` reads the
+honest `0`, and a field aggregate like `sum` shows a dash by its usual rule above. Only a
+selection where not one note has a date at all is worth a warning, "no note fell in this
+window" and "nobody here has a date" being different problems. `trend` keeps its own trailing
+window regardless of `period`.
 
 Add `compare: true` next to `period` and the card also shows the delta against the same
 stretch of the previous period, to date: a Thursday this week compares against Monday to
@@ -195,8 +211,9 @@ items:
 Beating a goal shows as it is. 110% stays 110%, and only the bar stops at full.
 
 `period` and `date_field` work the same way they do on `stats`, narrowing what the goal is
-measured against rather than the whole selection. "Books this year" above reads a `finished`
-property on each book instead of the note name, since a book is rarely named as a date.
+measured against rather than the whole selection, and feeding `streak` and `latest` too.
+"Books this year" above reads a `finished` property on each book instead of the note name,
+since a book is rarely named as a date.
 
 ### `countdown`: what is coming
 
@@ -238,9 +255,14 @@ title: Sleep, last twelve months
        src="docs/screens/heatmap-light.png">
 </picture>
 
-Notes have to be named as `YYYY-MM-DD` dates, which is how the block knows which cell they
-belong to. Clicking a cell opens that day. The week starts where your language starts it:
-Monday here, Sunday in the US, Canada and Japan.
+A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 Monday` counts,
+`2026-01-051` does not), unless `date_field` names a frontmatter date property instead. That is
+how the block knows which cell it belongs to. Two or more notes landing on the same day paint
+one cell: their values sum, and a ticked or numeric note always outweighs a `false` one on the
+same day. A sum suits steps or pages split across two notes; a mood rated 7 and then 8 reads as
+15, so keep a score like that in one note a day. Clicking a cell opens that day's note; with more than one contributing, it opens the
+first by path. The week starts where your language starts it: Monday here, Sunday in the US,
+Canada and Japan.
 
 `field` can also be a checkbox property: a ticked day counts as 1 and paints its cell.
 That is the whole of [the habit tracker](#a-habit-tracker-from-daily-note-checkboxes).

@@ -8,6 +8,7 @@
 import type { App } from "obsidian";
 import type { BlockContext } from "../blocks/context";
 import { VaultSnapshot } from "../adapters/vault";
+import { effectiveToday } from "../core/today";
 import { DEFAULT_SETTINGS, type DashySettings } from "../types";
 
 export interface FakeNote {
@@ -78,7 +79,14 @@ export function mockContext(
 ): BlockContext {
     const app = mockApp(vault);
     const snapshot = new VaultSnapshot(app);
-    return { app, notes: () => snapshot.get(), settings };
+    return {
+        app,
+        notes: () => snapshot.get(),
+        settings,
+        // Read at call time, like `notes`, so a test's `vi.setSystemTime`
+        // (set after `mockContext` is built) is still what a block sees.
+        today: () => effectiveToday(new Date(), settings.startDayHour),
+    };
 }
 
 /**
@@ -100,7 +108,12 @@ export function countingContext(vault: FakeVault = {}): {
 
     const snapshot = new VaultSnapshot(app);
     return {
-        ctx: { app, notes: () => snapshot.get(), settings: DEFAULT_SETTINGS },
+        ctx: {
+            app,
+            notes: () => snapshot.get(),
+            settings: DEFAULT_SETTINGS,
+            today: () => effectiveToday(new Date(), DEFAULT_SETTINGS.startDayHour),
+        },
         walks: () => walks,
         invalidate: () => snapshot.invalidate(),
     };

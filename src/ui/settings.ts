@@ -22,11 +22,25 @@ import {
 } from "../skill/skill-content";
 import { upsertManagedSection, hasManagedSection } from "../core/agents-file";
 import { buildIssueUrl, DOCS_URL, FUNDING_URL, type IssueKind } from "../core/feedback";
+import { MIN_START_HOUR, MAX_START_HOUR, normalizeStartHour } from "../core/today";
 import { t, AVAILABLE_LOCALES } from "../i18n";
 import { applyLocale } from "../adapters/locale";
 
 type FolderKey = "dailyFolder" | "weeklyFolder" | "monthlyFolder";
 type TextKey = FolderKey | "language";
+const START_DAY_HOUR_KEY = "startDayHour";
+
+/**
+ * The dropdown's own options, `"0"` through `"6"`, each labelled a plain
+ * `HH:00`: there is no locale-aware "format this hour alone" helper in
+ * `adapters/datetime.ts`, and a bare hour reads the same in every language.
+ */
+const START_DAY_HOUR_OPTIONS: Record<string, string> = Object.fromEntries(
+    Array.from(
+        { length: MAX_START_HOUR - MIN_START_HOUR + 1 },
+        (_, i) => MIN_START_HOUR + i,
+    ).map((hour) => [String(hour), `${String(hour).padStart(2, "0")}:00`]),
+);
 
 /**
  * Languages are listed under their own names, the way every list of languages
@@ -90,6 +104,19 @@ export class DashySettingTab extends PluginSettingTab {
             },
             {
                 type: "group",
+                heading: t("settings.startDayHeading"),
+                items: [{
+                    name: t("settings.startDayHour"),
+                    desc: t("settings.startDayHourDesc"),
+                    control: {
+                        type: "dropdown",
+                        key: START_DAY_HOUR_KEY,
+                        options: START_DAY_HOUR_OPTIONS,
+                    },
+                }],
+            },
+            {
+                type: "group",
                 heading: t("settings.skillHeading"),
                 items: [this.skillRow(), this.agentsRow()],
             },
@@ -139,12 +166,20 @@ export class DashySettingTab extends PluginSettingTab {
 
     /** Obsidian reads a control's value from here, by the key the control names. */
     override getControlValue(key: string): unknown {
+        // The dropdown control only ever carries a string; the setting
+        // itself is a number, so the two are converted at this boundary.
+        if (key === START_DAY_HOUR_KEY) return String(this.plugin.settings.startDayHour);
         return this.plugin.settings[key as TextKey];
     }
 
     /** And writes it back here, which is the only place a setting is stored. */
     override async setControlValue(key: string, value: unknown): Promise<void> {
         if (typeof value !== "string") return;
+        if (key === START_DAY_HOUR_KEY) {
+            this.plugin.settings.startDayHour = normalizeStartHour(Number(value));
+            await this.plugin.saveSettings();
+            return;
+        }
         this.plugin.settings[key as TextKey] = value.trim();
         if (key === "language") {
             // Ahead of the save, so the blocks that redraw on it already speak

@@ -2,9 +2,10 @@ import type { NoteRecord } from "../core/source";
 import type { BlockContext } from "./context";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
 import { aggregate } from "../core/aggregate";
+import { readDateField } from "../core/note-date";
 import { formatValue } from "../core/stat";
 import { readProgress, percentOf, barWidth, type ProgressSpec } from "../core/progress";
-import { readPeriod, filterByPeriod } from "../core/period";
+import { readPeriod, filterByPeriod, dateFieldHasEffect } from "../core/period";
 import { firstDayOfWeek } from "../adapters/datetime";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics } from "../shared/render";
@@ -47,7 +48,7 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
     // One snapshot for the whole page, taken by the context.
     const notes = ctx.notes();
     // Taken once, so every bar on the page measures the same window.
-    const today = new Date();
+    const today = ctx.today();
     const firstDay = firstDayOfWeek();
     const bars: Bar[] = [];
 
@@ -64,7 +65,11 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
         if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
         const selected = selectNotes(notes, source);
 
-        const { spec: periodSpec, diagnostics: periodDiags } = readPeriod(item, label);
+        // Steers `period`'s window below and, inside `aggregate`, `streak`
+        // and `latest` too — whether or not `period` is even set.
+        const dateField = readDateField(item);
+
+        const { spec: periodSpec, diagnostics: periodDiags } = readPeriod(item, label, dateField);
         diags.push(...periodDiags);
         let counted = selected;
         if (periodSpec) {
@@ -81,7 +86,17 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
             counted = windowed.notes;
         }
 
-        bars.push(toBar(counted, spec, label, item));
+        // `progress` has no `trend`, so only `period` and the date-reading
+        // aggregates make `date_field` do anything. Judged by whether
+        // `period` was written at all, not whether it parsed — an
+        // unreadable `period` already has its own diagnostic above, and this
+        // one would only double up on the same mistake.
+        if (dateField && spec && !dateFieldHasEffect(item.period !== undefined, spec.agg)) {
+            const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
+            diags.push({ level: "warning", message: t("period.dateFieldUnused", { card: cardLabel }) });
+        }
+
+        bars.push(toBar(counted, spec, label, item, dateField));
     }
 
     // Diagnostics before the bars: an error must be seen before an empty track.
@@ -119,6 +134,7 @@ function toBar(
     spec: ProgressSpec | null,
     label: string,
     item: Record<string, unknown>,
+    dateField?: string,
 ): Bar {
     const bar: Bar = {
         label: label || spec?.field || "",
@@ -132,7 +148,7 @@ function toBar(
     if (typeof item.sub === "string") bar.sub = item.sub;
     if (!spec) return bar;
 
-    const current = aggregate(selected, { agg: spec.agg, field: spec.field });
+    const current = aggregate(selected, { agg: spec.agg, field: spec.field, dateField });
 
     bar.value = formatValue(current, spec.precision);
     bar.goal = formatValue(spec.goal, spec.precision);
