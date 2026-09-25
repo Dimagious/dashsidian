@@ -44,6 +44,15 @@ removed public export.
   characters and read as `2026-03-02`; the character right after the date
   now has to be `T` or a space, the same as a datetime property actually
   writes, or the value is not a date at all.
+- **A heatmap keeps the reader's scroll position across a redraw.** Every
+  vault event redraws the block, and until now that meant a year the reader
+  had scrolled by hand jumped straight back to the end. A grid the reader
+  had settled somewhere in the middle now reopens there instead; one they
+  had scrolled to the end, or never touched at all, still opens at the end
+  as before. The position also survives a redraw that lands while the note
+  is not the active tab, where Obsidian lays the pane out with no size at
+  all: the scroller now keeps its own last known position on itself as it
+  changes, rather than asking a hidden pane what it currently measures.
 
 ## [1.2.0] - 2026-09-24
 
