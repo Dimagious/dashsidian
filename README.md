@@ -1,6 +1,16 @@
 # Dashy
 
-Website: [dimagious.github.io/dashsidian](https://dimagious.github.io/dashsidian/)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/banner-dark.svg">
+  <img alt="Dashy: a dashboard inside an Obsidian note, built from six markdown blocks (dashsidian)"
+       src="docs/banner-light.svg">
+</picture>
+
+[![Downloads](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json&query=%24.dashsidian.downloads&label=downloads&color=7c5ce8)](https://community.obsidian.md/plugins/dashsidian)
+[![Latest release](https://img.shields.io/github/v/release/Dimagious/dashsidian?color=7c5ce8)](https://github.com/Dimagious/dashsidian/releases)
+[![Stars](https://img.shields.io/github/stars/Dimagious/dashsidian?color=7c5ce8)](https://github.com/Dimagious/dashsidian/stargazers)
+
+[Install](#install) · [Habit tracker](#a-habit-tracker-from-daily-note-checkboxes) · [Blocks](#the-blocks) · [Questions](#questions) · [Website](https://dimagious.github.io/dashsidian/)
 
 Build a dashboard inside an Obsidian note from six markdown blocks. The config is YAML,
 a few lines of it. **No JavaScript, and no Dataview.** The same blocks turn the checkboxes
@@ -21,6 +31,15 @@ weekly: true
 monthly: true
 ```
 ````
+
+## What it is used for
+
+| What | Blocks |
+|---|---|
+| [A habit tracker from daily note checkboxes](#a-habit-tracker-from-daily-note-checkboxes) | `stats`, `heatmap` |
+| [A reading log, a goal for the year](#progress-how-far-along) | `progress` |
+| [A home page with tiles that count a selection, not a whole folder](#tiles-navigation) | `tiles` |
+| [Countdowns to a race, a holiday, a review](#countdown-what-is-coming) | `countdown` |
 
 ## A habit tracker from daily note checkboxes
 
@@ -345,6 +364,55 @@ After that you can just ask:
 Both files come from [`src/blocks/schema.json`](src/blocks/schema.json), the same file the
 plugin validates against, so the reference an agent reads cannot drift from what the code
 accepts. You can read it yourself in [`docs/SKILL.preview.md`](docs/SKILL.preview.md).
+
+## Questions
+
+<details>
+<summary>Does a time zone shift my dates?</summary>
+
+No. A note's date is its name or its `date_field`, text that no time zone changes. "Today"
+and every `period` window are built from your local calendar day, never from
+`toISOString()`, which would turn local midnight into the previous day everywhere east of
+UTC. At 23:50 in Tokyo the dashboard still counts that day as today.
+
+</details>
+
+<details>
+<summary>Does a name like <code>2026-01-05 Monday</code> count as a dated note?</summary>
+
+Yes. A note's date is its name whenever it starts with `YYYY-MM-DD` and the character right
+after it, if there is one, is not a digit, so a weekday, an underscore or a parenthetical
+all still match. Only an eleventh digit right after the day, or a day not padded to two
+digits, breaks it.
+
+</details>
+
+<details>
+<summary>Do I need Dataview installed?</summary>
+
+No. Dashy reads frontmatter straight from Obsidian's own metadata cache. There is nothing
+else to install.
+
+</details>
+
+<details>
+<summary>Do blocks update by themselves?</summary>
+
+Yes. Every block redraws when the vault changes: a note created, deleted, renamed, or its
+frontmatter edited. Dashy also redraws once the effective day rolls over, at **New day
+starts at** in the settings, so a dashboard left open past that hour does not keep showing
+yesterday's date and yesterday's `period` windows until something else happens to it.
+
+</details>
+
+<details>
+<summary>How is a streak counted?</summary>
+
+`streak` is the longest run of consecutive days on record, not the run still going. An
+unticked checkbox breaks it the same way a day with no note does, so a 17-day streak from
+last spring stays 17 even if this week has yet to start one.
+
+</details>
 
 ## If something is wrong, or missing
 

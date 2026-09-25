@@ -42,6 +42,9 @@ jobs:
       - name: Project site (broken images, dead anchors, dashes, required files)
         run: npm run site:check
 
+      - name: README (broken images, dead anchors, dashes)
+        run: npm run readme:check
+
       - name: Unit tests (with coverage gates)
         run: npm run test
 
