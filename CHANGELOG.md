@@ -12,6 +12,18 @@ removed public export.
 
 ### Added
 
+- **A new day can start after midnight.** The setting **New day starts at**
+  (00:00 to 06:00, midnight by default) decides what "today" means for every
+  block, not which day a note itself falls on: a note's own date is still
+  its name or `date_field`. `today` shows that day and links to its daily,
+  weekly and monthly notes; the heatmap's grid ends there; `stats` and
+  `progress` measure `period` and `compare` windows against it; `trend` ends
+  there; and `countdown` counts days left or ago from it. Useful for logging
+  a day's entry after midnight and still wanting `period`, `compare` and the
+  heatmap to treat it as yesterday's, for the forum's night owls. Changing
+  the setting redraws every open dashboard, and a dashboard left open past
+  the boundary rolls over on its own, with no vault change needed to
+  trigger it.
 - **A note's date no longer has to be its whole name.** `2024-01-01 Monday`,
   `2024-01-01_standup` and `2024-01-01.draft` now count as dated, the single
   most common reason a daily-note query breaks according to the forum: the

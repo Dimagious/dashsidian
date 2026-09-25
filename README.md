@@ -52,7 +52,10 @@ on Monday or Sunday as your language has it, and `compare: true` sets it against
 days of last week, green when you went more often. The heatmap paints the ticked days.
 
 You write this once. `period` counts from today, so "this week" is always this week and a
-`period: year` card starts over on 1 January without an edit.
+`period: year` card starts over on 1 January without an edit. If you log a day's habit after
+midnight, push **New day starts at** in Dashy's settings later: it moves where `period` and
+`compare` draw the line, and how far the heatmap's current day reaches, without touching a
+single note.
 
 ## How it differs from a query plugin
 
@@ -104,6 +107,14 @@ Notes](https://github.com/liamcain/obsidian-periodic-notes) when you have it, an
 core **Daily notes** plugin for the day. Anything you set in Dashy's own settings wins over
 both. A note that does not exist yet still gets a link, drawn dimmed. Clicking it creates
 the note.
+
+Dashy's own **New day starts at** setting (00:00 to 06:00, midnight by default) decides what
+"today" means here, and for every other block on the page: `period` and `compare` windows,
+the heatmap's current day, `countdown`. It changes which day this block points to, not which
+day a note itself falls on; a note's own date is still its name or `date_field`. Obsidian's
+own "Open today's daily note" command keeps creating the calendar date's note at any hour;
+push this setting later and this block keeps linking yesterday's daily note until the chosen
+hour comes around.
 
 ### `tiles`: navigation
 

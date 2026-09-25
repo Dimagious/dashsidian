@@ -125,6 +125,12 @@ export const ru: Catalog = {
     "settings.weeklyFolder": "Папка заметок недели",
     "settings.monthlyFolder": "Папка заметок месяца",
     "settings.followPeriodic": "Нужна блоку today. Пусто. Берём из Periodic Notes.",
+
+    "settings.startDayHeading": "Новый день",
+    "settings.startDayHour": "Новый день начинается в",
+    "settings.startDayHourDesc":
+        "Что каждый блок считает сегодняшним днём: какую заметку открывает блок today и где заканчиваются окна period, compare и trend. Полночь сохраняет текущее поведение и не меняет день самой заметки.",
+
     "settings.skillHeading": "Скилл для ИИ-агента",
     "settings.skillName": "Файл скилла в этом хранилище",
     "settings.skillNotInstalled":

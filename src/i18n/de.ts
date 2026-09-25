@@ -127,6 +127,12 @@ export const de: Catalog = {
     "settings.weeklyFolder": "Ordner für Wochennotizen",
     "settings.monthlyFolder": "Ordner für Monatsnotizen",
     "settings.followPeriodic": "Wird vom today-Block verwendet. Leer lassen, um Periodic Notes zu folgen.",
+
+    "settings.startDayHeading": "Neuer Tag",
+    "settings.startDayHour": "Neuer Tag beginnt um",
+    "settings.startDayHourDesc":
+        "Was jeder Block als heute zählt: welche Notiz der today-Block verlinkt und wo die Fenster von period, compare und trend enden. Mitternacht behält das bisherige Verhalten bei und ändert nie, welchem Tag eine Notiz selbst zugeordnet ist.",
+
     "settings.skillHeading": "Skill für KI-Agenten",
     "settings.skillName": "Skill-Datei in diesem Vault",
     "settings.skillNotInstalled":

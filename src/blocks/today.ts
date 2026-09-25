@@ -60,16 +60,19 @@ export function renderToday(ctx: BlockContext, source: string, el: HTMLElement):
 
     renderDiagnostics(el, "today", diags);
 
-    const now = new Date();
+    // Read once, from the context, so the title and every link below agree
+    // on the same day — including a day pushed back past midnight by the
+    // "New day starts at" setting.
+    const today = ctx.today();
     const discovered = discoverPeriodics(ctx.app);
 
     const wrap = el.createDiv({ cls: "dashy-today" });
-    wrap.createDiv({ cls: "dashy-today-date", text: spec.title ?? formatDate(now, TITLE_FORMAT) });
+    wrap.createDiv({ cls: "dashy-today-date", text: spec.title ?? formatDate(today, TITLE_FORMAT) });
 
     const row = wrap.createDiv({ cls: "dashy-today-links" });
     for (const period of spec.periods) {
         const cfg = resolveConfig(period, ctx.settings[FOLDER_KEY[period]], discovered[period]);
-        const basename = formatDate(now, cfg.format);
+        const basename = formatDate(today, cfg.format);
         const path = notePath(cfg.folder, basename);
         const exists = noteExists(ctx.app, path);
 

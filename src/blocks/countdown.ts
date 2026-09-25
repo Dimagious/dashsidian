@@ -24,7 +24,7 @@ interface Card {
     sub?: string;
 }
 
-export function renderCountdown(_ctx: BlockContext, source: string, el: HTMLElement): void {
+export function renderCountdown(ctx: BlockContext, source: string, el: HTMLElement): void {
     // No vault data is read here: only the config and today's date.
 
     clearBlock(el);
@@ -43,7 +43,7 @@ export function renderCountdown(_ctx: BlockContext, source: string, el: HTMLElem
     if (isRecord(value) && Array.isArray(value.items)) diags.push(...unknownKeys(value, KNOWN_ROOT));
 
     const columns = isRecord(value) && typeof value.columns === "number" ? value.columns : 3;
-    const today = dateKey(new Date());
+    const today = dateKey(ctx.today());
     const cards: Card[] = [];
 
     for (const item of items) {

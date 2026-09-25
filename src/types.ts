@@ -13,6 +13,14 @@ export interface DashySettings {
      * one language while the app runs in another.
      */
     language: string;
+    /**
+     * The hour, 0 to 6, at which a new calendar day starts for every block.
+     * 0 (midnight) is today's behaviour. A note written at 01:30 can still
+     * count as yesterday's when this is pushed later, for the person who
+     * writes their daily note before going to bed rather than after waking
+     * up. See `core/today.ts`.
+     */
+    startDayHour: number;
 }
 
 export const DEFAULT_SETTINGS: DashySettings = {
@@ -22,4 +30,5 @@ export const DEFAULT_SETTINGS: DashySettings = {
     installedSkillVersion: null,
     installedAgentsVersion: null,
     language: "",
+    startDayHour: 0,
 };

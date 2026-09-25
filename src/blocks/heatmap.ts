@@ -166,7 +166,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
 
     renderDiagnostics(el, "heatmap", diags);
 
-    const today = new Date();
+    const today = ctx.today();
     const firstDay = firstDayOfWeek();
     // One grid per calendar year. With more than one, each has to say which
     // year it is — otherwise two grids under the same custom title read as the

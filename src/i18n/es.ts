@@ -127,6 +127,12 @@ export const es: Catalog = {
     "settings.weeklyFolder": "Carpeta de notas semanales",
     "settings.monthlyFolder": "Carpeta de notas mensuales",
     "settings.followPeriodic": "Lo usa el bloque today. Déjalo vacío para seguir a Periodic Notes.",
+
+    "settings.startDayHeading": "Nuevo día",
+    "settings.startDayHour": "El nuevo día empieza a las",
+    "settings.startDayHourDesc":
+        "Lo que cada bloque llama hoy: qué nota enlaza el bloque today y dónde terminan las ventanas de period, compare y trend. Medianoche mantiene el comportamiento actual y nunca cambia el día de la propia nota.",
+
     "settings.skillHeading": "Skill para agentes de IA",
     "settings.skillName": "Archivo de skill en esta bóveda",
     "settings.skillNotInstalled":

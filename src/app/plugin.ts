@@ -2,7 +2,9 @@ import { MarkdownRenderChild, Plugin, debounce, type Debouncer } from "obsidian"
 import { DEFAULT_SETTINGS, type DashySettings } from "../types";
 import { applyLocale } from "../adapters/locale";
 import { VaultSnapshot } from "../adapters/vault";
-import type { BlockContext } from "../blocks/context";
+import { mergeSettings } from "../core/settings";
+import { createDayRollover, type DayRollover } from "../core/day-rollover";
+import { buildContext, type BlockContext } from "../blocks/context";
 import { renderCountdown } from "../blocks/countdown";
 import { renderHeatmap } from "../blocks/heatmap";
 import { renderProgress } from "../blocks/progress";
@@ -40,6 +42,7 @@ export default class DashyPlugin extends Plugin {
     private snapshot!: VaultSnapshot;
     private refresher!: BlockRefresher;
     private scheduled: Debouncer<[], void> | null = null;
+    private dayRollover!: DayRollover;
 
     async onload(): Promise<void> {
         await this.loadSettings();
@@ -75,6 +78,18 @@ export default class DashyPlugin extends Plugin {
         });
 
         this.watchVault();
+        // Redraws once the effective day rolls over, even with no vault
+        // activity to trigger `watchVault`'s listeners: a dashboard left
+        // open past the boundary would otherwise keep showing yesterday's
+        // `today` block and yesterday's `period` windows until some
+        // unrelated vault event happened to fire. See `core/day-rollover.ts`.
+        this.dayRollover = createDayRollover({
+            startHour: this.settings.startDayHour,
+            now: () => new Date(),
+            setTimeout: (fn, delay) => window.setTimeout(fn, delay),
+            clearTimeout: (handle) => window.clearTimeout(handle),
+            onRollover: () => this.refresher.refresh(),
+        });
         this.addSettingTab(new DashySettingTab(this.app, this));
     }
 
@@ -103,11 +118,7 @@ export default class DashyPlugin extends Plugin {
 
     /** Built per draw so a block always reads the current settings. */
     private context(): BlockContext {
-        return {
-            app: this.app,
-            notes: () => this.snapshot.get(),
-            settings: this.settings,
-        };
+        return buildContext({ app: this.app, notes: () => this.snapshot.get(), settings: this.settings });
     }
 
     /**
@@ -116,18 +127,23 @@ export default class DashyPlugin extends Plugin {
      */
     override onunload(): void {
         this.scheduled?.cancel();
+        this.dayRollover.cancel();
     }
 
     async loadSettings(): Promise<void> {
-        // loadData() is typed `any`; saying what we expect keeps the rest of
-        // the plugin from inheriting it.
-        const stored = (await this.loadData()) as Partial<DashySettings> | null;
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, stored ?? {});
+        // loadData() is typed `any`; mergeSettings says what we expect and
+        // fills in every default, which keeps the rest of the plugin from
+        // inheriting the `any`.
+        this.settings = mergeSettings(await this.loadData());
     }
 
     async saveSettings(): Promise<void> {
         this.settings = { ...this.settings };
         await this.saveData(this.settings);
+        // The hour may have just changed, which moves where the next
+        // boundary is; the timer armed for the old hour would otherwise fire
+        // at the wrong moment.
+        this.dayRollover.rearm(this.settings.startDayHour);
         this.refresher.refresh();
     }
 }

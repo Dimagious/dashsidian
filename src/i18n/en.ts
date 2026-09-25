@@ -133,6 +133,12 @@ export const en = {
     "settings.weeklyFolder": "Weekly notes folder",
     "settings.monthlyFolder": "Monthly notes folder",
     "settings.followPeriodic": "Used by the today block. Leave empty to follow Periodic Notes.",
+
+    "settings.startDayHeading": "New day",
+    "settings.startDayHour": "New day starts at",
+    "settings.startDayHourDesc":
+        "What every block calls today: which note the today block links, and where period, compare and trend windows end. Midnight keeps today's behaviour; it never changes which day a note itself falls on.",
+
     "settings.skillHeading": "AI agent skill",
     "settings.skillName": "Skill file in this vault",
     "settings.skillNotInstalled":

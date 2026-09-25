@@ -71,7 +71,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
     // One snapshot for the whole page, taken by the context.
     const notes = ctx.notes();
     // Taken once, so every card on the page measures the same window.
-    const today = new Date();
+    const today = ctx.today();
     const firstDay = firstDayOfWeek();
     const cards: Card[] = [];
 

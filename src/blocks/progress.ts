@@ -48,7 +48,7 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
     // One snapshot for the whole page, taken by the context.
     const notes = ctx.notes();
     // Taken once, so every bar on the page measures the same window.
-    const today = new Date();
+    const today = ctx.today();
     const firstDay = firstDayOfWeek();
     const bars: Bar[] = [];
 

@@ -127,6 +127,12 @@ export const fr: Catalog = {
     "settings.weeklyFolder": "Dossier des notes hebdomadaires",
     "settings.monthlyFolder": "Dossier des notes mensuelles",
     "settings.followPeriodic": "Utilisé par le bloc today. Laissez vide pour suivre Periodic Notes.",
+
+    "settings.startDayHeading": "Nouveau jour",
+    "settings.startDayHour": "Le nouveau jour commence à",
+    "settings.startDayHourDesc":
+        "Ce que chaque bloc appelle aujourd'hui : quelle note le bloc today ouvre, et où se terminent les fenêtres period, compare et trend. Minuit garde le comportement actuel et ne change jamais le jour de la note elle-même.",
+
     "settings.skillHeading": "Skill pour agent IA",
     "settings.skillName": "Fichier skill dans ce coffre",
     "settings.skillNotInstalled":

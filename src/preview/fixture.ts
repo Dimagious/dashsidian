@@ -9,6 +9,7 @@
 import type { App } from "obsidian";
 import type { NoteRecord } from "../core/source";
 import type { BlockContext } from "../blocks/context";
+import { effectiveToday } from "../core/today";
 import { DEFAULT_SETTINGS } from "../types";
 import { renderTiles } from "../blocks/tiles";
 import { renderStats } from "../blocks/stats";
@@ -73,10 +74,12 @@ export function previewContext(notes: readonly NoteRecord[]): BlockContext {
         },
     } as unknown as App;
 
+    const settings = { ...DEFAULT_SETTINGS, dailyFolder: "Diary" };
     return {
         app,
         notes: () => notes,
-        settings: { ...DEFAULT_SETTINGS, dailyFolder: "Diary" },
+        settings,
+        today: () => effectiveToday(new Date(), settings.startDayHour),
     };
 }
 
