@@ -1,0 +1,23 @@
+# Dashy
+
+Dashy is an Obsidian plugin: a dashboard inside a note, built from six
+markdown blocks (today, tiles, stats, progress, countdown, heatmap)
+configured in YAML. No JavaScript, no Dataview. It reads frontmatter
+through Obsidian's own metadata cache and writes nothing to your notes
+unless you ask it to.
+
+Site: https://dimagious.github.io/dashsidian/
+Repository: https://github.com/Dimagious/dashsidian
+Community plugin listing: https://community.obsidian.md/plugins/dashsidian
+Plugin id: dashsidian
+
+## Documentation
+
+- README, install steps and all six blocks with examples:
+  https://raw.githubusercontent.com/Dimagious/dashsidian/master/README.md
+- Changelog:
+  https://raw.githubusercontent.com/Dimagious/dashsidian/master/CHANGELOG.md
+- Agent skill reference, generated from the block schema:
+  https://raw.githubusercontent.com/Dimagious/dashsidian/master/docs/SKILL.preview.md
+- JSON schema of every block key:
+  https://raw.githubusercontent.com/Dimagious/dashsidian/master/docs/dashy.schema.json

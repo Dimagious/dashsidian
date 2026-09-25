@@ -1,5 +1,7 @@
 # Dashy
 
+Website: [dimagious.github.io/dashsidian](https://dimagious.github.io/dashsidian/)
+
 Build a dashboard inside an Obsidian note from six markdown blocks. The config is YAML,
 a few lines of it. **No JavaScript, and no Dataview.** The same blocks turn the checkboxes
 in your daily notes into [a habit tracker](#a-habit-tracker-from-daily-note-checkboxes).

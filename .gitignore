@@ -32,6 +32,9 @@ main.js
 styles.css
 dashsidian-*.zip
 
+# Assembled GitHub Pages site (site/ + docs/screens/, stitched by scripts/assemble-site.cjs)
+_site/
+
 # Env
 .env
 .env.*

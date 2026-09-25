@@ -3,8 +3,7 @@ import { SKILL_MARKDOWN, AGENTS_SECTION } from "./skill-content";
 import schema from "../blocks/schema.json";
 
 /**
- * Pins the facts the live agent test (B-105..B-110, see
- * `.claude/brain/reports/2026-09-25-agent-skill-test.md`) found agents
+ * Pins the facts a live test with AI agents (B-105..B-110) found agents
  * getting wrong from the generated skill text. `SKILL_MARKDOWN` is built by
  * `npm run build:skill` from `src/blocks/schema.json`, so a regression here
  * means either the schema's wording regressed or the build script stopped

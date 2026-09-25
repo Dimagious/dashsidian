@@ -51,6 +51,12 @@ removed public export.
   average now reflects the same totals `streak` and `trend` agree on.
   `latest` keeps its usual "newest date wins" rule, with a tie on the same
   date broken by path.
+- **A project site.** `dimagious.github.io/dashsidian` shows the plugin as a
+  vault: a file tree for navigation, one note per block, and every config on
+  it real enough to paste into your own vault. It publishes itself from
+  `site/` on every tagged release, so its version and requirements are
+  always the one that actually shipped, and it carries no code of its own
+  into the plugin bundle.
 
 ### Fixed
 
