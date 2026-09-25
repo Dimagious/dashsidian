@@ -10,6 +10,41 @@ removed public export.
 
 ## [Unreleased]
 
+### Added
+
+- **A note's date no longer has to be its whole name.** `2024-01-01 Monday`,
+  `2024-01-01_standup` and `2024-01-01.draft` now count as dated, the single
+  most common reason a daily-note query breaks according to the forum: the
+  name only has to start with `YYYY-MM-DD`, with anything but another digit
+  right after. `period`, `streak`, `latest`, `trend` and the heatmap all
+  read a note's date through the one shared rule, so the fix applies
+  everywhere at once. `date_field` now also steers `streak`, `latest` and
+  `trend`, not only `period`, and the heatmap gains its own `date_field` key
+  to match.
+- **Two or more notes on the same day are one day, not two,** wherever days
+  are counted: `streak` treats them as a single link in the run, `trend`
+  sums them into one bar, and the heatmap paints one cell whose value is
+  their sum (steps logged in two notes add up) and whose tooltip shows that
+  total. A ticked or numeric note always outweighs a `false` one landing on
+  the same day, and the cell links to the first of its contributing notes by
+  path, deterministically. The heatmap's caption average was already a mean
+  over days, not over notes; what changes is what a day's value is: the sum
+  of its notes rather than whichever one happened to be read last, so the
+  average now reflects the same totals `streak` and `trend` agree on.
+  `latest` keeps its usual "newest date wins" rule, with a tie on the same
+  date broken by path.
+
+### Fixed
+
+- **A note named for an impossible date, like `2026-02-30`, stops silently
+  counting.** The name shape alone used to be enough; now, as with
+  `date_field`, the calendar date itself has to be real.
+- **`date_field` no longer accepts garbage stuck onto a valid date.** A
+  string like `2026-03-02garbage` used to be trimmed down to its first ten
+  characters and read as `2026-03-02`; the character right after the date
+  now has to be `T` or a space, the same as a datetime property actually
+  writes, or the value is not a date at all.
+
 ## [1.2.0] - 2026-09-24
 
 ### Added

@@ -429,6 +429,17 @@ describe("stats — period narrows before counting", () => {
         expect(diagnostics(el, "warning")[0]).toContain("finished");
     });
 
+    it("with date_field set, a dated name without the property is not counted by its name", () => {
+        // The daily notes all carry a date in their name, and none of them has
+        // `finished`. With date_field the property is the only source, so the
+        // week holds nothing: falling back to the name would count five.
+        const el = withToday(
+            "items:\n  - { label: Finished this week, source: Diary, agg: count, period: week, date_field: finished }",
+        );
+        expect(texts(el, ".dashy-stat-value")).toEqual(["0"]);
+        expect(diagnostics(el, "warning")[0]).toContain("finished");
+    });
+
     it("date_field without period warns that it has no effect", () => {
         const el = withToday("items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, date_field: finished }");
         expect(diagnostics(el, "warning")[0]).toContain("date_field");
@@ -464,6 +475,202 @@ describe("stats — period narrows before counting", () => {
         );
         expect(diagnostics(el, "warning")).toHaveLength(0);
         expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
+    });
+
+    it("a suffixed name inside the period window still counts (B-081)", () => {
+        const books = mockContext({
+            notes: [
+                { path: "Diary/2026-09-20 Sunday.md", frontmatter: { gym: true } },
+                { path: "Diary/2026-09-21_Monday.md", frontmatter: { gym: true } },
+            ],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            books,
+            "items:\n  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week }",
+            el,
+        );
+        expect(texts(el, ".dashy-stat-value")).toEqual(["2"]);
+    });
+
+    it("date_field feeds streak even with no period, and is not reported unused (B-081)", () => {
+        const books = mockContext({
+            notes: [
+                { path: "Books/a.md", frontmatter: { finished: "2026-09-01" } },
+                { path: "Books/b.md", frontmatter: { finished: "2026-09-02" } },
+                { path: "Books/c.md", frontmatter: { finished: "2026-09-10" } }, // gap
+            ],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            books,
+            "items:\n  - { label: Reading streak, source: Books, agg: streak, date_field: finished }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["2"]);
+    });
+
+    it("date_field feeds latest even with no period (B-081)", () => {
+        const books = mockContext({
+            notes: [
+                { path: "Books/a.md", frontmatter: { finished: "2026-09-01", rating: 3 } },
+                { path: "Books/b.md", frontmatter: { finished: "2026-09-10", rating: 5 } },
+            ],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            books,
+            "items:\n  - { label: Last rating, source: Books, field: rating, agg: latest, date_field: finished }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["5"]);
+    });
+
+    it("trend sums two notes on the same day into one bar (B-081)", () => {
+        const books = mockContext({
+            notes: [
+                { path: "Diary/2026-09-23.md", frontmatter: { steps: 1000 } },
+                { path: "Diary/2026-09-24.md", frontmatter: { steps: 500 } },
+                { path: "Diary/2026-09-24 evening.md", frontmatter: { steps: 700 } },
+            ],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            books,
+            "items:\n  - { label: Steps, source: Diary, field: steps, agg: sum, trend: 2d }",
+            el,
+        );
+        // Two days in the window, not three notes: 24th sums to 1200 (the
+        // window's max, full height), 23rd is 1000 (the min, the floor).
+        const bars = nodes(el, ".dashy-stat-bar").map((b) => b.style.height);
+        expect(bars).toEqual(["12%", "100%"]);
+    });
+
+    it("trend reads date_field on notes with no dated name, summing same-day ones (B-081 round 2)", () => {
+        // Book-like paths and names ("a", "b", "c") — nothing here is named
+        // for a day. Without `date_field` reaching `series` too, this would
+        // draw no trend at all: pins stats.ts wiring the value through, not
+        // just `period` and `aggregate`.
+        const books = mockContext({
+            notes: [
+                { path: "Books/a.md", frontmatter: { finished: "2026-09-23", pages: 100 } },
+                { path: "Books/b.md", frontmatter: { finished: "2026-09-24", pages: 50 } },
+                { path: "Books/c.md", frontmatter: { finished: "2026-09-24", pages: 20 } },
+            ],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            books,
+            "items:\n  - { label: Pages, source: Books, field: pages, agg: sum, trend: 2d, date_field: finished }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        // 23rd: 100 alone (the window's max, full height); 24th: 50 + 20 = 70
+        // (the window's min, the floor) — summed, not overwritten by
+        // whichever of the two 24th notes the vault iterates last.
+        const bars = nodes(el, ".dashy-stat-bar").map((b) => b.style.height);
+        expect(bars).toEqual(["100%", "12%"]);
+    });
+
+    it("the same notes without date_field draw no trend at all: the name is never a fallback", () => {
+        const books = mockContext({
+            notes: [
+                { path: "Books/a.md", frontmatter: { finished: "2026-09-23", pages: 100 } },
+                { path: "Books/b.md", frontmatter: { finished: "2026-09-24", pages: 50 } },
+            ],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            books,
+            "items:\n  - { label: Pages, source: Books, field: pages, agg: sum, trend: 2d }",
+            el,
+        );
+        expect(nodes(el, ".dashy-stat-bar")).toHaveLength(0);
+    });
+
+    it("a note named for an impossible date does not count toward a streak (B-081 round 2)", () => {
+        // 2026 is not a leap year: "2026-02-30" is never a real day. A
+        // streak over a single such note has nothing to count, the same
+        // dash-worthy "nothing" a missing note would leave — under a broken
+        // validation it would count as a run of 1 instead.
+        const el = host();
+        renderStats(
+            mockContext({ notes: [{ path: "Diary/2026-02-30.md", frontmatter: {} }] }),
+            "items:\n  - { label: Streak, source: Diary, agg: streak }",
+            el,
+        );
+        expect(texts(el, ".dashy-stat-value")).toEqual(["0"]);
+    });
+
+    it("a real leap day name counts (B-081 round 2)", () => {
+        const el = host();
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2024, 5, 1)); // 2024 is a leap year
+        renderStats(
+            mockContext({ notes: [{ path: "Diary/2024-02-29 x.md", frontmatter: {} }] }),
+            "items:\n  - { label: Days, source: Diary, agg: count, period: year }",
+            el,
+        );
+        expect(texts(el, ".dashy-stat-value")).toEqual(["1"]);
+    });
+
+    it("the same-looking name in a non-leap year does not (B-081 round 2)", () => {
+        const el = host();
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 5, 1)); // 2026 is not a leap year
+        renderStats(
+            mockContext({ notes: [{ path: "Diary/2026-02-29 x.md", frontmatter: {} }] }),
+            "items:\n  - { label: Days, source: Diary, agg: count, period: year }",
+            el,
+        );
+        // The window is honest (a plain "nothing dated here" would warn
+        // too, but that is not what this pins): what matters is the note
+        // itself never resolves to a date at all, so it never even reaches
+        // the window comparison. A broken `isRealDate` would count it as 1.
+        expect(texts(el, ".dashy-stat-value")).toEqual(["0"]);
+    });
+});
+
+describe("stats — date_field never doubles up with an already-reported period or trend problem (B-081 round 2)", () => {
+    const TODAY = new Date(2026, 8, 24);
+    afterEach(() => vi.useRealTimers());
+
+    const withToday = (config: string) => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(mockContext({ notes: [{ path: "Diary/2026-09-24.md", frontmatter: { gym: true } }] }), config, el);
+        return el;
+    };
+
+    it("an unreadable period next to date_field warns once, about the period, not twice", () => {
+        const el = withToday(
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: fortnight, date_field: finished }",
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+        expect(diagnostics(el, "warning")[0]).toContain("fortnight");
+    });
+
+    it("an unreadable trend next to date_field warns once, about the trend, not twice", () => {
+        const el = withToday(
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, trend: nonsense, date_field: finished }",
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+        expect(diagnostics(el, "warning")[0]).toContain("trend");
     });
 });
 
@@ -668,6 +875,31 @@ describe("stats — compare against the previous period", () => {
             el,
         );
         expect(texts(el, ".dashy-stat-value")).toEqual(["11"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +1"]);
+    });
+
+    it("compare works with latest and date_field together, over notes with no dated name (B-081 round 2)", () => {
+        // Book-like paths and names — nothing here is named for a day, so
+        // this only works if `date_field` reaches the previous window's
+        // `aggregate` call too, not only the current one.
+        const books = mockContext({
+            notes: [
+                { path: "Books/a.md", frontmatter: { finished: "2026-09-01", rating: 3 } },
+                { path: "Books/b.md", frontmatter: { finished: "2026-09-20", rating: 5 } }, // latest this month
+                { path: "Books/c.md", frontmatter: { finished: "2026-08-01", rating: 2 } },
+                { path: "Books/d.md", frontmatter: { finished: "2026-08-15", rating: 4 } }, // latest last month to date
+            ],
+        });
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(
+            books,
+            "items:\n  - { label: Latest rating, source: Books, field: rating, agg: latest, period: month, compare: true, date_field: finished }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["5"]);
         expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +1"]);
     });
 });

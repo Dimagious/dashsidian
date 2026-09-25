@@ -48,9 +48,10 @@ export const en = {
     "period.invalid":
         "{card}: `period` expects week, month, year or a rolling window such as 30d, got \"{value}\". Drawn unfiltered.",
     "period.noDatedNotes":
-        "{card}: none of the selected notes is named like YYYY-MM-DD. Add `date_field:` if the date lives in a property instead.",
+        "{card}: none of the selected notes has a name starting with a date like YYYY-MM-DD. Add `date_field:` if the date lives in a property instead.",
     "period.noDatedNotesField": "{card}: none of the selected notes has a date in \"{field}\".",
-    "period.dateFieldUnused": "{card}: `date_field` has no effect without `period`.",
+    "period.dateFieldUnused":
+        "{card}: `date_field` has no effect here. It only steers `period`, `streak`, `latest` and `trend`.",
 
     "compare.notBoolean": "{card}: `compare` expects true or false, got \"{value}\". Comparison skipped.",
     "compare.needsPeriod": "{card}: `compare` needs `period` set. There is nothing to compare against.",
@@ -94,7 +95,7 @@ export const en = {
     "heatmap.expectFields": "Expected a set of fields, for example `source:` and `field:`.",
     "heatmap.fieldRequired": "No `field` given. There is no number to colour by.",
     "heatmap.noData":
-        "No notes with a date name and a number or a checkbox in \"{field}\". Check `source`.",
+        "No notes with a resolvable date and a number or a checkbox in \"{field}\". Check `source`, or `date_field` if the date lives in a property.",
     "heatmap.caption": "{year}, {field}: average {average}, {present} of {total} days",
     "heatmap.captionMarks": "{year}, {field}: {present} of {total} days",
     "heatmap.titleYear": "{title} ({year})",

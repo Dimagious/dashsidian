@@ -44,9 +44,10 @@ export const ru: Catalog = {
     "period.invalid":
         "{card}: `period` ожидает week, month, year или скользящее окно вроде 30d, получено «{value}». Рисуется без окна.",
     "period.noDatedNotes":
-        "{card}: ни у одной выбранной заметки нет имени вида YYYY-MM-DD. Добавьте `date_field:`, если дата лежит в свойстве.",
+        "{card}: ни у одной выбранной заметки нет имени, начинающегося с даты вида YYYY-MM-DD. Добавьте `date_field:`, если дата лежит в свойстве.",
     "period.noDatedNotesField": "{card}: ни у одной выбранной заметки нет даты в «{field}».",
-    "period.dateFieldUnused": "{card}: `date_field` не действует без `period`.",
+    "period.dateFieldUnused":
+        "{card}: `date_field` здесь ни на что не влияет. Он управляет только `period`, `streak`, `latest` и `trend`.",
 
     "compare.notBoolean": "{card}: `compare` ожидает true или false, получено «{value}». Сравнение пропущено.",
     "compare.needsPeriod": "{card}: `compare` работает только вместе с `period`. Сравнивать не с чем.",
@@ -86,7 +87,7 @@ export const ru: Catalog = {
     "heatmap.expectFields": "Ожидается набор полей, например `source:` и `field:`.",
     "heatmap.fieldRequired": "Не задано `field`. Какое число из frontmatter красить.",
     "heatmap.noData":
-        "Нет заметок с именем-датой и числом или чекбоксом в поле «{field}». Проверь `source`.",
+        "Нет заметок с определяемой датой и числом или чекбоксом в поле «{field}». Проверь `source`, или `date_field`, если дата лежит в свойстве.",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.caption": "{year}, {field}: среднее {average}, {present} из {total} дн.",
     "heatmap.captionMarks": "{year}, {field}: {present} из {total} дн.",

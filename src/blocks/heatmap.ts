@@ -2,6 +2,7 @@ import type { BlockContext } from "./context";
 import { weekdayNamesShort, monthNamesShort, firstDayOfWeek } from "../adapters/datetime";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
 import { numberAt, isFalseMark, isBooleanMark } from "../core/aggregate";
+import { readDateField, resolveNoteDate } from "../core/note-date";
 import { formatValue } from "../core/stat";
 import { layoutYear, dateKey, eachDay, yearsOf, rotateWeekdays, weekdayRow } from "../core/calendar";
 import { toRgb, rgba, type Rgb } from "../core/palette";
@@ -55,6 +56,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     const color = toRgb(value.color);
     const bands = readBands(value.bands);
     const linkable = value.link !== false;
+    const dateField = readDateField(value);
 
     const { spec: selection, diagnostics: sourceDiags } = readSource(value);
     diags.push(...sourceDiags);
@@ -62,30 +64,37 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
     const notes = selectNotes(ctx.notes(), selection);
 
-    // One entry per date the field resolved on at all — a boolean `false` is
-    // in here too, with `painted: false`: that day still tells the block the
-    // field exists, it just does not get coloured. Without the distinction, a
+    // One entry per day the field resolved on at all. Two or more notes
+    // landing on the same day (`date_field`, or names like "2026-01-02" and
+    // "2026-01-02 Monday" in different folders) are one cell, not two: its
+    // value is their sum (steps logged in two notes add up), and it counts
+    // as painted the moment any of them is — a boolean `false` never hides a
+    // number or a ticked `true` on the same day, only outweighs a day where
+    // every contributing note is `false`. A `false`-only day still lands
+    // here, with `painted: false`: that day still tells the block the field
+    // exists, it just does not get coloured. Without the distinction, a
     // field that is `false` on every day looked identical to a field nothing
     // ever set, and a stats `avg` over the same field would silently disagree
     // with the heatmap's own caption about what the average is.
-    const marks = new Map<string, DayMark>();
+    const groups = new Map<string, DayGroup>();
     for (const n of notes) {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(n.name)) continue;
+        const day = resolveNoteDate(n, dateField);
+        if (day === null) continue;
         const v = numberAt(n, field);
         if (v === null) continue;
         const painted = !isFalseMark(n, field);
-        // A painted mark must never be displaced by a `false` one for the
-        // same date: two notes named the same day (Personal/2026-01-02 and
-        // Work/2026-01-02, one ticked and one not) used to paint or not
-        // depending on which the vault happened to iterate last. `streak`
-        // never had this problem — it dedupes date names after dropping
-        // `false` ones, so any note that passes keeps the day regardless of
-        // order — and the heatmap now agrees with it. Two painted notes for
-        // the same day (true/true, or two different numbers) still resolve
-        // last-write-wins, same as always: only "false vs. painted" has one
-        // honest answer.
-        if (!painted && marks.get(n.name)?.painted) continue;
-        marks.set(n.name, { value: v, path: n.path, isBool: isBooleanMark(n, field), painted });
+        const g = groups.get(day) ?? { sum: 0, paintedPath: null, allBool: true };
+        g.sum += v;
+        g.allBool = g.allBool && isBooleanMark(n, field);
+        // The cell links to one note deterministically: the first by path
+        // among the notes that contributed a painted value, regardless of
+        // the order the vault happened to hand the notes in.
+        if (painted && (g.paintedPath === null || n.path < g.paintedPath)) g.paintedPath = n.path;
+        groups.set(day, g);
+    }
+    const marks = new Map<string, DayMark>();
+    for (const [day, g] of groups) {
+        marks.set(day, { value: g.sum, path: g.paintedPath ?? "", isBool: g.allBool, painted: g.paintedPath !== null });
     }
 
     if (!marks.size) {
@@ -128,6 +137,15 @@ interface DayMark {
     path: string;
     isBool: boolean;
     painted: boolean;
+}
+
+/** Accumulator for one day while its contributing notes are being folded together. */
+interface DayGroup {
+    sum: number;
+    /** the painted contributor with the smallest path so far, or null when none yet is */
+    paintedPath: string | null;
+    /** whether every contributing note has been a boolean mark so far */
+    allBool: boolean;
 }
 
 interface DrawOptions {

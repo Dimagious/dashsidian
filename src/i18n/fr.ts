@@ -46,9 +46,10 @@ export const fr: Catalog = {
     "period.invalid":
         "{card} : `period` attend week, month, year ou une fenêtre glissante comme 30d, reçu « {value} ». Dessiné sans la fenêtre.",
     "period.noDatedNotes":
-        "{card} : aucune des notes sélectionnées n'a un nom du type YYYY-MM-DD. Ajoutez `date_field:` si la date se trouve dans une propriété.",
+        "{card} : aucune des notes sélectionnées n'a un nom commençant par une date du type YYYY-MM-DD. Ajoutez `date_field:` si la date se trouve dans une propriété.",
     "period.noDatedNotesField": "{card} : aucune des notes sélectionnées n'a de date dans « {field} ».",
-    "period.dateFieldUnused": "{card} : `date_field` n'a aucun effet sans `period`.",
+    "period.dateFieldUnused":
+        "{card} : `date_field` n'a aucun effet ici. Il ne pilote que `period`, `streak`, `latest` et `trend`.",
 
     "compare.notBoolean": "{card} : `compare` attend true ou false, reçu « {value} ». Comparaison ignorée.",
     "compare.needsPeriod": "{card} : `compare` a besoin de `period`. Il n'y a rien avec quoi comparer.",
@@ -88,7 +89,7 @@ export const fr: Catalog = {
     "heatmap.expectFields": "Attendu : un ensemble de champs, par exemple `source:` et `field:`.",
     "heatmap.fieldRequired": "Aucun `field` donné. Il n'y a pas de nombre pour colorer.",
     "heatmap.noData":
-        "Aucune note portant une date en nom et un nombre ou une case à cocher dans « {field} ». Vérifiez `source`.",
+        "Aucune note avec une date reconnaissable et un nombre ou une case à cocher dans « {field} ». Vérifiez `source`, ou `date_field` si la date se trouve dans une propriété.",
     "heatmap.caption": "{year}, {field} : moyenne {average}, {present} jours sur {total}",
     "heatmap.captionMarks": "{year}, {field} : {present} jours sur {total}",
     "heatmap.titleYear": "{title} ({year})",

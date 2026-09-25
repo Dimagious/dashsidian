@@ -10,6 +10,7 @@ import {
     formatDelta,
     deltaTone,
     compareCaption,
+    dateFieldHasEffect,
 } from "./period";
 import type { NoteRecord } from "./source";
 
@@ -188,6 +189,13 @@ describe("filterByPeriod", () => {
         expect(result.anyDated).toBe(true);
     });
 
+    it("a name with a suffix falls in the window just like an exact one (B-081)", () => {
+        const notes = [note("2026-09-24 Thursday"), note("2026-09-23_standup"), note("2026-09-17")];
+        const result = filterByPeriod(notes, { kind: "week" }, today, 1);
+        expect(result.notes.map((n) => n.name)).toEqual(["2026-09-24 Thursday", "2026-09-23_standup"]);
+        expect(result.anyDated).toBe(true);
+    });
+
     it("a future-dated note is outside every window", () => {
         const notes = [note("2026-09-25")]; // tomorrow
         const result = filterByPeriod(notes, { kind: "year" }, today, 1);
@@ -233,9 +241,19 @@ describe("readPeriod", () => {
         expect(diagnostics).toHaveLength(0);
     });
 
+    // `date_field` is no longer parsed by `readPeriod` itself (B-081): it now
+    // also feeds `streak`, `latest` and `trend`, something `readPeriod` has
+    // no view of, so the caller passes the already-read value in, and
+    // whether it is "used" at all is decided by `dateFieldHasEffect` below
+    // rather than by this function.
     it("date_field rides along when both are given", () => {
-        const { spec } = readPeriod({ period: "year", date_field: "finished" }, "Card");
+        const { spec } = readPeriod({ period: "year", date_field: "finished" }, "Card", "finished");
         expect(spec).toEqual({ period: { kind: "year" }, dateField: "finished" });
+    });
+
+    it("date_field given but not passed in does not ride along", () => {
+        const { spec } = readPeriod({ period: "year", date_field: "finished" }, "Card");
+        expect(spec).toEqual({ period: { kind: "year" } });
     });
 
     it("an unreadable period warns and names the card and the value", () => {
@@ -247,16 +265,46 @@ describe("readPeriod", () => {
         expect(diagnostics[0]?.message).toContain("fortnight");
     });
 
-    it("date_field without period warns that it has no effect", () => {
-        const { spec, diagnostics } = readPeriod({ date_field: "finished" }, "Gym");
+    it("no period asked for produces no diagnostics even with date_field set", () => {
+        // Whether `date_field` is unused is a block-level decision now (it
+        // also depends on `agg` and `trend`), not something `readPeriod`
+        // alone can tell — see `dateFieldHasEffect`.
+        const { spec, diagnostics } = readPeriod({ date_field: "finished" }, "Gym", "finished");
         expect(spec).toBeNull();
-        expect(diagnostics).toHaveLength(1);
-        expect(diagnostics[0]?.message).toContain("date_field");
+        expect(diagnostics).toHaveLength(0);
     });
 
     it("an unlabeled card is named generically in the diagnostic", () => {
         const { diagnostics } = readPeriod({ period: "fortnight" }, "");
         expect(diagnostics[0]?.message).toContain("a card with no label");
+    });
+});
+
+describe("dateFieldHasEffect", () => {
+    it("a period makes it effective regardless of agg", () => {
+        expect(dateFieldHasEffect(true, "sum")).toBe(true);
+        expect(dateFieldHasEffect(true, undefined)).toBe(true);
+    });
+
+    it("streak and latest are effective even with no period", () => {
+        expect(dateFieldHasEffect(false, "streak")).toBe(true);
+        expect(dateFieldHasEffect(false, "latest")).toBe(true);
+    });
+
+    it("a trend is effective even with no period", () => {
+        expect(dateFieldHasEffect(false, "sum", true)).toBe(true);
+    });
+
+    it("count, sum, avg, min and max with no period and no trend are not effective", () => {
+        expect(dateFieldHasEffect(false, "count")).toBe(false);
+        expect(dateFieldHasEffect(false, "sum")).toBe(false);
+        expect(dateFieldHasEffect(false, "avg", false)).toBe(false);
+        expect(dateFieldHasEffect(false, "min")).toBe(false);
+        expect(dateFieldHasEffect(false, "max")).toBe(false);
+    });
+
+    it("no agg at all (period alone) is still decided by hasPeriod", () => {
+        expect(dateFieldHasEffect(false)).toBe(false);
     });
 });
 

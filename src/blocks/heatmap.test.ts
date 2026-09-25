@@ -259,6 +259,102 @@ describe("heatmap — boolean checkbox fields", () => {
     });
 });
 
+describe("heatmap — dated names beyond an exact YYYY-MM-DD, and date_field (B-081)", () => {
+    it("a name with a day-of-week suffix is painted, same as an exact one", () => {
+        const notes = [{ path: "Diary/2026-01-05 Monday.md", frontmatter: { sleep_score: 88 } }];
+        const el = map("field: sleep_score", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-05"));
+        expect(cell?.style.backgroundColor).not.toBe("");
+        expect(cell?.getAttribute("title")).toContain("sleep_score 88");
+    });
+
+    it("two numeric notes for the same day sum into one cell", () => {
+        const notes = [
+            { path: "Diary/2026-01-10.md", frontmatter: { steps: 5000 } },
+            { path: "Diary/2026-01-10 evening.md", frontmatter: { steps: 3000 } },
+        ];
+        const el = map("field: steps", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-10"));
+        expect(cell?.getAttribute("title")).toContain("steps 8000");
+    });
+
+    it("a ticked and an unticked note for the same day are painted, even with a suffixed name", () => {
+        const notes = [
+            { path: "Diary/2026-01-15.md", frontmatter: { gym: false } },
+            { path: "Diary/2026-01-15 evening.md", frontmatter: { gym: true } },
+        ];
+        const el = map("field: gym", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-15"));
+        expect(cell?.style.backgroundColor).not.toBe("");
+        // The tick makes the day painted; the value shown is still the sum
+        // (1 for the tick, 0 for the miss).
+        expect(cell?.getAttribute("title")).toContain("gym 1");
+    });
+
+    it.each([
+        ["A-folder listed first", [
+            { path: "A-folder/2026-01-11.md", frontmatter: { steps: 100 } },
+            { path: "B-folder/2026-01-11.md", frontmatter: { steps: 200 } },
+        ]],
+        ["A-folder listed last", [
+            { path: "B-folder/2026-01-11.md", frontmatter: { steps: 200 } },
+            { path: "A-folder/2026-01-11.md", frontmatter: { steps: 100 } },
+        ]],
+    ])("the link target is deterministic regardless of input order, even with two painted contributors (%s)", (_label, notes) => {
+        const el = map("field: steps", mockContext({ notes }));
+        const link = nodes(el, "a.dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-11"));
+        expect(link?.getAttribute("data-href")).toBe("A-folder/2026-01-11.md");
+        expect(link?.getAttribute("title")).toContain("steps 300");
+    });
+
+    it("date_field reads a frontmatter property instead of the note name", () => {
+        const notes = [
+            { path: "Books/rich-dad.md", frontmatter: { finished: "2026-01-12", rating: 5 } },
+            { path: "Books/poor-dad.md", frontmatter: { finished: "2026-01-12", rating: 3 } },
+        ];
+        const el = map("field: rating\ndate_field: finished", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-12"));
+        expect(cell?.getAttribute("title")).toContain("rating 8");
+    });
+
+    it("date_field is unknown-key-free and appears in the diagnostics list only when misspelled", () => {
+        const notes = [{ path: "Books/a.md", frontmatter: { finished: "2026-01-12", rating: 5 } }];
+        const el = map("field: rating\ndate_field: finished", mockContext({ notes }));
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+    });
+
+    // A name with an invalid calendar date is not asserted directly against
+    // the grid here: `layoutYear`/`eachDay` only ever generate real calendar
+    // days to look marks up by, so a fabricated key like "2026-02-30" could
+    // never be found in the grid regardless of whether `resolveNoteDate`
+    // validated it — the padding would pass even with that check removed.
+    // The resolver's own validation is pinned where it can actually fail,
+    // in `core/note-date.test.ts`, and again at the block layer in
+    // `stats.test.ts` ("a note named for an impossible date...", "a real
+    // leap day name counts..."), where a `streak`/`count` reading really
+    // does change if an invalid name is wrongly accepted.
+
+    it("same-day notes sum before the caption averages, not the last one read (B-081 round 2)", () => {
+        const notes = [
+            { path: "Diary/2026-01-13.md", frontmatter: { steps: 1000 } },
+            { path: "Diary/2026-01-13 evening.md", frontmatter: { steps: 3000 } }, // day total 4000
+            { path: "Diary/2026-01-14.md", frontmatter: { steps: 2000 } }, // day total 2000
+        ];
+        const el = map("field: steps", mockContext({ notes }));
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        // The caption always averaged over days (one Map entry per day, both
+        // before and after B-081); what changed is what a day's own value
+        // is: the sum of its notes, 4000 for the 13th, rather than whichever
+        // one note happened to be read last. Average over the two days:
+        // (4000 + 2000) / 2 = 3000, not (1000 + 3000 + 2000) / 3, which is
+        // what averaging over notes instead of days would give, and not
+        // (3000 + 2000) / 2 = 2500 either, which is what "last write wins"
+        // on the 13th would give.
+        expect(caption).toContain(`average ${formatValue((4000 + 2000) / 2)}`);
+        expect(caption).toContain("2 of");
+    });
+});
+
 describe("heatmap — edges", () => {
     it("no field is an error naming what is missing", () => {
         const el = map("source: Diary");
