@@ -184,12 +184,14 @@ says nothing. A day with no note is left out rather than drawn as a zero, two no
 on the same day are summed into that one day's bar, and a diary that stopped months ago draws
 nothing at all, which is the honest answer.
 
-When there is nothing to count the card shows a dash. "No notes at all" and "the sum is
-zero" are different answers, and a zero for the first would be a lie. The same goes for a
-`field` that no selected note actually carries: the card shows a dash and a warning naming
-it, rather than a plausible-looking zero that hides a typo. A field that holds text instead
-of a number, like Garmin's `running: "10 km · 51min"`, warns too; count how many notes have
-it set with `where: "field contains ..."` and `agg: count` instead.
+With nothing to count, a field aggregate like `sum` or `avg` shows a dash rather than a
+zero: "no notes at all" and "the sum is zero" are different answers, and a zero for the
+first would be a lie. `count` has no such gap; an empty selection reads a plain `0`, the
+same as everywhere else it counts notes. The dash rule also covers a `field` that no
+selected note actually carries: the card shows a dash and a warning naming it, rather than
+a plausible-looking zero that hides a typo. A field that holds text instead of a number,
+like Garmin's `running: "10 km · 51min"`, warns too; count how many notes have it set with
+`where: "field contains ..."` and `agg: count` instead.
 
 Add `period: week`, `month` or `year` and the card counts only the current calendar one,
 ending today; a rolling count of days works too, `period: 30d`. A note's date is its name, as
@@ -362,7 +364,8 @@ The German, French and Spanish catalogues were written by the author, who speaks
 the three well enough to be sure of them. Corrections are welcome and cheap: copy
 [`src/i18n/en.ts`](src/i18n/en.ts), translate the values, register the file. No TypeScript
 needed, and a partial translation is a valid one. Dates, month names and the first day of
-the week come from Obsidian itself, so they are right in every language it supports.
+the week come from the date library Obsidian ships, set to the same language as the blocks,
+so they are right in every language it supports.
 
 ## Development
 

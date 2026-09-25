@@ -102,6 +102,18 @@ removed public export.
   current year already did. If every dated note turns out to be in the
   future, the current year is drawn anyway, empty, rather than nothing at
   all.
+- **The agent skill says what a live test caught agents getting wrong.** A
+  six-agent test against a real vault found the skill's wording letting `streak` read as a currently
+  running streak, `period: week` reading as always starting Monday, and a
+  blanket "shows a dash rather than a zero" contradicting `count`'s own
+  honest `0`. `streak`'s notes now say plainly that it is the longest run on
+  record, not a current one, and the schema's own `streak` example is
+  relabelled "Best streak" rather than "Days in a row". `period` now says a
+  week starts on the first day of Obsidian's interface language. The empty
+  rule is now exact: `count` reads `0`, every other aggregate and `streak`
+  with a `field` reads a dash. `countdown` now says a date does not repeat
+  every year. README's matching paragraph had the same "dash rather than a
+  zero" contradiction and is fixed the same way.
 
 ## [1.2.0] - 2026-09-24
 
