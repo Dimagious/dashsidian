@@ -10,6 +10,8 @@ removed public export.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-25
+
 ### Added
 
 - **`tiles` can count a selection, not the whole folder.** `badge: count`
