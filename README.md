@@ -139,6 +139,23 @@ items:
 `path` also understands a Bases view (`path: Vault.base#My view`), which is the answer
 whenever you want a table.
 
+`badge: count` normally counts everything under `path`. Add `tag`, `where`, `period` and
+`date_field` to narrow it, the same keys and the same meaning as on `stats` below: a mail
+inbox where only this month's messages matter, or a calendar folder where only today's
+events do, without editing the block when the month turns.
+
+````markdown
+```tiles
+columns: 2
+items:
+  - { label: Mails, path: Mails, icon: 📥, date_field: start, period: month, badge: count }
+  - { label: Events, path: Events, icon: 📅, date_field: start, period: 1d, badge: count }
+```
+````
+
+These four keys only mean something next to `badge: count`; on a tile with no badge or a
+custom one they are ignored and warn, since there is nothing there for them to narrow.
+
 ### `stats`: the numbers
 
 One card per number, counted over whatever selection you describe.

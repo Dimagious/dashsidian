@@ -23,6 +23,8 @@ export const ru: Catalog = {
         "В `where: {where}` больше одного условия, а поддерживается одно. Фильтр пропущен. Сузьте через `source` или `tag`, либо возьмите значение в кавычки, если слово входит в него.",
 
     "tiles.empty": "Список плиток пуст. Ожидается `items:` или массив.",
+    "tiles.dateFieldUnused": "{card}: `date_field` не действует без `period`.",
+    "tiles.selectionUnused": "{card}: `tag`, `where`, `period` и `date_field` только сужают `badge: count`.",
 
     "stats.empty": "Список карточек пуст. Ожидается `items:` или массив.",
     "stats.unlabeledCard": "карточка без подписи",

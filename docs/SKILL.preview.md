@@ -35,9 +35,13 @@ A grid of link tiles for navigating the vault.
 |---|---|---|---|---|---|
 | `label` | string | yes | — | `title`, `name` | caption |
 | `path` | string | yes | — | — | where it leads; understands File.base#View |
+| `tag` | string | — | — | — | tag, with or without the hash; narrows `badge: count` |
+| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported; narrows `badge: count` |
+| `period` | string\|number | — | — | — | narrow `badge: count` to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. Notes without a date are left out first |
+| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name for `period`: `2026-03-02` or `2026-03-02T10:30`; has no effect without `period` |
 | `icon` | string | — | — | `emoji` | emoji |
 | `sub` | string | — | — | — | small caption under the title |
-| `badge` | string\|number | — | — | — | count, meaning the number of notes in the folder, or your own string |
+| `badge` | string\|number | — | — | — | count, meaning the number of notes in the folder narrowed by `tag`, `where` and `period` when given, or your own string |
 | `accent` | boolean | — | — | — | accent stripe on the left |
 
 **Example**

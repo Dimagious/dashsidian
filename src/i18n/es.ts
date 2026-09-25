@@ -25,6 +25,8 @@ export const es: Catalog = {
         "`where: {where}` contiene más de una condición y solo se admite una. El filtro se ignoró. Acota con `source` o `tag`, o entrecomilla el valor si la palabra forma parte de él.",
 
     "tiles.empty": "No hay mosaicos que dibujar. Se espera `items:` o una lista.",
+    "tiles.dateFieldUnused": "{card}: `date_field` no tiene efecto sin `period`.",
+    "tiles.selectionUnused": "{card}: `tag`, `where`, `period` y `date_field` solo acotan `badge: count`.",
 
     "stats.empty": "No hay tarjetas que dibujar. Se espera `items:` o una lista.",
     "stats.unlabeledCard": "una tarjeta sin etiqueta",

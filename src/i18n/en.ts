@@ -27,6 +27,8 @@ export const en = {
         "`where: {where}` holds more than one condition, and only one is supported. The filter was ignored. Narrow with `source` or `tag`, or quote the value if the word is part of it.",
 
     "tiles.empty": "No tiles to draw. Expected `items:` or a list.",
+    "tiles.dateFieldUnused": "{card}: `date_field` has no effect without `period`.",
+    "tiles.selectionUnused": "{card}: `tag`, `where`, `period` and `date_field` only narrow `badge: count`.",
 
     "stats.empty": "No cards to draw. Expected `items:` or a list.",
     "stats.unlabeledCard": "a card with no label",

@@ -12,6 +12,12 @@ removed public export.
 
 ### Added
 
+- **`tiles` can count a selection, not the whole folder.** `badge: count`
+  takes the same `tag`, `where`, `period` and `date_field` keys `stats`
+  already has, narrowing the count the same way: a mail inbox tile that only
+  counts this month's messages, a calendar tile that only counts today's
+  events, both without an edit when the month turns. The tile still opens
+  `path` unchanged. Asked for in #8.
 - **A new day can start after midnight.** The setting **New day starts at**
   (00:00 to 06:00, midnight by default) decides what "today" means for every
   block, not which day a note itself falls on: a note's own date is still

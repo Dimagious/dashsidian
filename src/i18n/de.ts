@@ -25,6 +25,8 @@ export const de: Catalog = {
         "`where: {where}` enthält mehr als eine Bedingung, unterstützt wird nur eine. Der Filter wurde ignoriert. Grenze mit `source` oder `tag` ein, oder setze den Wert in Anführungszeichen, wenn das Wort dazugehört.",
 
     "tiles.empty": "Keine Kacheln zu zeichnen. Erwartet wird `items:` oder eine Liste.",
+    "tiles.dateFieldUnused": "{card}: `date_field` hat ohne `period` keine Wirkung.",
+    "tiles.selectionUnused": "{card}: `tag`, `where`, `period` und `date_field` grenzen nur `badge: count` ein.",
 
     "stats.empty": "Keine Karten zu zeichnen. Erwartet wird `items:` oder eine Liste.",
     "stats.unlabeledCard": "eine Karte ohne Beschriftung",
