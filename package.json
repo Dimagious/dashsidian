@@ -25,6 +25,7 @@
     "scorecard:check": "node scripts/scorecard-check.cjs",
     "site:check": "node scripts/site-check.cjs",
     "site:assemble": "node scripts/assemble-site.cjs",
+    "readme:check": "node scripts/readme-check.cjs",
     "release:check": "node scripts/version-sync.cjs && npm run scorecard:check && npm run lint && npm run typecheck && npm run test && npm run build",
     "release:zip": "node scripts/make-zip.cjs",
     "release": "npm run release:check && npm run release:zip",
