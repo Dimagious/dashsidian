@@ -80,6 +80,9 @@ Number cards: one value per card, computed over a selection of notes.
 | `better` | string | — | — | — | `up` colours a rise green and a fall red; `down` reverses that for a number where less is better. No change stays neutral either way. Only with `compare: true` |
 | `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0), dotted for a nested one like `health.sleep`; required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: "field contains ..."` and `agg: count` |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
+| `at_least` | number | — | — | — | with `agg: streak` only: a day counts only once its notes' `field` values, summed for that day, reach this, like `at_least: 5000` steps; combine with `at_most` for a range. Needs `field`; ignored on any other aggregate |
+| `at_most` | number | — | — | — | with `agg: streak` only: a day counts only while its notes' `field` values, summed for that day, stay at or under this, like `at_most: 5` cigarettes; combine with `at_least` for a range. Needs `field`; ignored on any other aggregate |
+| `days` | string | — | `all` | — | with `agg: streak` only: `weekdays` makes Saturday and Sunday transparent, so they neither break the run nor add to it, whatever they hold; `all`, the default, counts every day. Ignored on any other aggregate |
 | `unit` | string | — | — | — | a suffix after the number: km, %, d. |
 | `precision` | number | — | — | — | decimal places, 0 to 6; by default a whole number stays whole and a fraction gets one decimal |
 | `trend` | string\|number | — | — | — | sketch the last N days ending today: `30d`. Needs `field`. Its own trailing window, independent of `period` |
@@ -104,6 +107,7 @@ items:
 - `trend` sketches the days of a trailing window ending today, scaled between the smallest and largest value in that window rather than from zero. A day without a note is left out, not drawn as a zero, and two or more notes on the same day are summed into that one day's bar.
 - `period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting.
 - `compare` needs a note in both windows; when either the current or the previous stretch has none at all, the card shows its number alone with no delta. `streak` has no value of its own to compare and refuses `compare` outright, the way `trend` refuses `count`.
+- `at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. Both keys apply to `agg: streak` only and are ignored on every other aggregate.
 
 ### `progress`
 
@@ -128,6 +132,9 @@ Bars towards a goal: how far a number has come against a target.
 | `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`. Feeds `period`'s window and the `streak` and `latest` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` |
 | `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0), dotted for a nested one like `health.sleep`; required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: "field contains ..."` and `agg: count` |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
+| `at_least` | number | — | — | — | with `agg: streak` only: a day counts only once its notes' `field` values, summed for that day, reach this, like `at_least: 5000` steps; combine with `at_most` for a range. Needs `field`; ignored on any other aggregate |
+| `at_most` | number | — | — | — | with `agg: streak` only: a day counts only while its notes' `field` values, summed for that day, stay at or under this, like `at_most: 5` cigarettes; combine with `at_least` for a range. Needs `field`; ignored on any other aggregate |
+| `days` | string | — | `all` | — | with `agg: streak` only: `weekdays` makes Saturday and Sunday transparent, so they neither break the run nor add to it, whatever they hold; `all`, the default, counts every day. Ignored on any other aggregate |
 | `unit` | string | — | — | — | a suffix after the numbers: km, %, d. |
 | `precision` | number | — | — | — | decimal places, 0 to 6; by default a whole number stays whole and a fraction gets one decimal |
 | `icon` | string | — | — | `emoji` | emoji |
@@ -147,6 +154,7 @@ items:
 - `count` over nothing reads a plain `0` and an empty bar; every other aggregate, and `streak` with a `field` set, shows a dash instead: "no data" and "zero" are different answers.
 - `streak` counts the longest run of consecutive days on record, not the run still going today; label the bar "Best streak" or "Longest streak".
 - `period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting.
+- `at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. Both keys apply to `agg: streak` only and are ignored on every other aggregate.
 
 ### `today`
 

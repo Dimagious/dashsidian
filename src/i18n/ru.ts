@@ -39,6 +39,13 @@ export const ru: Catalog = {
         "{card}: «{field}» хранит текст или другое значение, а не число или чекбокс. Чтобы посчитать такие заметки, используйте `where: \"{field} contains ...\"` с `agg: count`.",
     "stats.badPrecision":
         "{card}: `precision` ожидает целое от 0 до {max}, получено «{value}». Округляю по умолчанию.",
+    "stats.streakKeysIgnored": "{card}: `at_least`, `at_most` и `days` действуют только при `agg: streak`, пропущено.",
+    "stats.streakThresholdNeedsField":
+        "{card}: `at_least` и `at_most` нужны вместе с `field:`, иначе нечего суммировать. Пропущено.",
+    "stats.streakThresholdInvalid": "{card}: `{key}` ожидает число, получено «{value}». Пропущено.",
+    "stats.streakThresholdImpossible":
+        "{card}: `at_least` больше `at_most`, ни один день не подойдёт под оба условия. Серия равна 0.",
+    "stats.streakDaysInvalid": "{card}: `days` ожидает `all` или `weekdays`, получено «{value}». Использую `all`.",
 
     "progress.empty": "Список полос пуст. Ожидается `items:` или массив.",
     "progress.goalRequired": "{card}: `goal:` ожидает число. Иначе не к чему стремиться.",

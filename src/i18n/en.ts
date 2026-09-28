@@ -43,6 +43,13 @@ export const en = {
         "{card}: \"{field}\" holds text or another value that is not a number or a checkbox. Use `where: \"{field} contains ...\"` with `agg: count` to count it instead.",
     "stats.badPrecision":
         "{card}: `precision` expects a whole number from 0 to {max}, got \"{value}\". Rounding the default way.",
+    "stats.streakKeysIgnored": "{card}: `at_least`, `at_most` and `days` only apply to `agg: streak`, ignored.",
+    "stats.streakThresholdNeedsField":
+        "{card}: `at_least` and `at_most` need a `field:` to sum against. Ignored.",
+    "stats.streakThresholdInvalid": "{card}: `{key}` expects a number, got \"{value}\". Ignored.",
+    "stats.streakThresholdImpossible":
+        "{card}: `at_least` is above `at_most`, so no day can satisfy both. The streak is 0.",
+    "stats.streakDaysInvalid": "{card}: `days` expects `all` or `weekdays`, got \"{value}\". Using `all`.",
 
     "progress.empty": "No bars to draw. Expected `items:` or a list.",
     "progress.goalRequired": "{card}: `goal:` needs a number. There is nothing to measure against.",

@@ -41,6 +41,14 @@ export const fr: Catalog = {
         "{card} : « {field} » contient du texte ou une autre valeur qui n'est pas un nombre ni une case à cocher. Utilisez `where: \"{field} contains ...\"` avec `agg: count` pour le compter.",
     "stats.badPrecision":
         "{card} : `precision` attend un entier de 0 à {max}, reçu « {value} ». Arrondi par défaut.",
+    "stats.streakKeysIgnored":
+        "{card} : `at_least`, `at_most` et `days` ne s'appliquent qu'à `agg: streak`, ignoré.",
+    "stats.streakThresholdNeedsField":
+        "{card} : `at_least` et `at_most` ont besoin d'un `field:` pour faire la somme. Ignoré.",
+    "stats.streakThresholdInvalid": "{card} : `{key}` attend un nombre, reçu « {value} ». Ignoré.",
+    "stats.streakThresholdImpossible":
+        "{card} : `at_least` dépasse `at_most`, aucun jour ne peut satisfaire les deux. La série est 0.",
+    "stats.streakDaysInvalid": "{card} : `days` attend `all` ou `weekdays`, reçu « {value} ». Utilise `all`.",
 
     "progress.empty": "Aucune barre à dessiner. Attendu : `items:` ou une liste.",
     "progress.goalRequired": "{card} : `goal:` a besoin d'un nombre. Il n'y a rien à mesurer.",

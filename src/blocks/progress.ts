@@ -166,7 +166,14 @@ function toBar(
     if (typeof item.sub === "string") bar.sub = item.sub;
     if (!spec) return bar;
 
-    const current = aggregate(selected, { agg: spec.agg, field: spec.field, dateField });
+    const current = aggregate(selected, {
+        agg: spec.agg,
+        field: spec.field,
+        dateField,
+        atLeast: spec.atLeast,
+        atMost: spec.atMost,
+        days: spec.days,
+    });
 
     bar.value = formatValue(current, spec.precision);
     bar.goal = formatValue(spec.goal, spec.precision);

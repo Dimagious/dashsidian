@@ -41,6 +41,14 @@ export const de: Catalog = {
         "{card}: „{field}“ enthält Text oder einen anderen Wert, keine Zahl oder Checkbox. Verwende `where: \"{field} contains ...\"` mit `agg: count`, um das zu zählen.",
     "stats.badPrecision":
         "{card}: `precision` erwartet eine ganze Zahl von 0 bis {max}, bekommen „{value}“. Es wird wie voreingestellt gerundet.",
+    "stats.streakKeysIgnored":
+        "{card}: `at_least`, `at_most` und `days` gelten nur für `agg: streak`, ignoriert.",
+    "stats.streakThresholdNeedsField":
+        "{card}: `at_least` und `at_most` brauchen ein `field:`, sonst gibt es nichts zu summieren. Ignoriert.",
+    "stats.streakThresholdInvalid": "{card}: `{key}` erwartet eine Zahl, bekommen „{value}“. Ignoriert.",
+    "stats.streakThresholdImpossible":
+        "{card}: `at_least` liegt über `at_most`, kein Tag kann beides erfüllen. Die Serie ist 0.",
+    "stats.streakDaysInvalid": "{card}: `days` erwartet `all` oder `weekdays`, bekommen „{value}“. Verwende `all`.",
 
     "progress.empty": "Keine Balken zu zeichnen. Erwartet wird `items:` oder eine Liste.",
     "progress.goalRequired": "{card}: `goal:` braucht eine Zahl. Es gibt nichts, woran gemessen werden könnte.",

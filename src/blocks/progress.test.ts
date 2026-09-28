@@ -416,3 +416,54 @@ describe("progress — period narrows before counting", () => {
         expect(diagnostics(el, "warning")[0]).toContain("fortnight");
     });
 });
+
+describe("progress — streak threshold and weekdays, end to end (B-101)", () => {
+    it("at_least turns streak into a threshold on the day's summed field", () => {
+        const steps = mockContext({
+            notes: [
+                { path: "Diary/2026-09-18.md", frontmatter: { steps: 4999 } },
+                { path: "Diary/2026-09-19.md", frontmatter: { steps: 5000 } },
+                { path: "Diary/2026-09-20.md", frontmatter: { steps: 6000 } },
+            ],
+        });
+        const el = host();
+        renderProgress(
+            steps,
+            "items:\n  - { label: Active streak, source: Diary, field: steps, agg: streak, at_least: 5000, goal: 5 }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-progress-value")[0]).toContain("2 / 5");
+    });
+
+    it("days: weekdays bridges a weekend gap: Friday to Monday is a run of two", () => {
+        const gym = mockContext({
+            notes: [
+                { path: "Diary/2026-09-18.md", frontmatter: { gym: true } }, // Friday
+                { path: "Diary/2026-09-21.md", frontmatter: { gym: true } }, // Monday
+            ],
+        });
+        const el = host();
+        renderProgress(
+            gym,
+            "items:\n  - { label: Gym streak, source: Diary, field: gym, agg: streak, days: weekdays, goal: 5 }",
+            el,
+        );
+        expect(texts(el, ".dashy-progress-value")[0]).toContain("2 / 5");
+    });
+
+    it("at_least/at_most/days on a non-streak bar warn once and are ignored", () => {
+        const el = bars(
+            "items:\n  - { label: Run, source: Diary, field: km, agg: sum, at_least: 5, goal: 100 }",
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+        expect(diagnostics(el, "warning")[0]).toContain("at_least");
+    });
+
+    it("a threshold on a streak with no field warns and is ignored", () => {
+        const el = bars("items:\n  - { label: Streak, source: Diary, agg: streak, at_least: 5, goal: 5 }");
+        expect(diagnostics(el, "warning")[0]).toContain("field");
+        // Without the (ignored) threshold, every diary day counts.
+        expect(texts(el, ".dashy-progress-value")[0]).toContain("10 / 5");
+    });
+});

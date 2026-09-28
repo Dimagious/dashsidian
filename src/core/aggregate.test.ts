@@ -286,6 +286,135 @@ describe("aggregate", () => {
         });
     });
 
+    describe("streak threshold: at_least / at_most (B-101)", () => {
+        it("at_least: a day below the bound breaks the run, at or above it continues", () => {
+            const notes = [
+                day("2026-09-18", { steps: 4999 }), // below 5000, does not count
+                day("2026-09-19", { steps: 5000 }), // exactly at the bound, counts
+                day("2026-09-20", { steps: 6000 }), // above it, counts
+            ];
+            expect(aggregate(notes, { agg: "streak", field: "steps", atLeast: 5000 })).toBe(2);
+        });
+
+        it("at_most: cigarettes 0 through 5 count, 6 breaks the run", () => {
+            const notes = [
+                day("2026-09-18", { cigs: 0 }),
+                day("2026-09-19", { cigs: 5 }),
+                day("2026-09-20", { cigs: 6 }),
+                day("2026-09-21", { cigs: 3 }),
+            ];
+            expect(aggregate(notes, { agg: "streak", field: "cigs", atMost: 5 })).toBe(2);
+        });
+
+        it("at_least and at_most together make a range", () => {
+            const notes = [
+                day("2026-09-18", { v: 3 }), // below the range
+                day("2026-09-19", { v: 5 }), // in range
+                day("2026-09-20", { v: 10 }), // in range
+                day("2026-09-21", { v: 11 }), // above the range
+            ];
+            expect(aggregate(notes, { agg: "streak", field: "v", atLeast: 5, atMost: 10 })).toBe(2);
+        });
+
+        it("two notes on the same day are summed before the threshold is checked", () => {
+            const notes = [
+                noteAt("Morning/2026-09-18.md", "2026-09-18", { steps: 3000 }),
+                noteAt("Evening/2026-09-18.md", "2026-09-18", { steps: 3000 }),
+                day("2026-09-19", { steps: 6000 }),
+            ];
+            // Neither entry alone reaches 5000, but the day's sum (6000) does.
+            expect(aggregate(notes, { agg: "streak", field: "steps", atLeast: 5000 })).toBe(2);
+        });
+
+        it("a false mark sums as 0 and can break an at_least threshold", () => {
+            const notes = [
+                day("2026-09-18", { gym: true }), // 1
+                day("2026-09-19", { gym: false }), // 0, breaks at_least: 1
+                day("2026-09-20", { gym: true }),
+            ];
+            expect(aggregate(notes, { agg: "streak", field: "gym", atLeast: 1 })).toBe(1);
+        });
+
+        it("a numeric zero satisfies an at_most threshold, unlike a missing day", () => {
+            const notes = [day("2026-09-18", { cigs: 0 }), day("2026-09-19", { cigs: 0 })];
+            expect(aggregate(notes, { agg: "streak", field: "cigs", atMost: 5 })).toBe(2);
+        });
+
+        it("a threshold nothing qualifies for is an honest 0, not a dash", () => {
+            const notes = [day("2026-09-18", { steps: 100 }), day("2026-09-19", { steps: 200 })];
+            expect(aggregate(notes, { agg: "streak", field: "steps", atLeast: 100000 })).toBe(0);
+        });
+
+        it("at_least above at_most leaves nothing that can qualify: an honest 0", () => {
+            const notes = [day("2026-09-18", { steps: 5000 }), day("2026-09-19", { steps: 6000 })];
+            expect(aggregate(notes, { agg: "streak", field: "steps", atLeast: 10, atMost: 5 })).toBe(0);
+        });
+
+        it("no threshold at all keeps the old field behaviour unchanged (B-097 pin)", () => {
+            const notes = [
+                day("2026-09-18", { steps: 100 }),
+                day("2026-09-19", { steps: 0 }),
+                day("2026-09-20", { steps: 50 }),
+            ];
+            expect(aggregate(notes, { agg: "streak", field: "steps" })).toBe(3);
+        });
+
+        it("resolves the day from date_field, not the note name, and still sums same-day notes", () => {
+            // None of these names looks like a date at all; the day a note
+            // belongs to comes entirely from the `finished` property.
+            const notes = [
+                noteAt("Log/a.md", "a", { finished: "2026-01-01", steps: 3000 }),
+                noteAt("Log/b.md", "b", { finished: "2026-01-01", steps: 3000 }), // same day, sums to 6000
+                noteAt("Log/c.md", "c", { finished: "2026-01-02", steps: 6000 }),
+                noteAt("Log/d.md", "d", { finished: "2026-01-03", steps: 100 }), // breaks it
+            ];
+            expect(aggregate(notes, {
+                agg: "streak", field: "steps", dateField: "finished", atLeast: 5000,
+            })).toBe(2);
+        });
+    });
+
+    describe("streak days: weekdays (B-101)", () => {
+        it("a weekend gap between two logged weekdays does not break the run", () => {
+            // 2026-09-18 is a Friday, 2026-09-21 the Monday after.
+            const notes = [day("2026-09-18", { v: 1 }), day("2026-09-21", { v: 1 })];
+            expect(aggregate(notes, { agg: "streak", field: "v", days: "weekdays" })).toBe(2);
+        });
+
+        it("a note on the weekend does not itself extend the run", () => {
+            const notes = [
+                day("2026-09-18", { v: 1 }), // Friday
+                day("2026-09-19", { v: 1 }), // Saturday: has a value, still transparent
+                day("2026-09-21", { v: 1 }), // Monday
+            ];
+            expect(aggregate(notes, { agg: "streak", field: "v", days: "weekdays" })).toBe(2);
+        });
+
+        it("a weekday gap still breaks the run", () => {
+            const notes = [
+                day("2026-09-18", { v: 1 }), // Friday
+                day("2026-09-23", { v: 1 }), // Wednesday; Monday and Tuesday are missing, ordinary days
+            ];
+            expect(aggregate(notes, { agg: "streak", field: "v", days: "weekdays" })).toBe(1);
+        });
+
+        it("combines with a threshold: weekends are skipped, weekday values are checked", () => {
+            const notes = [
+                day("2026-09-18", { steps: 5000 }), // Friday, meets the threshold
+                day("2026-09-19", { steps: 0 }), // Saturday, irrelevant either way
+                day("2026-09-21", { steps: 6000 }), // Monday, meets the threshold
+            ];
+            expect(aggregate(notes, {
+                agg: "streak", field: "steps", atLeast: 5000, days: "weekdays",
+            })).toBe(2);
+        });
+
+        it("days: \"all\" behaves like no days at all: weekends are ordinary days", () => {
+            const notes = [day("2026-09-18", { v: 1 }), day("2026-09-21", { v: 1 })];
+            expect(aggregate(notes, { agg: "streak", field: "v", days: "all" })).toBe(1);
+        });
+    });
+
     describe("dated note names beyond an exact YYYY-MM-DD (B-081)", () => {
         it("a suffixed name is a date, in a run of otherwise exact names", () => {
             const week = [

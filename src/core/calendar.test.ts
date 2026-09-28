@@ -8,6 +8,7 @@ import {
     eachDay,
     longestStreak,
     currentStreak,
+    isWeekend,
     yearsOf,
 } from "./calendar";
 
@@ -122,6 +123,56 @@ describe("longestStreak", () => {
 
     it("a day repeated many times still counts once", () => {
         expect(longestStreak(["2026-01-01", "2026-01-01", "2026-01-01"])).toBe(1);
+    });
+});
+
+describe("longestStreak with a transparent day predicate (B-101)", () => {
+    // 2026-09-18 is a Friday, 19/20 the weekend, 21 a Monday.
+    const weekend = (d: string) => d === "2026-09-19" || d === "2026-09-20";
+
+    it("a gap made only of transparent days bridges the run", () => {
+        expect(longestStreak(["2026-09-18", "2026-09-21"], { transparent: weekend })).toBe(2);
+    });
+
+    it("a transparent day present in the input does not extend the run", () => {
+        // The Saturday has a date in the set too (e.g. a note logged that
+        // day), but it must still not count: 2, not 3.
+        expect(longestStreak(["2026-09-18", "2026-09-19", "2026-09-21"], { transparent: weekend })).toBe(2);
+    });
+
+    it("a non-transparent day missing from the gap still breaks the run", () => {
+        // 2026-09-23 is a Wednesday: the gap also crosses Monday and
+        // Tuesday, both ordinary days that carry no date here.
+        expect(longestStreak(["2026-09-18", "2026-09-23"], { transparent: weekend })).toBe(1);
+    });
+
+    it("without a predicate, behaviour is exactly as before (default weekdays)", () => {
+        expect(longestStreak(["2026-09-18", "2026-09-21"])).toBe(1);
+    });
+
+    it("bridges a transparent gap across a year boundary", () => {
+        // 2027-12-31 is a Friday, 2028-01-01/02 the weekend, 2028-01-03 a Monday.
+        const weekendYearEnd = (d: string) => d === "2028-01-01" || d === "2028-01-02";
+        expect(longestStreak(["2027-12-31", "2028-01-03"], { transparent: weekendYearEnd })).toBe(2);
+    });
+
+    it("bridges a transparent gap through a daylight-saving change", () => {
+        // 2026-03-27 is a Friday, 28/29 the weekend (Europe's clocks skip
+        // forward on the 29th), 2026-03-30 a Monday. `isWeekend` itself,
+        // not the September-only `weekend` above, since these are March dates.
+        expect(longestStreak(["2026-03-27", "2026-03-30"], { transparent: isWeekend })).toBe(2);
+    });
+});
+
+describe("isWeekend", () => {
+    it("Saturday and Sunday are the weekend", () => {
+        expect(isWeekend("2026-09-19")).toBe(true);
+        expect(isWeekend("2026-09-20")).toBe(true);
+    });
+
+    it("every other day is not", () => {
+        expect(isWeekend("2026-09-18")).toBe(false);
+        expect(isWeekend("2026-09-21")).toBe(false);
     });
 });
 

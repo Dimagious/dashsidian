@@ -12,6 +12,17 @@ removed public export.
 
 ### Added
 
+- **`agg: streak` on `stats` and `progress` takes `at_least`, `at_most` and
+  `days`.** `at_least: 5000` (steps) and/or `at_most: 5` (cigarettes) turn a
+  streak into a threshold: a day counts only once its notes' `field` values,
+  summed for that day, satisfy the bound; two notes on the same day add up
+  first, the same way the heatmap's default `per_day: sum` does. Both need
+  `field:` and are ignored without one; a threshold with `at_least` above
+  `at_most` leaves no day able to qualify, so the streak reads a plain `0`
+  rather than refusing to draw. `days: weekdays` makes Saturday and Sunday
+  transparent: they neither break the run nor extend it, whatever they hold,
+  so a Friday followed by a Monday is a run of two. Every key is ignored,
+  with a warning, on any aggregate other than `streak`. Schema 1.6.0.
 - **`field`, `where` and `date_field` reach into nested frontmatter, not only
   the top level.** `field: health.sleep` reads `sleep` under a top-level
   `health:` map, the same way for every block that reads a field, for `where`

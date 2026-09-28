@@ -29,6 +29,89 @@ describe("readStat — happy path", () => {
         const { spec } = readStat({ agg: "streak", field: "sleep_score" }, "In a row");
         expect(spec).toEqual({ agg: "streak", field: "sleep_score" });
     });
+
+    it("streak takes at_least, at_most and days alongside field", () => {
+        const { spec, diagnostics } = readStat(
+            { agg: "streak", field: "steps", at_least: 5000, at_most: 20000, days: "weekdays" }, "Active days");
+        expect(spec).toEqual({
+            agg: "streak", field: "steps", atLeast: 5000, atMost: 20000, days: "weekdays",
+        });
+        expect(diagnostics).toEqual([]);
+    });
+
+    it("days: all is accepted explicitly, same as leaving it unset", () => {
+        const { spec } = readStat({ agg: "streak", field: "gym", days: "all" }, "Gym");
+        expect(spec).toEqual({ agg: "streak", field: "gym", days: "all" });
+    });
+});
+
+describe("readStat — streak threshold and weekdays diagnostics (B-101)", () => {
+    it("at_least/at_most/days on a non-streak card warn and are ignored", () => {
+        const { spec, diagnostics } = readStat(
+            { agg: "sum", field: "steps", at_least: 5000, at_most: 20000, days: "weekdays" }, "Steps");
+        expect(spec).toEqual({ agg: "sum", field: "steps" });
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]?.level).toBe("warning");
+        expect(diagnostics[0]?.message).toContain("at_least");
+        expect(diagnostics[0]?.message).toContain("at_most");
+        expect(diagnostics[0]?.message).toContain("days");
+    });
+
+    it("the same warning fires even with a single one of the three keys set", () => {
+        const { diagnostics } = readStat({ agg: "count", days: "weekdays" }, "Notes");
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]?.level).toBe("warning");
+    });
+
+    it("no keys set on a non-streak card: no warning at all", () => {
+        expect(readStat({ agg: "count" }, "Notes").diagnostics).toEqual([]);
+    });
+
+    it("a threshold on a streak with no field warns and is ignored", () => {
+        const { spec, diagnostics } = readStat({ agg: "streak", at_least: 5000 }, "Streak");
+        expect(spec).toEqual({ agg: "streak" });
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]?.level).toBe("warning");
+        expect(diagnostics[0]?.message).toContain("field");
+    });
+
+    it("one warning covers both at_least and at_most missing a field together", () => {
+        const { diagnostics } = readStat({ agg: "streak", at_least: 1, at_most: 5 }, "Streak");
+        expect(diagnostics).toHaveLength(1);
+    });
+
+    it("a non-number at_least warns naming the value and is dropped", () => {
+        const { spec, diagnostics } = readStat({ agg: "streak", field: "steps", at_least: "many" }, "Streak");
+        expect(spec).toEqual({ agg: "streak", field: "steps" });
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]?.level).toBe("warning");
+        expect(diagnostics[0]?.message).toContain("at_least");
+        expect(diagnostics[0]?.message).toContain("many");
+    });
+
+    it("a non-number at_most warns naming the value and is dropped", () => {
+        const { spec, diagnostics } = readStat({ agg: "streak", field: "cigs", at_most: true }, "Streak");
+        expect(spec).toEqual({ agg: "streak", field: "cigs" });
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]?.message).toContain("at_most");
+    });
+
+    it("at_least above at_most warns, and both still land in the spec for a computed 0", () => {
+        const { spec, diagnostics } = readStat(
+            { agg: "streak", field: "steps", at_least: 10, at_most: 5 }, "Streak");
+        expect(spec).toEqual({ agg: "streak", field: "steps", atLeast: 10, atMost: 5 });
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]?.level).toBe("warning");
+    });
+
+    it("an invalid days value warns naming the options and falls back to all", () => {
+        const { spec, diagnostics } = readStat({ agg: "streak", field: "v", days: "weekends" }, "Streak");
+        expect(spec).toEqual({ agg: "streak", field: "v" });
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]?.level).toBe("warning");
+        expect(diagnostics[0]?.message).toContain("all");
+        expect(diagnostics[0]?.message).toContain("weekdays");
+    });
 });
 
 describe("readStat — edges", () => {

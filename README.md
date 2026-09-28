@@ -243,6 +243,15 @@ delta stays a neutral colour. When either window has no notes in it at all, the 
 its number alone rather than a made-up delta; `streak` cannot be compared this way and
 refuses `compare` outright, the same way `trend` refuses `count`.
 
+Add `at_least` and/or `at_most` next to `agg: streak` and a run is no longer just "has a
+value": a day counts only once its notes' `field` values, summed for that day, satisfy the
+bound, `at_least: 5000` for a steps streak or `at_most: 5` for a smoke-free-enough one.
+Both together make a range. Either needs `field:` and is ignored otherwise, and if
+`at_least` ends up above `at_most` no day can ever qualify, so the streak reads a plain `0`
+rather than refusing to draw. Add `days: weekdays` and Saturday and Sunday stop counting
+either way, whatever they hold: they neither break the run nor extend it, so a Friday
+followed by a Monday is a run of two, not one.
+
 ### `progress`: how far along
 
 ````markdown
@@ -265,7 +274,8 @@ Beating a goal shows as it is. 110% stays 110%, and only the bar stops at full.
 `period` and `date_field` work the same way they do on `stats`, narrowing what the goal is
 measured against rather than the whole selection, and feeding `streak` and `latest` too.
 "Books this year" above reads a `finished` property on each book instead of the note name,
-since a book is rarely named as a date.
+since a book is rarely named as a date. `at_least`, `at_most` and `days: weekdays` work the
+same way on a `streak` bar as they do on a stats card, above.
 
 ### `countdown`: what is coming
 
@@ -452,6 +462,11 @@ but never mentions the field breaks it too, for the same reason: there is nothin
 the day counts. A numeric `0` is different from an unticked checkbox: it is still a value,
 so it keeps a streak going, the way "0 steps" logged is data and "no note today" is not.
 Two notes for the same day, however they got their date, count as one day, never a break.
+`at_least` and `at_most` replace "has a value" with a bound on it: a day counts only once
+the day's values, summed if more than one note landed on it, reach `at_least` and/or stay
+under `at_most`. `days: weekdays` is a separate, independent setting: it removes Saturday
+and Sunday from the picture entirely, so they neither break a run nor extend it, whether or
+not a threshold is also set, and it works just as well on a plain fieldless streak.
 
 </details>
 

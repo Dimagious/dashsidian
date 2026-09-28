@@ -3,7 +3,7 @@
  */
 
 import type { NoteRecord } from "./source";
-import { longestStreak, dateKey } from "./calendar";
+import { longestStreak, isWeekend, dateKey } from "./calendar";
 import { resolveNoteDate } from "./note-date";
 import { readField, hasField } from "./field";
 
@@ -12,6 +12,14 @@ export type Agg = (typeof AGGS)[number];
 
 export function isAgg(v: unknown): v is Agg {
     return typeof v === "string" && (AGGS as readonly string[]).includes(v);
+}
+
+/** `agg: streak`'s own `days:` key: which calendar days are even eligible to count. */
+export const STREAK_DAYS = ["all", "weekdays"] as const;
+export type StreakDays = (typeof STREAK_DAYS)[number];
+
+export function isStreakDays(v: unknown): v is StreakDays {
+    return typeof v === "string" && (STREAK_DAYS as readonly string[]).includes(v);
 }
 
 /**
@@ -85,6 +93,20 @@ export interface AggregateSpec {
     field?: string;
     /** a date frontmatter property to resolve a note's date from, instead of its name */
     dateField?: string;
+    /**
+     * `agg: streak` only: an inclusive lower bound on a day's value, `field`'s
+     * numbers summed for that day (two notes on the same day add up, same as
+     * the heatmap's default `per_day: sum`). Requires `field`; ignored otherwise.
+     */
+    atLeast?: number;
+    /** `agg: streak` only: an inclusive upper bound on the same summed day value. */
+    atMost?: number;
+    /**
+     * `agg: streak` only: `"weekdays"` makes Saturday and Sunday transparent —
+     * they neither break the run nor add to it, whatever they hold. Unset or
+     * `"all"` counts every day, unchanged from before this key existed.
+     */
+    days?: StreakDays;
 }
 
 /**
@@ -94,6 +116,13 @@ export interface AggregateSpec {
  * one (`dateField` when set, otherwise a name starting with `YYYY-MM-DD`), and
  * two or more notes landing on the same day count as that one day.
  * The rest aggregate the numbers held in the field.
+ *
+ * With `atLeast`/`atMost` set (both need `field`), a day counts only when
+ * its notes' `field` values, summed for that day, satisfy the bound — `false`
+ * still sums as 0, and a plain numeric 0 sums as itself. With `days:
+ * "weekdays"`, Saturday and Sunday are dropped from consideration entirely:
+ * see `core/calendar.ts`'s `longestStreak`/`isWeekend` for what that does to
+ * a gap that crosses one.
  *
  * Returns null when there is nothing to count — the caller draws a dash.
  */
@@ -115,13 +144,21 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
         // there is a plain, honest 0, the same as `count`.
         if (spec.field && classifyField(notes, spec.field) !== "ok") return null;
 
-        const dates = notes
-            .filter((n) => (spec.field
-                ? numberAt(n, spec.field) !== null && !isFalseMark(n, spec.field)
-                : true))
-            .map((n) => resolveNoteDate(n, spec.dateField))
-            .filter((d): d is string => d !== null);
-        return longestStreak(dates);
+        const hasThreshold = spec.atLeast !== undefined || spec.atMost !== undefined;
+        const dates = spec.field && hasThreshold
+            ? thresholdDates(notes, spec.field, spec.dateField, spec.atLeast, spec.atMost)
+            : notes
+                .filter((n) => (spec.field
+                    ? numberAt(n, spec.field) !== null && !isFalseMark(n, spec.field)
+                    : true))
+                .map((n) => resolveNoteDate(n, spec.dateField))
+                .filter((d): d is string => d !== null);
+
+        // A day with a threshold outside what any day can reach (`at_least`
+        // above `at_most`) leaves `dates` empty: the run below then honestly
+        // comes out 0, exactly like an all-false field does above, rather
+        // than needing a special case here.
+        return longestStreak(dates, spec.days === "weekdays" ? { transparent: isWeekend } : {});
     }
 
     if (!spec.field) return null;
@@ -166,6 +203,42 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
         default:
             return null;
     }
+}
+
+/**
+ * Days whose `field` values, summed per day, satisfy `atLeast`/`atMost` —
+ * the day keys a threshold `streak` treats as filled. Two notes on the same
+ * day add up first, same as the heatmap's default `per_day: sum`, so logging
+ * steps twice in a day is not read as two separate half-days.
+ *
+ * `numberAt` already turns a boolean `false` into 0, so it sums like any
+ * other number here rather than dropping the day the way plain `streak`
+ * (no threshold) does with `isFalseMark` — a threshold day is decided by its
+ * value against the bound, not by whether the mark was a genuine checkbox.
+ */
+function thresholdDates(
+    notes: readonly NoteRecord[],
+    field: string,
+    dateField: string | undefined,
+    atLeast: number | undefined,
+    atMost: number | undefined,
+): string[] {
+    const sums = new Map<string, number>();
+    for (const n of notes) {
+        const day = resolveNoteDate(n, dateField);
+        if (day === null) continue;
+        const v = numberAt(n, field);
+        if (v === null) continue;
+        sums.set(day, (sums.get(day) ?? 0) + v);
+    }
+
+    const out: string[] = [];
+    for (const [day, value] of sums) {
+        if (atLeast !== undefined && value < atLeast) continue;
+        if (atMost !== undefined && value > atMost) continue;
+        out.push(day);
+    }
+    return out;
 }
 
 /**

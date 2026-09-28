@@ -103,21 +103,67 @@ export function eachDay(year: number, total: number): string[] {
     return out;
 }
 
-/** The longest run of consecutive days. Takes an arbitrary set of keys. */
-export function longestStreak(dates: readonly string[]): number {
+export interface StreakOptions {
+    /**
+     * A day for which this returns true is transparent: it is dropped from
+     * the set entirely (so a note landing on it never starts or extends a
+     * run) and, when it sits inside a gap between two counted days, does not
+     * break the run either. `days: weekdays` (core/aggregate.ts) is the
+     * first caller, weekends being its transparent days; B-095's special
+     * days is meant to plug in here the same way, rather than growing a
+     * second, parallel notion of "day that does not count".
+     */
+    transparent?: (day: string) => boolean;
+}
+
+/** True when every day strictly between `a` and `b` (both YYYY-MM-DD) is transparent. */
+function bridgesGap(a: string, b: string, transparent: (day: string) => boolean): boolean {
+    const gap = daysBetween(a, b);
+    if (gap <= 1) return gap === 1;
+    const cursor = new Date(`${a}T00:00:00`);
+    for (let i = 1; i < gap; i++) {
+        cursor.setDate(cursor.getDate() + 1);
+        if (!transparent(dateKey(cursor))) return false;
+    }
+    return true;
+}
+
+/**
+ * The longest run of consecutive days. Takes an arbitrary set of keys.
+ *
+ * With `transparent` set, a day it accepts is skipped rather than counted:
+ * it cannot itself be part of the run, and a gap made up only of such days
+ * does not break it either. Without it (the default) this is unchanged from
+ * before `transparent` existed: only a gap of exactly one day continues a run.
+ */
+export function longestStreak(dates: readonly string[], options: StreakOptions = {}): number {
+    const transparent = options.transparent ?? (() => false);
     // Deduplicated first: two notes named for the same day are one day, and
     // the run below reads the zero-day gap between them as a break. A vault
     // with Personal/2026-01-02 and Work/2026-01-02 reported a streak of 1.
-    const sorted = [...new Set(dates)].sort();
+    // A transparent day (a weekend under `days: weekdays`) is dropped here
+    // too, whatever it holds: it must not itself start or extend a run.
+    const sorted = [...new Set(dates)].filter((d) => !transparent(d)).sort();
     let best = 0;
     let run = 0;
     let prev: string | null = null;
     for (const d of sorted) {
-        run = prev !== null && daysBetween(prev, d) === 1 ? run + 1 : 1;
+        run = prev !== null && bridgesGap(prev, d, transparent) ? run + 1 : 1;
         if (run > best) best = run;
         prev = d;
     }
     return best;
+}
+
+/**
+ * True when a day key falls on Saturday or Sunday, in absolute terms:
+ * unaffected by which day a locale's week starts on (`days: weekdays` treats
+ * the weekend the same way for an English and a Russian reader alike). The
+ * `transparent` predicate `core/aggregate.ts` passes to `longestStreak` for it.
+ */
+export function isWeekend(day: string): boolean {
+    const weekday = new Date(`${day}T00:00:00`).getDay();
+    return weekday === 0 || weekday === 6;
 }
 
 /**
