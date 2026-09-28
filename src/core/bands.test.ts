@@ -81,3 +81,26 @@ describe("bandFor", () => {
         expect(alphas[3]).toBe(alphas[2]);
     });
 });
+
+// B-097: with no `bands:` given, `readBands` hands back exactly one band
+// covering everything (see the "degenerate input" suite above). That band is
+// not a scale fitted to the caller's own data — there is no min/max reading
+// anywhere in this module — so every value that reaches `bandFor` at all
+// lands in the same band, at full strength, whatever its size or sign. A
+// competitor's heatmap auto-scaling by the data's own range is exactly what
+// this is not; if it should be, that is a product decision for later, not a
+// silent default.
+describe("bandFor — no bands means one flat colour, not a scale fitted to the data", () => {
+    const flat = readBands(undefined);
+
+    it("the default is a single band at full alpha", () => {
+        expect(flat).toHaveLength(1);
+        expect(flat[0]?.alpha).toBe(1);
+    });
+
+    it("a deep negative, zero and a very large value all resolve to that same band", () => {
+        for (const v of [-1000, 0, 1_000_000]) {
+            expect(bandFor(flat, v)).toBe(flat[0]);
+        }
+    });
+});

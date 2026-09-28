@@ -313,9 +313,13 @@ Canada and Japan.
 `field` can also be a checkbox property: a ticked day counts as 1 and paints its cell.
 That is the whole of [the habit tracker](#a-habit-tracker-from-daily-note-checkboxes). A
 `field` nothing carries, or one that holds text rather than a number or a checkbox, is an
-error that says which, rather than an empty grid that looks like a note-taking gap. Years
-come from the data, newest first, but never one later than today: a note dated in the
-future counts nowhere in the grid.
+error that says which, rather than an empty grid that looks like a note-taking gap. A
+numeric `0` is still a value and paints its cell like any other; an unticked checkbox
+stays empty, and so does a day whose own value is not a number, even when the field is
+fine everywhere else. Without `bands`, every painted day is the same colour: set `bands`
+to get a scale, otherwise the colour says which days have data, not how much. Years come
+from the data, newest first, but never one later than today: a note dated in the future
+counts nowhere in the grid.
 
 ## It keeps up with the vault
 
@@ -410,7 +414,23 @@ yesterday's date and yesterday's `period` windows until something else happens t
 
 `streak` is the longest run of consecutive days on record, not the run still going. An
 unticked checkbox breaks it the same way a day with no note does, so a 17-day streak from
-last spring stays 17 even if this week has yet to start one.
+last spring stays 17 even if this week has yet to start one. A day where the note exists
+but never mentions the field breaks it too, for the same reason: there is nothing to say
+the day counts. A numeric `0` is different from an unticked checkbox: it is still a value,
+so it keeps a streak going, the way "0 steps" logged is data and "no note today" is not.
+Two notes for the same day, however they got their date, count as one day, never a break.
+
+</details>
+
+<details>
+<summary>How does the heatmap choose colours without `bands`?</summary>
+
+It does not scale to your data. Without `bands`, every day that has a value is painted
+the same single colour, whether that value is 1, 100 or -5; the colour says which days
+have data, not how much (the tooltip on the cell still shows the number). Set `bands`
+(thresholds from the top down, like `[90, 80, 70]`) to get a scale. A numeric `0` counts
+as a value and is painted like any other; an unticked checkbox stays empty, and so does a
+day whose value is not a number.
 
 </details>
 

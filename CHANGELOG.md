@@ -10,6 +10,16 @@ removed public export.
 
 ## [Unreleased]
 
+### Docs
+
+- **`streak` and the heatmap's default colouring are now spelled out in the
+  README FAQ and the `bands` schema doc.** A day whose note exists but never
+  mentions the field breaks a streak the same as a missing day; a numeric
+  `0` does not. Without `bands`, the heatmap paints every day with data the
+  same single colour rather than scaling to the data's own range. No
+  behaviour changed; these were already the rules, now written down and
+  pinned with regression tests.
+
 ## [1.3.0] - 2026-09-25
 
 ### Added

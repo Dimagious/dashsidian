@@ -243,6 +243,36 @@ describe("aggregate", () => {
             ];
             expect(aggregate(week, { agg: "streak", field: "steps" })).toBe(3);
         });
+
+        // B-097: pins the current record, not "days still going" — the README
+        // FAQ and the schema doc both promise this, and there is no
+        // current-streak aggregate to fall back to if it ever drifted.
+        it("streak is the longest run on record, not the run still going", () => {
+            const notes = [
+                day("2026-03-01", { gym: true }),
+                day("2026-03-02", { gym: true }),
+                day("2026-03-03", { gym: true }),
+                day("2026-03-04", { gym: true }),
+                day("2026-03-05", { gym: true }),
+                // a gap, then a single recent day: a "days still going" reading
+                // would answer 1, not the 5-day record from March.
+                day("2026-09-27", { gym: true }),
+            ];
+            expect(aggregate(notes, { agg: "streak", field: "gym" })).toBe(5);
+        });
+
+        // B-097: dates are plain YYYY-MM-DD keys, never elapsed wall-clock
+        // time, so a clock change inside the run does not shorten or lengthen
+        // it. 2026-03-29 is when much of Europe skips an hour forward.
+        it("a run through a daylight-saving change counts by calendar day, unaffected by the clock skip", () => {
+            const notes = [
+                day("2026-03-27", { gym: true }),
+                day("2026-03-28", { gym: true }),
+                day("2026-03-29", { gym: true }),
+                day("2026-03-30", { gym: true }),
+            ];
+            expect(aggregate(notes, { agg: "streak", field: "gym" })).toBe(4);
+        });
     });
 
     describe("dated note names beyond an exact YYYY-MM-DD (B-081)", () => {

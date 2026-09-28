@@ -388,7 +388,7 @@
         },
         "bands": {
           "type": "list",
-          "doc": "thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band"
+          "doc": "thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band. Without `bands`, every day with data paints the same single colour: there is no automatic scale from the data's own minimum and maximum"
         },
         "link": {
           "type": "boolean",
