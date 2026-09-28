@@ -98,6 +98,12 @@ export const ru: Catalog = {
         "Ни у одной заметки в выборке нет «{field}». Проверьте имя и `source`.",
     "heatmap.fieldNotNumeric":
         "«{field}» хранит текст или другое значение, а не число или чекбокс. Чтобы посчитать такие заметки, используйте `where: \"{field} contains ...\"` с `agg: count` в карточке stats.",
+    "heatmap.fieldInvalid": "`field` ожидает имя свойства или их список, получено «{value}».",
+    "heatmap.fieldListEmpty": "Список `field` пуст. Добавьте хотя бы одно имя свойства.",
+    "heatmap.fieldListInvalid": "Элементы списка `field` должны быть простыми именами свойств, получено «{value}».",
+    "heatmap.perDayInvalid": "`per_day` принимает sum, avg или max, получено «{value}». Используется sum.",
+    "heatmap.fieldUnused":
+        "«{field}» ни разу не дало значения в этой выборке. Проверьте имя, или что там действительно число либо чекбокс.",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.caption": "{year}, {field}: среднее {average}, {present} из {total} дн.",
     "heatmap.captionMarks": "{year}, {field}: {present} из {total} дн.",

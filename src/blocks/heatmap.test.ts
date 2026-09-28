@@ -575,6 +575,124 @@ describe("heatmap — nested frontmatter paths (B-100)", () => {
     });
 });
 
+describe("heatmap — several fields in one heatmap (B-094)", () => {
+    it("a list field renders one grid; per_day defaults to sum, same as before", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { mood_am: 5, mood_pm: 7 } }];
+        const el = map("source: Diary\nfield: [mood_am, mood_pm]", mockContext({ notes }));
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-01"));
+        expect(cell?.getAttribute("title")).toContain("12");
+    });
+
+    it("per_day: avg collapses a 5 and a 7 into 6, the day's whole mood in one cell", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { mood_am: 5, mood_pm: 7 } }];
+        const el = map("source: Diary\nfield: [mood_am, mood_pm]\nper_day: avg", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-01"));
+        expect(cell?.getAttribute("title")).toContain("6");
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+    });
+
+    it("per_day: max keeps the higher of the day's readings", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { mood_am: 5, mood_pm: 7 } }];
+        const el = map("source: Diary\nfield: [mood_am, mood_pm]\nper_day: max", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-01"));
+        expect(cell?.getAttribute("title")).toContain("7");
+    });
+
+    it("an invalid per_day warns naming the options and falls back to sum", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { steps: 100 } }];
+        const el = map("source: Diary\nfield: steps\nper_day: median", mockContext({ notes }));
+        expect(diagnostics(el, "warning")[0]).toContain("median");
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-01"));
+        expect(cell?.getAttribute("title")).toContain("100");
+    });
+
+    it("an empty field list is an error, not an empty grid", () => {
+        const el = map("source: Diary\nfield: []", ctx);
+        expect(diagnostics(el, "error")).toHaveLength(1);
+        expect(diagnostics(el, "error")[0]).toContain("empty list");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a non-string entry in the field list is an error naming it", () => {
+        const el = map("source: Diary\nfield: [mood_am, 5]", ctx);
+        expect(diagnostics(el, "error")).toHaveLength(1);
+        expect(diagnostics(el, "error")[0]).toContain("5");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("one misspelled field among several warns naming it, without hiding the rest of the data", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { mood_am: 5 } }];
+        const el = map("source: Diary\nfield: [mood_am, mood_pn]", mockContext({ notes }));
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(diagnostics(el, "warning")[0]).toContain("mood_pn");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+    });
+
+    it("every field missing from the selection errors, naming each one", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { unrelated: 1 } }];
+        const el = map("source: Diary\nfield: [mood_am, mood_pm]", mockContext({ notes }));
+        const errors = diagnostics(el, "error");
+        expect(errors).toHaveLength(2);
+        expect(errors.some((m) => m.includes("mood_am"))).toBe(true);
+        expect(errors.some((m) => m.includes("mood_pm"))).toBe(true);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a dotted path inside a list works", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { health: { sleep: 80 }, mood_pm: 4 } }];
+        const el = map("source: Diary\nfield: [health.sleep, mood_pm]", mockContext({ notes }));
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-01"));
+        expect(cell?.getAttribute("title")).toContain("84");
+    });
+
+    it("the caption and the cell tooltip show the field names joined with a comma", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { mood_am: 5, mood_pm: 7 } }];
+        const el = map("source: Diary\nfield: [mood_am, mood_pm]", mockContext({ notes }));
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        expect(caption).toContain("mood_am, mood_pm");
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-01"));
+        expect(cell?.getAttribute("title")).toContain("mood_am, mood_pm");
+    });
+
+    // (5 + 7 + 8) / 3 = 6.666666666666667 unrounded: the tooltip is a
+    // `title`/`aria-label`, not a card, and must not carry either the raw
+    // float or `formatValue`'s narrow no-break space digit grouping.
+    it("per_day: avg over three contributions rounds the tooltip to one decimal", () => {
+        const notes = [
+            { path: "Diary/2026-01-01.md", frontmatter: { mood_am: 5, mood_pm: 7 } },
+            { path: "Diary/2026-01-01 evening.md", frontmatter: { mood_am: 8 } },
+        ];
+        const el = map("source: Diary\nfield: [mood_am, mood_pm]\nper_day: avg", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-01"));
+        expect(cell?.getAttribute("title")).toBe("2026-01-01: mood_am, mood_pm 6.7");
+    });
+
+    it("a field of the wrong shape (not a string or a list) is an error naming the value", () => {
+        const el = map("source: Diary\nfield: 5", ctx);
+        const errors = diagnostics(el, "error");
+        expect(errors).toHaveLength(1);
+        expect(errors[0]).toContain("5");
+        expect(errors[0]).not.toContain("No `field` given");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("field simply absent still reads the plain \"no field given\" error", () => {
+        const el = map("source: Diary", ctx);
+        expect(diagnostics(el, "error")[0]).toContain("No `field` given");
+    });
+
+    it("a duplicate entry in the field list does not count twice", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { steps: 100 } }];
+        const el = map("source: Diary\nfield: [steps, steps]", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-01"));
+        expect(cell?.getAttribute("title")).toContain("100");
+        expect(cell?.getAttribute("title")).not.toContain("200");
+    });
+});
+
 describe("heatmap — never a year later than today (B-113)", () => {
     const TODAY = new Date(2026, 8, 24); // 24 September 2026
 

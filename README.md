@@ -310,9 +310,10 @@ title: Sleep, last twelve months
 A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 Monday` counts,
 `2026-01-051` does not), unless `date_field` names a frontmatter date property instead. That is
 how the block knows which cell it belongs to. Two or more notes landing on the same day paint
-one cell: their values sum, and a ticked or numeric note always outweighs a `false` one on the
-same day. A sum suits steps or pages split across two notes; a mood rated 7 and then 8 reads as
-15, so keep a score like that in one note a day. Clicking a cell opens that day's note; with more than one contributing, it opens the
+one cell, and a ticked or numeric contributor always outweighs a `false` one on the same day.
+`per_day` says how the day's values combine: `sum` (the default) suits steps or pages split
+across two notes, `avg` suits a score logged more than once a day, and `max` keeps the best
+reading. Clicking a cell opens that day's note; with more than one contributing, it opens the
 first by path. The week starts where your language starts it: Monday here, Sunday in the US,
 Canada and Japan.
 
@@ -326,6 +327,11 @@ fine everywhere else. Without `bands`, every painted day is the same colour: set
 to get a scale, otherwise the colour says which days have data, not how much. Years come
 from the data, newest first, but never one later than today: a note dated in the future
 counts nowhere in the grid.
+
+Logging mood in the morning and evening as two separate properties instead of one note a day?
+`field` also takes a list: `field: [mood_am, mood_pm]` with `per_day: avg` collapses both into
+one cell showing the day's average, the same as it would across two separate notes. A property
+listed twice by mistake is only counted once.
 
 ## It keeps up with the vault
 

@@ -106,6 +106,12 @@ export const en = {
         "No note in the selection has \"{field}\". Check the name and `source`.",
     "heatmap.fieldNotNumeric":
         "\"{field}\" holds text or another value that is not a number or a checkbox. Use `where: \"{field} contains ...\"` with `agg: count` in a stats card to count it instead.",
+    "heatmap.fieldInvalid": "`field` expects a property name or a list of them, got \"{value}\".",
+    "heatmap.fieldListEmpty": "`field` is an empty list. Add at least one property name.",
+    "heatmap.fieldListInvalid": "`field` list items must be plain property names, got \"{value}\".",
+    "heatmap.perDayInvalid": "`per_day` expects sum, avg or max, got \"{value}\". Using sum.",
+    "heatmap.fieldUnused":
+        "\"{field}\" never contributed a value here. Check the name, or that it actually holds a number or checkbox.",
     "heatmap.caption": "{year}, {field}: average {average}, {present} of {total} days",
     "heatmap.captionMarks": "{year}, {field}: {present} of {total} days",
     "heatmap.titleYear": "{title} ({year})",

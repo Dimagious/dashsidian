@@ -100,6 +100,12 @@ export const fr: Catalog = {
         "Aucune note de la sélection n'a « {field} ». Vérifiez le nom et `source`.",
     "heatmap.fieldNotNumeric":
         "« {field} » contient du texte ou une autre valeur qui n'est pas un nombre ni une case à cocher. Utilisez `where: \"{field} contains ...\"` avec `agg: count` dans une carte stats pour le compter.",
+    "heatmap.fieldInvalid": "`field` attend un nom de propriété ou une liste de ceux-ci, reçu « {value} ».",
+    "heatmap.fieldListEmpty": "`field` est une liste vide. Ajoutez au moins un nom de propriété.",
+    "heatmap.fieldListInvalid": "Les éléments de la liste `field` doivent être de simples noms de propriétés, reçu « {value} ».",
+    "heatmap.perDayInvalid": "`per_day` attend sum, avg ou max, reçu « {value} ». Utilisation de sum.",
+    "heatmap.fieldUnused":
+        "« {field} » n'a jamais fourni de valeur ici. Vérifiez le nom, ou qu'il contient bien un nombre ou une case à cocher.",
     "heatmap.caption": "{year}, {field} : moyenne {average}, {present} jours sur {total}",
     "heatmap.captionMarks": "{year}, {field} : {present} jours sur {total}",
     "heatmap.titleYear": "{title} ({year})",

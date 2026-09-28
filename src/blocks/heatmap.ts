@@ -1,9 +1,10 @@
 import type { BlockContext } from "./context";
 import { weekdayNamesShort, monthNamesShort, firstDayOfWeek } from "../adapters/datetime";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
-import { numberAt, isFalseMark, isBooleanMark, classifyField } from "../core/aggregate";
-import { readDateField, resolveNoteDate } from "../core/note-date";
-import { formatValue } from "../core/stat";
+import { classifyField } from "../core/aggregate";
+import { readFields, readPerDay, dayValues, unusedFields, type DayMark } from "../core/day-values";
+import { readDateField } from "../core/note-date";
+import { formatValue, roundedValue } from "../core/stat";
 import { layoutYear, dateKey, eachDay, yearsOf, rotateWeekdays, weekdayRow } from "../core/calendar";
 import { toRgb, rgba, type Rgb } from "../core/palette";
 import { readBands, bandFor, type Band } from "../core/bands";
@@ -107,17 +108,28 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     }
     diags.push(...unknownKeys(value, KNOWN));
 
-    const field = typeof value.field === "string" ? value.field : null;
-    if (!field) {
-        diags.push({ level: "error", message: t("heatmap.fieldRequired") });
+    const { fields, diagnostics: fieldDiags } = readFields(value);
+    diags.push(...fieldDiags);
+    if (!fields) {
+        // `readFields` already reported a malformed `field` (an empty or
+        // invalid list, or a value of the wrong shape entirely) with its own
+        // error; `field` simply absent is the one case it stays silent
+        // about, left to the plain "no field given" here.
+        if (!fieldDiags.length) diags.push({ level: "error", message: t("heatmap.fieldRequired") });
         renderDiagnostics(el, "heatmap", diags);
         return;
     }
+    // Shown wherever a field name is shown to a reader — the caption, a
+    // cell's tooltip — so two fields read as "mood_am, mood_pm" rather than
+    // only the first one silently standing in for both.
+    const fieldLabel = fields.join(", ");
 
     const color = toRgb(value.color);
     const bands = readBands(value.bands);
     const linkable = value.link !== false;
     const dateField = readDateField(value);
+    const { perDay, diagnostics: perDayDiags } = readPerDay(value);
+    diags.push(...perDayDiags);
 
     const { spec: selection, diagnostics: sourceDiags } = readSource(value);
     diags.push(...sourceDiags);
@@ -125,56 +137,43 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
     const notes = selectNotes(ctx.notes(), selection);
 
-    // One entry per day the field resolved on at all. Two or more notes
-    // landing on the same day (`date_field`, or names like "2026-01-02" and
-    // "2026-01-02 Monday" in different folders) are one cell, not two: its
-    // value is their sum (steps logged in two notes add up), and it counts
-    // as painted the moment any of them is — a boolean `false` never hides a
-    // number or a ticked `true` on the same day, only outweighs a day where
-    // every contributing note is `false`. A `false`-only day still lands
-    // here, with `painted: false`: that day still tells the block the field
-    // exists, it just does not get coloured. Without the distinction, a
-    // field that is `false` on every day looked identical to a field nothing
-    // ever set, and a stats `avg` over the same field would silently disagree
-    // with the heatmap's own caption about what the average is.
-    const groups = new Map<string, DayGroup>();
-    for (const n of notes) {
-        const day = resolveNoteDate(n, dateField);
-        if (day === null) continue;
-        const v = numberAt(n, field);
-        if (v === null) continue;
-        const painted = !isFalseMark(n, field);
-        const g = groups.get(day) ?? { sum: 0, paintedPath: null, allBool: true };
-        g.sum += v;
-        g.allBool = g.allBool && isBooleanMark(n, field);
-        // The cell links to one note deterministically: the first by path
-        // among the notes that contributed a painted value, regardless of
-        // the order the vault happened to hand the notes in.
-        if (painted && (g.paintedPath === null || n.path < g.paintedPath)) g.paintedPath = n.path;
-        groups.set(day, g);
-    }
-    const marks = new Map<string, DayMark>();
-    for (const [day, g] of groups) {
-        marks.set(day, { value: g.sum, path: g.paintedPath ?? "", isBool: g.allBool, painted: g.paintedPath !== null });
-    }
+    // One entry per day any of `fields` resolved on at all — see
+    // `core/day-values.ts` for how a day's contributors (two notes, two
+    // fields in one note, or both at once) collapse into its one value.
+    const marks = dayValues(notes, fields, perDay, dateField);
 
     if (!marks.size) {
-        // Distinguishes "nobody ever wrote this key" from "somebody did, but
-        // as text" from the residual case where the field is genuinely fine
-        // somewhere in the selection and the real problem is dates (kept as
-        // the original, more general message): a typo in `field` and a
-        // Garmin `running: "10 km · 51min"` both used to read as the same
-        // generic "no data", which sent a reader with the right `source`
-        // chasing the wrong fix (B-112).
-        const status = classifyField(notes, field);
-        const message = status === "missing"
-            ? t("heatmap.fieldMissing", { field })
-            : status === "not-numeric"
-                ? t("heatmap.fieldNotNumeric", { field })
-                : t("heatmap.noData", { field });
-        diags.push({ level: "error", message });
+        // Reported per field, not lumped together: a typo in one entry of a
+        // `field` list should read as "this one is wrong", not "nothing
+        // works". Distinguishes "nobody ever wrote this key" from "somebody
+        // did, but as text" from the residual case where the field is
+        // genuinely fine somewhere in the selection and the real problem is
+        // dates (kept as the original, more general message): a typo in
+        // `field` and a Garmin `running: "10 km · 51min"` both used to read
+        // as the same generic "no data", which sent a reader with the right
+        // `source` chasing the wrong fix (B-112).
+        for (const field of fields) {
+            const status = classifyField(notes, field);
+            const message = status === "missing"
+                ? t("heatmap.fieldMissing", { field })
+                : status === "not-numeric"
+                    ? t("heatmap.fieldNotNumeric", { field })
+                    : t("heatmap.noData", { field });
+            diags.push({ level: "error", message });
+        }
         renderDiagnostics(el, "heatmap", diags);
         return;
+    }
+
+    // At least one field carried the day; a sibling entry that never
+    // contributed anywhere in the selection is most likely a typo, not a
+    // deliberate no-op — worth a warning, not silence. A single `field` is
+    // never checked here: if it were unused, `marks` would still be empty
+    // and the block would already have returned above.
+    if (fields.length > 1) {
+        for (const field of unusedFields(notes, fields)) {
+            diags.push({ level: "warning", message: t("heatmap.fieldUnused", { field }) });
+        }
     }
 
     renderDiagnostics(el, "heatmap", diags);
@@ -196,7 +195,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
         // otherwise two grids under the same custom title read as the same
         // thing drawn twice, which is exactly how it was first reported.
         const observer = drawYear(el, year, today, marks, {
-            color, bands, field, linkable, title: value.title, firstDay,
+            color, bands, field: fieldLabel, linkable, title: value.title, firstDay,
             severalYears: yearsToDraw.length > 1,
             restore: restoreByYear.get(year),
         });
@@ -214,26 +213,10 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     }
 }
 
-/** A day the field resolved on. `painted` is false only for a boolean `false`. */
-interface DayMark {
-    value: number;
-    path: string;
-    isBool: boolean;
-    painted: boolean;
-}
-
-/** Accumulator for one day while its contributing notes are being folded together. */
-interface DayGroup {
-    sum: number;
-    /** the painted contributor with the smallest path so far, or null when none yet is */
-    paintedPath: string | null;
-    /** whether every contributing note has been a boolean mark so far */
-    allBool: boolean;
-}
-
 interface DrawOptions {
     color: Rgb;
     bands: Band[];
+    /** already the display form: one field name, or several joined with ", " */
     field: string;
     linkable: boolean;
     title: unknown;
@@ -348,7 +331,14 @@ function drawYear(
             : grid.createDiv({ cls: "dashy-hm-cell" });
         if (paintable) {
             const band = bandFor(opts.bands, paintable.value);
-            const tooltip = t("heatmap.cell", { date, field: opts.field, value: paintable.value });
+            // Rounded the same way a card would (`roundedValue`, not
+            // `formatValue`): an integer stays exactly as is (a sum of
+            // whole numbers reads "8000", not "8 000"), and a fraction from
+            // `per_day: avg` gets one decimal instead of the sixteen a raw
+            // JS float division produces. `formatValue`'s own digit
+            // grouping is left out on purpose — its narrow no-break space
+            // has no business inside a `title` attribute.
+            const tooltip = t("heatmap.cell", { date, field: opts.field, value: roundedValue(paintable.value) });
             cell.style.backgroundColor = rgba(opts.color, band?.alpha ?? 1);
             cell.setAttr("aria-label", tooltip);
             cell.setAttr("title", tooltip);

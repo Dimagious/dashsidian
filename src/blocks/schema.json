@@ -366,13 +366,18 @@
           "doc": "a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; the field name may be a dotted path into a nested property, like `health.sleep > 70`; `and`/`or` are not supported"
         },
         "field": {
-          "type": "string",
+          "type": "string|list",
           "required": true,
-          "doc": "numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty; dotted for a nested one like `health.sleep`. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: \"field contains ...\"` and `agg: count`",
+          "doc": "numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty; dotted for a nested one like `health.sleep`. Also takes a list, like `[mood_am, mood_pm]`, to collapse several properties from the same note into one day with `per_day`. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: \"field contains ...\"` and `agg: count`",
           "aliases": [
             "property",
             "prop"
           ]
+        },
+        "per_day": {
+          "type": "string",
+          "default": "sum",
+          "doc": "how several values landing on one day combine: sum, avg or max. Several values happen either from two or more notes on the same day, or from a `field` list on one note, or both at once. An unrecognised value warns and falls back to sum"
         },
         "date_field": {
           "type": "string",
@@ -403,7 +408,7 @@
       "example": "source: 01-Areas/Personal/Diary\nfield: sleep_score\ncolor: purple\nbands: [90, 80, 60]",
       "notes": [
         "A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 Monday` counts, `2026-01-051` does not), unless `date_field` names a property instead. That is how the block knows which cell it belongs to.",
-        "Two or more notes landing on the same day paint one cell: its value is their sum, and a ticked or numeric note always outweighs a false one on the same day.",
+        "Two or more notes landing on the same day paint one cell, and so does a `field` list on one note: `per_day` (default sum) says how the day's values combine, and a ticked or numeric contributor always outweighs a false one on the same day.",
         "Years are taken from the data, newest first, but never one later than today: a note dated in the future draws nothing extra and counts nowhere in the grid. If every dated note turns out to be in the future, the current year is still drawn, empty."
       ]
     }

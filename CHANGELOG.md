@@ -20,6 +20,19 @@ removed public export.
   list is never indexed (`runs.0` finds nothing), and a path that meets
   anything but a nested object partway resolves to nothing rather than
   erroring. Schema 1.6.0.
+- **`heatmap`'s `field` takes a list, and `per_day` says how a day's values
+  combine.** `field: [mood_am, mood_pm]` collapses several properties on one
+  note into a single cell, the same way two notes on the same day already
+  did; `per_day: sum` (the default, unchanged from before), `avg` or `max`
+  now controls that collapse either way, and applies whether it is several
+  notes, several fields, or both at once landing on a day. A field absent
+  from a note contributes nothing, not a zero. An unrecognised `per_day`
+  warns naming the valid options and falls back to `sum`; an empty `field`
+  list or a non-string entry in it is an error; a field that never
+  contributes anywhere in a multi-field list warns naming it, so a typo in
+  one entry does not read as "nothing works". A repeated entry in the list
+  is counted once, and a cell's tooltip rounds an averaged value the same
+  way a stats card would, instead of a raw JavaScript float.
 
 ### Docs
 
