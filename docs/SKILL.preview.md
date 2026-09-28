@@ -7,7 +7,7 @@ description: >-
   for a dashboard, a home page, a tile grid, cards with counters or averages, a
   link to today's note, a day calendar, a heatmap, a habit tracker or a visual
   entry point into the vault.
-version: 1.5.0
+version: 1.6.0
 ---
 
 # Dashy — dashboard blocks
@@ -36,9 +36,9 @@ A grid of link tiles for navigating the vault.
 | `label` | string | yes | — | `title`, `name` | caption |
 | `path` | string | yes | — | — | where it leads; understands File.base#View |
 | `tag` | string | — | — | — | tag, with or without the hash; narrows `badge: count` |
-| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported; narrows `badge: count` |
+| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; the field name may be a dotted path into a nested property, like `health.sleep > 70`; `and`/`or` are not supported; narrows `badge: count` |
 | `period` | string\|number | — | — | — | narrow `badge: count` to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. Notes without a date are left out first. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages |
-| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name for `period`: `2026-03-02` or `2026-03-02T10:30`; has no effect without `period` |
+| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name for `period`: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`; has no effect without `period` |
 | `icon` | string | — | — | `emoji` | emoji |
 | `sub` | string | — | — | — | small caption under the title |
 | `badge` | string\|number | — | — | — | count, meaning the number of notes in the folder narrowed by `tag`, `where` and `period` when given, or your own string |
@@ -73,12 +73,12 @@ Number cards: one value per card, computed over a selection of notes.
 | `label` | string | yes | — | `title`, `name` | caption under the number |
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
-| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported |
+| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; the field name may be a dotted path into a nested property, like `health.sleep > 70`; `and`/`or` are not supported |
 | `period` | string\|number | — | — | — | narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. Notes without a date are left out first, then every agg, count included, runs on what remains. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages |
-| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`. Feeds `period`'s window and the `streak`, `latest` and `trend` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` |
+| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`. Feeds `period`'s window and the `streak`, `latest` and `trend` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` |
 | `compare` | boolean | — | — | — | show the delta against the same stretch of the previous period, to date: this week compares against the same weekdays last week, not the whole of last week. Only with `period` set, and not with `agg: streak` |
 | `better` | string | — | — | — | `up` colours a rise green and a fall red; `down` reverses that for a number where less is better. No change stays neutral either way. Only with `compare: true` |
-| `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: "field contains ..."` and `agg: count` |
+| `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0), dotted for a nested one like `health.sleep`; required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: "field contains ..."` and `agg: count` |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
 | `unit` | string | — | — | — | a suffix after the number: km, %, d. |
 | `precision` | number | — | — | — | decimal places, 0 to 6; by default a whole number stays whole and a fraction gets one decimal |
@@ -123,10 +123,10 @@ Bars towards a goal: how far a number has come against a target.
 | `goal` | number | yes | — | `target` | the target to fill towards; must be above zero |
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
-| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported |
+| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; the field name may be a dotted path into a nested property, like `health.sleep > 70`; `and`/`or` are not supported |
 | `period` | string\|number | — | — | — | narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. The goal is measured against the period's value; notes without a date are left out first. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages |
-| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`. Feeds `period`'s window and the `streak` and `latest` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` |
-| `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: "field contains ..."` and `agg: count` |
+| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`. Feeds `period`'s window and the `streak` and `latest` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` |
+| `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0), dotted for a nested one like `health.sleep`; required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: "field contains ..."` and `agg: count` |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
 | `unit` | string | — | — | — | a suffix after the numbers: km, %, d. |
 | `precision` | number | — | — | — | decimal places, 0 to 6; by default a whole number stays whole and a fraction gets one decimal |
@@ -220,9 +220,9 @@ A year by days: one cell per day, coloured by a number from frontmatter.
 |---|---|---|---|---|---|
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
-| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported |
-| `field` | string | yes | — | `property`, `prop` | numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: "field contains ..."` and `agg: count` |
-| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30` |
+| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; the field name may be a dotted path into a nested property, like `health.sleep > 70`; `and`/`or` are not supported |
+| `field` | string | yes | — | `property`, `prop` | numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty; dotted for a nested one like `health.sleep`. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: "field contains ..."` and `agg: count` |
+| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date` |
 | `color` | string | — | `blue` | `colour` | blue green cyan purple pink orange red gray, or #rrggbb |
 | `bands` | list | — | — | — | thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band. Without `bands`, every day with data paints the same single colour: there is no automatic scale from the data's own minimum and maximum |
 | `link` | boolean | — | `true` | — | clicking a cell opens that day's note |

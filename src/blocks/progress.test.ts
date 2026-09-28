@@ -42,6 +42,31 @@ describe("progress — the bar says what the number says", () => {
     });
 });
 
+describe("progress — a nested frontmatter path in field (B-100)", () => {
+    const nested = mockContext({
+        notes: [
+            { path: "Diary/2026-01-01.md", frontmatter: { health: { steps: 4000 } } },
+            { path: "Diary/2026-01-02.md", frontmatter: { health: { steps: 6000 } } },
+        ],
+    });
+    const nestedBars = (config: string) => {
+        const el = host();
+        renderProgress(nested, config, el);
+        return el;
+    };
+
+    it("sums a dotted path towards the goal", () => {
+        const el = nestedBars("items:\n  - { label: Steps, source: Diary, field: health.steps, agg: sum, goal: 20000 }");
+        expect(texts(el, ".dashy-progress-value")[0]).toContain("10 000 / 20 000");
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+    });
+
+    it("a truly missing nested path warns and names it", () => {
+        const el = nestedBars("items:\n  - { label: Km, source: Diary, field: health.km, agg: sum, goal: 100 }");
+        expect(diagnostics(el, "warning")[0]).toContain("health.km");
+    });
+});
+
 describe("progress — past the goal", () => {
     it("the percent keeps climbing past 100", () => {
         const el = bars("items:\n  - { label: Days, source: Diary, agg: count, goal: 4 }");

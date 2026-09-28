@@ -542,6 +542,39 @@ describe("heatmap — edges", () => {
     });
 });
 
+describe("heatmap — nested frontmatter paths (B-100)", () => {
+    const nested = mockContext({
+        notes: [
+            { path: "Diary/2026-01-01.md", frontmatter: { health: { sleep: 92 } } },
+            { path: "Diary/2026-01-02.md", frontmatter: { health: { sleep: 60 } } },
+        ],
+    });
+
+    it("renders from a nested field without a false missing-field diagnostic", () => {
+        const el = map("source: Diary\nfield: health.sleep", nested);
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        const coloured = nodes(el, ".dashy-hm-cell").filter((c) => c.style.backgroundColor !== "");
+        expect(coloured).toHaveLength(2);
+    });
+
+    it("names the dotted path when truly missing", () => {
+        const el = map("source: Diary\nfield: health.steps", nested);
+        expect(diagnostics(el, "error")[0]).toContain("health.steps");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a path that hits a non-object midway resolves to nothing, same as a missing field", () => {
+        const flat = mockContext({
+            notes: [{ path: "Diary/2026-01-01.md", frontmatter: { health: 92 } }],
+        });
+        const el = map("source: Diary\nfield: health.sleep", flat);
+        const message = diagnostics(el, "error")[0] ?? "";
+        expect(message).toContain("health.sleep");
+        expect(message).toContain("Check the name");
+    });
+});
+
 describe("heatmap — never a year later than today (B-113)", () => {
     const TODAY = new Date(2026, 8, 24); // 24 September 2026
 

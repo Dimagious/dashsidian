@@ -214,6 +214,12 @@ a plausible-looking zero that hides a typo. A field that holds text instead of a
 like Garmin's `running: "10 km · 51min"`, warns too; count how many notes have it set with
 `where: "field contains ..."` and `agg: count` instead.
 
+`field` reaches into a nested frontmatter property too: `field: health.sleep` reads `sleep`
+under a top-level `health:` map. A literal key with a dot in it wins first, since YAML
+allows one and some vaults already have `health.sleep: 82` written flat; only when that
+exact key is absent does the path get split and walked. A list is never indexed, so
+`runs.0` finds nothing. `where` understands the same dotted paths: `where: "health.sleep >= 80"`.
+
 Add `period: week`, `month` or `year` and the card counts only the current calendar one,
 ending today; a rolling count of days works too, `period: 30d`. A note's date is its name, as
 long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` and `2026-03-02_standup` both count,

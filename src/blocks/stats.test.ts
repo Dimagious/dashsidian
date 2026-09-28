@@ -82,6 +82,48 @@ describe("stats — the numbers are the real ones", () => {
     });
 });
 
+describe("stats — a nested frontmatter path in field (B-100)", () => {
+    const nested = mockContext({
+        notes: [
+            { path: "Diary/2026-01-01.md", frontmatter: { health: { sleep: 92 } } },
+            { path: "Diary/2026-01-02.md", frontmatter: { health: { sleep: 60 } } },
+        ],
+    });
+    const nestedCard = (config: string) => {
+        const el = host();
+        renderStats(nested, config, el);
+        return el;
+    };
+
+    it("sum, avg and streak all read a dotted path", () => {
+        const el = nestedCard(`items:
+  - { label: Sum, source: Diary, field: health.sleep, agg: sum }
+  - { label: Avg, source: Diary, field: health.sleep, agg: avg }
+  - { label: Streak, source: Diary, field: health.sleep, agg: streak }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["152", "76", "2"]);
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+    });
+
+    it("a nested field present in every note does not trigger the missing-field warning", () => {
+        const el = nestedCard("items:\n  - { label: Sleep, source: Diary, field: health.sleep, agg: avg }");
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+    });
+
+    it("a truly missing nested path warns and names it", () => {
+        const el = nestedCard("items:\n  - { label: Steps, source: Diary, field: health.steps, agg: sum }");
+        expect(diagnostics(el, "warning")[0]).toContain("health.steps");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
+    });
+
+    it("asking for a whole map warns not-numeric and names the map's own key, not a leaf", () => {
+        const el = nestedCard("items:\n  - { label: Health, source: Diary, field: health, agg: sum }");
+        const message = diagnostics(el, "warning")[0] ?? "";
+        expect(message).toContain("\"health\"");
+        expect(message).toContain("holds text or another value that is not a number");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
+    });
+});
+
 describe("stats — the trend beside the number", () => {
     // A trailing window needs dates near now, or it is empty and proves nothing.
     const recent = mockContext({ notes: recentDiary("Recent", 40, (i) => ({ v: 60 + i })) });

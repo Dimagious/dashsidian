@@ -111,6 +111,17 @@ describe("classifyField", () => {
     it("not-numeric for an empty string", () => {
         expect(classifyField([day("x", { v: "" })], "v")).toBe("not-numeric");
     });
+
+    it("ok for a nested field once a single note has a usable value (B-100)", () => {
+        expect(classifyField([day("x", { health: { sleep: 82 } })], "health.sleep")).toBe("ok");
+    });
+    it("missing for a nested field no note carries", () => {
+        expect(classifyField([day("x", { health: { sleep: 82 } })], "health.steps")).toBe("missing");
+        expect(classifyField([day("x", { health: 82 })], "health.sleep")).toBe("missing");
+    });
+    it("not-numeric when field asks for a whole map rather than a leaf value", () => {
+        expect(classifyField([day("x", { health: { sleep: 82 } })], "health")).toBe("not-numeric");
+    });
 });
 
 describe("aggregate", () => {
@@ -384,6 +395,51 @@ describe("aggregate", () => {
                 noteAt("Books/b.md", "b", { finished: "2026-06-01", rating: 5 }),
             ];
             expect(aggregate(notes, { agg: "latest", field: "rating", dateField: "finished" })).toBe(5);
+        });
+    });
+
+    describe("nested frontmatter paths (B-100)", () => {
+        const healthDays = [
+            day("2026-09-19", { health: { sleep: 92 } }),
+            day("2026-09-20", { health: { sleep: 69 } }),
+            day("2026-09-21", { health: { sleep: 92 } }),
+            day("2026-09-23", { health: { sleep: 80 } }),
+        ];
+
+        it("sum over a nested field", () => {
+            expect(aggregate(healthDays, { agg: "sum", field: "health.sleep" })).toBe(333);
+        });
+        it("avg over a nested field", () => {
+            expect(aggregate(healthDays, { agg: "avg", field: "health.sleep" })).toBe(83.25);
+        });
+        it("streak over a nested field", () => {
+            expect(aggregate(healthDays, { agg: "streak", field: "health.sleep" })).toBe(3);
+        });
+        it("latest over a nested field", () => {
+            expect(aggregate(healthDays, { agg: "latest", field: "health.sleep" })).toBe(80);
+        });
+
+        it("a checkbox at a nested path counts 1/0", () => {
+            const gymDays = [
+                day("2026-09-19", { habits: { gym: true } }),
+                day("2026-09-20", { habits: { gym: false } }),
+                day("2026-09-21", { habits: { gym: true } }),
+            ];
+            expect(aggregate(gymDays, { agg: "sum", field: "habits.gym" })).toBe(2);
+        });
+
+        it("a nested false breaks a streak, the same as a top-level one", () => {
+            const week = [
+                day("2026-09-18", { habits: { gym: true } }),
+                day("2026-09-19", { habits: { gym: true } }),
+                day("2026-09-20", { habits: { gym: false } }),
+                day("2026-09-21", { habits: { gym: true } }),
+            ];
+            expect(aggregate(week, { agg: "streak", field: "habits.gym" })).toBe(2);
+        });
+
+        it("a field missing at every note is a dash, path included in the report upstream", () => {
+            expect(aggregate(healthDays, { agg: "sum", field: "health.steps" })).toBeNull();
         });
     });
 });

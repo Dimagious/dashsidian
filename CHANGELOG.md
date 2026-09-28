@@ -10,6 +10,17 @@ removed public export.
 
 ## [Unreleased]
 
+### Added
+
+- **`field`, `where` and `date_field` reach into nested frontmatter, not only
+  the top level.** `field: health.sleep` reads `sleep` under a top-level
+  `health:` map, the same way for every block that reads a field, for `where`
+  conditions (`health.sleep >= 80`) and for `date_field` (`meta.date`). A
+  literal key with a dot in it, if one is written flat, still wins first; a
+  list is never indexed (`runs.0` finds nothing), and a path that meets
+  anything but a nested object partway resolves to nothing rather than
+  erroring. Schema 1.6.0.
+
 ### Docs
 
 - **`streak` and the heatmap's default colouring are now spelled out in the

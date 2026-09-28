@@ -5,6 +5,7 @@
 import type { NoteRecord } from "./source";
 import { longestStreak, dateKey } from "./calendar";
 import { resolveNoteDate } from "./note-date";
+import { readField, hasField } from "./field";
 
 export const AGGS = ["count", "sum", "avg", "min", "max", "latest", "streak"] as const;
 export type Agg = (typeof AGGS)[number];
@@ -19,9 +20,12 @@ export function isAgg(v: unknown): v is Agg {
  * Obsidian checkbox property doubles as a habit-tracker field. Only a real
  * boolean qualifies: the strings `"true"`/`"false"` a user might type by hand
  * stay non-numeric, unchanged.
+ *
+ * `field` may be a dotted path into a nested frontmatter object (`health.sleep`);
+ * see core/field.ts for the resolution rule.
  */
 export function numberAt(note: NoteRecord, field: string): number | null {
-    const raw = note.frontmatter[field];
+    const raw = readField(note.frontmatter, field);
     if (typeof raw === "boolean") return raw ? 1 : 0;
     if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
     if (typeof raw === "string" && raw.trim() !== "") {
@@ -38,12 +42,12 @@ export function numberAt(note: NoteRecord, field: string): number | null {
  * literal zero reading does not silently disappear from either.
  */
 export function isFalseMark(note: NoteRecord, field: string): boolean {
-    return note.frontmatter[field] === false;
+    return readField(note.frontmatter, field) === false;
 }
 
 /** True when the field holds a genuine YAML boolean rather than a number or a numeric string. */
 export function isBooleanMark(note: NoteRecord, field: string): boolean {
-    return typeof note.frontmatter[field] === "boolean";
+    return typeof readField(note.frontmatter, field) === "boolean";
 }
 
 export type FieldStatus = "missing" | "not-numeric" | "ok";
@@ -59,14 +63,16 @@ export type FieldStatus = "missing" | "not-numeric" | "ok";
  * is fixed by renaming the key. Shared by the heatmap's own diagnostic and
  * the same warning on stats/progress cards (B-111, B-112).
  *
- * `hasOwnProperty` rather than the `in` operator: `"constructor" in {}` is
- * true (it resolves up the prototype chain), which would read a field named
- * `constructor` or `__proto__` as present on every note that never set it.
+ * Presence goes through `hasField` (core/field.ts), which reads own
+ * properties only — `"constructor" in {}` is true (it resolves up the
+ * prototype chain), which would read a field named `constructor` or
+ * `__proto__` as present on every note that never set it — and understands a
+ * dotted `field` as a nested path.
  */
 export function classifyField(notes: readonly NoteRecord[], field: string): FieldStatus {
     let present = false;
     for (const n of notes) {
-        if (!Object.prototype.hasOwnProperty.call(n.frontmatter, field)) continue;
+        if (!hasField(n.frontmatter, field)) continue;
         present = true;
         if (numberAt(n, field) !== null) return "ok";
     }

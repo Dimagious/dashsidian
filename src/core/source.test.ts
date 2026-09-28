@@ -35,6 +35,11 @@ describe("parseWhere", () => {
     it("handles a non-ASCII value", () => {
         expect(parseWhere("tags contains книги")).toEqual({ field: "tags", op: "contains", value: "книги" });
     });
+
+    it("a dotted field name parses like any other", () => {
+        expect(parseWhere("health.sleep >= 80")).toEqual({ field: "health.sleep", op: ">=", value: 80 });
+        expect(parseWhere("health.mood contains good")).toEqual({ field: "health.mood", op: "contains", value: "good" });
+    });
 });
 
 describe("selectNotes", () => {
@@ -64,6 +69,23 @@ describe("selectNotes", () => {
 
     it("conditions combine", () => {
         expect(selectNotes(vault, { source: "01-Areas", where: "rating >= 5" })).toHaveLength(1);
+    });
+
+    it("where filters on a nested frontmatter path", () => {
+        const notes = [
+            note({ path: "a.md", frontmatter: { health: { sleep: 82 } } }),
+            note({ path: "b.md", frontmatter: { health: { sleep: 60 } } }),
+            note({ path: "c.md", frontmatter: {} }),
+        ];
+        expect(selectNotes(notes, { where: "health.sleep >= 80" })).toEqual([notes[0]]);
+    });
+
+    it("where on a literal dotted key still works", () => {
+        const notes = [
+            note({ path: "a.md", frontmatter: { "health.sleep": 82 } }),
+            note({ path: "b.md", frontmatter: { "health.sleep": 60 } }),
+        ];
+        expect(selectNotes(notes, { where: "health.sleep >= 80" })).toEqual([notes[0]]);
     });
 });
 

@@ -13,6 +13,7 @@
 
 import type { NoteRecord } from "./source";
 import { dateKey } from "./calendar";
+import { readField } from "./field";
 
 /**
  * A note name starts with `YYYY-MM-DD` and the character right after it,
@@ -80,12 +81,13 @@ export function dateFromName(name: string): string | null {
  * number, free text, a missing property — has no date here, and a
  * `date_field` set on a note named for a day still has no date if the
  * property itself is missing: the name is never a fallback once `dateField`
- * is given.
+ * is given. `dateField` may itself be a dotted path into a nested object
+ * (`meta.date`); see core/field.ts for the resolution rule.
  */
 export function resolveNoteDate(note: NoteRecord, dateField?: string): string | null {
     if (!dateField) return dateFromName(note.name);
 
-    const raw = note.frontmatter[dateField];
+    const raw = readField(note.frontmatter, dateField);
     if (raw instanceof Date) {
         return Number.isNaN(raw.getTime()) ? null : dateKey(raw);
     }
