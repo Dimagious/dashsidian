@@ -157,6 +157,63 @@ describe("heatmap — colours and bands", () => {
     it("without bands there is one legend entry covering everything", () => {
         expect(texts(map("source: Diary\nfield: sleep_score"), ".dashy-hm-leg")).toEqual(["has data"]);
     });
+
+    // B-097: the fixture's `sleep_score` spans 60-89 across the month, a wide
+    // enough range that an auto-scaled heatmap would visibly shade it. It
+    // does not: every painted cell is the exact same colour, because
+    // `bands.ts` has no notion of the data's own min/max without `bands:`.
+    it("without bands, a low value and a high value paint identically: there is no scale fitted to the data", () => {
+        const el = map("source: Diary\nfield: sleep_score");
+        const painted = nodes(el, ".dashy-hm-cell")
+            .map((c) => c.style.backgroundColor)
+            .filter((c) => c !== "");
+        expect(painted.length).toBeGreaterThan(1);
+        expect(new Set(painted).size).toBe(1);
+    });
+});
+
+describe("heatmap — zero and negative values (B-097)", () => {
+    const moodCtx = mockContext({
+        notes: [
+            { path: "Diary/2026-01-01.md", frontmatter: { mood: 0 } },
+            { path: "Diary/2026-01-02.md", frontmatter: { mood: -3 } },
+            { path: "Diary/2026-01-03.md", frontmatter: { mood: 5 } },
+        ],
+    });
+
+    it("a numeric 0 is painted, not treated as an empty day", () => {
+        const el = map("source: Diary\nfield: mood", moodCtx);
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.includes("mood 0"));
+        expect(cell?.style.backgroundColor).toBeTruthy();
+    });
+
+    it("a negative value is painted too, not an error and not an empty day", () => {
+        const el = map("source: Diary\nfield: mood", moodCtx);
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.includes("mood -3"));
+        expect(cell?.style.backgroundColor).toBeTruthy();
+    });
+
+    it("with explicit bands, a negative value still falls into the bottom band rather than erroring", () => {
+        const el = map("source: Diary\nfield: mood\nbands: [10, 5, 0]", moodCtx);
+        const zeroCell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.includes("mood 0"));
+        const negCell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.includes("mood -3"));
+        expect(negCell?.style.backgroundColor).toBeTruthy();
+        // Both 0 and -3 sit below every threshold, so both fall into the
+        // same bottom band and paint identically.
+        expect(negCell?.style.backgroundColor).toBe(zeroCell?.style.backgroundColor);
+    });
+
+    it("three identical values (min == max in the data) all paint, the same colour, no NaN", () => {
+        // Nothing here divides by the data's own range, so a data set with no
+        // spread at all is not a special case: no NaN, no crash, just the one
+        // flat colour every other value would get too.
+        const flatCtx = mockContext({ notes: diary("Diary", "2026-01-01", 3, () => ({ score: 7 })) });
+        const el = map("source: Diary\nfield: score", flatCtx);
+        const painted = nodes(el, ".dashy-hm-cell").filter((c) => c.style.backgroundColor !== "");
+        expect(painted).toHaveLength(3);
+        for (const c of painted) expect(c.style.backgroundColor).not.toContain("NaN");
+        expect(new Set(painted.map((c) => c.style.backgroundColor)).size).toBe(1);
+    });
 });
 
 describe("heatmap — the caption", () => {

@@ -217,7 +217,7 @@ A year by days: one cell per day, coloured by a number from frontmatter.
 | `field` | string | yes | — | `property`, `prop` | numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: "field contains ..."` and `agg: count` |
 | `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30` |
 | `color` | string | — | `blue` | `colour` | blue green cyan purple pink orange red gray, or #rrggbb |
-| `bands` | list | — | — | — | thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band |
+| `bands` | list | — | — | — | thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band. Without `bands`, every day with data paints the same single colour: there is no automatic scale from the data's own minimum and maximum |
 | `link` | boolean | — | `true` | — | clicking a cell opens that day's note |
 | `title` | string | — | — | — | a custom heading instead of the automatic one |
 
