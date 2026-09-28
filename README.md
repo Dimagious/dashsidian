@@ -333,6 +333,27 @@ Logging mood in the morning and evening as two separate properties instead of on
 one cell showing the day's average, the same as it would across two separate notes. A property
 listed twice by mistake is only counted once.
 
+Tracking more than one activity on the same grid, each in its own colour? `layers` replaces
+`field` with a list of them, one entry per activity:
+
+````markdown
+```heatmap
+source: Diary
+layers:
+  - { field: gym, color: blue }
+  - { field: run, color: green, label: Running }
+per_day: sum
+```
+````
+
+A layer without its own `color` gets the next free one from the palette. When a day has more
+than one layer painted, the first layer in the list colours the cell and its value is what
+`bands` reads; the tooltip still lists every layer that has a value that day, so a gym-and-run
+day reads "gym 1, Running 5" rather than hiding the second number. The legend gains a row per
+layer, and, with `bands` also set, keeps its usual row too. Averaging different fields together
+would not mean anything, so with `layers` the caption drops it and just counts the days some
+layer painted.
+
 ## It keeps up with the vault
 
 Add a note, edit a number, delete something, and every block on the page redraws. No

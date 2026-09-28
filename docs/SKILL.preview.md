@@ -222,12 +222,21 @@ A year by days: one cell per day, coloured by a number from frontmatter.
 | `tag` | string | — | — | — | tag, with or without the hash |
 | `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; the field name may be a dotted path into a nested property, like `health.sleep > 70`; `and`/`or` are not supported |
 | `field` | string\|list | yes | — | `property`, `prop` | numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty; dotted for a nested one like `health.sleep`. Also takes a list, like `[mood_am, mood_pm]`, to collapse several properties from the same note into one day with `per_day`. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: "field contains ..."` and `agg: count` |
-| `per_day` | string | — | `sum` | — | how several values landing on one day combine: sum, avg or max. Several values happen either from two or more notes on the same day, or from a `field` list on one note, or both at once. An unrecognised value warns and falls back to sum |
+| `per_day` | string | — | `sum` | — | how several values landing on one day combine: sum, avg or max. Several values happen either from two or more notes on the same day, or from a `field` list on one note, or both at once. An unrecognised value warns and falls back to sum. With `layers`, it applies to each layer's own field(s) separately |
 | `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date` |
-| `color` | string | — | `blue` | `colour` | blue green cyan purple pink orange red gray, or #rrggbb |
+| `color` | string | — | `blue` | `colour` | blue green cyan purple pink orange red gray, or #rrggbb. Ignored, with a warning, when `layers` is set: each layer carries its own colour instead |
+| `layers` | list | — | — | — | several activities on one grid, each in its own colour, instead of one `field`: `[{field, color, label}]`. Not used together with the block's own `field`. The first layer painted on a day colours that cell and supplies its value and link; the tooltip lists every layer with a value that day, in list order. The caption then counts days where any layer painted and drops the average, since averaging different fields together says nothing useful |
 | `bands` | list | — | — | — | thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band. Without `bands`, every day with data paints the same single colour: there is no automatic scale from the data's own minimum and maximum |
 | `link` | boolean | — | `true` | — | clicking a cell opens that day's note |
 | `title` | string | — | — | — | a custom heading instead of the automatic one |
+
+**List item**
+
+| key | type | required | default | synonyms | what it does |
+|---|---|---|---|---|---|
+| `field` | string\|list | yes | — | `property`, `prop` | this layer's own numeric frontmatter property, or a checkbox; dotted for a nested one, or a list to collapse several properties into this layer's day. Same shapes as the block's own `field` |
+| `color` | string | — | — | `colour` | blue green cyan purple pink orange red gray, or #rrggbb. Without one, the next free colour from the palette, skipping colours other layers already claimed |
+| `label` | string | — | — | `title`, `name` | name shown in the legend and the cell tooltip. Defaults to the field name(s) |
 
 **Example**
 
@@ -243,6 +252,7 @@ bands: [90, 80, 60]
 - A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 Monday` counts, `2026-01-051` does not), unless `date_field` names a property instead. That is how the block knows which cell it belongs to.
 - Two or more notes landing on the same day paint one cell, and so does a `field` list on one note: `per_day` (default sum) says how the day's values combine, and a ticked or numeric contributor always outweighs a false one on the same day.
 - Years are taken from the data, newest first, but never one later than today: a note dated in the future draws nothing extra and counts nowhere in the grid. If every dated note turns out to be in the future, the current year is still drawn, empty.
+- `layers` replaces `field` for tracking several activities on one grid, each its own colour: `layers: [{field: gym, color: blue}, {field: run, color: green, label: Running}]`. When two layers land on the same day, the first one in the list colours the cell; the tooltip still lists every layer that has a value that day.
 
 ## What the plugin does NOT do
 

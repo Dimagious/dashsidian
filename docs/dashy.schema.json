@@ -377,7 +377,7 @@
         "per_day": {
           "type": "string",
           "default": "sum",
-          "doc": "how several values landing on one day combine: sum, avg or max. Several values happen either from two or more notes on the same day, or from a `field` list on one note, or both at once. An unrecognised value warns and falls back to sum"
+          "doc": "how several values landing on one day combine: sum, avg or max. Several values happen either from two or more notes on the same day, or from a `field` list on one note, or both at once. An unrecognised value warns and falls back to sum. With `layers`, it applies to each layer's own field(s) separately"
         },
         "date_field": {
           "type": "string",
@@ -386,10 +386,14 @@
         "color": {
           "type": "string",
           "default": "blue",
-          "doc": "blue green cyan purple pink orange red gray, or #rrggbb",
+          "doc": "blue green cyan purple pink orange red gray, or #rrggbb. Ignored, with a warning, when `layers` is set: each layer carries its own colour instead",
           "aliases": [
             "colour"
           ]
+        },
+        "layers": {
+          "type": "list",
+          "doc": "several activities on one grid, each in its own colour, instead of one `field`: `[{field, color, label}]`. Not used together with the block's own `field`. The first layer painted on a day colours that cell and supplies its value and link; the tooltip lists every layer with a value that day, in list order. The caption then counts days where any layer painted and drops the average, since averaging different fields together says nothing useful"
         },
         "bands": {
           "type": "list",
@@ -405,11 +409,38 @@
           "doc": "a custom heading instead of the automatic one"
         }
       },
+      "item": {
+        "field": {
+          "type": "string|list",
+          "required": true,
+          "doc": "this layer's own numeric frontmatter property, or a checkbox; dotted for a nested one, or a list to collapse several properties into this layer's day. Same shapes as the block's own `field`",
+          "aliases": [
+            "property",
+            "prop"
+          ]
+        },
+        "color": {
+          "type": "string",
+          "doc": "blue green cyan purple pink orange red gray, or #rrggbb. Without one, the next free colour from the palette, skipping colours other layers already claimed",
+          "aliases": [
+            "colour"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "doc": "name shown in the legend and the cell tooltip. Defaults to the field name(s)",
+          "aliases": [
+            "title",
+            "name"
+          ]
+        }
+      },
       "example": "source: 01-Areas/Personal/Diary\nfield: sleep_score\ncolor: purple\nbands: [90, 80, 60]",
       "notes": [
         "A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 Monday` counts, `2026-01-051` does not), unless `date_field` names a property instead. That is how the block knows which cell it belongs to.",
         "Two or more notes landing on the same day paint one cell, and so does a `field` list on one note: `per_day` (default sum) says how the day's values combine, and a ticked or numeric contributor always outweighs a false one on the same day.",
-        "Years are taken from the data, newest first, but never one later than today: a note dated in the future draws nothing extra and counts nowhere in the grid. If every dated note turns out to be in the future, the current year is still drawn, empty."
+        "Years are taken from the data, newest first, but never one later than today: a note dated in the future draws nothing extra and counts nowhere in the grid. If every dated note turns out to be in the future, the current year is still drawn, empty.",
+        "`layers` replaces `field` for tracking several activities on one grid, each its own colour: `layers: [{field: gym, color: blue}, {field: run, color: green, label: Running}]`. When two layers land on the same day, the first one in the list colours the cell; the tooltip still lists every layer that has a value that day."
       ]
     }
   },

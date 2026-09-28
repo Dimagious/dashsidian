@@ -106,10 +106,20 @@ export const de: Catalog = {
     "heatmap.perDayInvalid": "`per_day` erwartet sum, avg oder max, erhalten „{value}“. Es wird sum verwendet.",
     "heatmap.fieldUnused":
         "„{field}“ hat hier nie einen Wert beigetragen. Prüfe den Namen, oder ob es wirklich eine Zahl oder Checkbox enthält.",
+    "heatmap.layersAndField":
+        "`layers` und `field` sind beide gesetzt. Verwende nur eines davon: `layers` für mehrere Farben, `field` für eine.",
+    "heatmap.layersColorIgnored": "`color` wird ignoriert: jeder Eintrag in `layers` hat seine eigene Farbe.",
+    "heatmap.layersInvalid": "`layers` erwartet eine Liste von Maps, erhalten „{value}“.",
+    "heatmap.layersEmpty": "`layers` ist eine leere Liste. Füge mindestens eine Ebene hinzu.",
+    "heatmap.layerNotMap": "Ebene {position} muss eine Map mit `field` sein, erhalten „{value}“.",
+    "heatmap.layerLabelInvalid": "Ebene {position}: `label` erwartet einen Namen, erhalten „{value}“.",
+    "heatmap.layerAt": "Ebene {position}: {message}",
     "heatmap.caption": "{year}, {field}: Durchschnitt {average}, {present} von {total} Tagen",
     "heatmap.captionMarks": "{year}, {field}: {present} von {total} Tagen",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.cell": "{date}: {field} {value}",
+    "heatmap.cellLayers": "{date}: {parts}",
+    "heatmap.cellPart": "{label} {value}",
     "heatmap.cellEmpty": "{date}: keine Daten",
 
     "insert.name": "Block einfügen",

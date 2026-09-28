@@ -34,3 +34,33 @@ export function toRgb(value: unknown): Rgb {
 export function rgba(c: Rgb, alpha: number): string {
     return `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${alpha})`;
 }
+
+/**
+ * Assigns a colour to every entry of `explicit`, in order: an entry that
+ * already names one keeps it; an entry that does not gets the next colour
+ * from `PALETTE`, in the order it is declared above, skipping any colour some
+ * other entry (explicit or already assigned here) is using.
+ *
+ * `PALETTE`'s own key order stands in for "the fixed order" (a plain
+ * `Record` with string keys, so insertion order is exactly declaration
+ * order): entries are taken from it one at a time and never revisited once
+ * assigned, so two layers left without a `color` never collide with each
+ * other. Running out of colours (more layers than the palette holds) falls
+ * back to `DEFAULT_COLOR` rather than throwing — a repeated colour is a far
+ * smaller problem than a heatmap that fails to render.
+ */
+export function assignLayerColors(explicit: readonly (Rgb | undefined)[]): Rgb[] {
+    const order = Object.values(PALETTE);
+    const key = (c: Rgb): string => c.join(",");
+    const taken = new Set(explicit.filter((c): c is Rgb => c !== undefined).map(key));
+
+    let cursor = 0;
+    return explicit.map((c) => {
+        if (c) return c;
+        while (cursor < order.length && taken.has(key(order[cursor] as Rgb))) cursor++;
+        const next = order[cursor] ?? DEFAULT_COLOR;
+        taken.add(key(next));
+        cursor++;
+        return next;
+    });
+}

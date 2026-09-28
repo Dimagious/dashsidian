@@ -1,12 +1,13 @@
 import type { BlockContext } from "./context";
 import { weekdayNamesShort, monthNamesShort, firstDayOfWeek } from "../adapters/datetime";
-import { selectNotes, readSource, unmatchedSource } from "../core/source";
+import { selectNotes, readSource, unmatchedSource, type NoteRecord } from "../core/source";
 import { classifyField } from "../core/aggregate";
-import { readFields, readPerDay, dayValues, unusedFields, type DayMark } from "../core/day-values";
+import { readFields, readPerDay, dayValues, unusedFields } from "../core/day-values";
+import { readLayers, combineLayers, type Layer } from "../core/layers";
 import { readDateField } from "../core/note-date";
 import { formatValue, roundedValue } from "../core/stat";
 import { layoutYear, dateKey, eachDay, yearsOf, rotateWeekdays, weekdayRow } from "../core/calendar";
-import { toRgb, rgba, type Rgb } from "../core/palette";
+import { toRgb, rgba, DEFAULT_COLOR, PALETTE, type Rgb } from "../core/palette";
 import { readBands, bandFor, type Band } from "../core/bands";
 import { scrollEdges, resolveScrollRestore, type ScrollSnapshot } from "../core/scroll";
 import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
@@ -16,6 +17,8 @@ import schema from "./schema.json";
 
 /** Keys come from schema.json — the same source the agent skill is built from. */
 const KNOWN = Object.keys(schema.blocks.heatmap.root);
+/** A `layers` entry's own keys — separate from `KNOWN` the same way a stats card's are (ADR 0004). */
+const KNOWN_ITEM = Object.keys(schema.blocks.heatmap.item);
 
 /**
  * One `ResizeObserver` per year grid drawn into a block's element, so the
@@ -99,7 +102,12 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     clearBlock(el);
     disconnectObservers(el);
 
-    const { value, diagnostics } = parseConfig(source, { root: KNOWN });
+    // `item: KNOWN_ITEM` matters even though a plain, `layers`-less config
+    // never has a list of maps to canonicalize: without it, a `layers` entry
+    // written as `title:` (a documented synonym of `label`) would fall back
+    // to the empty item set and lose its own key set's protection the same
+    // way heatmap's own `title` once did before ADR 0004.
+    const { value, diagnostics } = parseConfig(source, { root: KNOWN, item: KNOWN_ITEM });
     const diags: Diagnostic[] = [...diagnostics];
 
     if (!isRecord(value)) {
@@ -107,6 +115,20 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
         return;
     }
     diags.push(...unknownKeys(value, KNOWN));
+
+    const hasLayers = value.layers !== undefined;
+    if (hasLayers && value.field !== undefined) {
+        // The two ways of colouring a cell contradict each other; nothing
+        // else about the config is worth reporting until the reader picks
+        // one and tries again.
+        diags.push({ level: "error", message: t("heatmap.layersAndField") });
+        renderDiagnostics(el, "heatmap", diags);
+        return;
+    }
+    if (hasLayers && value.color !== undefined) {
+        diags.push({ level: "warning", message: t("heatmap.layersColorIgnored") });
+    }
+    if (hasLayers) return renderLayeredHeatmap(ctx, value, diags, el, restoreByYear);
 
     const { fields, diagnostics: fieldDiags } = readFields(value);
     diags.push(...fieldDiags);
@@ -131,11 +153,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     const { perDay, diagnostics: perDayDiags } = readPerDay(value);
     diags.push(...perDayDiags);
 
-    const { spec: selection, diagnostics: sourceDiags } = readSource(value);
-    diags.push(...sourceDiags);
-    const missing = unmatchedSource(ctx.notes(), selection);
-    if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
-    const notes = selectNotes(ctx.notes(), selection);
+    const notes = selectConfiguredNotes(ctx, value, diags);
 
     // One entry per day any of `fields` resolved on at all — see
     // `core/day-values.ts` for how a day's contributors (two notes, two
@@ -178,15 +196,131 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
 
     renderDiagnostics(el, "heatmap", diags);
 
-    const today = ctx.today();
     const firstDay = firstDayOfWeek();
-    // One grid per calendar year, never one later than today's: a note
-    // dated next year (or, with `startDayHour` set, a real-date note just
-    // after midnight before the day has effectively turned over) used to
-    // draw a full, empty grid above the real data (B-113). That note still
-    // counts nowhere in the heatmap; if every dated note turns out to be in
-    // the future, the current year is drawn anyway, empty, rather than
-    // showing nothing at all.
+    return drawYears(el, ctx, marks, {
+        color, bands, field: fieldLabel, linkable, title: value.title, firstDay,
+        showBandsLegend: true,
+    }, restoreByYear);
+}
+
+/** `readSource` + `unmatchedSource` + `selectNotes`, in the order every block runs them. */
+function selectConfiguredNotes(
+    ctx: BlockContext,
+    value: Record<string, unknown>,
+    diags: Diagnostic[],
+): NoteRecord[] {
+    const { spec: selection, diagnostics: sourceDiags } = readSource(value);
+    diags.push(...sourceDiags);
+    const missing = unmatchedSource(ctx.notes(), selection);
+    if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
+    return selectNotes(ctx.notes(), selection);
+}
+
+/**
+ * `layers:` (B-096): several activities on one grid, each in its own colour,
+ * in place of a single `field`. Mirrors the plain `field` path above —
+ * source selection, the "nothing resolves anywhere" error, the "this one
+ * never contributed" warning — except each layer collapses its own field(s)
+ * into a day's mark on its own (`dayValues`, once per layer, still sharing
+ * `per_day`/`date_field`), and `combineLayers` (core/layers.ts) then decides,
+ * per day, which layer's mark actually colours the cell.
+ */
+function renderLayeredHeatmap(
+    ctx: BlockContext,
+    value: Record<string, unknown>,
+    diags: Diagnostic[],
+    el: HTMLElement,
+    restoreByYear: Map<number, ScrollSnapshot>,
+): void | (() => void) {
+    const { layers, diagnostics: layersDiags } = readLayers(value, KNOWN_ITEM);
+    diags.push(...layersDiags);
+    if (!layers) {
+        renderDiagnostics(el, "heatmap", diags);
+        return;
+    }
+
+    // The bands legend row is only worth showing alongside the layers row
+    // when the reader actually asked for a scale: `readBands([])`'s own
+    // "has data" default would otherwise sit next to every layer's swatch,
+    // saying nothing a layer's own colour did not already say.
+    const bandsGiven = value.bands !== undefined;
+    const bands = readBands(value.bands);
+    const linkable = value.link !== false;
+    const dateField = readDateField(value);
+    const { perDay, diagnostics: perDayDiags } = readPerDay(value);
+    diags.push(...perDayDiags);
+
+    const notes = selectConfiguredNotes(ctx, value, diags);
+
+    const perLayerMarks = layers.map((layer) => dayValues(notes, layer.fields, perDay, dateField));
+    const marks = combineLayers(perLayerMarks, layers.map((l) => l.label));
+
+    if (!marks.size) {
+        // The same per-field reporting as the plain `field` path (B-112),
+        // just over every layer's fields flattened into one list: a typo in
+        // one layer's `field` should read as "this one is wrong", not
+        // "nothing works".
+        for (const field of layers.flatMap((l) => l.fields)) {
+            const status = classifyField(notes, field);
+            const message = status === "missing"
+                ? t("heatmap.fieldMissing", { field })
+                : status === "not-numeric"
+                    ? t("heatmap.fieldNotNumeric", { field })
+                    : t("heatmap.noData", { field });
+            diags.push({ level: "error", message });
+        }
+        renderDiagnostics(el, "heatmap", diags);
+        return;
+    }
+
+    // Checked per layer regardless of how many there are: unlike a plain
+    // `field` list (only checked once there are several, because a single
+    // unused field would already have emptied `marks` above), a single dead
+    // layer among several live ones never empties the combined `marks` at
+    // all, so it needs its own warning here.
+    for (const layer of layers) {
+        for (const field of unusedFields(notes, layer.fields)) {
+            diags.push({ level: "warning", message: t("heatmap.fieldUnused", { field }) });
+        }
+    }
+
+    renderDiagnostics(el, "heatmap", diags);
+
+    const firstDay = firstDayOfWeek();
+    return drawYears(el, ctx, marks, {
+        // Defensive filler only, never any one layer's colour: a cell reads
+        // its colour from `layers[mark.layer]` (see `drawYear`), and the
+        // bands legend row paints in a neutral `PALETTE.gray` in `layers`
+        // mode instead of this, precisely so the scale does not read as
+        // belonging to whichever layer happens to be first. Kept because
+        // `DrawOptions.color` is otherwise required.
+        color: DEFAULT_COLOR,
+        layers,
+        bands,
+        field: layers.map((l) => l.label).join(", "),
+        linkable,
+        title: value.title,
+        firstDay,
+        showBandsLegend: bandsGiven,
+    }, restoreByYear);
+}
+
+/**
+ * One grid per calendar year, never one later than today's: a note dated
+ * next year (or, with `startDayHour` set, a real-date note just after
+ * midnight before the day has effectively turned over) used to draw a full,
+ * empty grid above the real data (B-113). That note still counts nowhere in
+ * the heatmap; if every dated note turns out to be in the future, the
+ * current year is drawn anyway, empty, rather than showing nothing at all.
+ */
+function drawYears(
+    el: HTMLElement,
+    ctx: BlockContext,
+    marks: ReadonlyMap<string, Paintable>,
+    opts: Omit<DrawOptions, "severalYears" | "restore">,
+    restoreByYear: Map<number, ScrollSnapshot>,
+): void | (() => void) {
+    const today = ctx.today();
     const years = yearsOf([...marks.keys()]).filter((y) => y <= today.getFullYear());
     const yearsToDraw = years.length ? years : [today.getFullYear()];
     const drawn: ResizeObserver[] = [];
@@ -195,7 +329,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
         // otherwise two grids under the same custom title read as the same
         // thing drawn twice, which is exactly how it was first reported.
         const observer = drawYear(el, year, today, marks, {
-            color, bands, field: fieldLabel, linkable, title: value.title, firstDay,
+            ...opts,
             severalYears: yearsToDraw.length > 1,
             restore: restoreByYear.get(year),
         });
@@ -213,10 +347,33 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     }
 }
 
+/**
+ * What a cell needs in order to paint itself — the shape a plain `DayMark`
+ * and a layered `LayeredMark` (core/layers.ts) have in common, once a day's
+ * contributors have already been collapsed into "the one mark a cell shows".
+ * `isBool`, `layer` and `parts` are only ever set by one side or the other:
+ * `isBool` by a plain `DayMark` (a real field's own booleanness), `layer`/
+ * `parts` by a `LayeredMark` (which layer won, and every layer with a value
+ * that day). Neither side has to know the other exists.
+ */
+interface Paintable {
+    value: number;
+    path: string;
+    painted: boolean;
+    isBool?: boolean;
+    layer?: number;
+    parts?: readonly { label: string; value: number }[];
+}
+
 interface DrawOptions {
+    /** the single field's colour; with `layers` set, filler that no cell actually reads (see `layer` on `Paintable`) */
     color: Rgb;
+    /** set only in `layers` mode: a cell's own colour comes from `layers[mark.layer]`, and each gets a legend row */
+    layers?: readonly Layer[];
     bands: Band[];
-    /** already the display form: one field name, or several joined with ", " */
+    /** whether the bands legend row(s) draw at all: always without `layers`, only when `bands` was written with them */
+    showBandsLegend: boolean;
+    /** already the display form: one field name, several joined with ", ", or every layer's own label joined the same way */
     field: string;
     linkable: boolean;
     title: unknown;
@@ -232,7 +389,7 @@ function drawYear(
     el: HTMLElement,
     year: number,
     today: Date,
-    marks: Map<string, DayMark>,
+    marks: ReadonlyMap<string, Paintable>,
     opts: DrawOptions,
 ): ResizeObserver | null {
     const layout = layoutYear(year, today, opts.firstDay);
@@ -240,7 +397,7 @@ function drawYear(
 
     const yearMarks = eachDay(year, layout.total)
         .map((k) => marks.get(k))
-        .filter((v): v is DayMark => v !== undefined);
+        .filter((v): v is Paintable => v !== undefined);
     const present = yearMarks.filter((m) => m.painted);
 
     // The average counts every recognised day, a `false` one included as 0 —
@@ -254,21 +411,27 @@ function drawYear(
 
     // Every painted day of an all-boolean field can only ever be 1: "average 1"
     // states the obvious rather than informing, so the caption drops it.
-    const booleanOnly = yearMarks.length > 0 && yearMarks.every((m) => m.isBool);
+    // With `layers`, several different fields are being folded into one
+    // grid; averaging them together would not be "the average of a field",
+    // it would be a number about nothing in particular, so it is dropped
+    // unconditionally rather than only when every layer happens to be
+    // boolean.
+    const booleanOnly = !opts.layers && yearMarks.length > 0 && yearMarks.every((m) => m.isBool);
+    const showAverage = !opts.layers && !booleanOnly;
 
     const caption = typeof opts.title === "string"
         ? (opts.severalYears ? t("heatmap.titleYear", { title: opts.title, year }) : opts.title)
-        : booleanOnly
-            ? t("heatmap.captionMarks", {
-                year,
-                field: opts.field,
-                present: present.length,
-                total: layout.total,
-            })
-            : t("heatmap.caption", {
+        : showAverage
+            ? t("heatmap.caption", {
                 year,
                 field: opts.field,
                 average,
+                present: present.length,
+                total: layout.total,
+            })
+            : t("heatmap.captionMarks", {
+                year,
+                field: opts.field,
                 present: present.length,
                 total: layout.total,
             });
@@ -331,6 +494,14 @@ function drawYear(
             : grid.createDiv({ cls: "dashy-hm-cell" });
         if (paintable) {
             const band = bandFor(opts.bands, paintable.value);
+            // The winning layer's own colour, when there is one — set only
+            // by a `LayeredMark`, and only ever `undefined` on one once no
+            // layer painted that day, which is exactly when `paintable`
+            // itself is `undefined` above. Falls back to `opts.color`
+            // otherwise, which is what every plain, `layers`-less mark uses.
+            const rgb = opts.layers && paintable.layer !== undefined
+                ? (opts.layers[paintable.layer]?.color ?? opts.color)
+                : opts.color;
             // Rounded the same way a card would (`roundedValue`, not
             // `formatValue`): an integer stays exactly as is (a sum of
             // whole numbers reads "8000", not "8 000"), and a fraction from
@@ -338,8 +509,20 @@ function drawYear(
             // JS float division produces. `formatValue`'s own digit
             // grouping is left out on purpose — its narrow no-break space
             // has no business inside a `title` attribute.
-            const tooltip = t("heatmap.cell", { date, field: opts.field, value: roundedValue(paintable.value) });
-            cell.style.backgroundColor = rgba(opts.color, band?.alpha ?? 1);
+            const tooltip = paintable.parts
+                ? t("heatmap.cellLayers", {
+                    date,
+                    // Each layer's own "label value" piece goes through
+                    // `t()` on its own (`heatmap.cellPart`), same as any
+                    // other user-facing text; only the plain ", " between
+                    // them is bare punctuation, the same list separator
+                    // `fieldLabel`/`fields.join(", ")` already uses above.
+                    parts: paintable.parts
+                        .map((p) => t("heatmap.cellPart", { label: p.label, value: roundedValue(p.value) }))
+                        .join(", "),
+                })
+                : t("heatmap.cell", { date, field: opts.field, value: roundedValue(paintable.value) });
+            cell.style.backgroundColor = rgba(rgb, band?.alpha ?? 1);
             cell.setAttr("aria-label", tooltip);
             cell.setAttr("title", tooltip);
         } else {
@@ -348,10 +531,26 @@ function drawYear(
     }
 
     const legend = wrap.createDiv({ cls: "dashy-hm-legend" });
-    for (const b of opts.bands) {
-        const row = legend.createDiv({ cls: "dashy-hm-leg" });
-        row.createDiv({ cls: "dashy-hm-swatch" }).style.backgroundColor = rgba(opts.color, b.alpha);
-        row.createSpan({ text: b.label });
+    if (opts.layers) {
+        for (const layer of opts.layers) {
+            const row = legend.createDiv({ cls: "dashy-hm-leg" });
+            row.createDiv({ cls: "dashy-hm-swatch" }).style.backgroundColor = rgba(layer.color, 1);
+            row.createSpan({ text: layer.label });
+        }
+    }
+    if (opts.showBandsLegend) {
+        // In `layers` mode `bands` scores whichever layer happens to win
+        // each cell, not any one layer in particular — painting this row in
+        // that layer's colour (or, worse, always the first layer's) would
+        // claim an ownership the scale does not have. `PALETTE.gray`
+        // instead reads as "strength", the same neutral role alpha alone
+        // already plays on every cell.
+        const legendColor = opts.layers ? (PALETTE.gray ?? DEFAULT_COLOR) : opts.color;
+        for (const b of opts.bands) {
+            const row = legend.createDiv({ cls: "dashy-hm-leg" });
+            row.createDiv({ cls: "dashy-hm-swatch" }).style.backgroundColor = rgba(legendColor, b.alpha);
+            row.createSpan({ text: b.label });
+        }
     }
 
     // Where the year does not fit, open it at the most recent day rather than

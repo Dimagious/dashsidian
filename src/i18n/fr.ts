@@ -106,10 +106,20 @@ export const fr: Catalog = {
     "heatmap.perDayInvalid": "`per_day` attend sum, avg ou max, reçu « {value} ». Utilisation de sum.",
     "heatmap.fieldUnused":
         "« {field} » n'a jamais fourni de valeur ici. Vérifiez le nom, ou qu'il contient bien un nombre ou une case à cocher.",
+    "heatmap.layersAndField":
+        "`layers` et `field` sont tous les deux définis. Utilisez l'un ou l'autre : `layers` pour plusieurs couleurs, `field` pour une seule.",
+    "heatmap.layersColorIgnored": "`color` est ignoré : chaque entrée de `layers` a sa propre couleur.",
+    "heatmap.layersInvalid": "`layers` attend une liste de cartes, reçu « {value} ».",
+    "heatmap.layersEmpty": "`layers` est une liste vide. Ajoutez au moins une couche.",
+    "heatmap.layerNotMap": "La couche {position} doit être une carte avec `field`, reçu « {value} ».",
+    "heatmap.layerLabelInvalid": "Couche {position} : `label` attend un nom, reçu « {value} ».",
+    "heatmap.layerAt": "Couche {position} : {message}",
     "heatmap.caption": "{year}, {field} : moyenne {average}, {present} jours sur {total}",
     "heatmap.captionMarks": "{year}, {field} : {present} jours sur {total}",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.cell": "{date}: {field} {value}",
+    "heatmap.cellLayers": "{date}: {parts}",
+    "heatmap.cellPart": "{label} {value}",
     "heatmap.cellEmpty": "{date}: aucune donnée",
 
     "insert.name": "Insérer un bloc",

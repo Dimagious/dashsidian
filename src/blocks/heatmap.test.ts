@@ -693,6 +693,199 @@ describe("heatmap — several fields in one heatmap (B-094)", () => {
     });
 });
 
+describe("heatmap — several activities, each its own colour (B-096)", () => {
+    // gym is ticked the 1st, unticked the 2nd; run is unticked the 1st,
+    // ticked the 2nd and the 3rd, where gym is not even mentioned.
+    const layersCtx = mockContext({
+        notes: [
+            { path: "Diary/2026-01-01.md", frontmatter: { gym: true, run: false } },
+            { path: "Diary/2026-01-02.md", frontmatter: { gym: false, run: true } },
+            { path: "Diary/2026-01-03.md", frontmatter: { run: true } },
+        ],
+    });
+    const cellFor = (el: HTMLElement, date: string) =>
+        nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(date));
+    const layersConfig = "source: Diary\nlayers:\n"
+        + "  - { field: gym, color: blue }\n"
+        + "  - { field: run, color: green, label: Running }";
+
+    it("two layers render with their own explicit colours", () => {
+        const el = map(layersConfig, layersCtx);
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        // 1 Jan: only gym is painted, so its (first, blue) layer colours the cell.
+        expect(cellFor(el, "2026-01-01")?.style.backgroundColor).toContain("59, 130, 246");
+        // 2 Jan: gym is unticked, run is ticked — the second layer colours it.
+        expect(cellFor(el, "2026-01-02")?.style.backgroundColor).toContain("34, 197, 94");
+    });
+
+    it("an overlapping day takes the first painted layer's colour, and the tooltip lists every layer", () => {
+        const el = map(layersConfig, layersCtx);
+        const jan1 = cellFor(el, "2026-01-01");
+        // gym (painted, 1) wins the cell over run (unpainted, 0), but the
+        // tooltip still says what both layers held that day, in list order.
+        expect(jan1?.style.backgroundColor).toContain("59, 130, 246");
+        expect(jan1?.getAttribute("title")).toBe("2026-01-01: gym 1, Running 0");
+    });
+
+    it("a day only the second layer has anything for still gets a mark and the right colour", () => {
+        const el = map(layersConfig, layersCtx);
+        // 3 Jan: `gym` is not in the note at all, only `run` is.
+        const jan3 = cellFor(el, "2026-01-03");
+        expect(jan3?.style.backgroundColor).toContain("34, 197, 94");
+        expect(jan3?.getAttribute("title")).toBe("2026-01-03: Running 1");
+    });
+
+    it("a layer without a colour gets the next free palette colour, skipping ones already claimed", () => {
+        const el = map(
+            "source: Diary\nlayers:\n  - { field: gym, color: green }\n  - { field: run }",
+            layersCtx,
+        );
+        // green is taken by `gym`, so `run` (implicit) gets blue, the first
+        // colour in the palette that is still free.
+        expect(cellFor(el, "2026-01-03")?.style.backgroundColor).toContain("59, 130, 246");
+    });
+
+    it("the legend lists every layer, swatch and label, and nothing else without `bands`", () => {
+        const el = map(layersConfig, layersCtx);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["gym", "Running"]);
+    });
+
+    it("with `bands` also set, the legend shows the layers row and the bands row", () => {
+        const el = map(`${layersConfig}\nbands: [90, 60]`, layersCtx);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["gym", "Running", "90+", "60–89"]);
+    });
+
+    it("the bands legend paints neutral gray in layers mode, not a layer's own colour", () => {
+        const el = map(`${layersConfig}\nbands: [90, 60]`, layersCtx);
+        const swatches = nodes(el, ".dashy-hm-swatch");
+        // The first two swatches are the layer rows, in their own colours...
+        expect(swatches[0]?.style.backgroundColor).toContain("59, 130, 246"); // gym: blue
+        expect(swatches[1]?.style.backgroundColor).toContain("34, 197, 94"); // run: green
+        // ...and the rest are the bands row, neither colour, PALETTE.gray instead.
+        expect(swatches[2]?.style.backgroundColor).toContain("156, 163, 175");
+        expect(swatches[3]?.style.backgroundColor).toContain("156, 163, 175");
+    });
+
+    it("without `layers`, the bands legend still paints in the field's own colour", () => {
+        const el = map("source: Diary\nfield: sleep_score\ncolor: purple\nbands: [90, 60]", ctx);
+        const swatches = nodes(el, ".dashy-hm-swatch");
+        for (const s of swatches) expect(s.style.backgroundColor).toContain("139, 92, 246"); // purple
+    });
+
+    it("a layered cell links to the winning layer's note, including when the first layer is false-only", () => {
+        const el = map(layersConfig, layersCtx);
+        // 1 Jan: gym (first, painted) wins and links to its own note.
+        expect(cellFor(el, "2026-01-01")?.getAttribute("data-href")).toBe("Diary/2026-01-01.md");
+        // 2 Jan: gym is false-only, so run (second, painted) wins and links to ITS note.
+        expect(cellFor(el, "2026-01-02")?.getAttribute("data-href")).toBe("Diary/2026-01-02.md");
+    });
+
+    it("a non-string `label` warns naming its position and the value, and falls back to the field name", () => {
+        const el = map("source: Diary\nlayers:\n  - { field: gym, label: 5 }", layersCtx);
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(diagnostics(el, "warning").some((m) => m.includes("Layer 1") && m.includes("5"))).toBe(true);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["gym"]);
+    });
+
+    it("the caption counts a day painted by any layer, and drops the average", () => {
+        const el = map(layersConfig, layersCtx);
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        expect(caption).not.toContain("average");
+        expect(caption).toContain("gym, Running");
+        // All three days have some layer painted (1 Jan by gym, 2 and 3 Jan by run).
+        expect(caption).toContain("3 of");
+    });
+
+    it("`layers` together with `field` errors and renders nothing else", () => {
+        const el = map("source: Diary\nfield: gym\nlayers:\n  - { field: run }", layersCtx);
+        expect(diagnostics(el, "error")).toHaveLength(1);
+        expect(diagnostics(el, "error")[0]).toContain("layers");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a top-level `color` together with `layers` warns that it is ignored, but still renders", () => {
+        const el = map("source: Diary\ncolor: purple\nlayers:\n  - { field: gym }", layersCtx);
+        expect(diagnostics(el, "warning").some((m) => m.includes("ignored"))).toBe(true);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+    });
+
+    it("`layers` given as something other than a list is an error", () => {
+        const el = map("source: Diary\nlayers: gym", layersCtx);
+        expect(diagnostics(el, "error")[0]).toContain("gym");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("an empty `layers` list is an error", () => {
+        const el = map("source: Diary\nlayers: []", layersCtx);
+        expect(diagnostics(el, "error")[0]).toContain("empty");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a `layers` entry that is not a map errors naming its position", () => {
+        const el = map("source: Diary\nlayers: [5]", layersCtx);
+        expect(diagnostics(el, "error")[0]).toContain("Layer 1");
+        expect(diagnostics(el, "error")[0]).toContain("5");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a `layers` entry without `field` errors naming its position", () => {
+        const el = map("source: Diary\nlayers:\n  - { color: blue }", layersCtx);
+        expect(diagnostics(el, "error")[0]).toContain("Layer 1");
+        expect(diagnostics(el, "error")[0]).toContain("No `field` given");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a `layers` entry with an invalid `field` errors naming its position and the value", () => {
+        const el = map("source: Diary\nlayers:\n  - { field: 5 }", layersCtx);
+        expect(diagnostics(el, "error")[0]).toContain("Layer 1");
+        expect(diagnostics(el, "error")[0]).toContain("5");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("an unknown key inside a layer warns, the same as anywhere else", () => {
+        const el = map("source: Diary\nlayers:\n  - { field: gym, bogus: 1 }", layersCtx);
+        expect(diagnostics(el, "warning").some((m) => m.includes("bogus"))).toBe(true);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+    });
+
+    it("a layer whose field never contributes warns naming it, without breaking the rest", () => {
+        const el = map(
+            "source: Diary\nlayers:\n  - { field: gym }\n  - { field: nonexistent }",
+            layersCtx,
+        );
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(diagnostics(el, "warning").some((m) => m.includes("nonexistent"))).toBe(true);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+    });
+
+    it("nothing resolving in any layer errors per field, as a plain `field` list does", () => {
+        const el = map(
+            "source: Diary\nlayers:\n  - { field: nope1 }\n  - { field: nope2 }",
+            layersCtx,
+        );
+        const errors = diagnostics(el, "error");
+        expect(errors).toHaveLength(2);
+        expect(errors.some((m) => m.includes("nope1"))).toBe(true);
+        expect(errors.some((m) => m.includes("nope2"))).toBe(true);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a layer's own `field` takes a dotted path and a list, the same as the block's own `field`", () => {
+        const notes = [
+            { path: "Diary/2026-01-01.md", frontmatter: { health: { sleep: 80 }, gym: true, run: false } },
+        ];
+        const el = map(
+            "source: Diary\nlayers:\n  - { field: health.sleep }\n  - { field: [gym, run] }",
+            mockContext({ notes }),
+        );
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        const jan1 = cellFor(el, "2026-01-01");
+        // The first layer (health.sleep, 80) is the one that is painted and
+        // numeric, so it colours the cell and its value reaches the tooltip.
+        expect(jan1?.getAttribute("title")).toContain("health.sleep 80");
+    });
+});
+
 describe("heatmap — never a year later than today (B-113)", () => {
     const TODAY = new Date(2026, 8, 24); // 24 September 2026
 

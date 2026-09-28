@@ -33,6 +33,19 @@ removed public export.
   one entry does not read as "nothing works". A repeated entry in the list
   is counted once, and a cell's tooltip rounds an averaged value the same
   way a stats card would, instead of a raw JavaScript float.
+- **`heatmap`'s `layers` puts several activities on one grid, each its own
+  colour.** `layers: [{field: gym, color: blue}, {field: run, color: green,
+  label: Running}]` replaces the block's own `field`; a layer without
+  `color` gets the next free one from the palette, in order, skipping any
+  colour another layer already claims. When more than one layer paints a
+  day, the first one in the list colours the cell and supplies the value
+  `bands` reads, but the tooltip still lists every layer with a value that
+  day. The legend gains a row per layer, plus the usual bands row when
+  `bands` is also set; the caption counts a day painted by any layer and
+  drops the average, since averaging different fields together says
+  nothing. `layers` and the block's own `field` are not used together, and
+  a top-level `color` is ignored, with a warning, once `layers` is set.
+  Schema 1.6.0.
 
 ### Docs
 
