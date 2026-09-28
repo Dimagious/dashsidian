@@ -1,7 +1,7 @@
 # Dashy
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/banner-dark.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/banner-dark.svg">
   <img alt="Dashy: a dashboard inside an Obsidian note, built from six markdown blocks (dashsidian)"
        src="docs/banner-light.svg">
 </picture>
@@ -17,7 +17,7 @@ a few lines of it. **No JavaScript, and no Dataview.** The same blocks turn the 
 in your daily notes into [a habit tracker](#a-habit-tracker-from-daily-note-checkboxes).
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/dashboard-dark.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/dashboard-dark.png">
   <img alt="A Dashy dashboard: a day row, navigation tiles, number cards and progress bars"
        src="docs/screens/dashboard-light.png">
 </picture>
@@ -62,7 +62,7 @@ field: gym
 ````
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/habits-dark.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/habits-dark.png">
   <img alt="A gym habit tracker: cards for days, longest streak, this week against last week and this month, over a year of ticked days"
        src="docs/screens/habits-light.png">
 </picture>
@@ -118,7 +118,7 @@ monthly: true
 ````
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/today-dark.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/today-dark.png">
   <img alt="A date and three chips linking to the daily, weekly and monthly notes"
        src="docs/screens/today-light.png">
 </picture>
@@ -153,7 +153,7 @@ items:
 ````
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/tiles-dark.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/tiles-dark.png">
   <img alt="Four tiles with emoji, labels and note counts" src="docs/screens/tiles-light.png">
 </picture>
 
@@ -193,7 +193,7 @@ items:
 ````
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/stats-dark.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/stats-dark.png">
   <img alt="Eight cards showing counts, averages, sums and streaks, two with sparklines"
        src="docs/screens/stats-light.png">
 </picture>
@@ -249,7 +249,7 @@ items:
 ````
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/progress-dark.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/progress-dark.png">
   <img alt="Three progress bars, one of them past its goal and coloured green"
        src="docs/screens/progress-light.png">
 </picture>
@@ -274,7 +274,7 @@ items:
 ````
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/countdown-dark.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/countdown-dark.png">
   <img alt="Three cards counting the days to a race, a holiday and a review"
        src="docs/screens/countdown-light.png">
 </picture>
@@ -296,7 +296,7 @@ title: Sleep, last twelve months
 ````
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/heatmap-dark.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/heatmap-dark.png">
   <img alt="A year of days coloured by sleep score, with a legend"
        src="docs/screens/heatmap-light.png">
 </picture>
