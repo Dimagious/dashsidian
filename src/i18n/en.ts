@@ -43,13 +43,15 @@ export const en = {
         "{card}: \"{field}\" holds text or another value that is not a number or a checkbox. Use `where: \"{field} contains ...\"` with `agg: count` to count it instead.",
     "stats.badPrecision":
         "{card}: `precision` expects a whole number from 0 to {max}, got \"{value}\". Rounding the default way.",
-    "stats.streakKeysIgnored": "{card}: `at_least`, `at_most` and `days` only apply to `agg: streak`, ignored.",
+    "stats.streakKeysIgnored":
+        "{card}: `at_least`, `at_most`, `days` and `skip_field` only apply to `agg: streak`, ignored.",
     "stats.streakThresholdNeedsField":
         "{card}: `at_least` and `at_most` need a `field:` to sum against. Ignored.",
     "stats.streakThresholdInvalid": "{card}: `{key}` expects a number, got \"{value}\". Ignored.",
     "stats.streakThresholdImpossible":
         "{card}: `at_least` is above `at_most`, so no day can satisfy both. The streak is 0.",
     "stats.streakDaysInvalid": "{card}: `days` expects `all` or `weekdays`, got \"{value}\". Using `all`.",
+    "stats.skipFieldInvalid": "{card}: `skip_field` expects a property name, got \"{value}\". Ignored.",
 
     "progress.empty": "No bars to draw. Expected `items:` or a list.",
     "progress.goalRequired": "{card}: `goal:` needs a number. There is nothing to measure against.",
@@ -117,6 +119,7 @@ export const en = {
     "heatmap.fieldListEmpty": "`field` is an empty list. Add at least one property name.",
     "heatmap.fieldListInvalid": "`field` list items must be plain property names, got \"{value}\".",
     "heatmap.perDayInvalid": "`per_day` expects sum, avg or max, got \"{value}\". Using sum.",
+    "heatmap.skipFieldInvalid": "`skip_field` expects a property name, got \"{value}\". Ignored.",
     "heatmap.fieldUnused":
         "\"{field}\" never contributed a value here. Check the name, or that it actually holds a number or checkbox.",
     "heatmap.layersAndField": "`layers` and `field` are both set. Use one or the other: `layers` for several colours, `field` for one.",
@@ -133,6 +136,9 @@ export const en = {
     "heatmap.cellLayers": "{date}: {parts}",
     "heatmap.cellPart": "{label} {value}",
     "heatmap.cellEmpty": "{date}: no data",
+    "heatmap.cellSkipped": "{cell}, day off",
+    "heatmap.cellEmptySkipped": "{date}: day off",
+    "heatmap.legendSkipped": "Day off",
 
     "insert.name": "Insert block",
     "insert.placeholder": "Which block?",

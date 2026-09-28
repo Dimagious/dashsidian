@@ -6,6 +6,7 @@ import type { NoteRecord } from "./source";
 import { longestStreak, isWeekend, dateKey } from "./calendar";
 import { resolveNoteDate } from "./note-date";
 import { readField, hasField } from "./field";
+import { specialDays } from "./special-days";
 
 export const AGGS = ["count", "sum", "avg", "min", "max", "latest", "streak"] as const;
 export type Agg = (typeof AGGS)[number];
@@ -107,6 +108,13 @@ export interface AggregateSpec {
      * `"all"` counts every day, unchanged from before this key existed.
      */
     days?: StreakDays;
+    /**
+     * `agg: streak` only: a frontmatter property (core/special-days.ts) that
+     * marks a day special — vacation, sick, any day that should bridge a run
+     * rather than break it. Combines with `days: "weekdays"`: a day is
+     * transparent when it is a weekend, special, or both.
+     */
+    skipField?: string;
 }
 
 /**
@@ -122,7 +130,10 @@ export interface AggregateSpec {
  * still sums as 0, and a plain numeric 0 sums as itself. With `days:
  * "weekdays"`, Saturday and Sunday are dropped from consideration entirely:
  * see `core/calendar.ts`'s `longestStreak`/`isWeekend` for what that does to
- * a gap that crosses one.
+ * a gap that crosses one. With `skipField` set, a day any note marks special
+ * (core/special-days.ts) is dropped the same way, whatever it holds —
+ * neither breaking the run nor extending it, and combining with `days:
+ * "weekdays"` by simple OR.
  *
  * Returns null when there is nothing to count — the caller draws a dash.
  */
@@ -158,7 +169,20 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
         // above `at_most`) leaves `dates` empty: the run below then honestly
         // comes out 0, exactly like an all-false field does above, rather
         // than needing a special case here.
-        return longestStreak(dates, spec.days === "weekdays" ? { transparent: isWeekend } : {});
+        //
+        // `special`, when `skipField` is set, is built from every note in
+        // the selection, not just the ones that ended up in `dates`: a
+        // vacation day sitting inside a gap between two counted days has to
+        // be recognised as transparent even though it never appears in
+        // `dates` itself — `longestStreak`'s own gap-bridging (core/calendar.ts)
+        // walks every calendar day in the gap, not only the ones a caller
+        // singled out.
+        const special = spec.skipField ? specialDays(notes, spec.skipField, spec.dateField) : null;
+        const weekdaysOnly = spec.days === "weekdays";
+        const transparent = weekdaysOnly || special
+            ? (day: string) => (weekdaysOnly && isWeekend(day)) || (special?.has(day) ?? false)
+            : undefined;
+        return longestStreak(dates, transparent ? { transparent } : {});
     }
 
     if (!spec.field) return null;

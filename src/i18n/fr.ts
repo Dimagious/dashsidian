@@ -42,13 +42,14 @@ export const fr: Catalog = {
     "stats.badPrecision":
         "{card} : `precision` attend un entier de 0 à {max}, reçu « {value} ». Arrondi par défaut.",
     "stats.streakKeysIgnored":
-        "{card} : `at_least`, `at_most` et `days` ne s'appliquent qu'à `agg: streak`, ignoré.",
+        "{card} : `at_least`, `at_most`, `days` et `skip_field` ne s'appliquent qu'à `agg: streak`, ignoré.",
     "stats.streakThresholdNeedsField":
         "{card} : `at_least` et `at_most` ont besoin d'un `field:` pour faire la somme. Ignoré.",
     "stats.streakThresholdInvalid": "{card} : `{key}` attend un nombre, reçu « {value} ». Ignoré.",
     "stats.streakThresholdImpossible":
         "{card} : `at_least` dépasse `at_most`, aucun jour ne peut satisfaire les deux. La série est 0.",
     "stats.streakDaysInvalid": "{card} : `days` attend `all` ou `weekdays`, reçu « {value} ». Utilise `all`.",
+    "stats.skipFieldInvalid": "{card} : `skip_field` attend un nom de propriété, reçu « {value} ». Ignoré.",
 
     "progress.empty": "Aucune barre à dessiner. Attendu : `items:` ou une liste.",
     "progress.goalRequired": "{card} : `goal:` a besoin d'un nombre. Il n'y a rien à mesurer.",
@@ -112,6 +113,7 @@ export const fr: Catalog = {
     "heatmap.fieldListEmpty": "`field` est une liste vide. Ajoutez au moins un nom de propriété.",
     "heatmap.fieldListInvalid": "Les éléments de la liste `field` doivent être de simples noms de propriétés, reçu « {value} ».",
     "heatmap.perDayInvalid": "`per_day` attend sum, avg ou max, reçu « {value} ». Utilisation de sum.",
+    "heatmap.skipFieldInvalid": "`skip_field` attend un nom de propriété, reçu « {value} ». Ignoré.",
     "heatmap.fieldUnused":
         "« {field} » n'a jamais fourni de valeur ici. Vérifiez le nom, ou qu'il contient bien un nombre ou une case à cocher.",
     "heatmap.layersAndField":
@@ -129,6 +131,9 @@ export const fr: Catalog = {
     "heatmap.cellLayers": "{date}: {parts}",
     "heatmap.cellPart": "{label} {value}",
     "heatmap.cellEmpty": "{date}: aucune donnée",
+    "heatmap.cellSkipped": "{cell}, jour de congé",
+    "heatmap.cellEmptySkipped": "{date}: jour de congé",
+    "heatmap.legendSkipped": "Jour de congé",
 
     "insert.name": "Insérer un bloc",
     "insert.placeholder": "Quel bloc ?",

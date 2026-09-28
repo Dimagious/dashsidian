@@ -234,6 +234,20 @@
 .dashy-hm-pad { background: transparent; }
 a.dashy-hm-cell { cursor: pointer; text-decoration: none; color: inherit; }
 a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1px; }
+/* A special day (B-095: vacation, sick, anything `skip_field` marks): a
+   diagonal hatch on top of `background-color`, whatever that is set to
+   inline by heatmap.ts. Drawn as a second layer, `background-image` over
+   `background-color`, so a painted cell keeps its own colour showing through
+   the gaps rather than being replaced by the hatch. */
+.dashy-hm-cell.is-skipped {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--dashy-hm-skip) 0,
+    var(--dashy-hm-skip) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
 .dashy-hm-legend {
   display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
   margin-top: 10px; font-size: 0.75em; color: var(--text-muted);
@@ -267,6 +281,19 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
   );
 }
 .dashy-hm-swatch { width: var(--dashy-cell); height: var(--dashy-cell); border-radius: 2px; }
+/* The legend's own swatch for the hatch: no `background-color` set inline
+   for this one, so the same hatch pattern as a cell's own, plain and alone,
+   stands in for "a special day" rather than for any one colour. */
+.dashy-hm-swatch.is-skipped {
+  background-color: var(--dashy-empty);
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--dashy-hm-skip) 0,
+    var(--dashy-hm-skip) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
 
 @media (max-width: 768px) {
   .dashy-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }

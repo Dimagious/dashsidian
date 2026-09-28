@@ -42,13 +42,14 @@ export const de: Catalog = {
     "stats.badPrecision":
         "{card}: `precision` erwartet eine ganze Zahl von 0 bis {max}, bekommen „{value}“. Es wird wie voreingestellt gerundet.",
     "stats.streakKeysIgnored":
-        "{card}: `at_least`, `at_most` und `days` gelten nur für `agg: streak`, ignoriert.",
+        "{card}: `at_least`, `at_most`, `days` und `skip_field` gelten nur für `agg: streak`, ignoriert.",
     "stats.streakThresholdNeedsField":
         "{card}: `at_least` und `at_most` brauchen ein `field:`, sonst gibt es nichts zu summieren. Ignoriert.",
     "stats.streakThresholdInvalid": "{card}: `{key}` erwartet eine Zahl, bekommen „{value}“. Ignoriert.",
     "stats.streakThresholdImpossible":
         "{card}: `at_least` liegt über `at_most`, kein Tag kann beides erfüllen. Die Serie ist 0.",
     "stats.streakDaysInvalid": "{card}: `days` erwartet `all` oder `weekdays`, bekommen „{value}“. Verwende `all`.",
+    "stats.skipFieldInvalid": "{card}: `skip_field` erwartet einen Eigenschaftsnamen, bekommen „{value}“. Ignoriert.",
 
     "progress.empty": "Keine Balken zu zeichnen. Erwartet wird `items:` oder eine Liste.",
     "progress.goalRequired": "{card}: `goal:` braucht eine Zahl. Es gibt nichts, woran gemessen werden könnte.",
@@ -112,6 +113,7 @@ export const de: Catalog = {
     "heatmap.fieldListEmpty": "`field` ist eine leere Liste. Füge mindestens einen Eigenschaftsnamen hinzu.",
     "heatmap.fieldListInvalid": "Einträge in der `field`-Liste müssen einfache Eigenschaftsnamen sein, erhalten „{value}“.",
     "heatmap.perDayInvalid": "`per_day` erwartet sum, avg oder max, erhalten „{value}“. Es wird sum verwendet.",
+    "heatmap.skipFieldInvalid": "`skip_field` erwartet einen Eigenschaftsnamen, erhalten „{value}“. Ignoriert.",
     "heatmap.fieldUnused":
         "„{field}“ hat hier nie einen Wert beigetragen. Prüfe den Namen, oder ob es wirklich eine Zahl oder Checkbox enthält.",
     "heatmap.layersAndField":
@@ -129,6 +131,9 @@ export const de: Catalog = {
     "heatmap.cellLayers": "{date}: {parts}",
     "heatmap.cellPart": "{label} {value}",
     "heatmap.cellEmpty": "{date}: keine Daten",
+    "heatmap.cellSkipped": "{cell}, freier Tag",
+    "heatmap.cellEmptySkipped": "{date}: freier Tag",
+    "heatmap.legendSkipped": "Freier Tag",
 
     "insert.name": "Block einfügen",
     "insert.placeholder": "Welcher Block?",

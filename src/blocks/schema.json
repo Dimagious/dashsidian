@@ -153,6 +153,10 @@
           "default": "all",
           "doc": "with `agg: streak` only: `weekdays` makes Saturday and Sunday transparent, so they neither break the run nor add to it, whatever they hold; `all`, the default, counts every day. Ignored on any other aggregate"
         },
+        "skip_field": {
+          "type": "string",
+          "doc": "with `agg: streak` only: a property marking a day special, like `vacation: true` or `sick: flu`; a day is special once any note landing on it sets the property to anything other than `false`, a blank string, `0` or absent. A special day neither breaks the run nor adds to it, whatever `field` holds, the same way `days: weekdays` treats a weekend, and the two combine. Ignored on any other aggregate"
+        },
         "unit": {
           "type": "string",
           "doc": "a suffix after the number: km, %, d."
@@ -184,7 +188,7 @@
         "`trend` sketches the days of a trailing window ending today, scaled between the smallest and largest value in that window rather than from zero. A day without a note is left out, not drawn as a zero, and two or more notes on the same day are summed into that one day's bar.",
         "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting.",
         "`compare` needs a note in both windows; when either the current or the previous stretch has none at all, the card shows its number alone with no delta. `streak` has no value of its own to compare and refuses `compare` outright, the way `trend` refuses `count`.",
-        "`at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. Both keys apply to `agg: streak` only and are ignored on every other aggregate."
+        "`at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. `skip_field` does the same for a day any note marks special, `vacation: true` or `sick: flu` for example, and combines with `days: weekdays`. All three keys apply to `agg: streak` only and are ignored on every other aggregate."
       ]
     },
     "progress": {
@@ -267,6 +271,10 @@
           "default": "all",
           "doc": "with `agg: streak` only: `weekdays` makes Saturday and Sunday transparent, so they neither break the run nor add to it, whatever they hold; `all`, the default, counts every day. Ignored on any other aggregate"
         },
+        "skip_field": {
+          "type": "string",
+          "doc": "with `agg: streak` only: a property marking a day special, like `vacation: true` or `sick: flu`; a day is special once any note landing on it sets the property to anything other than `false`, a blank string, `0` or absent. A special day neither breaks the run nor adds to it, whatever `field` holds, the same way `days: weekdays` treats a weekend, and the two combine. Ignored on any other aggregate"
+        },
         "unit": {
           "type": "string",
           "doc": "a suffix after the numbers: km, %, d."
@@ -293,7 +301,7 @@
         "`count` over nothing reads a plain `0` and an empty bar; every other aggregate, and `streak` with a `field` set, shows a dash instead: \"no data\" and \"zero\" are different answers.",
         "`streak` counts the longest run of consecutive days on record, not the run still going today; label the bar \"Best streak\" or \"Longest streak\".",
         "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting.",
-        "`at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. Both keys apply to `agg: streak` only and are ignored on every other aggregate."
+        "`at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. `skip_field` does the same for a day any note marks special, `vacation: true` or `sick: flu` for example, and combines with `days: weekdays`. All three keys apply to `agg: streak` only and are ignored on every other aggregate."
       ]
     },
     "today": {
@@ -411,6 +419,10 @@
           "type": "string",
           "doc": "a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`"
         },
+        "skip_field": {
+          "type": "string",
+          "doc": "a property marking a day special, like `vacation: true` or `sick: flu`; a day is special once any note landing on it sets the property to anything other than `false`, a blank string, `0` or absent. Its cell gets a hatched overlay, on top of its painted colour when it has one. Works with `layers` too"
+        },
         "color": {
           "type": "string",
           "default": "blue",
@@ -468,7 +480,8 @@
         "A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 Monday` counts, `2026-01-051` does not), unless `date_field` names a property instead. That is how the block knows which cell it belongs to.",
         "Two or more notes landing on the same day paint one cell, and so does a `field` list on one note: `per_day` (default sum) says how the day's values combine, and a ticked or numeric contributor always outweighs a false one on the same day.",
         "Years are taken from the data, newest first, but never one later than today: a note dated in the future draws nothing extra and counts nowhere in the grid. If every dated note turns out to be in the future, the current year is still drawn, empty.",
-        "`layers` replaces `field` for tracking several activities on one grid, each its own colour: `layers: [{field: gym, color: blue}, {field: run, color: green, label: Running}]`. When two layers land on the same day, the first one in the list colours the cell; the tooltip still lists every layer that has a value that day."
+        "`layers` replaces `field` for tracking several activities on one grid, each its own colour: `layers: [{field: gym, color: blue}, {field: run, color: green, label: Running}]`. When two layers land on the same day, the first one in the list colours the cell; the tooltip still lists every layer that has a value that day.",
+        "`skip_field` marks special days, vacation or sick for example: they still show a hatched cell, keeping any painted colour underneath, and their count in the caption is unchanged (a special day with no value is still not present)."
       ]
     }
   },

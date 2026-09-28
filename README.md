@@ -252,6 +252,12 @@ rather than refusing to draw. Add `days: weekdays` and Saturday and Sunday stop 
 either way, whatever they hold: they neither break the run nor extend it, so a Friday
 followed by a Monday is a run of two, not one.
 
+`skip_field` does the same for a day off you actually took: point it at a checkbox or text
+property like `vacation` or `sick`, and a day any note marks with it, `vacation: true` or
+`sick: flu`, neither breaks the streak nor extends it, whatever `field` holds that day.
+`skip_field: vacation` combines with `days: weekdays`, so a day is transparent when it is a
+weekend, a vacation day, or both.
+
 ### `progress`: how far along
 
 ````markdown
@@ -274,8 +280,8 @@ Beating a goal shows as it is. 110% stays 110%, and only the bar stops at full.
 `period` and `date_field` work the same way they do on `stats`, narrowing what the goal is
 measured against rather than the whole selection, and feeding `streak` and `latest` too.
 "Books this year" above reads a `finished` property on each book instead of the note name,
-since a book is rarely named as a date. `at_least`, `at_most` and `days: weekdays` work the
-same way on a `streak` bar as they do on a stats card, above.
+since a book is rarely named as a date. `at_least`, `at_most`, `days: weekdays` and
+`skip_field` work the same way on a `streak` bar as they do on a stats card, above.
 
 ### `countdown`: what is coming
 
@@ -363,6 +369,13 @@ day reads "gym 1, Running 5" rather than hiding the second number. The legend ga
 layer, and, with `bands` also set, keeps its usual row too. Averaging different fields together
 would not mean anything, so with `layers` the caption drops it and just counts the days some
 layer painted.
+
+Vacation or sick, and do not want a gap in the grid to look like a day you simply skipped?
+`skip_field: vacation` hatches that day's cell instead: any note landing on it with
+`vacation: true` (or any value other than `false`, blank or `0`) gets a diagonal overlay, on
+top of its usual colour if it has one, or on its own over an otherwise empty cell. It works
+the same way with `layers`, and does not change the caption's count: a special day with
+nothing painted is still not one of the "days" the caption counts.
 
 ## It keeps up with the vault
 
@@ -467,6 +480,11 @@ the day's values, summed if more than one note landed on it, reach `at_least` an
 under `at_most`. `days: weekdays` is a separate, independent setting: it removes Saturday
 and Sunday from the picture entirely, so they neither break a run nor extend it, whether or
 not a threshold is also set, and it works just as well on a plain fieldless streak.
+`skip_field` is a third, independent one: point it at a property like `vacation` or `sick`,
+and a day any note marks with anything other than `false`, blank or `0` is removed from the
+picture the same way a weekend under `days: weekdays` is, whatever it holds and whether or
+not it also has a value. The two combine: a day is skipped when it is a weekend, marked, or
+both.
 
 </details>
 

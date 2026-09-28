@@ -28,6 +28,8 @@ export interface StatSpec {
     atMost?: number;
     /** `agg: streak` only: unset/`"all"` counts every day, `"weekdays"` skips Saturday and Sunday */
     days?: StreakDays;
+    /** `agg: streak` only: a property marking a day special (vacation, sick); see core/special-days.ts */
+    skipField?: string;
 }
 
 /** Aggregates that need no field: they count notes, not numbers inside them. */
@@ -69,7 +71,8 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
     // Checked against the raw agg, ahead of everything else below, so it
     // fires whatever else is also wrong with the card (a missing `field`
     // included) rather than only when the rest of the card parses cleanly.
-    if (rawAgg !== "streak" && (item.at_least !== undefined || item.at_most !== undefined || item.days !== undefined)) {
+    if (rawAgg !== "streak" && (item.at_least !== undefined || item.at_most !== undefined
+        || item.days !== undefined || item.skip_field !== undefined)) {
         diagnostics.push({ level: "warning", message: t("stats.streakKeysIgnored", { card }) });
     }
 
@@ -163,6 +166,17 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
                 diagnostics.push({
                     level: "warning",
                     message: t("stats.streakDaysInvalid", { card, value: describeValue(item.days) }),
+                });
+            }
+        }
+
+        if (item.skip_field !== undefined) {
+            if (typeof item.skip_field === "string" && item.skip_field.trim()) {
+                spec.skipField = item.skip_field.trim();
+            } else {
+                diagnostics.push({
+                    level: "warning",
+                    message: t("stats.skipFieldInvalid", { card, value: describeValue(item.skip_field) }),
                 });
             }
         }

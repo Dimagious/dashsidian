@@ -158,6 +158,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
                 atLeast: spec.atLeast,
                 atMost: spec.atMost,
                 days: spec.days,
+                skipField: spec.skipField,
             })
             : null;
 

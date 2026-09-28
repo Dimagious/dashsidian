@@ -12,6 +12,18 @@ removed public export.
 
 ### Added
 
+- **`agg: streak` on `stats` and `progress` takes `skip_field`, and `heatmap`
+  takes it too.** `skip_field: vacation` marks a day special: any note
+  landing on it with the property set to anything other than `false`, a
+  blank string, `0` or absent (`vacation: true`, `sick: flu`) is transparent
+  to a streak, the same way `days: weekdays` already treats a weekend. It
+  neither breaks the run nor extends it, whatever `field` holds that day,
+  and combines with `days: weekdays` by simple OR. Ignored, with a warning
+  folded into the existing one, on any aggregate other than `streak`. On
+  `heatmap`, the same key hatches a special day's cell instead: its painted
+  colour, if it has one, still shows through, and its count in the caption
+  is unchanged, since a special day with nothing painted is still not
+  present. Works with `layers` too. Schema 1.6.0.
 - **`agg: streak` on `stats` and `progress` takes `at_least`, `at_most` and
   `days`.** `at_least: 5000` (steps) and/or `at_most: 5` (cigarettes) turn a
   streak into a threshold: a day counts only once its notes' `field` values,

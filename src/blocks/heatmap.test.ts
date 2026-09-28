@@ -886,6 +886,96 @@ describe("heatmap — several activities, each its own colour (B-096)", () => {
     });
 });
 
+describe("heatmap — special days, skip_field (B-095)", () => {
+    const specialCtx = mockContext({
+        notes: [
+            { path: "Diary/2026-01-01.md", frontmatter: { mood: 5 } },
+            { path: "Diary/2026-01-02.md", frontmatter: { mood: 7, vacation: true } }, // painted and special
+            { path: "Diary/2026-01-03.md", frontmatter: { vacation: true } }, // special, nothing painted
+            { path: "Diary/2026-01-04.md", frontmatter: { mood: 4, vacation: false } }, // not special
+        ],
+    });
+    const cellFor = (el: HTMLElement, date: string) =>
+        nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(date));
+
+    it("hatches a special day that also has a painted value, keeping its colour", () => {
+        const el = map("source: Diary\nfield: mood\nskip_field: vacation", specialCtx);
+        const jan2 = cellFor(el, "2026-01-02");
+        expect(jan2?.classList.contains("is-skipped")).toBe(true);
+        expect(jan2?.style.backgroundColor).not.toBe("");
+    });
+
+    it("hatches a special day with nothing painted too", () => {
+        const el = map("source: Diary\nfield: mood\nskip_field: vacation", specialCtx);
+        const jan3 = cellFor(el, "2026-01-03");
+        expect(jan3?.classList.contains("is-skipped")).toBe(true);
+        expect(jan3?.style.backgroundColor).toBe("");
+    });
+
+    it("does not hatch an ordinary day, painted or not", () => {
+        const el = map("source: Diary\nfield: mood\nskip_field: vacation", specialCtx);
+        expect(cellFor(el, "2026-01-01")?.classList.contains("is-skipped")).toBe(false);
+        // vacation: false marks the day as ordinary, not special.
+        expect(cellFor(el, "2026-01-04")?.classList.contains("is-skipped")).toBe(false);
+    });
+
+    it("the tooltip for a painted special day appends the day-off wording", () => {
+        const el = map("source: Diary\nfield: mood\nskip_field: vacation", specialCtx);
+        expect(cellFor(el, "2026-01-02")?.getAttribute("title")).toBe("2026-01-02: mood 7, day off");
+    });
+
+    it("the tooltip for an empty special day says only that it is a day off", () => {
+        const el = map("source: Diary\nfield: mood\nskip_field: vacation", specialCtx);
+        expect(cellFor(el, "2026-01-03")?.getAttribute("title")).toBe("2026-01-03: day off");
+    });
+
+    it("the legend gains a day-off swatch only once a special day is actually drawn", () => {
+        const withoutSkip = map("source: Diary\nfield: mood", specialCtx);
+        expect(texts(withoutSkip, ".dashy-hm-leg")).not.toContain("Day off");
+
+        const withSkip = map("source: Diary\nfield: mood\nskip_field: vacation", specialCtx);
+        expect(texts(withSkip, ".dashy-hm-leg")).toContain("Day off");
+    });
+
+    it("the legend stays without the swatch when skip_field is set but nothing is ever special", () => {
+        const el = map("source: Diary\nfield: mood\nskip_field: nonexistent", specialCtx);
+        expect(texts(el, ".dashy-hm-leg")).not.toContain("Day off");
+    });
+
+    it("the caption's day count is unaffected by skip_field: a special day with no value is still not present", () => {
+        const withoutSkip = map("source: Diary\nfield: mood", specialCtx);
+        const withSkip = map("source: Diary\nfield: mood\nskip_field: vacation", specialCtx);
+        const painted = (el: HTMLElement) =>
+            nodes(el, ".dashy-hm-cell").filter((c) => c.style.backgroundColor !== "").length;
+        expect(painted(withSkip)).toBe(painted(withoutSkip));
+        expect(texts(withoutSkip, ".dashy-hm-title")[0]).toBe(texts(withSkip, ".dashy-hm-title")[0]);
+    });
+
+    it("an invalid skip_field warns naming the value and draws nothing hatched", () => {
+        const el = map("source: Diary\nfield: mood\nskip_field: 5", specialCtx);
+        expect(diagnostics(el, "warning").some((m) => m.includes("skip_field") && m.includes("5"))).toBe(true);
+        expect(nodes(el, ".is-skipped")).toHaveLength(0);
+    });
+
+    it("works together with layers: a special day hatches regardless of which layer painted it", () => {
+        const layeredCtx = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { gym: true, vacation: true } },
+                { path: "Diary/2026-01-02.md", frontmatter: { run: true } },
+            ],
+        });
+        const el = map(
+            "source: Diary\nskip_field: vacation\nlayers:\n  - { field: gym, color: blue }\n  - { field: run, color: green }",
+            layeredCtx,
+        );
+        const cellFor2 = (date: string) =>
+            nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(date));
+        expect(cellFor2("2026-01-01")?.classList.contains("is-skipped")).toBe(true);
+        expect(cellFor2("2026-01-02")?.classList.contains("is-skipped")).toBe(false);
+        expect(texts(el, ".dashy-hm-leg")).toContain("Day off");
+    });
+});
+
 describe("heatmap — never a year later than today (B-113)", () => {
     const TODAY = new Date(2026, 8, 24); // 24 September 2026
 

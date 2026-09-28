@@ -54,6 +54,15 @@ items:
   - { label: Два условия, source: Diary, where: "year = 2026 and rating >= 4", agg: count }`,
     },
     {
+        block: "stats",
+        title: "stats — streak по будням (days: weekdays)",
+        source: `columns: 3
+items:
+  - { label: Подряд, все дни, source: Diary, field: sleep_score, agg: streak, unit: дн. }
+  - { label: Подряд, будни, source: Diary, field: sleep_score, agg: streak, days: weekdays, unit: дн. }
+  - { label: Порог 8000 шагов по будням, source: Diary, field: steps, agg: streak, at_least: 8000, days: weekdays, unit: дн. }`,
+    },
+    {
         block: "progress",
         title: "progress — обычная, выполненная, перевыполненная, сломанная",
         source: `items:
@@ -109,5 +118,13 @@ bands: [12000, 8000, 5000]`,
         title: "heatmap — нет обязательного поля",
         source: `source: Diary
 feild: sleep_score`,
+    },
+    {
+        block: "heatmap",
+        title: "heatmap — skip_field, закрашенный и пустой день отпуска",
+        source: `source: Diary
+field: sleep_score
+color: purple
+skip_field: vacation`,
     },
 ];

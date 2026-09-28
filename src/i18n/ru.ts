@@ -39,13 +39,15 @@ export const ru: Catalog = {
         "{card}: «{field}» хранит текст или другое значение, а не число или чекбокс. Чтобы посчитать такие заметки, используйте `where: \"{field} contains ...\"` с `agg: count`.",
     "stats.badPrecision":
         "{card}: `precision` ожидает целое от 0 до {max}, получено «{value}». Округляю по умолчанию.",
-    "stats.streakKeysIgnored": "{card}: `at_least`, `at_most` и `days` действуют только при `agg: streak`, пропущено.",
+    "stats.streakKeysIgnored":
+        "{card}: `at_least`, `at_most`, `days` и `skip_field` действуют только при `agg: streak`, пропущено.",
     "stats.streakThresholdNeedsField":
         "{card}: `at_least` и `at_most` нужны вместе с `field:`, иначе нечего суммировать. Пропущено.",
     "stats.streakThresholdInvalid": "{card}: `{key}` ожидает число, получено «{value}». Пропущено.",
     "stats.streakThresholdImpossible":
         "{card}: `at_least` больше `at_most`, ни один день не подойдёт под оба условия. Серия равна 0.",
     "stats.streakDaysInvalid": "{card}: `days` ожидает `all` или `weekdays`, получено «{value}». Использую `all`.",
+    "stats.skipFieldInvalid": "{card}: `skip_field` ожидает имя свойства, получено «{value}». Пропущено.",
 
     "progress.empty": "Список полос пуст. Ожидается `items:` или массив.",
     "progress.goalRequired": "{card}: `goal:` ожидает число. Иначе не к чему стремиться.",
@@ -109,6 +111,7 @@ export const ru: Catalog = {
     "heatmap.fieldListEmpty": "Список `field` пуст. Добавьте хотя бы одно имя свойства.",
     "heatmap.fieldListInvalid": "Элементы списка `field` должны быть простыми именами свойств, получено «{value}».",
     "heatmap.perDayInvalid": "`per_day` принимает sum, avg или max, получено «{value}». Используется sum.",
+    "heatmap.skipFieldInvalid": "`skip_field` ожидает имя свойства, получено «{value}». Пропущено.",
     "heatmap.fieldUnused":
         "«{field}» ни разу не дало значения в этой выборке. Проверьте имя, или что там действительно число либо чекбокс.",
     "heatmap.layersAndField":
@@ -126,6 +129,9 @@ export const ru: Catalog = {
     "heatmap.cellLayers": "{date}: {parts}",
     "heatmap.cellPart": "{label} {value}",
     "heatmap.cellEmpty": "{date}: нет данных",
+    "heatmap.cellSkipped": "{cell}, выходной",
+    "heatmap.cellEmptySkipped": "{date}: выходной",
+    "heatmap.legendSkipped": "Выходной",
 
     "insert.name": "Вставить блок",
     "insert.placeholder": "Какой блок?",

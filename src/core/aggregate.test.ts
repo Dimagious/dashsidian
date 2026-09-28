@@ -415,6 +415,91 @@ describe("aggregate", () => {
         });
     });
 
+    describe("streak skip_field: special days (B-095)", () => {
+        // 2026-09-14 is a Monday.
+        it("a vacation week inside a run bridges it, and does not itself count", () => {
+            const notes = [
+                ...["14", "15", "16", "17", "18"].map((d) => day(`2026-09-${d}`, { v: 1 })), // Mon-Fri
+                // A full week off, weekend included: none of these log `v`.
+                ...["19", "20", "21", "22", "23", "24", "25"].map((d) => day(`2026-09-${d}`, { vacation: true })),
+                day("2026-09-26", { v: 1 }), // back, the following Saturday
+            ];
+            expect(aggregate(notes, { agg: "streak", field: "v", skipField: "vacation" })).toBe(6);
+        });
+
+        it("a special day with a value of its own does not add to the run", () => {
+            const notes = [
+                day("2026-09-14", { v: 1 }),
+                day("2026-09-15", { v: 1, vacation: true }), // has a value, but is special
+                day("2026-09-16", { v: 1 }),
+            ];
+            // Without `skipField` this would be a run of 3 (see the plain
+            // consecutive-day tests above); the special day is dropped from
+            // the run itself, though the gap around it still bridges.
+            expect(aggregate(notes, { agg: "streak", field: "v", skipField: "vacation" })).toBe(2);
+        });
+
+        it("a day with only `false`, blank, absent or zero does not mark it special", () => {
+            const notes = [
+                day("2026-09-14", { v: 1, vacation: false }),
+                day("2026-09-15", { v: 1, vacation: "" }),
+                day("2026-09-16", { v: 1 }),
+                day("2026-09-17", { v: 1, vacation: 0 }),
+            ];
+            expect(aggregate(notes, { agg: "streak", field: "v", skipField: "vacation" })).toBe(4);
+        });
+
+        it("combines with days: weekdays by OR: transparent when either applies", () => {
+            const notes = [
+                ...["14", "15", "16", "17", "18"].map((d) => day(`2026-09-${d}`, { v: 1 })), // Mon-Fri
+                day("2026-09-21", { vacation: true }), // the following Monday, a weekday off
+                day("2026-09-22", { v: 1 }), // Tuesday, back
+            ];
+            // `days: weekdays` alone bridges the weekend (19th-20th) but not
+            // the Monday off: that day is an ordinary weekday to it, so the
+            // run breaks there, leaving the first week (5) as the longest.
+            expect(aggregate(notes, { agg: "streak", field: "v", days: "weekdays" })).toBe(5);
+            // With `skipField` added, the Monday off is transparent too, and
+            // the run bridges all the way to Tuesday.
+            expect(aggregate(notes, {
+                agg: "streak", field: "v", days: "weekdays", skipField: "vacation",
+            })).toBe(6);
+        });
+
+        it("combined with at_least: a special day failing the threshold does not break the run", () => {
+            const notes = [
+                day("2026-09-14", { steps: 5000 }),
+                day("2026-09-15", { steps: 100, vacation: true }), // fails the threshold, but is special
+                day("2026-09-16", { steps: 6000 }),
+            ];
+            // Without `skipField` the middle day fails the threshold and is
+            // an ordinary gap, breaking the run.
+            expect(aggregate(notes, { agg: "streak", field: "steps", atLeast: 5000 })).toBe(1);
+            expect(aggregate(notes, {
+                agg: "streak", field: "steps", atLeast: 5000, skipField: "vacation",
+            })).toBe(2);
+        });
+
+        it("a skipField no note ever sets has no effect", () => {
+            const notes = [day("2026-09-14", { v: 1 }), day("2026-09-15", { v: 1 })];
+            expect(aggregate(notes, { agg: "streak", field: "v", skipField: "vacation" })).toBe(2);
+        });
+
+        it("a special day plus an ordinary empty day in the same gap still breaks the run", () => {
+            const notes = [
+                day("2026-09-14", { v: 1 }),
+                day("2026-09-15", { vacation: true }), // special, bridges on its own
+                // 2026-09-16 has no note at all: an ordinary gap day, not special.
+                day("2026-09-17", { v: 1 }),
+                day("2026-09-18", { v: 1 }),
+            ];
+            // Without the note on the 16th the gap would be bridged entirely
+            // by the special day and the run would be 5; the ordinary day in
+            // the middle of it is enough to break it regardless.
+            expect(aggregate(notes, { agg: "streak", field: "v", skipField: "vacation" })).toBe(2);
+        });
+    });
+
     describe("dated note names beyond an exact YYYY-MM-DD (B-081)", () => {
         it("a suffixed name is a date, in a run of otherwise exact names", () => {
             const week = [

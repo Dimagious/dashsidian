@@ -5,12 +5,13 @@ import { classifyField } from "../core/aggregate";
 import { readFields, readPerDay, dayValues, unusedFields } from "../core/day-values";
 import { readLayers, combineLayers, type Layer } from "../core/layers";
 import { readDateField } from "../core/note-date";
+import { specialDays } from "../core/special-days";
 import { formatValue, roundedValue } from "../core/stat";
 import { layoutYear, dateKey, eachDay, yearsOf, rotateWeekdays, weekdayRow } from "../core/calendar";
 import { toRgb, rgba, DEFAULT_COLOR, PALETTE, type Rgb } from "../core/palette";
 import { readBands, bandFor, type Band } from "../core/bands";
 import { scrollEdges, resolveScrollRestore, type ScrollSnapshot } from "../core/scroll";
-import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
+import { parseConfig, isRecord, unknownKeys, describeValue, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
 import { t } from "../i18n";
 import schema from "./schema.json";
@@ -150,6 +151,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     const bands = readBands(value.bands);
     const linkable = value.link !== false;
     const dateField = readDateField(value);
+    const skipField = readSkipField(value, diags);
     const { perDay, diagnostics: perDayDiags } = readPerDay(value);
     diags.push(...perDayDiags);
 
@@ -159,6 +161,9 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     // `core/day-values.ts` for how a day's contributors (two notes, two
     // fields in one note, or both at once) collapse into its one value.
     const marks = dayValues(notes, fields, perDay, dateField);
+    // Every note in the selection, not only the ones that ended up in
+    // `marks`: a vacation day with nothing painted still has to hatch.
+    const special = skipField ? specialDays(notes, skipField, dateField) : new Set<string>();
 
     if (!marks.size) {
         // Reported per field, not lumped together: a typo in one entry of a
@@ -199,7 +204,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     const firstDay = firstDayOfWeek();
     return drawYears(el, ctx, marks, {
         color, bands, field: fieldLabel, linkable, title: value.title, firstDay,
-        showBandsLegend: true,
+        showBandsLegend: true, special,
     }, restoreByYear);
 }
 
@@ -214,6 +219,22 @@ function selectConfiguredNotes(
     const missing = unmatchedSource(ctx.notes(), selection);
     if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
     return selectNotes(ctx.notes(), selection);
+}
+
+/**
+ * Reads `skip_field` off the block's root config (B-095): a property marking
+ * a day special, vacation or sick for example. Absent is silent; present but
+ * not a usable property name warns and is dropped, the same shape `field`
+ * itself is validated by (`readFields`, core/day-values.ts). Block-wide, not
+ * per-layer: a special day hatches every cell for that day regardless of
+ * which layer, if any, painted it.
+ */
+function readSkipField(value: Record<string, unknown>, diags: Diagnostic[]): string | undefined {
+    const raw = value.skip_field;
+    if (raw === undefined) return undefined;
+    if (typeof raw === "string" && raw.trim() !== "") return raw.trim();
+    diags.push({ level: "warning", message: t("heatmap.skipFieldInvalid", { value: describeValue(raw) }) });
+    return undefined;
 }
 
 /**
@@ -247,6 +268,7 @@ function renderLayeredHeatmap(
     const bands = readBands(value.bands);
     const linkable = value.link !== false;
     const dateField = readDateField(value);
+    const skipField = readSkipField(value, diags);
     const { perDay, diagnostics: perDayDiags } = readPerDay(value);
     diags.push(...perDayDiags);
 
@@ -254,6 +276,9 @@ function renderLayeredHeatmap(
 
     const perLayerMarks = layers.map((layer) => dayValues(notes, layer.fields, perDay, dateField));
     const marks = combineLayers(perLayerMarks, layers.map((l) => l.label));
+    // Block-wide, the same as the plain `field` path: a special day hatches
+    // regardless of which layer, if any, painted it.
+    const special = skipField ? specialDays(notes, skipField, dateField) : new Set<string>();
 
     if (!marks.size) {
         // The same per-field reporting as the plain `field` path (B-112),
@@ -302,6 +327,7 @@ function renderLayeredHeatmap(
         title: value.title,
         firstDay,
         showBandsLegend: bandsGiven,
+        special,
     }, restoreByYear);
 }
 
@@ -377,6 +403,8 @@ interface DrawOptions {
     field: string;
     linkable: boolean;
     title: unknown;
+    /** days (B-095) any note in the selection marked special; hatched regardless of `layers` or of which one painted */
+    special: ReadonlySet<string>;
     /** 0 is Sunday, 1 is Monday — whatever the locale says */
     firstDay: number;
     /** Whether this grid is one of several, and so has to name its year. */
@@ -395,10 +423,15 @@ function drawYear(
     const layout = layoutYear(year, today, opts.firstDay);
     const wrap = el.createDiv({ cls: "dashy-hm-wrap" });
 
-    const yearMarks = eachDay(year, layout.total)
+    const dayKeys = eachDay(year, layout.total);
+    const yearMarks = dayKeys
         .map((k) => marks.get(k))
         .filter((v): v is Paintable => v !== undefined);
     const present = yearMarks.filter((m) => m.painted);
+    // Whether this year's grid has at least one hatched cell, painted or
+    // not: the legend only earns its extra row when there is something on
+    // this particular grid for it to explain.
+    const specialInYear = dayKeys.some((k) => opts.special.has(k));
 
     // The average counts every recognised day, a `false` one included as 0 —
     // the same sum a stats `avg` card over this field would show. Counting
@@ -489,9 +522,13 @@ function drawYear(
         const date = dateKey(new Date(year, 0, 1 + i));
         const hit = marks.get(date);
         const paintable = hit?.painted ? hit : undefined;
+        const special = opts.special.has(date);
         const cell = paintable && opts.linkable
             ? internalLink(grid, paintable.path, "dashy-hm-cell")
             : grid.createDiv({ cls: "dashy-hm-cell" });
+        // A special day (B-095) hatches whether or not it also painted: the
+        // class carries no meaning about the value, only about the day.
+        cell.classList.toggle("is-skipped", special);
         if (paintable) {
             const band = bandFor(opts.bands, paintable.value);
             // The winning layer's own colour, when there is one — set only
@@ -509,7 +546,7 @@ function drawYear(
             // JS float division produces. `formatValue`'s own digit
             // grouping is left out on purpose — its narrow no-break space
             // has no business inside a `title` attribute.
-            const tooltip = paintable.parts
+            const baseTooltip = paintable.parts
                 ? t("heatmap.cellLayers", {
                     date,
                     // Each layer's own "label value" piece goes through
@@ -522,11 +559,12 @@ function drawYear(
                         .join(", "),
                 })
                 : t("heatmap.cell", { date, field: opts.field, value: roundedValue(paintable.value) });
+            const tooltip = special ? t("heatmap.cellSkipped", { cell: baseTooltip }) : baseTooltip;
             cell.style.backgroundColor = rgba(rgb, band?.alpha ?? 1);
             cell.setAttr("aria-label", tooltip);
             cell.setAttr("title", tooltip);
         } else {
-            cell.setAttr("title", t("heatmap.cellEmpty", { date }));
+            cell.setAttr("title", special ? t("heatmap.cellEmptySkipped", { date }) : t("heatmap.cellEmpty", { date }));
         }
     }
 
@@ -551,6 +589,14 @@ function drawYear(
             row.createDiv({ cls: "dashy-hm-swatch" }).style.backgroundColor = rgba(legendColor, b.alpha);
             row.createSpan({ text: b.label });
         }
+    }
+    // Only earns its row on a grid that actually has a hatched cell: a
+    // `skip_field` set but never triggered anywhere in this year would
+    // otherwise add a swatch nothing on the grid explains.
+    if (specialInYear) {
+        const row = legend.createDiv({ cls: "dashy-hm-leg" });
+        row.createDiv({ cls: "dashy-hm-swatch is-skipped" });
+        row.createSpan({ text: t("heatmap.legendSkipped") });
     }
 
     // Where the year does not fit, open it at the most recent day rather than

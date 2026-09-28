@@ -173,6 +173,7 @@ function toBar(
         atLeast: spec.atLeast,
         atMost: spec.atMost,
         days: spec.days,
+        skipField: spec.skipField,
     });
 
     bar.value = formatValue(current, spec.precision);

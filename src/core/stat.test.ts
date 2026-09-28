@@ -43,6 +43,17 @@ describe("readStat — happy path", () => {
         const { spec } = readStat({ agg: "streak", field: "gym", days: "all" }, "Gym");
         expect(spec).toEqual({ agg: "streak", field: "gym", days: "all" });
     });
+
+    it("streak takes skip_field alongside field", () => {
+        const { spec, diagnostics } = readStat({ agg: "streak", field: "gym", skip_field: "vacation" }, "Gym");
+        expect(spec).toEqual({ agg: "streak", field: "gym", skipField: "vacation" });
+        expect(diagnostics).toEqual([]);
+    });
+
+    it("streak takes skip_field with no field at all", () => {
+        const { spec } = readStat({ agg: "streak", skip_field: "vacation" }, "In a row");
+        expect(spec).toEqual({ agg: "streak", skipField: "vacation" });
+    });
 });
 
 describe("readStat — streak threshold and weekdays diagnostics (B-101)", () => {
@@ -59,6 +70,20 @@ describe("readStat — streak threshold and weekdays diagnostics (B-101)", () =>
 
     it("the same warning fires even with a single one of the three keys set", () => {
         const { diagnostics } = readStat({ agg: "count", days: "weekdays" }, "Notes");
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]?.level).toBe("warning");
+    });
+
+    it("skip_field on a non-streak card is covered by the same combined warning (B-095)", () => {
+        const { spec, diagnostics } = readStat({ agg: "sum", field: "steps", skip_field: "vacation" }, "Steps");
+        expect(spec).toEqual({ agg: "sum", field: "steps" });
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]?.level).toBe("warning");
+        expect(diagnostics[0]?.message).toContain("skip_field");
+    });
+
+    it("skip_field alone, with no other streak-only key, still triggers the warning", () => {
+        const { diagnostics } = readStat({ agg: "count", skip_field: "vacation" }, "Notes");
         expect(diagnostics).toHaveLength(1);
         expect(diagnostics[0]?.level).toBe("warning");
     });
@@ -111,6 +136,22 @@ describe("readStat — streak threshold and weekdays diagnostics (B-101)", () =>
         expect(diagnostics[0]?.level).toBe("warning");
         expect(diagnostics[0]?.message).toContain("all");
         expect(diagnostics[0]?.message).toContain("weekdays");
+    });
+
+    it("a non-string skip_field warns naming the value and is dropped", () => {
+        const { spec, diagnostics } = readStat({ agg: "streak", field: "v", skip_field: 5 }, "Streak");
+        expect(spec).toEqual({ agg: "streak", field: "v" });
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]?.level).toBe("warning");
+        expect(diagnostics[0]?.message).toContain("skip_field");
+        expect(diagnostics[0]?.message).toContain("5");
+    });
+
+    it("a blank skip_field warns the same way as a non-string one", () => {
+        const { spec, diagnostics } = readStat({ agg: "streak", field: "v", skip_field: "   " }, "Streak");
+        expect(spec).toEqual({ agg: "streak", field: "v" });
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]?.level).toBe("warning");
     });
 });
 
