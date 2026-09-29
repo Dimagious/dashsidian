@@ -248,6 +248,14 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
     transparent 4px
   );
 }
+/* Today's cell (B-099): a ring, never the fill, so a painted colour or the
+   is-skipped hatch stays visible inside it. Drawn inset: today is always the
+   grid's last column, and an outer ring would be clipped by the scroller's
+   overflow on the right (and top or bottom on the first and last row). */
+.dashy-hm-cell.is-today {
+  outline: 2px solid var(--dashy-hm-today);
+  outline-offset: -2px;
+}
 .dashy-hm-legend {
   display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
   margin-top: 10px; font-size: 0.75em; color: var(--text-muted);

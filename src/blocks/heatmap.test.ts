@@ -1983,3 +1983,120 @@ describe("heatmap — range draws one grid over a window (B-093)", () => {
         });
     });
 });
+
+describe("heatmap — today's cell gets a ring (B-099)", () => {
+    const TODAY = new Date(2026, 8, 24); // 24 September 2026
+
+    afterEach(() => vi.useRealTimers());
+
+    const cellFor = (el: HTMLElement, date: string) =>
+        nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(date));
+
+    it("rings today's cell on a year grid, and no other cell", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            { path: "Diary/2026-09-23.md", frontmatter: { steps: 100 } },
+            { path: "Diary/2026-09-24.md", frontmatter: { steps: 200 } }, // today
+            { path: "Diary/2026-09-25.md", frontmatter: { steps: 300 } }, // future, not even drawn
+        ];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        expect(cellFor(el, "2026-09-24")?.classList.contains("is-today")).toBe(true);
+        expect(cellFor(el, "2026-09-23")?.classList.contains("is-today")).toBe(false);
+        expect(nodes(el, ".is-today")).toHaveLength(1);
+    });
+
+    it("is absent on a past year's own grid; only the current year's grid rings", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            ...diary("Diary", "2025-03-01", 3, () => ({ steps: 1 })),
+            ...diary("Diary", "2026-09-22", 3, () => ({ steps: 1 })),
+        ];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(2);
+        // Newest first (`yearsOf`, core/calendar.ts): index 0 is 2026, index 1 is 2025.
+        const [wrap2026, wrap2025] = nodes(el, ".dashy-hm-wrap");
+        expect(wrap2026?.querySelectorAll(".is-today")).toHaveLength(1);
+        expect(wrap2025?.querySelectorAll(".is-today")).toHaveLength(0);
+    });
+
+    it("rings today's cell on a range grid, at the window's own last day", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2026-09-15", 10, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: 30d", mockContext({ notes }));
+        expect(cellFor(el, "2026-09-24")?.classList.contains("is-today")).toBe(true);
+        expect(nodes(el, ".is-today")).toHaveLength(1);
+    });
+
+    it("startDayHour shifts which cell counts as today, the same as it shifts the grid's own end", () => {
+        vi.useFakeTimers();
+        // 24 September 2026, 02:00: before the 04:00 start-of-day boundary,
+        // so the effective day is still the 23rd (core/today.ts).
+        vi.setSystemTime(new Date(2026, 8, 24, 2, 0));
+        const settings = { ...DEFAULT_SETTINGS, startDayHour: 4 };
+        const notes = [
+            { path: "Diary/2026-09-23.md", frontmatter: { steps: 1 } },
+            { path: "Diary/2026-09-24.md", frontmatter: { steps: 2 } },
+        ];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }, settings));
+        // The grid itself stops at the effective today, 23 September: the
+        // 24th, calendar-real but not yet effectively arrived, is not drawn
+        // at all, let alone rung.
+        expect(cellFor(el, "2026-09-23")?.classList.contains("is-today")).toBe(true);
+        expect(cellFor(el, "2026-09-24")).toBeUndefined();
+        expect(nodes(el, ".is-today")).toHaveLength(1);
+    });
+
+    it("a day that is both today and a day off carries both classes, and the tooltip appends both markers in order", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [{ path: "Diary/2026-09-24.md", frontmatter: { steps: 5, vacation: true } }];
+        const el = map("source: Diary\nfield: steps\nskip_field: vacation", mockContext({ notes }));
+        const cell = cellFor(el, "2026-09-24");
+        expect(cell?.classList.contains("is-today")).toBe(true);
+        expect(cell?.classList.contains("is-skipped")).toBe(true);
+        // "day off" (B-095) reads as a property of the day's own data, so it
+        // comes first; "today" is a note about the day itself and comes last.
+        expect(cell?.getAttribute("title")).toBe("2026-09-24: steps 5, day off, today");
+        expect(cell?.getAttribute("aria-label")).toBe("2026-09-24: steps 5, day off, today");
+    });
+
+    it("an empty today marked a day off reads the day-off wording plus today", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            { path: "Diary/2026-09-01.md", frontmatter: { steps: 10 } }, // keeps the field from resolving to "no data" everywhere
+            { path: "Diary/2026-09-24.md", frontmatter: { vacation: true } }, // today, nothing painted
+        ];
+        const el = map("source: Diary\nfield: steps\nskip_field: vacation", mockContext({ notes }));
+        expect(cellFor(el, "2026-09-24")?.getAttribute("title")).toBe("2026-09-24: day off, today");
+    });
+
+    it("a plain empty today reads the no-data wording plus today", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        // No note dated today at all: the cell is drawn empty regardless,
+        // one of every day the year's grid lays out.
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { steps: 10 } }];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        expect(cellFor(el, "2026-09-24")?.getAttribute("title")).toBe("2026-09-24: no data, today");
+    });
+
+    it("a painted today that is not a day off appends only the today marker", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [{ path: "Diary/2026-09-24.md", frontmatter: { steps: 5 } }];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        expect(cellFor(el, "2026-09-24")?.getAttribute("title")).toBe("2026-09-24: steps 5, today");
+    });
+
+    it("adds no legend row of its own", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [{ path: "Diary/2026-09-24.md", frontmatter: { steps: 5 } }];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        expect(texts(el, ".dashy-hm-leg").some((label) => /today/i.test(label))).toBe(false);
+    });
+});

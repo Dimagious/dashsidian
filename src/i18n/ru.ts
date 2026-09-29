@@ -135,6 +135,7 @@ export const ru: Catalog = {
     "heatmap.cellEmpty": "{date}: нет данных",
     "heatmap.cellSkipped": "{cell}, выходной",
     "heatmap.cellEmptySkipped": "{date}: выходной",
+    "heatmap.cellToday": "{cell}, сегодня",
     "heatmap.legendSkipped": "Выходной",
 
     "insert.name": "Вставить блок",

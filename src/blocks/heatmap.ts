@@ -8,7 +8,7 @@ import { readDateField } from "../core/note-date";
 import { specialDays } from "../core/special-days";
 import { formatValue, roundedValue } from "../core/stat";
 import {
-    layoutYear, layoutRange, eachDay, eachDayBetween, yearsOf, rotateWeekdays, weekdayRow,
+    layoutYear, layoutRange, eachDay, eachDayBetween, yearsOf, rotateWeekdays, weekdayRow, dateKey,
     type MonthLabel,
 } from "../core/calendar";
 import { parsePeriod, periodWindow, type Period } from "../core/period";
@@ -376,7 +376,7 @@ function drawHeatmap(
     el: HTMLElement,
     ctx: BlockContext,
     marks: ReadonlyMap<string, Paintable>,
-    opts: Omit<DrawOptions, "restore">,
+    opts: Omit<DrawOptions, "restore" | "today">,
     restoreByKey: Map<string, ScrollSnapshot>,
     range: Period | undefined,
 ): void | (() => void) {
@@ -443,10 +443,15 @@ function drawYears(
     el: HTMLElement,
     ctx: BlockContext,
     marks: ReadonlyMap<string, Paintable>,
-    opts: Omit<DrawOptions, "restore">,
+    opts: Omit<DrawOptions, "restore" | "today">,
     restoreByKey: Map<string, ScrollSnapshot>,
 ): void | (() => void) {
     const today = ctx.today();
+    // A year grid's `dayKeys` only ever cover that one calendar year, so
+    // comparing every grid's cells against the same `todayKey` already rings
+    // at most one cell across every grid drawn here, on whichever year today
+    // actually falls in, with no separate "is this the current year" check.
+    const todayKey = dateKey(today);
     const years = yearsOf([...marks.keys()]).filter((y) => y <= today.getFullYear());
     const yearsToDraw = years.length ? years : [today.getFullYear()];
     const severalYears = yearsToDraw.length > 1;
@@ -468,7 +473,7 @@ function drawYears(
 
         const observer = drawGrid(el, {
             key: String(year), dayKeys, offset: layout.offset, columns: layout.columns, months: layout.months,
-        }, caption, marks, { ...opts, restore: restoreByKey.get(String(year)) });
+        }, caption, marks, { ...opts, restore: restoreByKey.get(String(year)), today: todayKey });
         if (observer) drawn.push(observer);
     }
     if (drawn.length) {
@@ -498,10 +503,11 @@ function drawRangeGrid(
     ctx: BlockContext,
     marks: ReadonlyMap<string, Paintable>,
     period: Period,
-    opts: Omit<DrawOptions, "restore">,
+    opts: Omit<DrawOptions, "restore" | "today">,
     restoreByKey: Map<string, ScrollSnapshot>,
 ): void | (() => void) {
     const today = ctx.today();
+    const todayKey = dateKey(today);
     // Not called `window`: that shadows the DOM global and is exactly the
     // trap `core/period.ts#DateWindow` already warns about — the scorecard
     // scanner and a reader both take `window.` for a call on it.
@@ -518,7 +524,7 @@ function drawRangeGrid(
 
     const observer = drawGrid(el, {
         key: RANGE_GRID_KEY, dayKeys, offset: layout.offset, columns: layout.columns, months: layout.months,
-    }, caption, marks, { ...opts, restore: restoreByKey.get(RANGE_GRID_KEY) });
+    }, caption, marks, { ...opts, restore: restoreByKey.get(RANGE_GRID_KEY), today: todayKey });
     if (observer) {
         observers.set(el, [observer]);
         return () => disconnectObservers(el);
@@ -561,6 +567,15 @@ interface DrawOptions {
     firstDay: number;
     /** Where this grid's scroller sat before this redraw, if anywhere worth restoring. */
     restore: ScrollSnapshot | undefined;
+    /**
+     * `dateKey(ctx.today())` (B-099), respecting `startDayHour` the same way
+     * every other "today" in this block does. Compared against a cell's own
+     * key, never against `new Date()` directly: a grid's `dayKeys` only ever
+     * come from one calendar year or one `range` window, so this alone is
+     * enough to ring at most one cell per grid without also checking which
+     * year the grid belongs to.
+     */
+    today: string;
 }
 
 /**
@@ -670,12 +685,20 @@ function drawGrid(
         const hit = marks.get(date);
         const paintable = hit?.painted ? hit : undefined;
         const special = opts.special.has(date);
+        // B-099: `opts.today` is already scoped to this one grid's own year
+        // or window, so a plain key comparison is enough — no separate check
+        // for "is this the grid the current year belongs to".
+        const isToday = date === opts.today;
         const cell = paintable && opts.linkable
             ? internalLink(grid, paintable.path, "dashy-hm-cell")
             : grid.createDiv({ cls: "dashy-hm-cell" });
         // A special day (B-095) hatches whether or not it also painted: the
         // class carries no meaning about the value, only about the day.
         cell.classList.toggle("is-skipped", special);
+        // Today's ring (B-099) never changes the cell's own fill, so it
+        // paints or hatches exactly as any other day would; only an outline
+        // class is added on top.
+        cell.classList.toggle("is-today", isToday);
         if (paintable) {
             const band = bandFor(opts.bands, paintable.value);
             // The winning layer's own colour, when there is one — set only
@@ -706,12 +729,20 @@ function drawGrid(
                         .join(", "),
                 })
                 : t("heatmap.cell", { date, field: opts.field, value: roundedValue(paintable.value) });
-            const tooltip = special ? t("heatmap.cellSkipped", { cell: baseTooltip }) : baseTooltip;
+            // Both markers wrap the same way, applied in this fixed order:
+            // "day off" (B-095) reads as a property of the day's data, the
+            // more immediate fact, and "today" (B-099) as a note about the
+            // day itself, so it comes last — "…, day off, today" rather than
+            // the other way round.
+            let tooltip = special ? t("heatmap.cellSkipped", { cell: baseTooltip }) : baseTooltip;
+            if (isToday) tooltip = t("heatmap.cellToday", { cell: tooltip });
             cell.style.backgroundColor = rgba(rgb, band?.alpha ?? 1);
             cell.setAttr("aria-label", tooltip);
             cell.setAttr("title", tooltip);
         } else {
-            cell.setAttr("title", special ? t("heatmap.cellEmptySkipped", { date }) : t("heatmap.cellEmpty", { date }));
+            let tooltip = special ? t("heatmap.cellEmptySkipped", { date }) : t("heatmap.cellEmpty", { date });
+            if (isToday) tooltip = t("heatmap.cellToday", { cell: tooltip });
+            cell.setAttr("title", tooltip);
         }
     }
 

@@ -137,6 +137,7 @@ export const es: Catalog = {
     "heatmap.cellEmpty": "{date}: sin datos",
     "heatmap.cellSkipped": "{cell}, día libre",
     "heatmap.cellEmptySkipped": "{date}: día libre",
+    "heatmap.cellToday": "{cell}, hoy",
     "heatmap.legendSkipped": "Día libre",
 
     "insert.name": "Insertar bloque",

@@ -129,6 +129,14 @@ skip_field: vacation`,
     },
     {
         block: "heatmap",
+        title: "heatmap — сегодняшняя ячейка обведена кольцом",
+        source: `source: Diary
+field: steps
+color: green
+bands: [12000, 8000, 5000]`,
+    },
+    {
+        block: "heatmap",
         title: "heatmap — range: 365d, одна сетка на скользящий год",
         source: `source: Diary
 field: sleep_score

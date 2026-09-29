@@ -137,6 +137,7 @@ export const de: Catalog = {
     "heatmap.cellEmpty": "{date}: keine Daten",
     "heatmap.cellSkipped": "{cell}, freier Tag",
     "heatmap.cellEmptySkipped": "{date}: freier Tag",
+    "heatmap.cellToday": "{cell}, heute",
     "heatmap.legendSkipped": "Freier Tag",
 
     "insert.name": "Block einfügen",

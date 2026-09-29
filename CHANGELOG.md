@@ -12,6 +12,12 @@ removed public export.
 
 ### Added
 
+- **The heatmap rings today's cell.** An outline, not a colour change, so a
+  painted value or a `skip_field` hatch both stay fully visible underneath
+  it. Shows on the current year's grid and on a `range` grid, whether or not
+  today has data yet, and moves with `startDayHour` the same way every other
+  "today" in the plugin already does. The tooltip gains its own marker too,
+  appended after `skip_field`'s "day off" wording when a day is both.
 - **`heatmap` takes `range`, one grid over a window ending today instead of a
   grid per calendar year.** `range: 365d` is a rolling year that crosses 1
   January in a single grid rather than splitting into two; `range` also

@@ -34,6 +34,10 @@ body {
      `text-muted` fallback here, without `color-mix`, so a browser without it
      still gets a visible (if fully opaque) hatch rather than none. */
   --dashy-hm-skip: var(--text-muted);
+  /* The ring around today's heatmap cell (B-099). The theme's own accent
+     colour, readable against a painted cell's fill in both light and dark
+     without this stylesheet naming a colour of its own. */
+  --dashy-hm-today: var(--text-normal);
 }
 
 @supports (color: color-mix(in srgb, red 50%, blue)) {

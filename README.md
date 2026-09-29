@@ -342,7 +342,9 @@ stays empty, and so does a day whose own value is not a number, even when the fi
 fine everywhere else. Without `bands`, every painted day is the same colour: set `bands`
 to get a scale, otherwise the colour says which days have data, not how much. Years come
 from the data, newest first, but never one later than today: a note dated in the future
-counts nowhere in the grid.
+counts nowhere in the grid. Today's own cell gets a ring, on the current year's grid or a
+`range` grid, whether or not it has data yet; the ring never changes the cell's own colour
+or its hatch, only outlines it.
 
 Logging mood in the morning and evening as two separate properties instead of one note a day?
 `field` also takes a list: `field: [mood_am, mood_pm]` with `per_day: avg` collapses both into

@@ -142,6 +142,7 @@ export const en = {
     "heatmap.cellEmpty": "{date}: no data",
     "heatmap.cellSkipped": "{cell}, day off",
     "heatmap.cellEmptySkipped": "{date}: day off",
+    "heatmap.cellToday": "{cell}, today",
     "heatmap.legendSkipped": "Day off",
 
     "insert.name": "Insert block",
