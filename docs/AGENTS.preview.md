@@ -111,6 +111,7 @@ Bars towards a goal: how far a number has come against a target.
 
 | key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
+| `columns` | number | — | `1` | — | columns in the grid, 1 to 4; without it every bar is its own row |
 | `items` | list | yes | — | — | the list of bars |
 
 **List item**

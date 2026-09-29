@@ -283,6 +283,18 @@ measured against rather than the whole selection, and feeding `streak` and `late
 since a book is rarely named as a date. `at_least`, `at_most`, `days: weekdays` and
 `skip_field` work the same way on a `streak` bar as they do on a stats card, above.
 
+Without `columns` every bar is its own row, as above; add it to lay bars out side by side
+instead, the same key `tiles`, `stats` and `countdown` take, 1 to 4 here.
+
+````markdown
+```progress
+columns: 2
+items:
+  - { label: Days logged this year, source: Diary, agg: count, goal: 365, icon: 📔 }
+  - { label: Steps, source: Diary, field: steps, agg: sum, goal: 3000000, unit: steps }
+```
+````
+
 ### `countdown`: what is coming
 
 ````markdown

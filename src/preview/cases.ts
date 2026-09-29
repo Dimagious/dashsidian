@@ -65,7 +65,8 @@ items:
     {
         block: "progress",
         title: "progress — обычная, выполненная, перевыполненная, сломанная",
-        source: `items:
+        source: `columns: 2
+items:
   - { label: Дней в дневнике, source: Diary, agg: count, goal: 365, icon: 📔 }
   - { label: Ровно в цель, source: Diary, agg: count, goal: 120 }
   - { label: Перевыполнено, source: Diary, agg: count, goal: 50 }

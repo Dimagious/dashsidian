@@ -139,6 +139,37 @@ describe("progress — edges", () => {
     });
 });
 
+describe("progress — columns (B-102)", () => {
+    it("without columns the grid stays one bar per row, unchanged", () => {
+        const el = bars("items:\n  - { label: Days, source: Diary, agg: count, goal: 40 }");
+        expect(nodes(el, ".dashy-progress")[0]?.style.getPropertyValue("--dashy-progress-columns")).toBe("1");
+    });
+
+    it("columns reach the grid as a custom property", () => {
+        const el = bars("columns: 3\nitems:\n  - { label: Days, source: Diary, agg: count, goal: 40 }");
+        expect(nodes(el, ".dashy-progress")[0]?.style.getPropertyValue("--dashy-progress-columns")).toBe("3");
+    });
+
+    it("columns are clamped to what the grid can show", () => {
+        for (const [given, expected] of [["0", "1"], ["99", "4"], ["-4", "1"]] as const) {
+            const el = bars(`columns: ${given}\nitems:\n  - { label: Days, source: Diary, agg: count, goal: 40 }`);
+            expect(nodes(el, ".dashy-progress")[0]?.style.getPropertyValue("--dashy-progress-columns")).toBe(expected);
+        }
+    });
+
+    it("only a several-column grid is marked for the phone's two-column narrowing", () => {
+        const one = bars("items:\n  - { label: Days, source: Diary, agg: count, goal: 40 }");
+        expect(nodes(one, ".dashy-progress")[0]?.classList.contains("is-multi")).toBe(false);
+        const three = bars("columns: 3\nitems:\n  - { label: Days, source: Diary, agg: count, goal: 40 }");
+        expect(nodes(three, ".dashy-progress")[0]?.classList.contains("is-multi")).toBe(true);
+    });
+
+    it("the root keys are still checked when there is an items list", () => {
+        const el = bars("colums: 3\nitems:\n  - { label: Days, source: Diary, agg: count, goal: 40 }");
+        expect(diagnostics(el, "warning")[0]).toContain("columns");
+    });
+});
+
 describe("progress — a field no note carries warns, not a silent zero (B-111)", () => {
     it("sum over a field nothing carries is a dash with a warning naming it", () => {
         const el = bars("items:\n  - { label: Run, source: Diary, field: nope, agg: sum, goal: 100 }");

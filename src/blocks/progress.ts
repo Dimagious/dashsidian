@@ -45,6 +45,8 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
     }
     if (isRecord(value) && Array.isArray(value.items)) diags.push(...unknownKeys(value, KNOWN_ROOT));
 
+    const columns = isRecord(value) && typeof value.columns === "number" ? value.columns : 1;
+
     // One snapshot for the whole page, taken by the context.
     const notes = ctx.notes();
     // Taken once, so every bar on the page measures the same window.
@@ -120,7 +122,11 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
     // Diagnostics before the bars: an error must be seen before an empty track.
     renderDiagnostics(el, "progress", diags);
 
-    const wrap = el.createDiv({ cls: "dashy-progress" });
+    const cols = Math.max(1, Math.min(4, columns));
+    // `is-multi` lets a phone narrow a several-column layout to two, the way
+    // the other grid blocks do, without touching the one-bar-per-row default.
+    const wrap = el.createDiv({ cls: cols > 1 ? "dashy-progress is-multi" : "dashy-progress" });
+    wrap.style.setProperty("--dashy-progress-columns", String(cols));
     for (const bar of bars) {
         const complete = bar.percent !== null && bar.percent >= 100;
         const state = bar.broken ? " is-broken" : complete ? " is-complete" : "";

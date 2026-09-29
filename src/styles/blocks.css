@@ -97,7 +97,16 @@
 .dashy-suggest-what { font-size: 0.8em; color: var(--text-muted); }
 
 /* progress */
-.dashy-progress { margin: 0 0 24px; display: flex; flex-direction: column; gap: 14px; }
+.dashy-progress {
+  display: grid;
+  grid-template-columns: repeat(var(--dashy-progress-columns, 1), minmax(0, 1fr));
+  gap: var(--dashy-gap);
+  margin: 0 0 24px;
+}
+/* the grid track shrinks a row before it grows past its column; without
+   this a long "value / goal" line forces a `columns` grid wider than
+   the block, the same overflow guard `dashy-tile` and `dashy-stat` use */
+.dashy-progress-row { min-width: 0; }
 .dashy-progress-head {
   display: flex; align-items: baseline; gap: 6px;
   margin-bottom: 5px; font-size: 0.9em;
@@ -326,6 +335,7 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
   .dashy-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashy-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashy-countdown { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashy-progress.is-multi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   /* Every pixel of gap is a pixel the bars do not get. */
   .dashy-stat-trend { gap: 0; }
   /* A card is about 156px wide here, so the same length classes shrink

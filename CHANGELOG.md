@@ -12,6 +12,9 @@ removed public export.
 
 ### Added
 
+- **`progress` takes `columns`, the same key `tiles`, `stats` and `countdown`
+  already have.** 1 to 4, laying bars out side by side instead of one per
+  row; without it the layout is exactly what it was before, one bar per row.
 - **A heatmap cell's tooltip reads better, and works on a phone.** The date
   is now the locale's own medium format ("Sep 25, 2026", "25 сент. 2026 г.")
   instead of the bare `YYYY-MM-DD` key, and it names the note behind the

@@ -194,6 +194,11 @@
     "progress": {
       "summary": "Bars towards a goal: how far a number has come against a target.",
       "root": {
+        "columns": {
+          "type": "number",
+          "default": 1,
+          "doc": "columns in the grid, 1 to 4; without it every bar is its own row"
+        },
         "items": {
           "type": "list",
           "required": true,
