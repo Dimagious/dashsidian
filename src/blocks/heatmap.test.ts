@@ -165,21 +165,85 @@ describe("heatmap — colours and bands", () => {
         expect(first(broken)).toContain("59, 130, 246");
     });
 
-    it("without bands there is one legend entry covering everything", () => {
-        expect(texts(map("source: Diary\nfield: sleep_score"), ".dashy-hm-leg")).toEqual(["has data"]);
+    // B-116: without `bands`, the block now fits its own 4-band scale to the
+    // grid's own min and max (`core/bands.ts#autoBands`) instead of the
+    // single flat "has data" band B-097 pinned. The fixture's `sleep_score`
+    // spans 60-89 across the month, quartered into
+    // [81.75, 74.5, 67.25, 60] and labelled the same way an explicit
+    // 4-threshold `bands:` would be.
+    // Thresholds are rounded to the data's own precision (whole numbers,
+    // for an integer field like `sleep_score`) before they become labels,
+    // so "82+" is the actual boundary a cell is tested against, not a
+    // display-only rounding of some other number underneath it.
+    it("without bands, the legend is a 4-band scale fitted to this grid's own min and max", () => {
+        const el = map("source: Diary\nfield: sleep_score");
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["82+", "75–81", "67–74", "60–66"]);
     });
 
-    // B-097: the fixture's `sleep_score` spans 60-89 across the month, a wide
-    // enough range that an auto-scaled heatmap would visibly shade it. It
-    // does not: every painted cell is the exact same colour, because
-    // `bands.ts` has no notion of the data's own min/max without `bands:`.
-    it("without bands, a low value and a high value paint identically: there is no scale fitted to the data", () => {
+    // The same fixture that used to prove every painted cell was identical
+    // (B-097) now proves the opposite: a low value and a high value paint
+    // visibly differently once the scale is fitted to the data.
+    it("without bands, a low value and a high value now paint differently: the scale is fitted to the data", () => {
         const el = map("source: Diary\nfield: sleep_score");
         const painted = nodes(el, ".dashy-hm-cell")
             .map((c) => c.style.backgroundColor)
             .filter((c) => c !== "");
         expect(painted.length).toBeGreaterThan(1);
-        expect(new Set(painted).size).toBe(1);
+        expect(new Set(painted).size).toBeGreaterThan(1);
+    });
+
+    it("without bands, a small integer spread gets one band per distinct value, not fractional cuts", () => {
+        // mood is 5, 7 and 4 across three days: a span of 3, all integers,
+        // so `autoBands` derives from the distinct values themselves
+        // (7, 5, 4) rather than quarter-cutting a range that narrow — 7 and
+        // 5 are two apart, so that pair still reads as a range ("5–6"), but
+        // 5 and 4 are adjacent and collapse to the bare "4".
+        const moodCtx = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { mood: 5 } },
+                { path: "Diary/2026-01-02.md", frontmatter: { mood: 7 } },
+                { path: "Diary/2026-01-03.md", frontmatter: { mood: 4 } },
+            ],
+        });
+        const el = map("source: Diary\nfield: mood", moodCtx);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["7+", "5–6", "4"]);
+    });
+
+    it("without bands, two calendar years each fit their own scale, not one shared across both", () => {
+        const twoYearCtx = mockContext({
+            notes: [
+                ...diary("Diary", "2025-01-01", 3, (i) => ({ score: 10 + i * 10 })), // 10, 20, 30
+                ...diary("Diary", "2026-01-01", 3, (i) => ({ score: 100 + i * 100 })), // 100, 200, 300
+            ],
+        });
+        const el = map("source: Diary\nfield: score", twoYearCtx);
+        const grids = nodes(el, ".dashy-hm-wrap");
+        expect(grids).toHaveLength(2);
+        const legendOf = (grid: HTMLElement) =>
+            Array.from(grid.querySelectorAll(".dashy-hm-leg")).map((n) => n.textContent ?? "");
+        // Years are newest first (`yearsOf`): 2026's grid comes first. Its
+        // scale (100-300) is an order of magnitude apart from 2025's
+        // (10-30) — proof each grid fits its own range rather than one
+        // scale being stretched to cover both.
+        expect(legendOf(grids[0]!)).toEqual(["250+", "200–249", "150–199", "100–149"]);
+        expect(legendOf(grids[1]!)).toEqual(["25+", "20–24", "15–19", "10–14"]);
+    });
+
+    // B-116: a checkbox field stays flat even when several of them summed
+    // per day (`per_day: sum`) produce more than one distinct painted value
+    // — 1 on a single-habit day, 2 on a day both were ticked. The values
+    // differ, so the "every painted value equal" rule alone would not keep
+    // this flat; it is `isBool` (core/day-values.ts, threaded onto
+    // `Paintable`) that does.
+    it("without bands, summing two checkbox fields still stays flat, not scaled by the sum", () => {
+        const habitsCtx = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { gym: true, yoga: false } }, // sum 1
+                { path: "Diary/2026-01-02.md", frontmatter: { gym: true, yoga: true } }, // sum 2
+            ],
+        });
+        const el = map("source: Diary\nfield: [gym, yoga]\nper_day: sum", habitsCtx);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["has data"]);
     });
 });
 
@@ -897,6 +961,74 @@ describe("heatmap — several activities, each its own colour (B-096)", () => {
         // The first layer (health.sleep, 80) is the one that is painted and
         // numeric, so it colours the cell and its value reaches the tooltip.
         expect(jan1?.getAttribute("title")).toContain("health.sleep 80");
+    });
+
+    /** Same alpha-reading trick the plain-`bands` colour tests use above. */
+    const alphaOf = (el: HTMLElement, title: string): number => {
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.includes(title));
+        const colour = cell?.style.backgroundColor ?? "";
+        const parts = /\(([^)]*)\)/.exec(colour)?.[1]?.split(",") ?? [];
+        return parts.length === 4 ? Number(parts[3]) : parts.length === 3 ? 1 : 0;
+    };
+
+    // B-116, checker round 1: a checkbox layer mixed with a numeric one used
+    // to let a ticked day's value (always exactly 1) become the fitted
+    // scale's own minimum, painting solid gym at the weakest alpha instead
+    // of full strength. The scale must come from `steps` alone, and gym
+    // stays solid regardless of it.
+    describe("without bands, a checkbox layer mixed with a numeric one (checker round 1)", () => {
+        const mixedCtx = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { gym: true } }, // boolean winner
+                { path: "Diary/2026-01-02.md", frontmatter: { steps: 2000 } }, // numeric winner, low
+                { path: "Diary/2026-01-03.md", frontmatter: { steps: 8000 } }, // numeric winner, high
+            ],
+        });
+        const mixedConfig = "source: Diary\nlayers:\n  - { field: gym, color: blue }\n  - { field: steps, color: green }";
+
+        it("the checkbox winner always paints at full alpha, never scored against the numeric scale", () => {
+            const el = map(mixedConfig, mixedCtx);
+            expect(alphaOf(el, "gym 1")).toBe(1);
+        });
+
+        it("the numeric winners are scaled against each other, low below high", () => {
+            const el = map(mixedConfig, mixedCtx);
+            expect(alphaOf(el, "steps 8000")).toBe(1);
+            expect(alphaOf(el, "steps 2000")).toBeLessThan(1);
+        });
+
+        it("the legend's bands row is fitted from steps alone, not stretched down to gym's 1", () => {
+            const el = map(mixedConfig, mixedCtx);
+            // 2000..8000 quartered: 6500, 5000, 3500, 2000 — nowhere near 1,
+            // which a scale including gym's value would have had to reach
+            // down to as its own minimum.
+            expect(texts(el, ".dashy-hm-leg")).toEqual([
+                "gym", "steps", "6500+", "5000–6499", "3500–4999", "2000–3499",
+            ]);
+        });
+    });
+
+    // B-116, checker round 1: two purely numeric layers still get a fitted
+    // scale without `bands:`, same as a plain field would, and its legend
+    // row stays neutral grey (B-096) rather than either layer's own colour.
+    it("without bands, two numeric layers still get a fitted bands row, painted neutral grey", () => {
+        const numericCtx = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { run: 5 } },
+                { path: "Diary/2026-01-02.md", frontmatter: { swim: 10 } },
+            ],
+        });
+        const el = map(
+            "source: Diary\nlayers:\n  - { field: run, color: blue }\n  - { field: swim, color: green }",
+            numericCtx,
+        );
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["run", "swim", "9+", "8", "6–7", "5"]);
+        const swatches = nodes(el, ".dashy-hm-swatch");
+        // The first two swatches are the layer rows in their own colours;
+        // the 4 bands-row swatches after them are neutral grey instead.
+        for (const swatch of swatches.slice(2)) {
+            expect(swatch.style.backgroundColor).toContain("156, 163, 175");
+        }
     });
 });
 
@@ -1932,6 +2064,24 @@ describe("heatmap — range draws one grid over a window (B-093)", () => {
         const notes = diary("Diary", "2026-09-19", 10, (i) => ({ steps: 50 + i * 5 }));
         const el = map("source: Diary\nfield: steps\nrange: 30d\nbands: [90, 70]", mockContext({ notes }));
         expect(texts(el, ".dashy-hm-leg")).toEqual(["90+", "70–89"]);
+    });
+
+    // B-116, checker round 1: an outlier sitting outside the window used to
+    // be excluded from the grid itself, but nothing pinned it out of the
+    // SCALE too — a global fit over every mark this block ever produced,
+    // not just the ones this one grid draws, would have let a note from
+    // months ago drag the whole range grid's colours toward it.
+    it("without bands: an extreme value outside the window never stretches the fitted scale", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            { path: "Diary/2026-01-01.md", frontmatter: { steps: 999999 } }, // months before the window
+            ...diary("Diary", "2026-09-19", 10, (i) => ({ steps: 100 + i * 10 })), // 100..190, inside it
+        ];
+        const el = map("source: Diary\nfield: steps\nrange: 30d", mockContext({ notes }));
+        // Fitted from 100..190 alone: 168, 145, 123, 100 — nowhere near a
+        // scale that had to reach up to 999999.
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["168+", "145–167", "123–144", "100–122"]);
     });
 
     it("with skip_field: the day-off legend row only appears once the special day is inside the window", () => {

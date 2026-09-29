@@ -147,6 +147,15 @@ export interface LayeredMark {
      * contributing through two fields.
      */
     notes: readonly DayNote[];
+    /**
+     * Whether the WINNING layer's own contribution was a genuine boolean
+     * mark (B-116), straight off its own `DayMark.isBool` — the same flag
+     * the auto-fitted colour scale (`core/bands.ts#autoBands`) already reads
+     * off a plain `DayMark`. Meaningless (`true`) on a day nothing painted:
+     * a heatmap grid's own scale is only ever fitted to painted days, so
+     * this is never actually read on one of those.
+     */
+    isBool: boolean;
 }
 
 /**
@@ -190,6 +199,7 @@ export function combineLayers(
             layer: winner,
             parts,
             notes: Array.from(notes.values()),
+            isBool: winning?.isBool ?? true,
         });
     }
     return combined;

@@ -343,8 +343,11 @@ That is the whole of [the habit tracker](#a-habit-tracker-from-daily-note-checkb
 error that says which, rather than an empty grid that looks like a note-taking gap. A
 numeric `0` is still a value and paints its cell like any other; an unticked checkbox
 stays empty, and so does a day whose own value is not a number, even when the field is
-fine everywhere else. Without `bands`, every painted day is the same colour: set `bands`
-to get a scale, otherwise the colour says which days have data, not how much. Years come
+fine everywhere else. Without `bands`, each grid shades itself by its own minimum and
+maximum: a year with a narrow spread and a year with a wide one each get their own scale,
+never one stretched to cover both. A checkbox field, or a grid where every painted value
+comes out the same, still paints one flat colour instead; set `bands` to pin the scale
+yourself. Years come
 from the data, newest first, but never one later than today: a note dated in the future
 counts nowhere in the grid. Today's own cell gets a ring, on the current year's grid or a
 `range` grid, whether or not it has data yet; the ring never changes the cell's own colour
@@ -517,12 +520,18 @@ both.
 <details>
 <summary>How does the heatmap choose colours without `bands`?</summary>
 
-It does not scale to your data. Without `bands`, every day that has a value is painted
-the same single colour, whether that value is 1, 100 or -5; the colour says which days
-have data, not how much (the tooltip on the cell still shows the number). Set `bands`
-(thresholds from the top down, like `[90, 80, 70]`) to get a scale. A numeric `0` counts
-as a value and is painted like any other; an unticked checkbox stays empty, and so does a
-day whose value is not a number.
+Each grid shades itself by its own minimum and maximum: the day with the lowest value
+gets the lightest fill, the day with the highest gets full strength, and a multi-year
+heatmap fits every calendar year separately, so a narrow year and a wide year never end
+up on the same scale. Set `bands` (thresholds from the top down, like `[90, 80, 70]`) to
+pin the scale yourself instead. Two situations still fall back to one flat colour, the
+same as ever: a checkbox field, since a ticked day is always exactly 1 and there is
+nothing to shade by, and a grid where every painted value happens to be equal, since
+there is no spread to fit a scale to. A numeric `0` counts as a value and is painted like
+any other; an unticked checkbox stays empty, and so does a day whose value is not a
+number. With `layers` mixing a checkbox and a numeric activity on the same grid, only the
+numeric one is fitted; a ticked checkbox day always paints at full strength, never scored
+against a scale that was never really about it.
 
 </details>
 

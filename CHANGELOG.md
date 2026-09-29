@@ -102,6 +102,28 @@ removed public export.
   a top-level `color` is ignored, with a warning, once `layers` is set.
   Schema 1.6.0.
 
+### Changed
+
+- **A heatmap without `bands` now shades by its own range instead of
+  painting every day with data the same colour.** Each grid (a calendar
+  year, or the one `range` window) fits its own 4-band scale to only the
+  values it paints, so a low day and a high day are visibly different and
+  a narrow year is never stretched to the same scale as a wide one; a
+  `range` grid's scale never reaches outside its own window either, even
+  when a far older note holds a far more extreme value. A checkbox field
+  stays exactly as it was, one flat colour, since a ticked day is always
+  exactly 1; so does a grid where every painted value comes out equal,
+  since there is no spread to fit a scale to. `layers` gets the same
+  fitted scale once it is built, still with neutral grey swatches in its
+  bands row, and fits it from its numeric layers alone: a checkbox layer
+  mixed in with a numeric one always paints at full strength rather than
+  being scored against a scale that was never really about it. A
+  threshold is rounded to the data's own precision (whole numbers stay
+  whole; a decimal value gets as many places as the data itself was
+  written with, up to two) before it becomes a label, so the number shown
+  is always the actual boundary a day is tested against. Set `bands` to
+  pin the scale yourself, unchanged from before.
+
 ### Fixed
 
 - **A heatmap grid stopped following the end after a pane resize animation.**

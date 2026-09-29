@@ -250,3 +250,36 @@ describe("combineLayers — which layer colours a day", () => {
         ]);
     });
 });
+
+// B-116: `isBool` feeds the "boolean-only stays flat" rule an auto-fitted
+// colour scale follows (`core/bands.ts#autoBands`) — the same flag a plain
+// `DayMark` already carried, now threaded onto the winning layer's own
+// `LayeredMark` too.
+describe("combineLayers — isBool", () => {
+    it("takes the winning layer's own isBool, not any other layer's", () => {
+        const perLayer = [
+            new Map([["2026-01-01", mark({ value: 0, path: "a.md", painted: false, isBool: true })]]),
+            new Map([["2026-01-01", mark({ value: 9, path: "b.md", painted: true, isBool: false })]]),
+        ];
+        const combined = combineLayers(perLayer, ["gym", "steps"]);
+        // gym (false-only) never wins; steps does, and its own isBool
+        // (a real number, not a checkbox) is what the mark carries.
+        expect(combined.get("2026-01-01")?.isBool).toBe(false);
+    });
+
+    it("a boolean layer's isBool carries through once it wins the cell", () => {
+        const perLayer = [
+            new Map([["2026-01-01", mark({ value: 1, path: "a.md", painted: true, isBool: true })]]),
+        ];
+        const combined = combineLayers(perLayer, ["gym"]);
+        expect(combined.get("2026-01-01")?.isBool).toBe(true);
+    });
+
+    it("nothing painted this day still gets a determinate isBool, never undefined", () => {
+        const perLayer = [
+            new Map([["2026-01-01", mark({ value: 0, painted: false, isBool: false })]]),
+        ];
+        const combined = combineLayers(perLayer, ["steps"]);
+        expect(typeof combined.get("2026-01-01")?.isBool).toBe("boolean");
+    });
+});

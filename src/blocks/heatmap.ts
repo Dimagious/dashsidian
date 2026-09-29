@@ -14,7 +14,7 @@ import {
 } from "../core/calendar";
 import { parsePeriod, periodWindow, type Period } from "../core/period";
 import { toRgb, rgba, DEFAULT_COLOR, PALETTE, type Rgb } from "../core/palette";
-import { readBands, bandFor, type Band } from "../core/bands";
+import { readBands, bandFor, autoBands, type Band } from "../core/bands";
 import { scrollEdges, resolveScrollRestore, isEndClamp, type ScrollSnapshot } from "../core/scroll";
 import { parseConfig, isRecord, unknownKeys, describeValue, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
@@ -161,7 +161,11 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     const fieldLabel = fields.join(", ");
 
     const color = toRgb(value.color);
-    const bands = readBands(value.bands);
+    // `undefined` — never `readBands(undefined)`'s own flat default — is
+    // what tells `drawYears`/`drawRangeGrid` a scale is theirs to fit per
+    // grid (B-116, `resolveGridBands`); written explicitly, it always wins
+    // outright and the same bands cover every grid this block draws.
+    const explicitBands = value.bands !== undefined ? readBands(value.bands) : undefined;
     const linkable = value.link !== false;
     const dateField = readDateField(value);
     const skipField = readSkipField(value, diags);
@@ -217,8 +221,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
 
     const firstDay = firstDayOfWeek();
     return drawHeatmap(el, ctx, marks, {
-        color, bands, field: fieldLabel, linkable, title: value.title, firstDay,
-        showBandsLegend: true, special,
+        color, explicitBands, field: fieldLabel, linkable, title: value.title, firstDay, special,
     }, restoreByKey, range);
 }
 
@@ -295,12 +298,14 @@ function renderLayeredHeatmap(
         return;
     }
 
-    // The bands legend row is only worth showing alongside the layers row
-    // when the reader actually asked for a scale: `readBands([])`'s own
-    // "has data" default would otherwise sit next to every layer's swatch,
-    // saying nothing a layer's own colour did not already say.
-    const bandsGiven = value.bands !== undefined;
-    const bands = readBands(value.bands);
+    // `undefined` here, same as the plain `field` path, means each grid
+    // fits its own scale to the winning layer's own values (B-116,
+    // `resolveGridBands`); the bands legend row only earns its place next
+    // to the layers row once there is an actual scale to show, fitted or
+    // written (`resolveGridBands` again) — `readBands([])`'s own "has data"
+    // default would otherwise sit there saying nothing a layer's own
+    // colour did not already say.
+    const explicitBands = value.bands !== undefined ? readBands(value.bands) : undefined;
     const linkable = value.link !== false;
     const dateField = readDateField(value);
     const skipField = readSkipField(value, diags);
@@ -357,15 +362,27 @@ function renderLayeredHeatmap(
         // `DrawOptions.color` is otherwise required.
         color: DEFAULT_COLOR,
         layers,
-        bands,
+        explicitBands,
         field: layers.map((l) => l.label).join(", "),
         linkable,
         title: value.title,
         firstDay,
-        showBandsLegend: bandsGiven,
         special,
     }, restoreByKey, range);
 }
+
+/**
+ * What `drawHeatmap`/`drawYears`/`drawRangeGrid` carry down before the two
+ * per-grid concerns (B-116) are settled: `DrawOptions.bands` and
+ * `showBandsLegend` are dropped in favour of `explicitBands`, the reader's
+ * own `bands:` when written. `undefined` says no grid has one yet — each
+ * one fits its own from the values it actually paints (`resolveGridBands`);
+ * an array always wins outright and every grid reuses it unchanged, the
+ * same as `readBands` always behaved before B-116.
+ */
+type GridSharedOptions = Omit<DrawOptions, "restore" | "today" | "mobile" | "tap" | "bands" | "showBandsLegend"> & {
+    explicitBands: Band[] | undefined;
+};
 
 /**
  * Dispatches to a grid per calendar year (the default, unchanged behaviour)
@@ -384,11 +401,11 @@ function drawHeatmap(
     el: HTMLElement,
     ctx: BlockContext,
     marks: ReadonlyMap<string, Paintable>,
-    opts: Omit<DrawOptions, "restore" | "today" | "mobile" | "tap">,
+    opts: GridSharedOptions,
     restoreByKey: Map<string, ScrollSnapshot>,
     range: Period | undefined,
 ): void | (() => void) {
-    const full: Omit<DrawOptions, "restore" | "today"> = {
+    const full: GridSharedOptions & Pick<DrawOptions, "mobile" | "tap"> = {
         ...opts,
         mobile: isMobile(),
         tap: { selectedCell: null, selectedDate: null, status: undefined },
@@ -444,6 +461,58 @@ function captionStats(
     return { average, present, total: dayKeys.length, showAverage };
 }
 
+/** One grid's own `bands`, and whether a legend row is worth drawing for them (B-116). */
+interface GridBands {
+    bands: Band[];
+    showLegend: boolean;
+}
+
+/**
+ * A grid's own colour scale (B-116): the reader's own `explicit` bands when
+ * there are any — reused unchanged, the same as before this block ever
+ * fitted anything itself — or, failing that, `autoBands` fitted to only the
+ * values THIS grid paints, never another year's or the whole block's.
+ *
+ * Fitted only from the NON-boolean painted cells (checker round 1): a
+ * checkbox winner is always exactly 1, and folding that 1 in among a
+ * `layers` grid's numeric winners (a checkbox habit next to a step count,
+ * say) let a ticked day become the scale's own minimum and paint at the
+ * weakest alpha instead of solid — `drawGrid` below separately makes sure
+ * every boolean-winning cell paints at full alpha regardless of what this
+ * returns, but the scale itself should never have been stretched to fit a
+ * value that was never really "how much", only "did it happen". No
+ * non-boolean cells at all (a plain checkbox field or `layers` list) is
+ * exactly `autoBands`' own `allBool` case, flat as before.
+ *
+ * `layered` decides what "nothing to show" looks like once no scale was
+ * built. A plain `field` grid still draws its one flat "has data" row even
+ * then, unchanged from before B-116 (`readBands(undefined)`'s own single
+ * band); a `layers` grid stays exactly as quiet as it always was without
+ * `bands:` — no row at all — because a scale nobody asked for and that
+ * turned out flat has even less to say next to a legend that already has a
+ * swatch per layer.
+ */
+function resolveGridBands(
+    dayKeys: readonly string[],
+    marks: ReadonlyMap<string, Paintable>,
+    explicit: Band[] | undefined,
+    layered: boolean,
+): GridBands {
+    if (explicit) return { bands: explicit, showLegend: true };
+
+    const painted = dayKeys
+        .map((k) => marks.get(k))
+        .filter((m): m is Paintable => m !== undefined && m.painted);
+    const numeric = painted.filter((m) => m.isBool !== true);
+    const values = numeric.map((m) => m.value);
+    const allBool = numeric.length === 0;
+
+    const fitted = autoBands(values, allBool);
+    if (fitted) return { bands: fitted, showLegend: true };
+
+    return { bands: readBands(undefined), showLegend: !layered };
+}
+
 /**
  * One grid per calendar year, never one later than today's: a note dated
  * next year (or, with `startDayHour` set, a real-date note just after
@@ -456,7 +525,7 @@ function drawYears(
     el: HTMLElement,
     ctx: BlockContext,
     marks: ReadonlyMap<string, Paintable>,
-    opts: Omit<DrawOptions, "restore" | "today">,
+    opts: GridSharedOptions & Pick<DrawOptions, "mobile" | "tap">,
     restoreByKey: Map<string, ScrollSnapshot>,
 ): void | (() => void) {
     const today = ctx.today();
@@ -484,9 +553,16 @@ function drawYears(
                 })
                 : t("heatmap.captionMarks", { year, field: opts.field, present: stats.present, total: stats.total });
 
+        // B-116: this year's own scale, fitted to only the values it
+        // itself paints — a second year with a narrower or wider spread
+        // gets its own bands, not whatever the first year happened to fit.
+        const { bands, showLegend } = resolveGridBands(dayKeys, marks, opts.explicitBands, !!opts.layers);
+
         const observer = drawGrid(el, {
             key: String(year), dayKeys, offset: layout.offset, columns: layout.columns, months: layout.months,
-        }, caption, marks, { ...opts, restore: restoreByKey.get(String(year)), today: todayKey });
+        }, caption, marks, {
+            ...opts, bands, showBandsLegend: showLegend, restore: restoreByKey.get(String(year)), today: todayKey,
+        });
         if (observer) drawn.push(observer);
     }
     // B-092: one status line for the whole block, after the last grid —
@@ -520,7 +596,7 @@ function drawRangeGrid(
     ctx: BlockContext,
     marks: ReadonlyMap<string, Paintable>,
     period: Period,
-    opts: Omit<DrawOptions, "restore" | "today">,
+    opts: GridSharedOptions & Pick<DrawOptions, "mobile" | "tap">,
     restoreByKey: Map<string, ScrollSnapshot>,
 ): void | (() => void) {
     const today = ctx.today();
@@ -539,9 +615,15 @@ function drawRangeGrid(
             ? t("heatmap.captionRange", { field: opts.field, average: stats.average, present: stats.present, total: stats.total })
             : t("heatmap.captionRangeMarks", { field: opts.field, present: stats.present, total: stats.total });
 
+    // B-116: the one grid this draws gets its own scale, fitted only to
+    // what it itself paints — the same rule a per-year grid follows.
+    const { bands, showLegend } = resolveGridBands(dayKeys, marks, opts.explicitBands, !!opts.layers);
+
     const observer = drawGrid(el, {
         key: RANGE_GRID_KEY, dayKeys, offset: layout.offset, columns: layout.columns, months: layout.months,
-    }, caption, marks, { ...opts, restore: restoreByKey.get(RANGE_GRID_KEY), today: todayKey });
+    }, caption, marks, {
+        ...opts, bands, showBandsLegend: showLegend, restore: restoreByKey.get(RANGE_GRID_KEY), today: todayKey,
+    });
     // B-092: only ever one grid here, but the status line still lives
     // outside `drawGrid` itself — the same single funnel `drawYears` uses.
     attachStatusLine(el, opts);
@@ -555,10 +637,10 @@ function drawRangeGrid(
  * What a cell needs in order to paint itself — the shape a plain `DayMark`
  * and a layered `LayeredMark` (core/layers.ts) have in common, once a day's
  * contributors have already been collapsed into "the one mark a cell shows".
- * `isBool`, `layer` and `parts` are only ever set by one side or the other:
- * `isBool` by a plain `DayMark` (a real field's own booleanness), `layer`/
- * `parts` by a `LayeredMark` (which layer won, and every layer with a value
- * that day). Neither side has to know the other exists.
+ * `isBool` is carried by both (B-116): a plain `DayMark`'s own field
+ * booleanness, or a `LayeredMark`'s winning layer's own. `layer`/`parts`
+ * are only ever set by a `LayeredMark` (which layer won, and every layer
+ * with a value that day) — neither side has to know the other exists.
  */
 interface Paintable {
     value: number;
@@ -592,8 +674,9 @@ interface DrawOptions {
     color: Rgb;
     /** set only in `layers` mode: a cell's own colour comes from `layers[mark.layer]`, and each gets a legend row */
     layers?: readonly Layer[];
+    /** THIS grid's own, already resolved: the reader's `bands:` reused as-is, or fitted to this grid alone (B-116, `resolveGridBands`) */
     bands: Band[];
-    /** whether the bands legend row(s) draw at all: always without `layers`, only when `bands` was written with them */
+    /** whether the bands legend row(s) draw at all for this grid — see `resolveGridBands` for exactly when (B-116) */
     showBandsLegend: boolean;
     /** already the display form: one field name, several joined with ", ", or every layer's own label joined the same way */
     field: string;
@@ -777,7 +860,14 @@ function drawGrid(
         // reuse the exact text a hover already shows, painted or empty.
         let tooltip: string;
         if (paintable) {
-            const band = bandFor(opts.bands, paintable.value);
+            // A checkbox winner is always exactly 1, never a real "how
+            // much" (B-116, checker round 1): `opts.bands` is fitted from
+            // only the non-boolean cells in this grid (`resolveGridBands`),
+            // so running a boolean one through `bandFor` at all would score
+            // it against a scale that was never fitted to it — full alpha,
+            // the same as any boolean cell always painted before B-116,
+            // without even reaching `bandFor`.
+            const alpha = paintable.isBool ? 1 : bandFor(opts.bands, paintable.value)?.alpha ?? 1;
             // The winning layer's own colour, when there is one — set only
             // by a `LayeredMark`, and only ever `undefined` on one once no
             // layer painted that day, which is exactly when `paintable`
@@ -820,7 +910,7 @@ function drawGrid(
             // the other way round.
             tooltip = special ? t("heatmap.cellSkipped", { cell: baseTooltip }) : baseTooltip;
             if (isToday) tooltip = t("heatmap.cellToday", { cell: tooltip });
-            cell.style.backgroundColor = rgba(rgb, band?.alpha ?? 1);
+            cell.style.backgroundColor = rgba(rgb, alpha);
             cell.setAttr("aria-label", tooltip);
             cell.setAttr("title", tooltip);
         } else {

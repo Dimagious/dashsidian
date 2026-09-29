@@ -437,7 +437,7 @@
         },
         "bands": {
           "type": "list",
-          "doc": "thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band. Without `bands`, every day with data paints the same single colour: there is no automatic scale from the data's own minimum and maximum"
+          "doc": "thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band. Without `bands`, each grid (a calendar year, or the one `range` window) shades itself by its own minimum and maximum: a checkbox field or a grid where every painted value is the same still paints one flat colour instead"
         },
         "link": {
           "type": "boolean",
