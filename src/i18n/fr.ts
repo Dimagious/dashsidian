@@ -27,6 +27,9 @@ export const fr: Catalog = {
     "tiles.empty": "Aucune tuile à dessiner. Attendu : `items:` ou une liste.",
     "tiles.dateFieldUnused": "{card} : `date_field` n'a aucun effet sans `period`.",
     "tiles.selectionUnused": "{card} : `tag`, `where`, `period` et `date_field` ne font que restreindre `badge: count`.",
+    "tiles.imageMissing": "{card} : image « {path} » introuvable.",
+    "tiles.imageUnsupported":
+        "{card} : `image` attend un chemin du coffre, un `[[wikilien]]` ou une URL `https://`, reçu « {value} ».",
 
     "stats.empty": "Aucune carte à dessiner. Attendu : `items:` ou une liste.",
     "stats.unlabeledCard": "une carte sans libellé",

@@ -29,6 +29,9 @@ export const en = {
     "tiles.empty": "No tiles to draw. Expected `items:` or a list.",
     "tiles.dateFieldUnused": "{card}: `date_field` has no effect without `period`.",
     "tiles.selectionUnused": "{card}: `tag`, `where`, `period` and `date_field` only narrow `badge: count`.",
+    "tiles.imageMissing": "{card}: image \"{path}\" was not found.",
+    "tiles.imageUnsupported":
+        "{card}: `image` expects a vault path, a `[[wikilink]]`, or an `https://` URL, got \"{value}\".",
 
     "stats.empty": "No cards to draw. Expected `items:` or a list.",
     "stats.unlabeledCard": "a card with no label",

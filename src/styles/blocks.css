@@ -23,6 +23,20 @@
 }
 .dashy-tile:hover { transform: translateY(-3px); box-shadow: var(--dashy-shadow-hover); }
 .dashy-tile-accent { border-left: 3px solid var(--interactive-accent); }
+/* a cover image bleeds to the tile's own edges (see `dashy-tile-cover`
+   below), so the padding above it is dropped; the 18px/12px here must stay
+   in step with `.dashy-tile`'s own `padding` above */
+/* overflow keeps the bleeding cover inside the tile's rounded corners; set
+   only on a covered tile, so a tile without one is exactly as before */
+.dashy-tile-has-cover { padding-top: 0; overflow: hidden; }
+.dashy-tile-cover {
+  display: block;
+  width: calc(100% + 24px);
+  margin: 0 -12px 12px;
+  height: var(--dashy-tile-cover);
+  object-fit: cover;
+  border-radius: var(--dashy-radius) var(--dashy-radius) 0 0;
+}
 .dashy-tile-link,
 .dashy-tile-link:hover { display: block; text-decoration: none; color: inherit; }
 .dashy-tile-icon { display: block; font-size: 1.6em; margin-bottom: 6px; }

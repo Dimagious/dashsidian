@@ -177,6 +177,23 @@ items:
 These four keys only mean something next to `badge: count`; on a tile with no badge or a
 custom one they are ignored and warn, since there is nothing there for them to narrow.
 
+Add `image` and a tile gets a cover photo above its icon and label: a vault path
+(`Attachments/gym.jpg`), a `[[wikilink]]`, or an `https://` URL.
+
+````markdown
+```tiles
+columns: 2
+items:
+  - { label: Gym, path: Diary, icon: 🏋, image: Attachments/gym.jpg }
+  - { label: Books, path: Books, icon: 📚, image: "[[shelf.jpg]]" }
+```
+````
+
+A plain `http://` URL and any other scheme are refused, not just quietly skipped: the tile
+warns, names the value, and draws without the cover. The same happens for a vault path that
+does not resolve to a file, the warning naming both the tile and the path. A tile with no
+`image` at all is unaffected either way.
+
 ### `stats`: the numbers
 
 One card per number, counted over whatever selection you describe.

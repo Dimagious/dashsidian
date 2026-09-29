@@ -25,6 +25,9 @@ export const ru: Catalog = {
     "tiles.empty": "Список плиток пуст. Ожидается `items:` или массив.",
     "tiles.dateFieldUnused": "{card}: `date_field` не действует без `period`.",
     "tiles.selectionUnused": "{card}: `tag`, `where`, `period` и `date_field` только сужают `badge: count`.",
+    "tiles.imageMissing": "{card}: изображение «{path}» не найдено.",
+    "tiles.imageUnsupported":
+        "{card}: `image` ожидает путь в хранилище, `[[викилинк]]` или ссылку `https://`, получено «{value}».",
 
     "stats.empty": "Список карточек пуст. Ожидается `items:` или массив.",
     "stats.unlabeledCard": "карточка без подписи",

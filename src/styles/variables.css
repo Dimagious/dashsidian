@@ -11,6 +11,9 @@
 body {
   --dashy-radius: 12px;
   --dashy-gap: 14px;
+  /* a tile's cover image (B-083): a fixed height so a row of tiles, covered
+     and plain alike, still lines up */
+  --dashy-tile-cover: 120px;
   --dashy-cell: 13px;
   --dashy-cell-gap: 3px;
   /* Roughly 2.5 week columns: wide enough to read as a fade, not a hard cut. */

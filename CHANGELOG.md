@@ -12,6 +12,12 @@ removed public export.
 
 ### Added
 
+- **`tiles` takes `image`, a cover photo above a tile's icon and label.** A
+  vault path, a `[[wikilink]]`, or an `https://` URL; a plain `http://` URL
+  or another scheme warns and skips the image instead of drawing nothing
+  said about it, and so does a vault path that does not resolve to a file,
+  the warning naming both the tile and the path. A tile with no `image`
+  draws exactly as before.
 - **`progress` takes `columns`, the same key `tiles`, `stats` and `countdown`
   already have.** 1 to 4, laying bars out side by side instead of one per
   row; without it the layout is exactly what it was before, one bar per row.

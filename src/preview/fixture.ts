@@ -83,13 +83,19 @@ export function previewContext(notes: readonly NoteRecord[]): BlockContext {
             getMarkdownFiles: () =>
                 notes.map((n) => ({ path: n.path, basename: n.name, parent: { path: n.folder }, note: n })),
             getAbstractFileByPath: (path: string) =>
-                notes.some((n) => n.path === path) ? { path } : null,
+                notes.some((n) => n.path === path) ? { path, extension: "md" } : null,
+            // A fake, but stable: `tiles`' cover image resolves through it.
+            getResourcePath: (file: { path: string }) => `app://local/${file.path}`,
         },
         metadataCache: {
             getFileCache: (file: { note?: NoteRecord }) => ({
                 frontmatter: file.note?.frontmatter ?? {},
                 tags: [],
             }),
+            // No non-markdown attachment lives in this fake vault, so this
+            // only ever resolves a note by its exact path.
+            getFirstLinkpathDest: (linkpath: string) =>
+                notes.some((n) => n.path === linkpath) ? { path: linkpath, extension: "md" } : null,
         },
     } as unknown as App;
 

@@ -1,4 +1,4 @@
-import type { App, TFile } from "obsidian";
+import type { App, TAbstractFile, TFile } from "obsidian";
 import type { NoteRecord } from "../core/source";
 
 /**
@@ -37,6 +37,26 @@ export class VaultSnapshot {
 /** Whether such a note exists. Needed by blocks that link to what is not there yet. */
 export function noteExists(app: App, path: string): boolean {
     return app.vault.getAbstractFileByPath(path) !== null;
+}
+
+/** `TFolder` is the only other thing either lookup below can hand back. */
+function isTFile(file: TAbstractFile): file is TFile {
+    return "extension" in file;
+}
+
+/**
+ * Resolves a `tiles` cover image's vault path (`core/image.ts` has already
+ * told a plain path from a wikilink's target and stripped its brackets) to a
+ * URL an `<img>` can load. `getFirstLinkpathDest` resolves the way Obsidian's
+ * own links do, a bare filename included even when it lives in a
+ * sub-folder; `getAbstractFileByPath` is the fallback for an exact path that
+ * lookup does not cover. `null` means neither found a file, or what they
+ * found is a folder, not an image.
+ */
+export function resolveImage(app: App, path: string): string | null {
+    const file = app.metadataCache.getFirstLinkpathDest(path, "") ?? app.vault.getAbstractFileByPath(path);
+    if (!file || !isTFile(file)) return null;
+    return app.vault.getResourcePath(file);
 }
 
 export function toRecord(app: App, file: TFile): NoteRecord {

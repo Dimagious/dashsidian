@@ -36,6 +36,7 @@ A grid of link tiles for navigating the vault.
 | `sub` | string | — | — | — | small caption under the title |
 | `badge` | string\|number | — | — | — | count, meaning the number of notes in the folder narrowed by `tag`, `where` and `period` when given, or your own string |
 | `accent` | boolean | — | — | — | accent stripe on the left |
+| `image` | string | — | — | — | a cover image above the icon and label: a vault path (`Attachments/gym.jpg`), a `[[wikilink]]`, or an `https://` URL. A vault path that does not resolve, or anything other than those three, warns and the tile draws without a cover |
 
 **Example**
 

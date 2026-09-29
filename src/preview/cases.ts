@@ -16,20 +16,21 @@ export interface PreviewCase {
 export const CASES: PreviewCase[] = [
     {
         block: "tiles",
-        title: "tiles — навигация, счётчики, акцент",
+        title: "tiles — навигация, счётчики, акцент, обложка",
         source: `columns: 4
 items:
-  - { label: Inbox, path: Inbox, icon: 📥, badge: count }
+  - { label: Inbox, path: Inbox, icon: 📥, badge: count, image: "https://picsum.photos/seed/dashy-inbox/400/200" }
   - { label: Diary, path: Diary, icon: 📔, badge: count, sub: 120 дней }
   - { label: Empty, path: Nowhere, icon: 🕳, badge: count }
   - { label: Accent, path: Diary, icon: ⭐, accent: true }`,
     },
     {
         block: "tiles",
-        title: "tiles — сломанный конфиг",
+        title: "tiles — сломанный конфиг, обложка не найдена",
         source: `items:
   - { lable: Typo, path: Diary }
-  - { icon: 🕳 }`,
+  - { icon: 🕳 }
+  - { label: Gym, path: Diary, image: Attachments/missing.jpg }`,
     },
     {
         block: "stats",
