@@ -85,6 +85,16 @@ removed public export.
   a top-level `color` is ignored, with a warning, once `layers` is set.
   Schema 1.6.0.
 
+### Fixed
+
+- **A heatmap grid stopped following the end after a pane resize animation.**
+  While a sidebar collapse or a split resize animated the pane wider, the
+  browser clamps a not-yet-settled grid's scroll position frame by frame;
+  each clamped frame used to be read as the reader dragging the grid by
+  hand, which stopped it from ever re-pinning to the end again even though
+  nothing had been touched. A clamped frame is now told apart from a real
+  drag and no longer stops the grid from following the end.
+
 ### Docs
 
 - **`streak` and the heatmap's default colouring are now spelled out in the

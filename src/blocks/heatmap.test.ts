@@ -1132,6 +1132,71 @@ describe("heatmap — the scroller says when there is more to see", () => {
         });
     });
 
+    /**
+     * B-104: while a pane widens (a sidebar collapse animation), the browser
+     * clamps `scrollLeft` down frame by frame as `scrollWidth - clientWidth`
+     * shrinks under it, each clamped frame firing its own `scroll` event.
+     * Before the fix, every such event looked like the reader dragging the
+     * grid (it does not match the one-time `lastAssignedScrollLeft`), so the
+     * very first frame flipped `settled` permanently and the grid stopped
+     * following the end for good, even though the reader never touched it.
+     */
+    it("clamped scroll events from a widening pane do not settle the grid; it still follows the end", () => {
+        withManualResizeObserver(() => {
+            const el = map("source: Diary\nfield: sleep_score");
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            // The initial, real layout: pinned to the end, still unsettled.
+            stubMetrics(scroller, 0, 300, 600);
+            ManualResizeObserver.instances[0]!.fire();
+            expect(scroller.scrollLeft).toBe(600);
+            expect(scroller.dataset.settled).not.toBe("true");
+
+            // Frame 1 of the pane widening: clientWidth grows 300 -> 400, the
+            // grid itself stays 600 wide, so the browser clamps scrollLeft to
+            // the new max (600 - 400 = 200) on its own, before this block's
+            // own resize observer has fired again.
+            stubMetrics(scroller, 200, 400, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+            expect(scroller.dataset.settled).not.toBe("true");
+
+            // Frame 2: the pane keeps widening, 400 -> 450, clamped again to
+            // the new max (600 - 450 = 150).
+            stubMetrics(scroller, 150, 450, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+            expect(scroller.dataset.settled).not.toBe("true");
+
+            // The animation settles and the grid itself later grows (a new
+            // day added): still unsettled, so the next resize still pins to
+            // the new end instead of leaving the grid stuck where the
+            // animation happened to clamp it.
+            stubMetrics(scroller, 150, 450, 700);
+            ManualResizeObserver.instances[0]!.fire();
+            expect(scroller.scrollLeft).toBe(700);
+        });
+    });
+
+    it("a real reader drag (scrollLeft not at the end) still settles even while unsettled", () => {
+        withManualResizeObserver(() => {
+            const el = map("source: Diary\nfield: sleep_score");
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            stubMetrics(scroller, 0, 300, 600);
+            ManualResizeObserver.instances[0]!.fire();
+            expect(scroller.dataset.settled).not.toBe("true");
+
+            // A genuine drag to the middle: nowhere near scrollWidth - clientWidth (300).
+            stubMetrics(scroller, 150, 300, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+            expect(scroller.dataset.settled).toBe("true");
+
+            // Settled: a later resize no longer yanks it back to the end.
+            stubMetrics(scroller, 150, 320, 620);
+            ManualResizeObserver.instances[0]!.fire();
+            expect(scroller.scrollLeft).toBe(150);
+        });
+    });
+
     it("an unstyled reading (scrollWidth equal to clientWidth) neither scrolls nor settles", () => {
         withManualResizeObserver(() => {
             const el = map("source: Diary\nfield: sleep_score");

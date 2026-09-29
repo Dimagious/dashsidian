@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { scrollEdges, resolveScrollRestore, type ScrollSnapshot } from "./scroll";
+import { scrollEdges, resolveScrollRestore, isEndClamp, type ScrollSnapshot } from "./scroll";
 
 describe("scrollEdges", () => {
     it("a grid that fits has nothing to scroll to on either side", () => {
@@ -34,6 +34,32 @@ describe("scrollEdges", () => {
         // scrollLeft + clientWidth is 1px short of scrollWidth: within tolerance.
         expect(scrollEdges(299, 300, 600)).toEqual({ canScrollLeft: true, canScrollRight: false });
         expect(scrollEdges(298, 300, 600)).toEqual({ canScrollLeft: true, canScrollRight: true });
+    });
+});
+
+describe("isEndClamp", () => {
+    it("reads an exact end position as a clamp", () => {
+        // scrollWidth - clientWidth = 600 - 400 = 200.
+        expect(isEndClamp(200, 400, 600)).toBe(true);
+    });
+
+    it("stays within a 1px tolerance for sub-pixel widths", () => {
+        expect(isEndClamp(200.6, 400, 600)).toBe(true);
+        expect(isEndClamp(199.4, 400, 600)).toBe(true);
+    });
+
+    it("does not read a 2px-off position as a clamp", () => {
+        expect(isEndClamp(198, 400, 600)).toBe(false);
+        expect(isEndClamp(202, 400, 600)).toBe(false);
+    });
+
+    it("does not read a mid-scroll position as a clamp", () => {
+        expect(isEndClamp(50, 300, 600)).toBe(false);
+    });
+
+    it("reads 0 as a clamp once the grid no longer overflows at all", () => {
+        // scrollWidth - clientWidth = 300 - 300 = 0: the only valid position.
+        expect(isEndClamp(0, 300, 300)).toBe(true);
     });
 });
 

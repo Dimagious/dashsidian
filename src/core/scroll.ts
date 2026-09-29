@@ -71,6 +71,32 @@ export type ScrollRestoreOutcome =
     | { kind: "default" };
 
 /**
+ * Whether a `scroll` event's position is exactly where the browser clamps a
+ * scroller to once its own container grows out from under it: a pane-collapse
+ * or split-resize animation shrinks `scrollWidth - clientWidth` frame by
+ * frame, and the browser pins `scrollLeft` to that shrinking maximum on every
+ * frame it cannot fit anymore, each one firing its own `scroll` event.
+ *
+ * The caller cannot tell those apart from a reader's own drag by comparing
+ * against the position it last assigned: the assignment happened once,
+ * before the animation started, at the *old* (larger) end, so every
+ * intermediate clamped frame reads as "moved since we last touched it" even
+ * though nothing the reader did caused it. Treating each one as "the reader
+ * took over" flips a permanent settled flag mid-animation and leaves the
+ * grid stuck instead of still pinned to the end once the animation and the
+ * caller's own catch-up settle down.
+ *
+ * A position that happens to land exactly on the end is safe to call a
+ * clamp either way: if it really was a reader drag that stopped right at the
+ * edge, staying unsettled there costs nothing, because the pin-to-end
+ * default already keeps it there on its own.
+ */
+export function isEndClamp(scrollLeft: number, clientWidth: number, scrollWidth: number): boolean {
+    const max = scrollWidth - clientWidth;
+    return Math.abs(scrollLeft - max) <= TOLERANCE;
+}
+
+/**
  * A settled, not-at-the-end snapshot survives a redraw: the new grid starts
  * where the reader left the old one instead of jumping back to the end. An
  * unsettled or already-at-the-end snapshot is not worth restoring, because

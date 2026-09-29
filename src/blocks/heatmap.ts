@@ -14,7 +14,7 @@ import {
 import { parsePeriod, periodWindow, type Period } from "../core/period";
 import { toRgb, rgba, DEFAULT_COLOR, PALETTE, type Rgb } from "../core/palette";
 import { readBands, bandFor, type Band } from "../core/bands";
-import { scrollEdges, resolveScrollRestore, type ScrollSnapshot } from "../core/scroll";
+import { scrollEdges, resolveScrollRestore, isEndClamp, type ScrollSnapshot } from "../core/scroll";
 import { parseConfig, isRecord, unknownKeys, describeValue, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
 import { t } from "../i18n";
@@ -851,9 +851,25 @@ function drawGrid(
     // position, settled or not: an unsettled scroller being pinned to a
     // moving end (below) still has a real position worth knowing, even
     // though it is not yet one `resolveScrollRestore` will act on.
+    //
+    // A widening pane (a sidebar collapse animation) shrinks the scrollable
+    // range frame by frame, and the browser clamps `scrollLeft` to the new
+    // end on every frame it no longer fits, each one firing a `scroll` event
+    // that does not match the one-time `lastAssignedScrollLeft` above. While
+    // still unsettled, such a clamp is not the reader taking over: it only
+    // catches `lastAssignedScrollLeft` up to where the browser actually put
+    // it, so `updateScrollState` keeps re-pinning to the end afterwards
+    // instead of the grid getting stuck wherever the animation happened to
+    // leave it (B-104).
     const onScroll = (): void => {
         recordPosition();
-        if (scroll.scrollLeft !== lastAssignedScrollLeft) settle();
+        if (scroll.scrollLeft !== lastAssignedScrollLeft) {
+            if (!settled && isEndClamp(scroll.scrollLeft, scroll.clientWidth, scroll.scrollWidth)) {
+                lastAssignedScrollLeft = scroll.scrollLeft;
+            } else {
+                settle();
+            }
+        }
         updateScrollState();
     };
     scroll.addEventListener("scroll", onScroll, { passive: true });
