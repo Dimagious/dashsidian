@@ -10,6 +10,8 @@ removed public export.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-29
+
 ### Added
 
 - **`tiles` takes `image`, a cover photo above a tile's icon and label.** A
@@ -419,7 +421,10 @@ agent can read.
 - No Dataview, no JavaScript in your notes, and not one hard-coded colour: the
   blocks take their palette from whatever theme you run.
 
-[Unreleased]: https://github.com/Dimagious/dashsidian/compare/1.1.0...HEAD
+[Unreleased]: https://github.com/Dimagious/dashsidian/compare/1.4.0...HEAD
+[1.4.0]: https://github.com/Dimagious/dashsidian/releases/tag/1.4.0
+[1.3.0]: https://github.com/Dimagious/dashsidian/releases/tag/1.3.0
+[1.2.0]: https://github.com/Dimagious/dashsidian/releases/tag/1.2.0
 [1.1.0]: https://github.com/Dimagious/dashsidian/releases/tag/1.1.0
 [1.0.2]: https://github.com/Dimagious/dashsidian/releases/tag/1.0.2
 [1.0.1]: https://github.com/Dimagious/dashsidian/releases/tag/1.0.1
