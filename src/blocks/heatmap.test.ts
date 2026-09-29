@@ -1,8 +1,19 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { Platform } from "obsidian";
 import { renderHeatmap } from "./heatmap";
 import { formatValue } from "../core/stat";
 import { mockContext, diary, host, texts, nodes, diagnostics } from "../test/vault";
 import { DEFAULT_SETTINGS } from "../types";
+import { setDateLocale, formatDayMedium } from "../adapters/datetime";
+import { parseDateKey } from "../core/calendar";
+
+/**
+ * The same locale-medium rendering a cell's tooltip itself uses (B-092), so
+ * a lookup or an exact assertion here does not have to hand-roll the date
+ * format the block already computes. `date` is the plain `YYYY-MM-DD` key
+ * every fixture below is written in terms of.
+ */
+const medium = (date: string): string => formatDayMedium(parseDateKey(date));
 
 // 2026 starts on a Thursday. With weeks starting on Sunday (the English
 // locale) that means four pad cells before January 1st.
@@ -154,21 +165,85 @@ describe("heatmap — colours and bands", () => {
         expect(first(broken)).toContain("59, 130, 246");
     });
 
-    it("without bands there is one legend entry covering everything", () => {
-        expect(texts(map("source: Diary\nfield: sleep_score"), ".dashy-hm-leg")).toEqual(["has data"]);
+    // B-116: without `bands`, the block now fits its own 4-band scale to the
+    // grid's own min and max (`core/bands.ts#autoBands`) instead of the
+    // single flat "has data" band B-097 pinned. The fixture's `sleep_score`
+    // spans 60-89 across the month, quartered into
+    // [81.75, 74.5, 67.25, 60] and labelled the same way an explicit
+    // 4-threshold `bands:` would be.
+    // Thresholds are rounded to the data's own precision (whole numbers,
+    // for an integer field like `sleep_score`) before they become labels,
+    // so "82+" is the actual boundary a cell is tested against, not a
+    // display-only rounding of some other number underneath it.
+    it("without bands, the legend is a 4-band scale fitted to this grid's own min and max", () => {
+        const el = map("source: Diary\nfield: sleep_score");
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["82+", "75–81", "67–74", "60–66"]);
     });
 
-    // B-097: the fixture's `sleep_score` spans 60-89 across the month, a wide
-    // enough range that an auto-scaled heatmap would visibly shade it. It
-    // does not: every painted cell is the exact same colour, because
-    // `bands.ts` has no notion of the data's own min/max without `bands:`.
-    it("without bands, a low value and a high value paint identically: there is no scale fitted to the data", () => {
+    // The same fixture that used to prove every painted cell was identical
+    // (B-097) now proves the opposite: a low value and a high value paint
+    // visibly differently once the scale is fitted to the data.
+    it("without bands, a low value and a high value now paint differently: the scale is fitted to the data", () => {
         const el = map("source: Diary\nfield: sleep_score");
         const painted = nodes(el, ".dashy-hm-cell")
             .map((c) => c.style.backgroundColor)
             .filter((c) => c !== "");
         expect(painted.length).toBeGreaterThan(1);
-        expect(new Set(painted).size).toBe(1);
+        expect(new Set(painted).size).toBeGreaterThan(1);
+    });
+
+    it("without bands, a small integer spread gets one band per distinct value, not fractional cuts", () => {
+        // mood is 5, 7 and 4 across three days: a span of 3, all integers,
+        // so `autoBands` derives from the distinct values themselves
+        // (7, 5, 4) rather than quarter-cutting a range that narrow — 7 and
+        // 5 are two apart, so that pair still reads as a range ("5–6"), but
+        // 5 and 4 are adjacent and collapse to the bare "4".
+        const moodCtx = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { mood: 5 } },
+                { path: "Diary/2026-01-02.md", frontmatter: { mood: 7 } },
+                { path: "Diary/2026-01-03.md", frontmatter: { mood: 4 } },
+            ],
+        });
+        const el = map("source: Diary\nfield: mood", moodCtx);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["7+", "5–6", "4"]);
+    });
+
+    it("without bands, two calendar years each fit their own scale, not one shared across both", () => {
+        const twoYearCtx = mockContext({
+            notes: [
+                ...diary("Diary", "2025-01-01", 3, (i) => ({ score: 10 + i * 10 })), // 10, 20, 30
+                ...diary("Diary", "2026-01-01", 3, (i) => ({ score: 100 + i * 100 })), // 100, 200, 300
+            ],
+        });
+        const el = map("source: Diary\nfield: score", twoYearCtx);
+        const grids = nodes(el, ".dashy-hm-wrap");
+        expect(grids).toHaveLength(2);
+        const legendOf = (grid: HTMLElement) =>
+            Array.from(grid.querySelectorAll(".dashy-hm-leg")).map((n) => n.textContent ?? "");
+        // Years are newest first (`yearsOf`): 2026's grid comes first. Its
+        // scale (100-300) is an order of magnitude apart from 2025's
+        // (10-30) — proof each grid fits its own range rather than one
+        // scale being stretched to cover both.
+        expect(legendOf(grids[0]!)).toEqual(["250+", "200–249", "150–199", "100–149"]);
+        expect(legendOf(grids[1]!)).toEqual(["25+", "20–24", "15–19", "10–14"]);
+    });
+
+    // B-116: a checkbox field stays flat even when several of them summed
+    // per day (`per_day: sum`) produce more than one distinct painted value
+    // — 1 on a single-habit day, 2 on a day both were ticked. The values
+    // differ, so the "every painted value equal" rule alone would not keep
+    // this flat; it is `isBool` (core/day-values.ts, threaded onto
+    // `Paintable`) that does.
+    it("without bands, summing two checkbox fields still stays flat, not scaled by the sum", () => {
+        const habitsCtx = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { gym: true, yoga: false } }, // sum 1
+                { path: "Diary/2026-01-02.md", frontmatter: { gym: true, yoga: true } }, // sum 2
+            ],
+        });
+        const el = map("source: Diary\nfield: [gym, yoga]\nper_day: sum", habitsCtx);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["has data"]);
     });
 });
 
@@ -268,14 +343,14 @@ describe("heatmap — boolean checkbox fields", () => {
 
     it("a ticked day is painted like a value of 1", () => {
         const el = map("source: Diary\nfield: gym", gymCtx);
-        const jan1 = nodes(el, "a.dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-01"));
+        const jan1 = nodes(el, "a.dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-01")));
         expect(jan1?.getAttribute("title")).toContain("gym 1");
         expect(jan1?.style.backgroundColor).not.toBe("");
     });
 
     it("an unticked day is not painted and reads exactly like a day without data", () => {
         const el = map("source: Diary\nfield: gym", gymCtx);
-        const jan2 = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-02"));
+        const jan2 = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-02")));
         expect(jan2?.tagName).toBe("DIV");
         expect(jan2?.style.backgroundColor).toBe("");
         expect(jan2?.getAttribute("title")).toContain("no data");
@@ -352,7 +427,7 @@ describe("heatmap — boolean checkbox fields", () => {
         ]],
     ])("a ticked twin always wins over an unticked one, regardless of order (%s)", (_label, notes) => {
         const el = map("field: gym", mockContext({ notes }));
-        const link = nodes(el, "a.dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-02"));
+        const link = nodes(el, "a.dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-02")));
         expect(link?.getAttribute("data-href")).toBe("Personal/2026-01-02.md");
         expect(link?.getAttribute("title")).toContain("gym 1");
         const caption = texts(el, ".dashy-hm-title")[0] ?? "";
@@ -364,7 +439,7 @@ describe("heatmap — dated names beyond an exact YYYY-MM-DD, and date_field (B-
     it("a name with a day-of-week suffix is painted, same as an exact one", () => {
         const notes = [{ path: "Diary/2026-01-05 Monday.md", frontmatter: { sleep_score: 88 } }];
         const el = map("field: sleep_score", mockContext({ notes }));
-        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-05"));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-05")));
         expect(cell?.style.backgroundColor).not.toBe("");
         expect(cell?.getAttribute("title")).toContain("sleep_score 88");
     });
@@ -375,7 +450,7 @@ describe("heatmap — dated names beyond an exact YYYY-MM-DD, and date_field (B-
             { path: "Diary/2026-01-10 evening.md", frontmatter: { steps: 3000 } },
         ];
         const el = map("field: steps", mockContext({ notes }));
-        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-10"));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-10")));
         expect(cell?.getAttribute("title")).toContain("steps 8000");
     });
 
@@ -385,7 +460,7 @@ describe("heatmap — dated names beyond an exact YYYY-MM-DD, and date_field (B-
             { path: "Diary/2026-01-15 evening.md", frontmatter: { gym: true } },
         ];
         const el = map("field: gym", mockContext({ notes }));
-        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-15"));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-15")));
         expect(cell?.style.backgroundColor).not.toBe("");
         // The tick makes the day painted; the value shown is still the sum
         // (1 for the tick, 0 for the miss).
@@ -403,7 +478,7 @@ describe("heatmap — dated names beyond an exact YYYY-MM-DD, and date_field (B-
         ]],
     ])("the link target is deterministic regardless of input order, even with two painted contributors (%s)", (_label, notes) => {
         const el = map("field: steps", mockContext({ notes }));
-        const link = nodes(el, "a.dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-11"));
+        const link = nodes(el, "a.dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-11")));
         expect(link?.getAttribute("data-href")).toBe("A-folder/2026-01-11.md");
         expect(link?.getAttribute("title")).toContain("steps 300");
     });
@@ -414,7 +489,7 @@ describe("heatmap — dated names beyond an exact YYYY-MM-DD, and date_field (B-
             { path: "Books/poor-dad.md", frontmatter: { finished: "2026-01-12", rating: 3 } },
         ];
         const el = map("field: rating\ndate_field: finished", mockContext({ notes }));
-        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith("2026-01-12"));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-12")));
         expect(cell?.getAttribute("title")).toContain("rating 8");
     });
 
@@ -539,6 +614,512 @@ describe("heatmap — edges", () => {
     it("a list where a set of fields was expected is reported", () => {
         const el = map("- source: Diary");
         expect(diagnostics(el, "error")).toHaveLength(1);
+    });
+});
+
+describe("heatmap — nested frontmatter paths (B-100)", () => {
+    const nested = mockContext({
+        notes: [
+            { path: "Diary/2026-01-01.md", frontmatter: { health: { sleep: 92 } } },
+            { path: "Diary/2026-01-02.md", frontmatter: { health: { sleep: 60 } } },
+        ],
+    });
+
+    it("renders from a nested field without a false missing-field diagnostic", () => {
+        const el = map("source: Diary\nfield: health.sleep", nested);
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        const coloured = nodes(el, ".dashy-hm-cell").filter((c) => c.style.backgroundColor !== "");
+        expect(coloured).toHaveLength(2);
+    });
+
+    it("names the dotted path when truly missing", () => {
+        const el = map("source: Diary\nfield: health.steps", nested);
+        expect(diagnostics(el, "error")[0]).toContain("health.steps");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a path that hits a non-object midway resolves to nothing, same as a missing field", () => {
+        const flat = mockContext({
+            notes: [{ path: "Diary/2026-01-01.md", frontmatter: { health: 92 } }],
+        });
+        const el = map("source: Diary\nfield: health.sleep", flat);
+        const message = diagnostics(el, "error")[0] ?? "";
+        expect(message).toContain("health.sleep");
+        expect(message).toContain("Check the name");
+    });
+});
+
+describe("heatmap — several fields in one heatmap (B-094)", () => {
+    it("a list field renders one grid; per_day defaults to sum, same as before", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { mood_am: 5, mood_pm: 7 } }];
+        const el = map("source: Diary\nfield: [mood_am, mood_pm]", mockContext({ notes }));
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-01")));
+        expect(cell?.getAttribute("title")).toContain("12");
+    });
+
+    it("per_day: avg collapses a 5 and a 7 into 6, the day's whole mood in one cell", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { mood_am: 5, mood_pm: 7 } }];
+        const el = map("source: Diary\nfield: [mood_am, mood_pm]\nper_day: avg", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-01")));
+        expect(cell?.getAttribute("title")).toContain("6");
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+    });
+
+    it("per_day: max keeps the higher of the day's readings", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { mood_am: 5, mood_pm: 7 } }];
+        const el = map("source: Diary\nfield: [mood_am, mood_pm]\nper_day: max", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-01")));
+        expect(cell?.getAttribute("title")).toContain("7");
+    });
+
+    it("an invalid per_day warns naming the options and falls back to sum", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { steps: 100 } }];
+        const el = map("source: Diary\nfield: steps\nper_day: median", mockContext({ notes }));
+        expect(diagnostics(el, "warning")[0]).toContain("median");
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-01")));
+        expect(cell?.getAttribute("title")).toContain("100");
+    });
+
+    it("an empty field list is an error, not an empty grid", () => {
+        const el = map("source: Diary\nfield: []", ctx);
+        expect(diagnostics(el, "error")).toHaveLength(1);
+        expect(diagnostics(el, "error")[0]).toContain("empty list");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a non-string entry in the field list is an error naming it", () => {
+        const el = map("source: Diary\nfield: [mood_am, 5]", ctx);
+        expect(diagnostics(el, "error")).toHaveLength(1);
+        expect(diagnostics(el, "error")[0]).toContain("5");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("one misspelled field among several warns naming it, without hiding the rest of the data", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { mood_am: 5 } }];
+        const el = map("source: Diary\nfield: [mood_am, mood_pn]", mockContext({ notes }));
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(diagnostics(el, "warning")[0]).toContain("mood_pn");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+    });
+
+    it("every field missing from the selection errors, naming each one", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { unrelated: 1 } }];
+        const el = map("source: Diary\nfield: [mood_am, mood_pm]", mockContext({ notes }));
+        const errors = diagnostics(el, "error");
+        expect(errors).toHaveLength(2);
+        expect(errors.some((m) => m.includes("mood_am"))).toBe(true);
+        expect(errors.some((m) => m.includes("mood_pm"))).toBe(true);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a dotted path inside a list works", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { health: { sleep: 80 }, mood_pm: 4 } }];
+        const el = map("source: Diary\nfield: [health.sleep, mood_pm]", mockContext({ notes }));
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-01")));
+        expect(cell?.getAttribute("title")).toContain("84");
+    });
+
+    it("the caption and the cell tooltip show the field names joined with a comma", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { mood_am: 5, mood_pm: 7 } }];
+        const el = map("source: Diary\nfield: [mood_am, mood_pm]", mockContext({ notes }));
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        expect(caption).toContain("mood_am, mood_pm");
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-01")));
+        expect(cell?.getAttribute("title")).toContain("mood_am, mood_pm");
+    });
+
+    // (5 + 7 + 8) / 3 = 6.666666666666667 unrounded: the tooltip is a
+    // `title`/`aria-label`, not a card, and must not carry either the raw
+    // float or `formatValue`'s narrow no-break space digit grouping.
+    it("per_day: avg over three contributions rounds the tooltip to one decimal", () => {
+        const notes = [
+            { path: "Diary/2026-01-01.md", frontmatter: { mood_am: 5, mood_pm: 7 } },
+            { path: "Diary/2026-01-01 evening.md", frontmatter: { mood_am: 8 } },
+        ];
+        const el = map("source: Diary\nfield: [mood_am, mood_pm]\nper_day: avg", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-01")));
+        // Two notes contributed (the morning/evening entries), so the
+        // tooltip names how many rather than either one's name.
+        expect(cell?.getAttribute("title")).toBe(`${medium("2026-01-01")}: mood_am, mood_pm 6.7 (2 notes)`);
+    });
+
+    it("a field of the wrong shape (not a string or a list) is an error naming the value", () => {
+        const el = map("source: Diary\nfield: 5", ctx);
+        const errors = diagnostics(el, "error");
+        expect(errors).toHaveLength(1);
+        expect(errors[0]).toContain("5");
+        expect(errors[0]).not.toContain("No `field` given");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("field simply absent still reads the plain \"no field given\" error", () => {
+        const el = map("source: Diary", ctx);
+        expect(diagnostics(el, "error")[0]).toContain("No `field` given");
+    });
+
+    it("a duplicate entry in the field list does not count twice", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { steps: 100 } }];
+        const el = map("source: Diary\nfield: [steps, steps]", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-01")));
+        expect(cell?.getAttribute("title")).toContain("100");
+        expect(cell?.getAttribute("title")).not.toContain("200");
+    });
+});
+
+describe("heatmap — several activities, each its own colour (B-096)", () => {
+    // gym is ticked the 1st, unticked the 2nd; run is unticked the 1st,
+    // ticked the 2nd and the 3rd, where gym is not even mentioned.
+    const layersCtx = mockContext({
+        notes: [
+            { path: "Diary/2026-01-01.md", frontmatter: { gym: true, run: false } },
+            { path: "Diary/2026-01-02.md", frontmatter: { gym: false, run: true } },
+            { path: "Diary/2026-01-03.md", frontmatter: { run: true } },
+        ],
+    });
+    const cellFor = (el: HTMLElement, date: string) =>
+        nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium(date)));
+    const layersConfig = "source: Diary\nlayers:\n"
+        + "  - { field: gym, color: blue }\n"
+        + "  - { field: run, color: green, label: Running }";
+
+    it("two layers render with their own explicit colours", () => {
+        const el = map(layersConfig, layersCtx);
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        // 1 Jan: only gym is painted, so its (first, blue) layer colours the cell.
+        expect(cellFor(el, "2026-01-01")?.style.backgroundColor).toContain("59, 130, 246");
+        // 2 Jan: gym is unticked, run is ticked — the second layer colours it.
+        expect(cellFor(el, "2026-01-02")?.style.backgroundColor).toContain("34, 197, 94");
+    });
+
+    it("an overlapping day takes the first painted layer's colour, and the tooltip lists every layer", () => {
+        const el = map(layersConfig, layersCtx);
+        const jan1 = cellFor(el, "2026-01-01");
+        // gym (painted, 1) wins the cell over run (unpainted, 0), but the
+        // tooltip still says what both layers held that day, in list order.
+        expect(jan1?.style.backgroundColor).toContain("59, 130, 246");
+        // A single note (2026-01-01.md) holds both layers' values that day.
+        expect(jan1?.getAttribute("title")).toBe(`${medium("2026-01-01")}: gym 1, Running 0 (2026-01-01)`);
+    });
+
+    it("a day only the second layer has anything for still gets a mark and the right colour", () => {
+        const el = map(layersConfig, layersCtx);
+        // 3 Jan: `gym` is not in the note at all, only `run` is.
+        const jan3 = cellFor(el, "2026-01-03");
+        expect(jan3?.style.backgroundColor).toContain("34, 197, 94");
+        expect(jan3?.getAttribute("title")).toBe(`${medium("2026-01-03")}: Running 1 (2026-01-03)`);
+    });
+
+    it("a layer without a colour gets the next free palette colour, skipping ones already claimed", () => {
+        const el = map(
+            "source: Diary\nlayers:\n  - { field: gym, color: green }\n  - { field: run }",
+            layersCtx,
+        );
+        // green is taken by `gym`, so `run` (implicit) gets blue, the first
+        // colour in the palette that is still free.
+        expect(cellFor(el, "2026-01-03")?.style.backgroundColor).toContain("59, 130, 246");
+    });
+
+    it("the legend lists every layer, swatch and label, and nothing else without `bands`", () => {
+        const el = map(layersConfig, layersCtx);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["gym", "Running"]);
+    });
+
+    it("with `bands` also set, the legend shows the layers row and the bands row", () => {
+        const el = map(`${layersConfig}\nbands: [90, 60]`, layersCtx);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["gym", "Running", "90+", "60–89"]);
+    });
+
+    it("the bands legend paints neutral gray in layers mode, not a layer's own colour", () => {
+        const el = map(`${layersConfig}\nbands: [90, 60]`, layersCtx);
+        const swatches = nodes(el, ".dashy-hm-swatch");
+        // The first two swatches are the layer rows, in their own colours...
+        expect(swatches[0]?.style.backgroundColor).toContain("59, 130, 246"); // gym: blue
+        expect(swatches[1]?.style.backgroundColor).toContain("34, 197, 94"); // run: green
+        // ...and the rest are the bands row, neither colour, PALETTE.gray instead.
+        expect(swatches[2]?.style.backgroundColor).toContain("156, 163, 175");
+        expect(swatches[3]?.style.backgroundColor).toContain("156, 163, 175");
+    });
+
+    it("without `layers`, the bands legend still paints in the field's own colour", () => {
+        const el = map("source: Diary\nfield: sleep_score\ncolor: purple\nbands: [90, 60]", ctx);
+        const swatches = nodes(el, ".dashy-hm-swatch");
+        for (const s of swatches) expect(s.style.backgroundColor).toContain("139, 92, 246"); // purple
+    });
+
+    it("a layered cell links to the winning layer's note, including when the first layer is false-only", () => {
+        const el = map(layersConfig, layersCtx);
+        // 1 Jan: gym (first, painted) wins and links to its own note.
+        expect(cellFor(el, "2026-01-01")?.getAttribute("data-href")).toBe("Diary/2026-01-01.md");
+        // 2 Jan: gym is false-only, so run (second, painted) wins and links to ITS note.
+        expect(cellFor(el, "2026-01-02")?.getAttribute("data-href")).toBe("Diary/2026-01-02.md");
+    });
+
+    it("a non-string `label` warns naming its position and the value, and falls back to the field name", () => {
+        const el = map("source: Diary\nlayers:\n  - { field: gym, label: 5 }", layersCtx);
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(diagnostics(el, "warning").some((m) => m.includes("Layer 1") && m.includes("5"))).toBe(true);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["gym"]);
+    });
+
+    it("the caption counts a day painted by any layer, and drops the average", () => {
+        const el = map(layersConfig, layersCtx);
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        expect(caption).not.toContain("average");
+        expect(caption).toContain("gym, Running");
+        // All three days have some layer painted (1 Jan by gym, 2 and 3 Jan by run).
+        expect(caption).toContain("3 of");
+    });
+
+    it("`layers` together with `field` errors and renders nothing else", () => {
+        const el = map("source: Diary\nfield: gym\nlayers:\n  - { field: run }", layersCtx);
+        expect(diagnostics(el, "error")).toHaveLength(1);
+        expect(diagnostics(el, "error")[0]).toContain("layers");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a top-level `color` together with `layers` warns that it is ignored, but still renders", () => {
+        const el = map("source: Diary\ncolor: purple\nlayers:\n  - { field: gym }", layersCtx);
+        expect(diagnostics(el, "warning").some((m) => m.includes("ignored"))).toBe(true);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+    });
+
+    it("`layers` given as something other than a list is an error", () => {
+        const el = map("source: Diary\nlayers: gym", layersCtx);
+        expect(diagnostics(el, "error")[0]).toContain("gym");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("an empty `layers` list is an error", () => {
+        const el = map("source: Diary\nlayers: []", layersCtx);
+        expect(diagnostics(el, "error")[0]).toContain("empty");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a `layers` entry that is not a map errors naming its position", () => {
+        const el = map("source: Diary\nlayers: [5]", layersCtx);
+        expect(diagnostics(el, "error")[0]).toContain("Layer 1");
+        expect(diagnostics(el, "error")[0]).toContain("5");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a `layers` entry without `field` errors naming its position", () => {
+        const el = map("source: Diary\nlayers:\n  - { color: blue }", layersCtx);
+        expect(diagnostics(el, "error")[0]).toContain("Layer 1");
+        expect(diagnostics(el, "error")[0]).toContain("No `field` given");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a `layers` entry with an invalid `field` errors naming its position and the value", () => {
+        const el = map("source: Diary\nlayers:\n  - { field: 5 }", layersCtx);
+        expect(diagnostics(el, "error")[0]).toContain("Layer 1");
+        expect(diagnostics(el, "error")[0]).toContain("5");
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("an unknown key inside a layer warns, the same as anywhere else", () => {
+        const el = map("source: Diary\nlayers:\n  - { field: gym, bogus: 1 }", layersCtx);
+        expect(diagnostics(el, "warning").some((m) => m.includes("bogus"))).toBe(true);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+    });
+
+    it("a layer whose field never contributes warns naming it, without breaking the rest", () => {
+        const el = map(
+            "source: Diary\nlayers:\n  - { field: gym }\n  - { field: nonexistent }",
+            layersCtx,
+        );
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(diagnostics(el, "warning").some((m) => m.includes("nonexistent"))).toBe(true);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+    });
+
+    it("nothing resolving in any layer errors per field, as a plain `field` list does", () => {
+        const el = map(
+            "source: Diary\nlayers:\n  - { field: nope1 }\n  - { field: nope2 }",
+            layersCtx,
+        );
+        const errors = diagnostics(el, "error");
+        expect(errors).toHaveLength(2);
+        expect(errors.some((m) => m.includes("nope1"))).toBe(true);
+        expect(errors.some((m) => m.includes("nope2"))).toBe(true);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("a layer's own `field` takes a dotted path and a list, the same as the block's own `field`", () => {
+        const notes = [
+            { path: "Diary/2026-01-01.md", frontmatter: { health: { sleep: 80 }, gym: true, run: false } },
+        ];
+        const el = map(
+            "source: Diary\nlayers:\n  - { field: health.sleep }\n  - { field: [gym, run] }",
+            mockContext({ notes }),
+        );
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        const jan1 = cellFor(el, "2026-01-01");
+        // The first layer (health.sleep, 80) is the one that is painted and
+        // numeric, so it colours the cell and its value reaches the tooltip.
+        expect(jan1?.getAttribute("title")).toContain("health.sleep 80");
+    });
+
+    /** Same alpha-reading trick the plain-`bands` colour tests use above. */
+    const alphaOf = (el: HTMLElement, title: string): number => {
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.includes(title));
+        const colour = cell?.style.backgroundColor ?? "";
+        const parts = /\(([^)]*)\)/.exec(colour)?.[1]?.split(",") ?? [];
+        return parts.length === 4 ? Number(parts[3]) : parts.length === 3 ? 1 : 0;
+    };
+
+    // B-116, checker round 1: a checkbox layer mixed with a numeric one used
+    // to let a ticked day's value (always exactly 1) become the fitted
+    // scale's own minimum, painting solid gym at the weakest alpha instead
+    // of full strength. The scale must come from `steps` alone, and gym
+    // stays solid regardless of it.
+    describe("without bands, a checkbox layer mixed with a numeric one (checker round 1)", () => {
+        const mixedCtx = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { gym: true } }, // boolean winner
+                { path: "Diary/2026-01-02.md", frontmatter: { steps: 2000 } }, // numeric winner, low
+                { path: "Diary/2026-01-03.md", frontmatter: { steps: 8000 } }, // numeric winner, high
+            ],
+        });
+        const mixedConfig = "source: Diary\nlayers:\n  - { field: gym, color: blue }\n  - { field: steps, color: green }";
+
+        it("the checkbox winner always paints at full alpha, never scored against the numeric scale", () => {
+            const el = map(mixedConfig, mixedCtx);
+            expect(alphaOf(el, "gym 1")).toBe(1);
+        });
+
+        it("the numeric winners are scaled against each other, low below high", () => {
+            const el = map(mixedConfig, mixedCtx);
+            expect(alphaOf(el, "steps 8000")).toBe(1);
+            expect(alphaOf(el, "steps 2000")).toBeLessThan(1);
+        });
+
+        it("the legend's bands row is fitted from steps alone, not stretched down to gym's 1", () => {
+            const el = map(mixedConfig, mixedCtx);
+            // 2000..8000 quartered: 6500, 5000, 3500, 2000 — nowhere near 1,
+            // which a scale including gym's value would have had to reach
+            // down to as its own minimum.
+            expect(texts(el, ".dashy-hm-leg")).toEqual([
+                "gym", "steps", "6500+", "5000–6499", "3500–4999", "2000–3499",
+            ]);
+        });
+    });
+
+    // B-116, checker round 1: two purely numeric layers still get a fitted
+    // scale without `bands:`, same as a plain field would, and its legend
+    // row stays neutral grey (B-096) rather than either layer's own colour.
+    it("without bands, two numeric layers still get a fitted bands row, painted neutral grey", () => {
+        const numericCtx = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { run: 5 } },
+                { path: "Diary/2026-01-02.md", frontmatter: { swim: 10 } },
+            ],
+        });
+        const el = map(
+            "source: Diary\nlayers:\n  - { field: run, color: blue }\n  - { field: swim, color: green }",
+            numericCtx,
+        );
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["run", "swim", "9+", "8", "6–7", "5"]);
+        const swatches = nodes(el, ".dashy-hm-swatch");
+        // The first two swatches are the layer rows in their own colours;
+        // the 4 bands-row swatches after them are neutral grey instead.
+        for (const swatch of swatches.slice(2)) {
+            expect(swatch.style.backgroundColor).toContain("156, 163, 175");
+        }
+    });
+});
+
+describe("heatmap — special days, skip_field (B-095)", () => {
+    const specialCtx = mockContext({
+        notes: [
+            { path: "Diary/2026-01-01.md", frontmatter: { mood: 5 } },
+            { path: "Diary/2026-01-02.md", frontmatter: { mood: 7, vacation: true } }, // painted and special
+            { path: "Diary/2026-01-03.md", frontmatter: { vacation: true } }, // special, nothing painted
+            { path: "Diary/2026-01-04.md", frontmatter: { mood: 4, vacation: false } }, // not special
+        ],
+    });
+    const cellFor = (el: HTMLElement, date: string) =>
+        nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium(date)));
+
+    it("hatches a special day that also has a painted value, keeping its colour", () => {
+        const el = map("source: Diary\nfield: mood\nskip_field: vacation", specialCtx);
+        const jan2 = cellFor(el, "2026-01-02");
+        expect(jan2?.classList.contains("is-skipped")).toBe(true);
+        expect(jan2?.style.backgroundColor).not.toBe("");
+    });
+
+    it("hatches a special day with nothing painted too", () => {
+        const el = map("source: Diary\nfield: mood\nskip_field: vacation", specialCtx);
+        const jan3 = cellFor(el, "2026-01-03");
+        expect(jan3?.classList.contains("is-skipped")).toBe(true);
+        expect(jan3?.style.backgroundColor).toBe("");
+    });
+
+    it("does not hatch an ordinary day, painted or not", () => {
+        const el = map("source: Diary\nfield: mood\nskip_field: vacation", specialCtx);
+        expect(cellFor(el, "2026-01-01")?.classList.contains("is-skipped")).toBe(false);
+        // vacation: false marks the day as ordinary, not special.
+        expect(cellFor(el, "2026-01-04")?.classList.contains("is-skipped")).toBe(false);
+    });
+
+    it("the tooltip for a painted special day appends the day-off wording", () => {
+        const el = map("source: Diary\nfield: mood\nskip_field: vacation", specialCtx);
+        expect(cellFor(el, "2026-01-02")?.getAttribute("title"))
+            .toBe(`${medium("2026-01-02")}: mood 7 (2026-01-02), day off`);
+    });
+
+    it("the tooltip for an empty special day says only that it is a day off", () => {
+        const el = map("source: Diary\nfield: mood\nskip_field: vacation", specialCtx);
+        expect(cellFor(el, "2026-01-03")?.getAttribute("title")).toBe(`${medium("2026-01-03")}: day off`);
+    });
+
+    it("the legend gains a day-off swatch only once a special day is actually drawn", () => {
+        const withoutSkip = map("source: Diary\nfield: mood", specialCtx);
+        expect(texts(withoutSkip, ".dashy-hm-leg")).not.toContain("Day off");
+
+        const withSkip = map("source: Diary\nfield: mood\nskip_field: vacation", specialCtx);
+        expect(texts(withSkip, ".dashy-hm-leg")).toContain("Day off");
+    });
+
+    it("the legend stays without the swatch when skip_field is set but nothing is ever special", () => {
+        const el = map("source: Diary\nfield: mood\nskip_field: nonexistent", specialCtx);
+        expect(texts(el, ".dashy-hm-leg")).not.toContain("Day off");
+    });
+
+    it("the caption's day count is unaffected by skip_field: a special day with no value is still not present", () => {
+        const withoutSkip = map("source: Diary\nfield: mood", specialCtx);
+        const withSkip = map("source: Diary\nfield: mood\nskip_field: vacation", specialCtx);
+        const painted = (el: HTMLElement) =>
+            nodes(el, ".dashy-hm-cell").filter((c) => c.style.backgroundColor !== "").length;
+        expect(painted(withSkip)).toBe(painted(withoutSkip));
+        expect(texts(withoutSkip, ".dashy-hm-title")[0]).toBe(texts(withSkip, ".dashy-hm-title")[0]);
+    });
+
+    it("an invalid skip_field warns naming the value and draws nothing hatched", () => {
+        const el = map("source: Diary\nfield: mood\nskip_field: 5", specialCtx);
+        expect(diagnostics(el, "warning").some((m) => m.includes("skip_field") && m.includes("5"))).toBe(true);
+        expect(nodes(el, ".is-skipped")).toHaveLength(0);
+    });
+
+    it("works together with layers: a special day hatches regardless of which layer painted it", () => {
+        const layeredCtx = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { gym: true, vacation: true } },
+                { path: "Diary/2026-01-02.md", frontmatter: { run: true } },
+            ],
+        });
+        const el = map(
+            "source: Diary\nskip_field: vacation\nlayers:\n  - { field: gym, color: blue }\n  - { field: run, color: green }",
+            layeredCtx,
+        );
+        const cellFor2 = (date: string) =>
+            nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium(date)));
+        expect(cellFor2("2026-01-01")?.classList.contains("is-skipped")).toBe(true);
+        expect(cellFor2("2026-01-02")?.classList.contains("is-skipped")).toBe(false);
+        expect(texts(el, ".dashy-hm-leg")).toContain("Day off");
     });
 });
 
@@ -694,6 +1275,71 @@ describe("heatmap — the scroller says when there is more to see", () => {
             stubMetrics(scroller, 50, 300, 600);
             ManualResizeObserver.instances[0]!.fire();
             expect(scroller.scrollLeft).toBe(50);
+        });
+    });
+
+    /**
+     * B-104: while a pane widens (a sidebar collapse animation), the browser
+     * clamps `scrollLeft` down frame by frame as `scrollWidth - clientWidth`
+     * shrinks under it, each clamped frame firing its own `scroll` event.
+     * Before the fix, every such event looked like the reader dragging the
+     * grid (it does not match the one-time `lastAssignedScrollLeft`), so the
+     * very first frame flipped `settled` permanently and the grid stopped
+     * following the end for good, even though the reader never touched it.
+     */
+    it("clamped scroll events from a widening pane do not settle the grid; it still follows the end", () => {
+        withManualResizeObserver(() => {
+            const el = map("source: Diary\nfield: sleep_score");
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            // The initial, real layout: pinned to the end, still unsettled.
+            stubMetrics(scroller, 0, 300, 600);
+            ManualResizeObserver.instances[0]!.fire();
+            expect(scroller.scrollLeft).toBe(600);
+            expect(scroller.dataset.settled).not.toBe("true");
+
+            // Frame 1 of the pane widening: clientWidth grows 300 -> 400, the
+            // grid itself stays 600 wide, so the browser clamps scrollLeft to
+            // the new max (600 - 400 = 200) on its own, before this block's
+            // own resize observer has fired again.
+            stubMetrics(scroller, 200, 400, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+            expect(scroller.dataset.settled).not.toBe("true");
+
+            // Frame 2: the pane keeps widening, 400 -> 450, clamped again to
+            // the new max (600 - 450 = 150).
+            stubMetrics(scroller, 150, 450, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+            expect(scroller.dataset.settled).not.toBe("true");
+
+            // The animation settles and the grid itself later grows (a new
+            // day added): still unsettled, so the next resize still pins to
+            // the new end instead of leaving the grid stuck where the
+            // animation happened to clamp it.
+            stubMetrics(scroller, 150, 450, 700);
+            ManualResizeObserver.instances[0]!.fire();
+            expect(scroller.scrollLeft).toBe(700);
+        });
+    });
+
+    it("a real reader drag (scrollLeft not at the end) still settles even while unsettled", () => {
+        withManualResizeObserver(() => {
+            const el = map("source: Diary\nfield: sleep_score");
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+
+            stubMetrics(scroller, 0, 300, 600);
+            ManualResizeObserver.instances[0]!.fire();
+            expect(scroller.dataset.settled).not.toBe("true");
+
+            // A genuine drag to the middle: nowhere near scrollWidth - clientWidth (300).
+            stubMetrics(scroller, 150, 300, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+            expect(scroller.dataset.settled).toBe("true");
+
+            // Settled: a later resize no longer yanks it back to the end.
+            stubMetrics(scroller, 150, 320, 620);
+            ManualResizeObserver.instances[0]!.fire();
+            expect(scroller.scrollLeft).toBe(150);
         });
     });
 
@@ -937,8 +1583,8 @@ describe("heatmap — restores the reader's scroll position across a redraw (B-0
             renderHeatmap(twoYears, "source: Diary\nfield: v", el);
             // Newest first: index 0 is 2026, index 1 is 2025.
             const [scroll2026, scroll2025] = nodes(el, ".dashy-hm-scroll");
-            expect(scroll2026?.dataset.year).toBe("2026");
-            expect(scroll2025?.dataset.year).toBe("2025");
+            expect(scroll2026?.dataset.gridKey).toBe("2026");
+            expect(scroll2025?.dataset.gridKey).toBe("2025");
 
             scroll2026!.dispatchEvent(new Event("wheel"));
             stubMetrics(scroll2026!, 100, 300, 600);
@@ -950,8 +1596,8 @@ describe("heatmap — restores the reader's scroll position across a redraw (B-0
 
             renderHeatmap(twoYears, "source: Diary\nfield: v", el);
             const [redrawn2026, redrawn2025] = nodes(el, ".dashy-hm-scroll");
-            expect(redrawn2026?.dataset.year).toBe("2026");
-            expect(redrawn2025?.dataset.year).toBe("2025");
+            expect(redrawn2026?.dataset.gridKey).toBe("2026");
+            expect(redrawn2025?.dataset.gridKey).toBe("2025");
 
             stubMetrics(redrawn2026!, 0, 300, 600);
             stubMetrics(redrawn2025!, 0, 300, 900);
@@ -1222,5 +1868,563 @@ describe("heatmap — restores the reader's scroll position across a redraw (B-0
 
             expect(redrawn.scrollLeft).toBe(150);
         });
+    });
+});
+
+/**
+ * `range` (B-093): one grid over a window ending today — `week`, `month`,
+ * `year`, or a rolling `Nd` — instead of the default grid per calendar year.
+ * Deterministic throughout: `today` is fixed rather than read from the wall
+ * clock, the way `vi.setSystemTime` already does for the B-113 suite above.
+ */
+describe("heatmap — range draws one grid over a window (B-093)", () => {
+    // 2026-09-28 is a Monday. 2026-01-01 is a Thursday (see calendar.test.ts),
+    // and 364 days being exactly 52 weeks, 2025-09-29 lands on a Monday too.
+    const TODAY = new Date(2026, 8, 28);
+
+    afterEach(() => {
+        vi.useRealTimers();
+        setDateLocale(null);
+    });
+
+    const cellCount = (el: HTMLElement) =>
+        nodes(el, ".dashy-hm-cell").length - nodes(el, ".dashy-hm-pad").length;
+
+    it("range: 365d draws one grid crossing the year boundary, with the right day count and month labels", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        // Covers the whole window (2025-09-29 .. 2026-09-28) plus months
+        // before and after it, so the future and past tails have something
+        // to wrongly draw if the window were not actually enforced.
+        const notes = diary("Diary", "2025-01-01", 700, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: 365d", mockContext({ notes }));
+
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(cellCount(el)).toBe(365);
+
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        // No year prefix: a range grid is always the only one, so there is
+        // nothing for a year number to tell it apart from.
+        expect(caption).not.toMatch(/^\d{4}/);
+        expect(caption).toContain("365 of 365 days");
+
+        // The window is 2025-09-29 .. 2026-09-28: September's own synthetic
+        // start-month label collides with October's real one (both would
+        // land in column 1) and is dropped (checker round 1, B-093), so the
+        // grid opens on "Oct 2025" instead. From there every month is a
+        // plain abbreviation except January, which — like the grid's own
+        // first label — says which year once the window spans more than
+        // one: "Jan 2026". The following September is not disambiguated
+        // (there is no other September in this particular window to
+        // confuse it with), so it stays a bare "Sep".
+        expect(texts(el, ".dashy-hm-mon")).toEqual([
+            "Oct 2025", "Nov", "Dec", "Jan 2026", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
+        ]);
+    });
+
+    it("range: month draws the current month to date", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            { path: "Diary/2026-08-31.md", frontmatter: { steps: 1 } }, // before the window
+            ...diary("Diary", "2026-09-01", 28, () => ({ steps: 1 })), // the whole month to date
+            { path: "Diary/2026-09-29.md", frontmatter: { steps: 1 } }, // after today
+        ];
+        const el = map("source: Diary\nfield: steps\nrange: month", mockContext({ notes }));
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(cellCount(el)).toBe(28);
+        expect(texts(el, ".dashy-hm-title")[0]).toContain("28 of 28 days");
+    });
+
+    it("range: week draws this calendar week to date, seven cells or fewer", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            { path: "Diary/2026-09-26.md", frontmatter: { steps: 1 } }, // last week
+            { path: "Diary/2026-09-27.md", frontmatter: { steps: 1 } }, // Sunday, this week
+            { path: "Diary/2026-09-28.md", frontmatter: { steps: 1 } }, // Monday, today
+        ];
+        const el = map("source: Diary\nfield: steps\nrange: week", mockContext({ notes }));
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(cellCount(el)).toBeLessThanOrEqual(7);
+        expect(cellCount(el)).toBe(2);
+        expect(texts(el, ".dashy-hm-title")[0]).toContain("2 of 2 days");
+    });
+
+    it("range: 3650d names the year on every January, so ten of them are told apart", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2026-09-01", 28, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: 3650d", mockContext({ notes }));
+
+        const januaries = texts(el, ".dashy-hm-mon").filter((label) => label.startsWith("Jan"));
+        expect(januaries).toHaveLength(10);
+        expect(januaries.every((label) => /^Jan \d{4}$/.test(label))).toBe(true);
+        expect(new Set(januaries).size).toBe(10);
+    });
+
+    it("range: year draws the current year even when it has no data yet", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        // Only last year has notes: the field resolves, so no error, but
+        // nothing lands in the window.
+        const notes = diary("Diary", "2025-03-01", 10, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: year", mockContext({ notes }));
+
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        // 1 January to 28 September 2026, inclusive.
+        expect(cellCount(el)).toBe(271);
+        expect(nodes(el, ".dashy-hm-cell").filter((c) => c.style.backgroundColor !== "")).toHaveLength(0);
+    });
+
+    it("a bare number is a rolling window in days, like stats' period", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2026-08-01", 59, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: 30", mockContext({ notes }));
+
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(cellCount(el)).toBe(30);
+    });
+
+    it("a custom title is used exactly as written, with no year suffix", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2025-01-01", 700, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: 365d\ntitle: Sleep, rolling year", mockContext({ notes }));
+        expect(texts(el, ".dashy-hm-title")).toEqual(["Sleep, rolling year"]);
+    });
+
+    it("range: 30d draws a rolling 30-day window ending today", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2026-08-30", 30, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: 30d", mockContext({ notes }));
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(cellCount(el)).toBe(30);
+        expect(texts(el, ".dashy-hm-title")[0]).toContain("30 of 30 days");
+    });
+
+    it("an invalid range warns naming the value and the valid forms, and falls back to a grid per year", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2026-09-01", 5, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: fortnight", mockContext({ notes }));
+        const warnings = diagnostics(el, "warning");
+        expect(warnings.some((m) => m.includes("range") && m.includes("fortnight") && m.includes("30d"))).toBe(true);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        // Fell back to the per-year grid, keyed by year rather than "range".
+        expect(nodes(el, ".dashy-hm-scroll")[0]?.dataset.gridKey).toBe("2026");
+    });
+
+    it("a note outside the window is neither drawn nor counted, and the average is over the window's days only", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            { path: "Diary/2026-08-01.md", frontmatter: { steps: 999 } }, // well before the 30d window
+            ...diary("Diary", "2026-09-19", 10, () => ({ steps: 2 })), // last 10 days of the window
+        ];
+        const el = map("source: Diary\nfield: steps\nrange: 30d", mockContext({ notes }));
+        expect(cellCount(el)).toBe(30);
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        expect(caption).toContain("10 of 30 days");
+        // Averaged over the 10 recognised days only (the same rule a
+        // calendar-year grid already follows), not diluted by the 20 empty
+        // ones and nowhere near the 999 outlier sitting outside the window.
+        expect(caption).toContain(`average ${formatValue(2)}`);
+    });
+
+    it("with layers: caption drops the average, and a cell outside the window never even resolves", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            { path: "Diary/2026-08-01.md", frontmatter: { gym: true } }, // outside the 30d window
+            { path: "Diary/2026-09-20.md", frontmatter: { gym: true, run: false } },
+            { path: "Diary/2026-09-21.md", frontmatter: { run: true } },
+        ];
+        const el = map(
+            "source: Diary\nrange: 30d\nlayers:\n  - { field: gym, color: blue }\n  - { field: run, color: green, label: Running }",
+            mockContext({ notes }),
+        );
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["gym", "Running"]);
+        expect(texts(el, ".dashy-hm-title")[0]).toBe("gym, Running: 2 of 30 days");
+        const cellFor = (date: string) =>
+            nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium(date)));
+        expect(cellFor("2026-09-20")?.style.backgroundColor).toContain("59, 130, 246"); // gym: blue
+        expect(cellFor("2026-08-01")).toBeUndefined();
+    });
+
+    it("with bands: the legend still draws the usual scale rows", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2026-09-19", 10, (i) => ({ steps: 50 + i * 5 }));
+        const el = map("source: Diary\nfield: steps\nrange: 30d\nbands: [90, 70]", mockContext({ notes }));
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["90+", "70–89"]);
+    });
+
+    // B-116, checker round 1: an outlier sitting outside the window used to
+    // be excluded from the grid itself, but nothing pinned it out of the
+    // SCALE too — a global fit over every mark this block ever produced,
+    // not just the ones this one grid draws, would have let a note from
+    // months ago drag the whole range grid's colours toward it.
+    it("without bands: an extreme value outside the window never stretches the fitted scale", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            { path: "Diary/2026-01-01.md", frontmatter: { steps: 999999 } }, // months before the window
+            ...diary("Diary", "2026-09-19", 10, (i) => ({ steps: 100 + i * 10 })), // 100..190, inside it
+        ];
+        const el = map("source: Diary\nfield: steps\nrange: 30d", mockContext({ notes }));
+        // Fitted from 100..190 alone: 168, 145, 123, 100 — nowhere near a
+        // scale that had to reach up to 999999.
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["168+", "145–167", "123–144", "100–122"]);
+    });
+
+    it("with skip_field: the day-off legend row only appears once the special day is inside the window", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const outside = mockContext({
+            notes: [{ path: "Diary/2026-08-01.md", frontmatter: { steps: 1, vacation: true } }],
+        });
+        const outsideEl = map("source: Diary\nfield: steps\nrange: 30d\nskip_field: vacation", outside);
+        expect(texts(outsideEl, ".dashy-hm-leg")).not.toContain("Day off");
+
+        const inside = mockContext({
+            notes: [{ path: "Diary/2026-09-20.md", frontmatter: { steps: 1, vacation: true } }],
+        });
+        const insideEl = map("source: Diary\nfield: steps\nrange: 30d\nskip_field: vacation", inside);
+        expect(texts(insideEl, ".dashy-hm-leg")).toContain("Day off");
+    });
+
+    it("keys its scroller with a stable range key, not a year", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2026-09-19", 10, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: 30d", mockContext({ notes }));
+        expect(nodes(el, ".dashy-hm-scroll")[0]?.dataset.gridKey).toBe("range");
+    });
+
+    it("firstDay Sunday vs Monday shifts the pad count the same way a calendar-year grid does", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2025-01-01", 700, () => ({ steps: 1 }));
+        const context = mockContext({ notes });
+
+        const sundayFirst = map("source: Diary\nfield: steps\nrange: 365d", context);
+        expect(nodes(sundayFirst, ".dashy-hm-pad")).toHaveLength(1);
+
+        setDateLocale("ru");
+        const mondayFirst = map("source: Diary\nfield: steps\nrange: 365d", context);
+        expect(nodes(mondayFirst, ".dashy-hm-pad")).toHaveLength(0);
+    });
+
+    it("a range grid's scroll position survives a redraw independently of any year grid's own bookkeeping", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2026-09-19", 10, () => ({ steps: 1 }));
+        const rangeCtx = mockContext({ notes });
+        withManualResizeObserver(() => {
+            const el = host();
+            renderHeatmap(rangeCtx, "source: Diary\nfield: steps\nrange: 30d", el);
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+            expect(scroller.dataset.gridKey).toBe("range");
+
+            scroller.dispatchEvent(new Event("wheel"));
+            stubMetrics(scroller, 150, 300, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+
+            renderHeatmap(rangeCtx, "source: Diary\nfield: steps\nrange: 30d", el);
+            const redrawn = nodes(el, ".dashy-hm-scroll")[0]!;
+            expect(redrawn.scrollLeft).toBe(0); // not yet reported a real width
+
+            stubMetrics(redrawn, 0, 300, 600);
+            ManualResizeObserver.instances.at(-1)!.fire();
+            expect(redrawn.scrollLeft).toBe(150);
+        });
+    });
+});
+
+describe("heatmap — today's cell gets a ring (B-099)", () => {
+    const TODAY = new Date(2026, 8, 24); // 24 September 2026
+
+    afterEach(() => vi.useRealTimers());
+
+    const cellFor = (el: HTMLElement, date: string) =>
+        nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium(date)));
+
+    it("rings today's cell on a year grid, and no other cell", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            { path: "Diary/2026-09-23.md", frontmatter: { steps: 100 } },
+            { path: "Diary/2026-09-24.md", frontmatter: { steps: 200 } }, // today
+            { path: "Diary/2026-09-25.md", frontmatter: { steps: 300 } }, // future, not even drawn
+        ];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        expect(cellFor(el, "2026-09-24")?.classList.contains("is-today")).toBe(true);
+        expect(cellFor(el, "2026-09-23")?.classList.contains("is-today")).toBe(false);
+        expect(nodes(el, ".is-today")).toHaveLength(1);
+    });
+
+    it("is absent on a past year's own grid; only the current year's grid rings", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            ...diary("Diary", "2025-03-01", 3, () => ({ steps: 1 })),
+            ...diary("Diary", "2026-09-22", 3, () => ({ steps: 1 })),
+        ];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(2);
+        // Newest first (`yearsOf`, core/calendar.ts): index 0 is 2026, index 1 is 2025.
+        const [wrap2026, wrap2025] = nodes(el, ".dashy-hm-wrap");
+        expect(wrap2026?.querySelectorAll(".is-today")).toHaveLength(1);
+        expect(wrap2025?.querySelectorAll(".is-today")).toHaveLength(0);
+    });
+
+    it("rings today's cell on a range grid, at the window's own last day", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2026-09-15", 10, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: 30d", mockContext({ notes }));
+        expect(cellFor(el, "2026-09-24")?.classList.contains("is-today")).toBe(true);
+        expect(nodes(el, ".is-today")).toHaveLength(1);
+    });
+
+    it("startDayHour shifts which cell counts as today, the same as it shifts the grid's own end", () => {
+        vi.useFakeTimers();
+        // 24 September 2026, 02:00: before the 04:00 start-of-day boundary,
+        // so the effective day is still the 23rd (core/today.ts).
+        vi.setSystemTime(new Date(2026, 8, 24, 2, 0));
+        const settings = { ...DEFAULT_SETTINGS, startDayHour: 4 };
+        const notes = [
+            { path: "Diary/2026-09-23.md", frontmatter: { steps: 1 } },
+            { path: "Diary/2026-09-24.md", frontmatter: { steps: 2 } },
+        ];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }, settings));
+        // The grid itself stops at the effective today, 23 September: the
+        // 24th, calendar-real but not yet effectively arrived, is not drawn
+        // at all, let alone rung.
+        expect(cellFor(el, "2026-09-23")?.classList.contains("is-today")).toBe(true);
+        expect(cellFor(el, "2026-09-24")).toBeUndefined();
+        expect(nodes(el, ".is-today")).toHaveLength(1);
+    });
+
+    it("a day that is both today and a day off carries both classes, and the tooltip appends both markers in order", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [{ path: "Diary/2026-09-24.md", frontmatter: { steps: 5, vacation: true } }];
+        const el = map("source: Diary\nfield: steps\nskip_field: vacation", mockContext({ notes }));
+        const cell = cellFor(el, "2026-09-24");
+        expect(cell?.classList.contains("is-today")).toBe(true);
+        expect(cell?.classList.contains("is-skipped")).toBe(true);
+        // "day off" (B-095) reads as a property of the day's own data, so it
+        // comes first; "today" is a note about the day itself and comes last.
+        const expected = `${medium("2026-09-24")}: steps 5 (2026-09-24), day off, today`;
+        expect(cell?.getAttribute("title")).toBe(expected);
+        expect(cell?.getAttribute("aria-label")).toBe(expected);
+    });
+
+    it("an empty today marked a day off reads the day-off wording plus today", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            { path: "Diary/2026-09-01.md", frontmatter: { steps: 10 } }, // keeps the field from resolving to "no data" everywhere
+            { path: "Diary/2026-09-24.md", frontmatter: { vacation: true } }, // today, nothing painted
+        ];
+        const el = map("source: Diary\nfield: steps\nskip_field: vacation", mockContext({ notes }));
+        expect(cellFor(el, "2026-09-24")?.getAttribute("title")).toBe(`${medium("2026-09-24")}: day off, today`);
+    });
+
+    it("a plain empty today reads the no-data wording plus today", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        // No note dated today at all: the cell is drawn empty regardless,
+        // one of every day the year's grid lays out.
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { steps: 10 } }];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        expect(cellFor(el, "2026-09-24")?.getAttribute("title")).toBe(`${medium("2026-09-24")}: no data, today`);
+    });
+
+    it("a painted today that is not a day off appends only the today marker", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [{ path: "Diary/2026-09-24.md", frontmatter: { steps: 5 } }];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        expect(cellFor(el, "2026-09-24")?.getAttribute("title")).toBe(`${medium("2026-09-24")}: steps 5 (2026-09-24), today`);
+    });
+
+    it("adds no legend row of its own", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [{ path: "Diary/2026-09-24.md", frontmatter: { steps: 5 } }];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        expect(texts(el, ".dashy-hm-leg").some((label) => /today/i.test(label))).toBe(false);
+    });
+});
+
+describe("heatmap — cell tooltip: locale date, value and the contributing note (B-092)", () => {
+    it("a locale-medium date, not the raw ISO key, plus the one note behind the value", () => {
+        const notes = [{ path: "Diary/2026-01-01.md", frontmatter: { steps: 100 } }];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-01")));
+        expect(cell?.getAttribute("title")).toBe(`${medium("2026-01-01")}: steps 100 (2026-01-01)`);
+    });
+
+    it("two notes on the same day: how many, not either one's name", () => {
+        const notes = [
+            { path: "Diary/2026-01-01.md", frontmatter: { steps: 100 } },
+            { path: "Diary/2026-01-01 evening.md", frontmatter: { steps: 200 } },
+        ];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-01")));
+        expect(cell?.getAttribute("title")).toBe(`${medium("2026-01-01")}: steps 300 (2 notes)`);
+    });
+
+    it("three notes: still a count, in the language's right plural form", () => {
+        const notes = [
+            { path: "Diary/2026-01-01.md", frontmatter: { steps: 100 } },
+            { path: "Diary/2026-01-01 b.md", frontmatter: { steps: 100 } },
+            { path: "Diary/2026-01-01 c.md", frontmatter: { steps: 100 } },
+        ];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-01")));
+        expect(cell?.getAttribute("title")).toContain("(3 notes)");
+    });
+
+    it("an empty cell carries no note part at all", () => {
+        // A note elsewhere keeps `steps` resolvable, so the field itself is
+        // not the reason 1 January stays empty.
+        const notes = [{ path: "Diary/2026-01-05.md", frontmatter: { steps: 5 } }];
+        const el = map("source: Diary\nfield: steps", mockContext({ notes }));
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-01")));
+        expect(cell?.getAttribute("title")).toBe(`${medium("2026-01-01")}: no data`);
+    });
+});
+
+describe("heatmap — mobile: tap to read, tap again to open (B-092)", () => {
+    afterEach(() => {
+        Platform.isMobile = false;
+    });
+
+    const mobileNotes = [
+        { path: "Diary/2026-01-01.md", frontmatter: { steps: 100 } },
+        { path: "Diary/2026-01-02.md", frontmatter: { steps: 200 } },
+    ];
+    const mobileCtx = mockContext({ notes: mobileNotes });
+
+    /** A real, cancelable click, the way a tap ultimately reaches the DOM. */
+    function tap(el: HTMLElement): MouseEvent {
+        const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+        el.dispatchEvent(event);
+        return event;
+    }
+
+    const cellFor = (el: HTMLElement, date: string) =>
+        nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium(date))) as HTMLElement;
+
+    it("desktop: a click is left alone, and the grid draws no status line at all", () => {
+        Platform.isMobile = false;
+        const el = map("source: Diary\nfield: steps", mobileCtx);
+        const cell = cellFor(el, "2026-01-01");
+        const event = tap(cell);
+        expect(event.defaultPrevented).toBe(false);
+        expect(cell.classList.contains("is-selected")).toBe(false);
+        expect(nodes(el, ".dashy-hm-status")).toHaveLength(0);
+    });
+
+    it("first tap shows the cell's tooltip on the status line, selects it, and does not open it", () => {
+        Platform.isMobile = true;
+        const el = map("source: Diary\nfield: steps", mobileCtx);
+        const status = nodes(el, ".dashy-hm-status")[0];
+        expect(status?.getAttribute("aria-live")).toBe("polite");
+        expect(status?.textContent).toBe("");
+
+        const cell = cellFor(el, "2026-01-01");
+        const event = tap(cell);
+        expect(event.defaultPrevented).toBe(true);
+        expect(cell.classList.contains("is-selected")).toBe(true);
+        expect(status?.textContent).toBe(cell.getAttribute("title"));
+    });
+
+    it("a second tap on the same cell is left alone, so Obsidian's own click opens it", () => {
+        Platform.isMobile = true;
+        const el = map("source: Diary\nfield: steps", mobileCtx);
+        const cell = cellFor(el, "2026-01-01");
+        tap(cell); // first tap: selects, intercepted
+        const second = tap(cell);
+        expect(second.defaultPrevented).toBe(false);
+        expect(cell.classList.contains("is-selected")).toBe(true);
+    });
+
+    it("tapping a different cell moves the selection and the status line", () => {
+        Platform.isMobile = true;
+        const el = map("source: Diary\nfield: steps", mobileCtx);
+        const cell1 = cellFor(el, "2026-01-01");
+        const cell2 = cellFor(el, "2026-01-02");
+        tap(cell1);
+        expect(cell1.classList.contains("is-selected")).toBe(true);
+
+        const event = tap(cell2);
+        expect(event.defaultPrevented).toBe(true);
+        expect(cell1.classList.contains("is-selected")).toBe(false);
+        expect(cell2.classList.contains("is-selected")).toBe(true);
+        expect(nodes(el, ".dashy-hm-status")[0]?.textContent).toBe(cell2.getAttribute("title"));
+    });
+
+    it("a cell with nothing to open still shows the line on tap", () => {
+        Platform.isMobile = true;
+        const el = map("source: Diary\nfield: steps", mobileCtx);
+        // 3 January has no note in this fixture at all.
+        const cell = cellFor(el, "2026-01-03");
+        expect(cell.tagName).toBe("DIV");
+        const event = tap(cell);
+        expect(event.defaultPrevented).toBe(true);
+        expect(cell.classList.contains("is-selected")).toBe(true);
+        expect(nodes(el, ".dashy-hm-status")[0]?.textContent).toBe(cell.getAttribute("title"));
+    });
+
+    it("a redraw resets the selection", () => {
+        Platform.isMobile = true;
+        const el = host();
+        renderHeatmap(mobileCtx, "source: Diary\nfield: steps", el);
+        tap(cellFor(el, "2026-01-01"));
+        expect(cellFor(el, "2026-01-01").classList.contains("is-selected")).toBe(true);
+
+        renderHeatmap(mobileCtx, "source: Diary\nfield: steps", el);
+        expect(cellFor(el, "2026-01-01").classList.contains("is-selected")).toBe(false);
+        expect(nodes(el, ".dashy-hm-status")[0]?.textContent).toBe("");
+    });
+
+    it("a multi-year heatmap shares one selection and one status line across every grid", () => {
+        Platform.isMobile = true;
+        const twoYears = mockContext({
+            notes: [
+                { path: "Diary/2025-06-01.md", frontmatter: { steps: 100 } },
+                { path: "Diary/2026-01-01.md", frontmatter: { steps: 200 } },
+            ],
+        });
+        const el = map("source: Diary\nfield: steps", twoYears);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(2);
+        // One line for the whole block, not one per year's grid.
+        expect(nodes(el, ".dashy-hm-status")).toHaveLength(1);
+
+        const cell2025 = cellFor(el, "2025-06-01");
+        const cell2026 = cellFor(el, "2026-01-01");
+
+        tap(cell2025);
+        expect(cell2025.classList.contains("is-selected")).toBe(true);
+        expect(nodes(el, ".dashy-hm-status")[0]?.textContent).toBe(cell2025.getAttribute("title"));
+
+        const event = tap(cell2026);
+        expect(event.defaultPrevented).toBe(true);
+        // Tapping a cell in the other year's grid moves the ONE selection,
+        // rather than each grid ending up with a cell of its own.
+        expect(cell2025.classList.contains("is-selected")).toBe(false);
+        expect(cell2026.classList.contains("is-selected")).toBe(true);
+        expect(nodes(el, ".dashy-hm-status")[0]?.textContent).toBe(cell2026.getAttribute("title"));
     });
 });

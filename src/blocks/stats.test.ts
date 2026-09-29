@@ -82,6 +82,48 @@ describe("stats — the numbers are the real ones", () => {
     });
 });
 
+describe("stats — a nested frontmatter path in field (B-100)", () => {
+    const nested = mockContext({
+        notes: [
+            { path: "Diary/2026-01-01.md", frontmatter: { health: { sleep: 92 } } },
+            { path: "Diary/2026-01-02.md", frontmatter: { health: { sleep: 60 } } },
+        ],
+    });
+    const nestedCard = (config: string) => {
+        const el = host();
+        renderStats(nested, config, el);
+        return el;
+    };
+
+    it("sum, avg and streak all read a dotted path", () => {
+        const el = nestedCard(`items:
+  - { label: Sum, source: Diary, field: health.sleep, agg: sum }
+  - { label: Avg, source: Diary, field: health.sleep, agg: avg }
+  - { label: Streak, source: Diary, field: health.sleep, agg: streak }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["152", "76", "2"]);
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+    });
+
+    it("a nested field present in every note does not trigger the missing-field warning", () => {
+        const el = nestedCard("items:\n  - { label: Sleep, source: Diary, field: health.sleep, agg: avg }");
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+    });
+
+    it("a truly missing nested path warns and names it", () => {
+        const el = nestedCard("items:\n  - { label: Steps, source: Diary, field: health.steps, agg: sum }");
+        expect(diagnostics(el, "warning")[0]).toContain("health.steps");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
+    });
+
+    it("asking for a whole map warns not-numeric and names the map's own key, not a leaf", () => {
+        const el = nestedCard("items:\n  - { label: Health, source: Diary, field: health, agg: sum }");
+        const message = diagnostics(el, "warning")[0] ?? "";
+        expect(message).toContain("\"health\"");
+        expect(message).toContain("holds text or another value that is not a number");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
+    });
+});
+
 describe("stats — the trend beside the number", () => {
     // A trailing window needs dates near now, or it is empty and proves nothing.
     const recent = mockContext({ notes: recentDiary("Recent", 40, (i) => ({ v: 60 + i })) });
@@ -1011,5 +1053,135 @@ describe("stats — compare against the previous period", () => {
         expect(diagnostics(el, "warning")).toHaveLength(0);
         expect(texts(el, ".dashy-stat-value")).toEqual(["5"]);
         expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +1"]);
+    });
+});
+
+describe("stats — streak threshold and weekdays, end to end (B-101)", () => {
+    it("at_least turns streak into a threshold on the day's summed field", () => {
+        const steps = mockContext({
+            notes: [
+                { path: "Diary/2026-09-18.md", frontmatter: { steps: 4999 } },
+                { path: "Diary/2026-09-19.md", frontmatter: { steps: 5000 } },
+                { path: "Diary/2026-09-20.md", frontmatter: { steps: 6000 } },
+            ],
+        });
+        const el = host();
+        renderStats(
+            steps,
+            "items:\n  - { label: Active streak, source: Diary, field: steps, agg: streak, at_least: 5000 }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["2"]);
+    });
+
+    it("period narrows the window before the threshold is applied", () => {
+        // Today is 2026-09-24 (Thursday); `period: 7d` is 2026-09-18..2026-09-24.
+        // 2026-09-17 sits one day outside it and qualifies for the threshold
+        // on its own — if the window were applied after the threshold (or
+        // not applied at all) it would bridge into the 18th/19th for a run
+        // of 3; narrowed to the window first, it is dropped and the run is 2.
+        const TODAY = new Date(2026, 8, 24);
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const steps = mockContext({
+            notes: [
+                { path: "Diary/2026-09-17.md", frontmatter: { steps: 9000 } }, // just outside the window
+                { path: "Diary/2026-09-18.md", frontmatter: { steps: 5000 } },
+                { path: "Diary/2026-09-19.md", frontmatter: { steps: 6000 } },
+            ],
+        });
+        const el = host();
+        renderStats(
+            steps,
+            "items:\n  - { label: Active streak, source: Diary, field: steps, agg: streak, at_least: 5000, period: 7d }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["2"]);
+        vi.useRealTimers();
+    });
+
+    it("at_most and two notes on the same day: the sum decides, not either note alone", () => {
+        const cigs = mockContext({
+            notes: [
+                { path: "Morning/2026-09-18.md", frontmatter: { cigs: 3 } },
+                { path: "Evening/2026-09-18.md", frontmatter: { cigs: 3 } }, // day sum 6, over the bound
+                { path: "Diary/2026-09-19.md", frontmatter: { cigs: 5 } },
+            ],
+        });
+        const el = host();
+        renderStats(
+            cigs,
+            "items:\n  - { label: Smoke-free streak, field: cigs, agg: streak, at_most: 5 }",
+            el,
+        );
+        expect(texts(el, ".dashy-stat-value")).toEqual(["1"]);
+    });
+
+    it("days: weekdays bridges a weekend gap: Friday to Monday is a run of two", () => {
+        const gym = mockContext({
+            notes: [
+                { path: "Diary/2026-09-18.md", frontmatter: { gym: true } }, // Friday
+                { path: "Diary/2026-09-21.md", frontmatter: { gym: true } }, // Monday
+            ],
+        });
+        const el = host();
+        renderStats(
+            gym,
+            "items:\n  - { label: Gym streak, source: Diary, field: gym, agg: streak, days: weekdays }",
+            el,
+        );
+        expect(texts(el, ".dashy-stat-value")).toEqual(["2"]);
+    });
+
+    it("a weekend note does not itself extend the run under days: weekdays", () => {
+        const gym = mockContext({
+            notes: [
+                { path: "Diary/2026-09-18.md", frontmatter: { gym: true } }, // Friday
+                { path: "Diary/2026-09-19.md", frontmatter: { gym: true } }, // Saturday, transparent
+                { path: "Diary/2026-09-21.md", frontmatter: { gym: true } }, // Monday
+            ],
+        });
+        const el = host();
+        renderStats(
+            gym,
+            "items:\n  - { label: Gym streak, source: Diary, field: gym, agg: streak, days: weekdays }",
+            el,
+        );
+        expect(texts(el, ".dashy-stat-value")).toEqual(["2"]);
+    });
+
+    it("at_least/at_most/days on a non-streak card warn once and are ignored", () => {
+        const el = card(
+            "items:\n  - { label: Sum, source: Diary, field: sleep_score, agg: sum, at_least: 5, at_most: 10, days: weekdays }",
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+        expect(diagnostics(el, "warning")[0]).toContain("at_least");
+        expect(diagnostics(el, "warning")[0]).toContain("days");
+    });
+
+    it("a threshold on a streak with no field warns and the card falls back to plain streak", () => {
+        const el = card("items:\n  - { label: Streak, source: Diary, agg: streak, at_least: 5 }");
+        expect(diagnostics(el, "warning")[0]).toContain("field");
+        // Without the (ignored) threshold, every diary day counts.
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
+    });
+
+    it("at_least above at_most warns and the streak reads an honest 0, not a dash", () => {
+        const el = card(
+            "items:\n  - { label: Streak, source: Diary, field: sleep_score, agg: streak, at_least: 100, at_most: 1 }",
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["0"]);
+    });
+
+    it("an invalid days value warns and falls back to all", () => {
+        const el = card(
+            "items:\n  - { label: Streak, source: Diary, field: sleep_score, agg: streak, days: weekends }",
+        );
+        expect(diagnostics(el, "warning")[0]).toContain("all");
+        // Falls back to counting every day: same as the plain streak card above.
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
     });
 });

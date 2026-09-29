@@ -1,5 +1,6 @@
 import type { Diagnostic } from "../shared/parse";
 import { t } from "../i18n";
+import { readField } from "./field";
 
 /**
  * Selecting the notes a block works on. Pure layer: it runs over a metadata
@@ -101,7 +102,10 @@ function coerce(s: string): string | number | boolean {
 }
 
 function matchesWhere(note: NoteRecord, clause: WhereClause): boolean {
-    const actual = clause.field === "tags" ? note.tags : note.frontmatter[clause.field];
+    // `tags` stays special: it reads the note's resolved tag list rather than a
+    // frontmatter property. Any other field name may be a dotted path into a
+    // nested object (`health.sleep > 70`); see core/field.ts.
+    const actual = clause.field === "tags" ? note.tags : readField(note.frontmatter, clause.field);
     if (actual === undefined || actual === null) return false;
 
     if (clause.op === "contains") {

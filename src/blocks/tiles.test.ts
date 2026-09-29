@@ -439,3 +439,95 @@ describe("tiles — diagnostics render once, above the grid (F1, round 2)", () =
         expect(diagnostics(el, "warning").some((m) => m.includes("99-Nowhere"))).toBe(true);
     });
 });
+
+describe("tiles — cover image (B-083)", () => {
+    it("a vault path resolves to a resource URL and draws above the label", () => {
+        const fixture = mockContext({
+            notes: [{ path: "00-Inbox/a.md" }],
+            alsoExists: ["Attachments/gym.jpg"],
+        });
+        const el = host();
+        renderTiles(fixture, "items:\n  - { label: Gym, path: 00-Inbox, image: Attachments/gym.jpg }", el);
+        const img = nodes(el, "img.dashy-tile-cover")[0];
+        expect(img?.getAttribute("src")).toBe("app://local/Attachments/gym.jpg");
+        expect(img?.getAttribute("alt")).toBe("Gym");
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        // the image comes before the label in the same clickable link
+        const link = nodes(el, "a.dashy-tile-link")[0];
+        expect(link?.firstElementChild?.className).toContain("dashy-tile-cover");
+    });
+
+    it("a wikilink resolves the same way, brackets and alias stripped", () => {
+        const fixture = mockContext({
+            notes: [{ path: "00-Inbox/a.md" }],
+            alsoExists: ["Attachments/gym.jpg"],
+        });
+        const el = host();
+        renderTiles(
+            fixture,
+            "items:\n  - { label: Gym, path: 00-Inbox, image: \"[[Attachments/gym.jpg|cover]]\" }",
+            el,
+        );
+        expect(nodes(el, "img.dashy-tile-cover")[0]?.getAttribute("src")).toContain("Attachments/gym.jpg");
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+    });
+
+    it("an https URL is drawn as is, not resolved through the vault", () => {
+        const el = host();
+        renderTiles(
+            ctx,
+            "items:\n  - { label: Gym, path: 00-Inbox, image: https://example.com/gym.jpg }",
+            el,
+        );
+        expect(nodes(el, "img.dashy-tile-cover")[0]?.getAttribute("src")).toBe("https://example.com/gym.jpg");
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+    });
+
+    it("a vault path that does not resolve warns, naming the tile and the path, no cover drawn", () => {
+        const el = host();
+        renderTiles(ctx, "items:\n  - { label: Gym, path: 00-Inbox, image: Attachments/missing.jpg }", el);
+        expect(nodes(el, "img.dashy-tile-cover")).toHaveLength(0);
+        const warning = diagnostics(el, "warning")[0];
+        expect(warning).toContain("Gym");
+        expect(warning).toContain("Attachments/missing.jpg");
+    });
+
+    it("http (non-TLS) warns and the image is skipped", () => {
+        const el = host();
+        renderTiles(ctx, "items:\n  - { label: Gym, path: 00-Inbox, image: http://example.com/gym.jpg }", el);
+        expect(nodes(el, "img.dashy-tile-cover")).toHaveLength(0);
+        expect(diagnostics(el, "warning")[0]).toContain("http://example.com/gym.jpg");
+    });
+
+    it("another scheme warns and the image is skipped", () => {
+        const el = host();
+        renderTiles(ctx, "items:\n  - { label: Gym, path: 00-Inbox, image: ftp://example.com/gym.jpg }", el);
+        expect(nodes(el, "img.dashy-tile-cover")).toHaveLength(0);
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+    });
+
+    it("a tile with no image key draws exactly as before, no cover class or element", () => {
+        const el = host();
+        renderTiles(ctx, "items:\n  - { label: Sport, path: 01-Areas/Sport }", el);
+        expect(nodes(el, "img.dashy-tile-cover")).toHaveLength(0);
+        expect(nodes(el, ".dashy-tile")[0]?.className).not.toContain("has-cover");
+    });
+
+    it("one tile with a cover and one without still both draw, side by side", () => {
+        const fixture = mockContext({
+            notes: [{ path: "00-Inbox/a.md" }],
+            alsoExists: ["Attachments/gym.jpg"],
+        });
+        const el = host();
+        renderTiles(
+            fixture,
+            "items:\n" +
+                "  - { label: Gym, path: 00-Inbox, image: Attachments/gym.jpg }\n" +
+                "  - { label: Sport, path: 01-Areas/Sport }",
+            el,
+        );
+        expect(nodes(el, "img.dashy-tile-cover")).toHaveLength(1);
+        expect(nodes(el, ".dashy-tile")).toHaveLength(2);
+        expect(texts(el, ".dashy-tile-label")).toEqual(["Gym", "Sport"]);
+    });
+});

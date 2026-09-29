@@ -29,6 +29,9 @@ export const en = {
     "tiles.empty": "No tiles to draw. Expected `items:` or a list.",
     "tiles.dateFieldUnused": "{card}: `date_field` has no effect without `period`.",
     "tiles.selectionUnused": "{card}: `tag`, `where`, `period` and `date_field` only narrow `badge: count`.",
+    "tiles.imageMissing": "{card}: image \"{path}\" was not found.",
+    "tiles.imageUnsupported":
+        "{card}: `image` expects a vault path, a `[[wikilink]]`, or an `https://` URL, got \"{value}\".",
 
     "stats.empty": "No cards to draw. Expected `items:` or a list.",
     "stats.unlabeledCard": "a card with no label",
@@ -43,6 +46,15 @@ export const en = {
         "{card}: \"{field}\" holds text or another value that is not a number or a checkbox. Use `where: \"{field} contains ...\"` with `agg: count` to count it instead.",
     "stats.badPrecision":
         "{card}: `precision` expects a whole number from 0 to {max}, got \"{value}\". Rounding the default way.",
+    "stats.streakKeysIgnored":
+        "{card}: `at_least`, `at_most`, `days` and `skip_field` only apply to `agg: streak`, ignored.",
+    "stats.streakThresholdNeedsField":
+        "{card}: `at_least` and `at_most` need a `field:` to sum against. Ignored.",
+    "stats.streakThresholdInvalid": "{card}: `{key}` expects a number, got \"{value}\". Ignored.",
+    "stats.streakThresholdImpossible":
+        "{card}: `at_least` is above `at_most`, so no day can satisfy both. The streak is 0.",
+    "stats.streakDaysInvalid": "{card}: `days` expects `all` or `weekdays`, got \"{value}\". Using `all`.",
+    "stats.skipFieldInvalid": "{card}: `skip_field` expects a property name, got \"{value}\". Ignored.",
 
     "progress.empty": "No bars to draw. Expected `items:` or a list.",
     "progress.goalRequired": "{card}: `goal:` needs a number. There is nothing to measure against.",
@@ -106,11 +118,45 @@ export const en = {
         "No note in the selection has \"{field}\". Check the name and `source`.",
     "heatmap.fieldNotNumeric":
         "\"{field}\" holds text or another value that is not a number or a checkbox. Use `where: \"{field} contains ...\"` with `agg: count` in a stats card to count it instead.",
+    "heatmap.fieldInvalid": "`field` expects a property name or a list of them, got \"{value}\".",
+    "heatmap.fieldListEmpty": "`field` is an empty list. Add at least one property name.",
+    "heatmap.fieldListInvalid": "`field` list items must be plain property names, got \"{value}\".",
+    "heatmap.perDayInvalid": "`per_day` expects sum, avg or max, got \"{value}\". Using sum.",
+    "heatmap.skipFieldInvalid": "`skip_field` expects a property name, got \"{value}\". Ignored.",
+    "heatmap.fieldUnused":
+        "\"{field}\" never contributed a value here. Check the name, or that it actually holds a number or checkbox.",
+    "heatmap.layersAndField": "`layers` and `field` are both set. Use one or the other: `layers` for several colours, `field` for one.",
+    "heatmap.layersColorIgnored": "`color` is ignored: each entry in `layers` carries its own colour instead.",
+    "heatmap.layersInvalid": "`layers` expects a list of maps, got \"{value}\".",
+    "heatmap.layersEmpty": "`layers` is an empty list. Add at least one layer.",
+    "heatmap.layerNotMap": "Layer {position} must be a map with a `field`, got \"{value}\".",
+    "heatmap.layerLabelInvalid": "Layer {position}: `label` expects a name, got \"{value}\".",
+    "heatmap.layerAt": "Layer {position}: {message}",
+    "heatmap.rangeInvalid":
+        "`range` expects week, month, year or a rolling window such as 30d, got \"{value}\". Drawing a grid per year instead.",
     "heatmap.caption": "{year}, {field}: average {average}, {present} of {total} days",
     "heatmap.captionMarks": "{year}, {field}: {present} of {total} days",
+    "heatmap.captionRange": "{field}: average {average}, {present} of {total} days",
+    "heatmap.captionRangeMarks": "{field}: {present} of {total} days",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.cell": "{date}: {field} {value}",
+    "heatmap.cellLayers": "{date}: {parts}",
+    "heatmap.cellPart": "{label} {value}",
+    "heatmap.cellWithNote": "{cell} ({note})",
+    // The count is merged into one sentence rather than drawn apart, unlike
+    // `countdown.daysLeft`: this text lives inside a `title` attribute and a
+    // single status line, neither of which can hold a separate large number.
+    // The "one" form is never actually reached (a single note names itself
+    // instead, see heatmap.ts), kept filled for the languages that need it.
+    "heatmap.notesCount.one": "{count} note",
+    "heatmap.notesCount.few": "{count} notes",
+    "heatmap.notesCount.many": "{count} notes",
+    "heatmap.notesCount.other": "{count} notes",
     "heatmap.cellEmpty": "{date}: no data",
+    "heatmap.cellSkipped": "{cell}, day off",
+    "heatmap.cellEmptySkipped": "{date}: day off",
+    "heatmap.cellToday": "{cell}, today",
+    "heatmap.legendSkipped": "Day off",
 
     "insert.name": "Insert block",
     "insert.placeholder": "Which block?",

@@ -42,7 +42,22 @@ export function fakeVault(): NoteRecord[] {
     for (let back = 0; back < 120; back++) {
         const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - back);
         // Skip a day here and there: a solid block of colour hides nothing.
-        if (back % 11 === 3) continue;
+        // One of those gaps (back === 3) gets a vacation-only note instead
+        // of nothing at all, so a `skip_field` heatmap case has an
+        // unpainted special day to hatch, visibly different from an
+        // ordinary gap with no note at all.
+        if (back % 11 === 3) {
+            if (back === 3) {
+                notes.push({
+                    path: `Diary/${dayKey(date)}.md`,
+                    name: dayKey(date),
+                    folder: "Diary",
+                    tags: [],
+                    frontmatter: { vacation: true },
+                });
+            }
+            continue;
+        }
         const wave = Math.sin(back / 9);
         notes.push({
             path: `Diary/${dayKey(date)}.md`,
@@ -52,6 +67,10 @@ export function fakeVault(): NoteRecord[] {
             frontmatter: {
                 sleep_score: Math.round(78 + wave * 14),
                 steps: Math.round(9000 + wave * 4500),
+                // A second day off (back === 8), painted like any other day,
+                // so the same `skip_field` case also shows the hatch over a
+                // cell that keeps its own colour.
+                ...(back === 8 ? { vacation: true } : {}),
             },
         });
     }
@@ -64,13 +83,19 @@ export function previewContext(notes: readonly NoteRecord[]): BlockContext {
             getMarkdownFiles: () =>
                 notes.map((n) => ({ path: n.path, basename: n.name, parent: { path: n.folder }, note: n })),
             getAbstractFileByPath: (path: string) =>
-                notes.some((n) => n.path === path) ? { path } : null,
+                notes.some((n) => n.path === path) ? { path, extension: "md" } : null,
+            // A fake, but stable: `tiles`' cover image resolves through it.
+            getResourcePath: (file: { path: string }) => `app://local/${file.path}`,
         },
         metadataCache: {
             getFileCache: (file: { note?: NoteRecord }) => ({
                 frontmatter: file.note?.frontmatter ?? {},
                 tags: [],
             }),
+            // No non-markdown attachment lives in this fake vault, so this
+            // only ever resolves a note by its exact path.
+            getFirstLinkpathDest: (linkpath: string) =>
+                notes.some((n) => n.path === linkpath) ? { path: linkpath, extension: "md" } : null,
         },
     } as unknown as App;
 

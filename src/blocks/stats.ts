@@ -150,7 +150,17 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
             readCompare(item, label, periodSpec !== null, spec?.agg);
         diags.push(...compareDiags);
 
-        const current = spec ? aggregate(counted, { agg: spec.agg, field: spec.field, dateField }) : null;
+        const current = spec
+            ? aggregate(counted, {
+                agg: spec.agg,
+                field: spec.field,
+                dateField,
+                atLeast: spec.atLeast,
+                atMost: spec.atMost,
+                days: spec.days,
+                skipField: spec.skipField,
+            })
+            : null;
 
         const card: Card = {
             label: label || spec?.field || "",

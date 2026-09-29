@@ -27,6 +27,9 @@ export const fr: Catalog = {
     "tiles.empty": "Aucune tuile à dessiner. Attendu : `items:` ou une liste.",
     "tiles.dateFieldUnused": "{card} : `date_field` n'a aucun effet sans `period`.",
     "tiles.selectionUnused": "{card} : `tag`, `where`, `period` et `date_field` ne font que restreindre `badge: count`.",
+    "tiles.imageMissing": "{card} : image « {path} » introuvable.",
+    "tiles.imageUnsupported":
+        "{card} : `image` attend un chemin du coffre, un `[[wikilien]]` ou une URL `https://`, reçu « {value} ».",
 
     "stats.empty": "Aucune carte à dessiner. Attendu : `items:` ou une liste.",
     "stats.unlabeledCard": "une carte sans libellé",
@@ -41,6 +44,15 @@ export const fr: Catalog = {
         "{card} : « {field} » contient du texte ou une autre valeur qui n'est pas un nombre ni une case à cocher. Utilisez `where: \"{field} contains ...\"` avec `agg: count` pour le compter.",
     "stats.badPrecision":
         "{card} : `precision` attend un entier de 0 à {max}, reçu « {value} ». Arrondi par défaut.",
+    "stats.streakKeysIgnored":
+        "{card} : `at_least`, `at_most`, `days` et `skip_field` ne s'appliquent qu'à `agg: streak`, ignoré.",
+    "stats.streakThresholdNeedsField":
+        "{card} : `at_least` et `at_most` ont besoin d'un `field:` pour faire la somme. Ignoré.",
+    "stats.streakThresholdInvalid": "{card} : `{key}` attend un nombre, reçu « {value} ». Ignoré.",
+    "stats.streakThresholdImpossible":
+        "{card} : `at_least` dépasse `at_most`, aucun jour ne peut satisfaire les deux. La série est 0.",
+    "stats.streakDaysInvalid": "{card} : `days` attend `all` ou `weekdays`, reçu « {value} ». Utilise `all`.",
+    "stats.skipFieldInvalid": "{card} : `skip_field` attend un nom de propriété, reçu « {value} ». Ignoré.",
 
     "progress.empty": "Aucune barre à dessiner. Attendu : `items:` ou une liste.",
     "progress.goalRequired": "{card} : `goal:` a besoin d'un nombre. Il n'y a rien à mesurer.",
@@ -100,11 +112,41 @@ export const fr: Catalog = {
         "Aucune note de la sélection n'a « {field} ». Vérifiez le nom et `source`.",
     "heatmap.fieldNotNumeric":
         "« {field} » contient du texte ou une autre valeur qui n'est pas un nombre ni une case à cocher. Utilisez `where: \"{field} contains ...\"` avec `agg: count` dans une carte stats pour le compter.",
+    "heatmap.fieldInvalid": "`field` attend un nom de propriété ou une liste de ceux-ci, reçu « {value} ».",
+    "heatmap.fieldListEmpty": "`field` est une liste vide. Ajoutez au moins un nom de propriété.",
+    "heatmap.fieldListInvalid": "Les éléments de la liste `field` doivent être de simples noms de propriétés, reçu « {value} ».",
+    "heatmap.perDayInvalid": "`per_day` attend sum, avg ou max, reçu « {value} ». Utilisation de sum.",
+    "heatmap.skipFieldInvalid": "`skip_field` attend un nom de propriété, reçu « {value} ». Ignoré.",
+    "heatmap.fieldUnused":
+        "« {field} » n'a jamais fourni de valeur ici. Vérifiez le nom, ou qu'il contient bien un nombre ou une case à cocher.",
+    "heatmap.layersAndField":
+        "`layers` et `field` sont tous les deux définis. Utilisez l'un ou l'autre : `layers` pour plusieurs couleurs, `field` pour une seule.",
+    "heatmap.layersColorIgnored": "`color` est ignoré : chaque entrée de `layers` a sa propre couleur.",
+    "heatmap.layersInvalid": "`layers` attend une liste de cartes, reçu « {value} ».",
+    "heatmap.layersEmpty": "`layers` est une liste vide. Ajoutez au moins une couche.",
+    "heatmap.layerNotMap": "La couche {position} doit être une carte avec `field`, reçu « {value} ».",
+    "heatmap.layerLabelInvalid": "Couche {position} : `label` attend un nom, reçu « {value} ».",
+    "heatmap.layerAt": "Couche {position} : {message}",
+    "heatmap.rangeInvalid":
+        "`range` attend week, month, year ou une fenêtre glissante comme 30d, reçu « {value} ». Une grille par année est dessinée à la place.",
     "heatmap.caption": "{year}, {field} : moyenne {average}, {present} jours sur {total}",
     "heatmap.captionMarks": "{year}, {field} : {present} jours sur {total}",
+    "heatmap.captionRange": "{field} : moyenne {average}, {present} jours sur {total}",
+    "heatmap.captionRangeMarks": "{field} : {present} jours sur {total}",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.cell": "{date}: {field} {value}",
+    "heatmap.cellLayers": "{date}: {parts}",
+    "heatmap.cellPart": "{label} {value}",
+    "heatmap.cellWithNote": "{cell} ({note})",
+    "heatmap.notesCount.one": "{count} note",
+    "heatmap.notesCount.few": "{count} notes",
+    "heatmap.notesCount.many": "{count} notes",
+    "heatmap.notesCount.other": "{count} notes",
     "heatmap.cellEmpty": "{date}: aucune donnée",
+    "heatmap.cellSkipped": "{cell}, jour de congé",
+    "heatmap.cellEmptySkipped": "{date}: jour de congé",
+    "heatmap.cellToday": "{cell}, aujourd'hui",
+    "heatmap.legendSkipped": "Jour de congé",
 
     "insert.name": "Insérer un bloc",
     "insert.placeholder": "Quel bloc ?",

@@ -16,20 +16,21 @@ export interface PreviewCase {
 export const CASES: PreviewCase[] = [
     {
         block: "tiles",
-        title: "tiles — навигация, счётчики, акцент",
+        title: "tiles — навигация, счётчики, акцент, обложка",
         source: `columns: 4
 items:
-  - { label: Inbox, path: Inbox, icon: 📥, badge: count }
+  - { label: Inbox, path: Inbox, icon: 📥, badge: count, image: "https://picsum.photos/seed/dashy-inbox/400/200" }
   - { label: Diary, path: Diary, icon: 📔, badge: count, sub: 120 дней }
   - { label: Empty, path: Nowhere, icon: 🕳, badge: count }
   - { label: Accent, path: Diary, icon: ⭐, accent: true }`,
     },
     {
         block: "tiles",
-        title: "tiles — сломанный конфиг",
+        title: "tiles — сломанный конфиг, обложка не найдена",
         source: `items:
   - { lable: Typo, path: Diary }
-  - { icon: 🕳 }`,
+  - { icon: 🕳 }
+  - { label: Gym, path: Diary, image: Attachments/missing.jpg }`,
     },
     {
         block: "stats",
@@ -54,9 +55,19 @@ items:
   - { label: Два условия, source: Diary, where: "year = 2026 and rating >= 4", agg: count }`,
     },
     {
+        block: "stats",
+        title: "stats — streak по будням (days: weekdays)",
+        source: `columns: 3
+items:
+  - { label: Подряд, все дни, source: Diary, field: sleep_score, agg: streak, unit: дн. }
+  - { label: Подряд, будни, source: Diary, field: sleep_score, agg: streak, days: weekdays, unit: дн. }
+  - { label: Порог 8000 шагов по будням, source: Diary, field: steps, agg: streak, at_least: 8000, days: weekdays, unit: дн. }`,
+    },
+    {
         block: "progress",
         title: "progress — обычная, выполненная, перевыполненная, сломанная",
-        source: `items:
+        source: `columns: 2
+items:
   - { label: Дней в дневнике, source: Diary, agg: count, goal: 365, icon: 📔 }
   - { label: Ровно в цель, source: Diary, agg: count, goal: 120 }
   - { label: Перевыполнено, source: Diary, agg: count, goal: 50 }
@@ -109,5 +120,38 @@ bands: [12000, 8000, 5000]`,
         title: "heatmap — нет обязательного поля",
         source: `source: Diary
 feild: sleep_score`,
+    },
+    {
+        block: "heatmap",
+        title: "heatmap — skip_field, закрашенный и пустой день отпуска",
+        source: `source: Diary
+field: sleep_score
+color: purple
+skip_field: vacation`,
+    },
+    {
+        block: "heatmap",
+        title: "heatmap — сегодняшняя ячейка обведена кольцом",
+        source: `source: Diary
+field: steps
+color: green
+bands: [12000, 8000, 5000]`,
+    },
+    {
+        block: "heatmap",
+        title: "heatmap — range: 365d, одна сетка на скользящий год",
+        source: `source: Diary
+field: sleep_score
+color: purple
+bands: [90, 80, 60]
+range: 365d`,
+    },
+    {
+        block: "heatmap",
+        title: "heatmap — range: month, текущий месяц по сегодня",
+        source: `source: Diary
+field: steps
+color: green
+range: month`,
     },
 ];

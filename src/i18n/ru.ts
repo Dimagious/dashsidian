@@ -25,6 +25,9 @@ export const ru: Catalog = {
     "tiles.empty": "Список плиток пуст. Ожидается `items:` или массив.",
     "tiles.dateFieldUnused": "{card}: `date_field` не действует без `period`.",
     "tiles.selectionUnused": "{card}: `tag`, `where`, `period` и `date_field` только сужают `badge: count`.",
+    "tiles.imageMissing": "{card}: изображение «{path}» не найдено.",
+    "tiles.imageUnsupported":
+        "{card}: `image` ожидает путь в хранилище, `[[викилинк]]` или ссылку `https://`, получено «{value}».",
 
     "stats.empty": "Список карточек пуст. Ожидается `items:` или массив.",
     "stats.unlabeledCard": "карточка без подписи",
@@ -39,6 +42,15 @@ export const ru: Catalog = {
         "{card}: «{field}» хранит текст или другое значение, а не число или чекбокс. Чтобы посчитать такие заметки, используйте `where: \"{field} contains ...\"` с `agg: count`.",
     "stats.badPrecision":
         "{card}: `precision` ожидает целое от 0 до {max}, получено «{value}». Округляю по умолчанию.",
+    "stats.streakKeysIgnored":
+        "{card}: `at_least`, `at_most`, `days` и `skip_field` действуют только при `agg: streak`, пропущено.",
+    "stats.streakThresholdNeedsField":
+        "{card}: `at_least` и `at_most` нужны вместе с `field:`, иначе нечего суммировать. Пропущено.",
+    "stats.streakThresholdInvalid": "{card}: `{key}` ожидает число, получено «{value}». Пропущено.",
+    "stats.streakThresholdImpossible":
+        "{card}: `at_least` больше `at_most`, ни один день не подойдёт под оба условия. Серия равна 0.",
+    "stats.streakDaysInvalid": "{card}: `days` ожидает `all` или `weekdays`, получено «{value}». Использую `all`.",
+    "stats.skipFieldInvalid": "{card}: `skip_field` ожидает имя свойства, получено «{value}». Пропущено.",
 
     "progress.empty": "Список полос пуст. Ожидается `items:` или массив.",
     "progress.goalRequired": "{card}: `goal:` ожидает число. Иначе не к чему стремиться.",
@@ -98,11 +110,41 @@ export const ru: Catalog = {
         "Ни у одной заметки в выборке нет «{field}». Проверьте имя и `source`.",
     "heatmap.fieldNotNumeric":
         "«{field}» хранит текст или другое значение, а не число или чекбокс. Чтобы посчитать такие заметки, используйте `where: \"{field} contains ...\"` с `agg: count` в карточке stats.",
+    "heatmap.fieldInvalid": "`field` ожидает имя свойства или их список, получено «{value}».",
+    "heatmap.fieldListEmpty": "Список `field` пуст. Добавьте хотя бы одно имя свойства.",
+    "heatmap.fieldListInvalid": "Элементы списка `field` должны быть простыми именами свойств, получено «{value}».",
+    "heatmap.perDayInvalid": "`per_day` принимает sum, avg или max, получено «{value}». Используется sum.",
+    "heatmap.skipFieldInvalid": "`skip_field` ожидает имя свойства, получено «{value}». Пропущено.",
+    "heatmap.fieldUnused":
+        "«{field}» ни разу не дало значения в этой выборке. Проверьте имя, или что там действительно число либо чекбокс.",
+    "heatmap.layersAndField":
+        "Заданы сразу `layers` и `field`. Используйте что-то одно: `layers` для нескольких цветов, `field` для одного.",
+    "heatmap.layersColorIgnored": "`color` игнорируется: у каждого элемента `layers` свой собственный цвет.",
+    "heatmap.layersInvalid": "`layers` ожидает список карт, получено «{value}».",
+    "heatmap.layersEmpty": "Список `layers` пуст. Добавьте хотя бы один слой.",
+    "heatmap.layerNotMap": "Слой {position} должен быть картой с `field`, получено «{value}».",
+    "heatmap.layerLabelInvalid": "Слой {position}: `label` ожидает имя, получено «{value}».",
+    "heatmap.layerAt": "Слой {position}: {message}",
+    "heatmap.rangeInvalid":
+        "`range` ожидает week, month, year или скользящее окно вроде 30d, получено «{value}». Рисуется сетка по годам.",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.caption": "{year}, {field}: среднее {average}, {present} из {total} дн.",
     "heatmap.captionMarks": "{year}, {field}: {present} из {total} дн.",
+    "heatmap.captionRange": "{field}: среднее {average}, {present} из {total} дн.",
+    "heatmap.captionRangeMarks": "{field}: {present} из {total} дн.",
     "heatmap.cell": "{date}: {field} {value}",
+    "heatmap.cellLayers": "{date}: {parts}",
+    "heatmap.cellPart": "{label} {value}",
+    "heatmap.cellWithNote": "{cell} ({note})",
+    "heatmap.notesCount.one": "{count} заметка",
+    "heatmap.notesCount.few": "{count} заметки",
+    "heatmap.notesCount.many": "{count} заметок",
+    "heatmap.notesCount.other": "{count} заметок",
     "heatmap.cellEmpty": "{date}: нет данных",
+    "heatmap.cellSkipped": "{cell}, выходной",
+    "heatmap.cellEmptySkipped": "{date}: выходной",
+    "heatmap.cellToday": "{cell}, сегодня",
+    "heatmap.legendSkipped": "Выходной",
 
     "insert.name": "Вставить блок",
     "insert.placeholder": "Какой блок?",

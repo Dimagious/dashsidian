@@ -1,13 +1,17 @@
 import { describe, it, expect } from "vitest";
 import {
     dateKey,
+    parseDateKey,
     rotateWeekdays,
     weekdayRow,
     daysBetween,
     layoutYear,
+    layoutRange,
     eachDay,
+    eachDayBetween,
     longestStreak,
     currentStreak,
+    isWeekend,
     yearsOf,
 } from "./calendar";
 
@@ -22,6 +26,37 @@ describe("dateKey", () => {
         // This is exactly what threw the whole grid off in the first version.
         const midnight = new Date(2026, 2, 29, 0, 0, 0);
         expect(dateKey(midnight)).toBe("2026-03-29");
+    });
+});
+
+describe("parseDateKey", () => {
+    it("is dateKey's inverse for an ordinary date", () => {
+        const d = parseDateKey("2026-09-25");
+        expect(d.getFullYear()).toBe(2026);
+        expect(d.getMonth()).toBe(8);
+        expect(d.getDate()).toBe(25);
+        expect(dateKey(d)).toBe("2026-09-25");
+    });
+
+    it("does not slip a day back the way new Date(key) does east of UTC", () => {
+        // A bare string parse reads "2026-01-01" as UTC midnight, which is
+        // still 2025-12-31 in a positive-offset zone. Built from the parts
+        // instead, this always lands on the local date the key names.
+        const d = parseDateKey("2026-01-01");
+        expect(d.getFullYear()).toBe(2026);
+        expect(d.getMonth()).toBe(0);
+        expect(d.getDate()).toBe(1);
+    });
+
+    it("round-trips the first and last day of the year", () => {
+        expect(dateKey(parseDateKey("2026-01-01"))).toBe("2026-01-01");
+        expect(dateKey(parseDateKey("2026-12-31"))).toBe("2026-12-31");
+    });
+
+    it("a malformed key returns an invalid Date rather than throwing", () => {
+        for (const bad of ["not-a-date", "2026-1-1", "2026/01/01", ""]) {
+            expect(Number.isNaN(parseDateKey(bad).getTime())).toBe(true);
+        }
     });
 });
 
@@ -98,6 +133,125 @@ describe("eachDay", () => {
     });
 });
 
+describe("layoutRange (B-093)", () => {
+    it("a single day is always one column, whatever the offset", () => {
+        const l = layoutRange("2026-09-22", "2026-09-22", 1);
+        expect(l.total).toBe(1);
+        expect(l.columns).toBe(1);
+        expect(l.months).toEqual([{ month: 8, year: 2026, column: 1 }]);
+    });
+
+    it("a window that fits inside one week is one column", () => {
+        // Monday to Wednesday, weeks starting on Monday: no offset, 3 days.
+        const l = layoutRange("2026-09-21", "2026-09-23", 1);
+        expect(l.offset).toBe(0);
+        expect(l.total).toBe(3);
+        expect(l.columns).toBe(1);
+    });
+
+    it("crosses a year boundary in one grid, with a month label on each side", () => {
+        // 1 December 2025 is a Monday, so the window starts exactly on a
+        // week boundary and January's real label lands far enough away
+        // (column 5) that the synthetic December one survives too.
+        const l = layoutRange("2025-12-01", "2026-01-15", 1);
+        expect(l.offset).toBe(0);
+        expect(l.total).toBe(46); // 1 December through 15 January inclusive
+        expect(l.months).toEqual([
+            { month: 11, year: 2025, column: 1 },
+            { month: 0, year: 2026, column: 5 },
+        ]);
+    });
+
+    // Checker round 1, B-093: the window this README example (`range: 365d`
+    // from "today") actually produces used to carry two labels in the same
+    // column — the synthetic September one and the real October one, both
+    // landing in column 1 — which `.dashy-hm-months` (a `display: grid` row
+    // with no row template of its own) then overflowed onto the cells below
+    // it rather than stacking cleanly.
+    it("drops the synthetic start-month label once a real one would land within the minimum spacing", () => {
+        const l = layoutRange("2025-09-29", "2026-09-28", 0);
+        // September (month 8) is gone; October (month 9) is the first label
+        // now, sitting exactly where September's synthetic one would have.
+        expect(l.months[0]).toEqual({ month: 9, year: 2025, column: 1 });
+        expect(l.months.some((m) => m.month === 8 && m.year === 2025)).toBe(false);
+        const columns = l.months.map((m) => m.column);
+        expect(new Set(columns).size).toBe(columns.length); // no two labels share a column
+    });
+
+    it("the same drop happens for a short rolling window too, not only a year-long one", () => {
+        // range: 30d from 2026-09-28: the window starts 2026-08-30, and
+        // September's real 1st lands right where August's synthetic label
+        // would, one column later.
+        const l = layoutRange("2026-08-30", "2026-09-28", 0);
+        expect(l.months).toEqual([{ month: 8, year: 2026, column: 1 }]);
+    });
+
+    it("never packs two month labels closer than a per-year grid's own minimum spacing, over every day of a year, both rolling-window lengths and both week starts", () => {
+        for (const days of [30, 365]) {
+            for (const firstDay of [0, 1]) {
+                for (let doy = 0; doy < 365; doy++) {
+                    const today = new Date(2026, 0, 1 + doy);
+                    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (days - 1));
+                    const l = layoutRange(dateKey(start), dateKey(today), firstDay);
+                    for (let i = 1; i < l.months.length; i++) {
+                        const gap = (l.months[i]?.column ?? 0) - (l.months[i - 1]?.column ?? 0);
+                        expect(gap).toBeGreaterThanOrEqual(4);
+                    }
+                }
+            }
+        }
+    });
+
+    it("counts a leap day", () => {
+        const l = layoutRange("2024-02-28", "2024-03-01");
+        expect(l.total).toBe(3); // 28, 29 February, 1 March
+    });
+
+    it("survives a daylight saving switch", () => {
+        // Europe's clocks spring forward on 2026-03-29.
+        const l = layoutRange("2026-03-27", "2026-03-30");
+        expect(l.total).toBe(4);
+    });
+
+    it("a Sunday-first locale shifts the offset the same way layoutYear does", () => {
+        expect(layoutRange("2026-01-01", "2026-01-01", 1).offset).toBe(3);
+        expect(layoutRange("2026-01-01", "2026-01-01", 0).offset).toBe(4);
+    });
+
+    it("every cell still lands in the row of its weekday", () => {
+        for (const firstDay of [0, 1, 6]) {
+            const l = layoutRange("2026-09-01", "2026-09-30", firstDay);
+            const days = eachDayBetween("2026-09-01", "2026-09-30");
+            days.forEach((key, i) => {
+                const row = (i + l.offset) % 7;
+                const weekday = weekdayRow(new Date(`${key}T00:00:00`).getDay(), firstDay);
+                expect(row).toBe(weekday);
+            });
+        }
+    });
+});
+
+describe("eachDayBetween", () => {
+    it("returns keys in ascending order, both ends inclusive", () => {
+        expect(eachDayBetween("2026-01-01", "2026-01-03"))
+            .toEqual(["2026-01-01", "2026-01-02", "2026-01-03"]);
+    });
+
+    it("a single day returns just that day", () => {
+        expect(eachDayBetween("2026-01-01", "2026-01-01")).toEqual(["2026-01-01"]);
+    });
+
+    it("includes a leap day", () => {
+        expect(eachDayBetween("2024-02-28", "2024-03-01"))
+            .toEqual(["2024-02-28", "2024-02-29", "2024-03-01"]);
+    });
+
+    it("crosses a year boundary", () => {
+        expect(eachDayBetween("2025-12-30", "2026-01-02"))
+            .toEqual(["2025-12-30", "2025-12-31", "2026-01-01", "2026-01-02"]);
+    });
+});
+
 describe("longestStreak", () => {
     it("finds the longest run", () => {
         expect(longestStreak(["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-05"])).toBe(3);
@@ -122,6 +276,56 @@ describe("longestStreak", () => {
 
     it("a day repeated many times still counts once", () => {
         expect(longestStreak(["2026-01-01", "2026-01-01", "2026-01-01"])).toBe(1);
+    });
+});
+
+describe("longestStreak with a transparent day predicate (B-101)", () => {
+    // 2026-09-18 is a Friday, 19/20 the weekend, 21 a Monday.
+    const weekend = (d: string) => d === "2026-09-19" || d === "2026-09-20";
+
+    it("a gap made only of transparent days bridges the run", () => {
+        expect(longestStreak(["2026-09-18", "2026-09-21"], { transparent: weekend })).toBe(2);
+    });
+
+    it("a transparent day present in the input does not extend the run", () => {
+        // The Saturday has a date in the set too (e.g. a note logged that
+        // day), but it must still not count: 2, not 3.
+        expect(longestStreak(["2026-09-18", "2026-09-19", "2026-09-21"], { transparent: weekend })).toBe(2);
+    });
+
+    it("a non-transparent day missing from the gap still breaks the run", () => {
+        // 2026-09-23 is a Wednesday: the gap also crosses Monday and
+        // Tuesday, both ordinary days that carry no date here.
+        expect(longestStreak(["2026-09-18", "2026-09-23"], { transparent: weekend })).toBe(1);
+    });
+
+    it("without a predicate, behaviour is exactly as before (default weekdays)", () => {
+        expect(longestStreak(["2026-09-18", "2026-09-21"])).toBe(1);
+    });
+
+    it("bridges a transparent gap across a year boundary", () => {
+        // 2027-12-31 is a Friday, 2028-01-01/02 the weekend, 2028-01-03 a Monday.
+        const weekendYearEnd = (d: string) => d === "2028-01-01" || d === "2028-01-02";
+        expect(longestStreak(["2027-12-31", "2028-01-03"], { transparent: weekendYearEnd })).toBe(2);
+    });
+
+    it("bridges a transparent gap through a daylight-saving change", () => {
+        // 2026-03-27 is a Friday, 28/29 the weekend (Europe's clocks skip
+        // forward on the 29th), 2026-03-30 a Monday. `isWeekend` itself,
+        // not the September-only `weekend` above, since these are March dates.
+        expect(longestStreak(["2026-03-27", "2026-03-30"], { transparent: isWeekend })).toBe(2);
+    });
+});
+
+describe("isWeekend", () => {
+    it("Saturday and Sunday are the weekend", () => {
+        expect(isWeekend("2026-09-19")).toBe(true);
+        expect(isWeekend("2026-09-20")).toBe(true);
+    });
+
+    it("every other day is not", () => {
+        expect(isWeekend("2026-09-18")).toBe(false);
+        expect(isWeekend("2026-09-21")).toBe(false);
     });
 });
 

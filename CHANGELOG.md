@@ -10,6 +10,139 @@ removed public export.
 
 ## [Unreleased]
 
+### Added
+
+- **`tiles` takes `image`, a cover photo above a tile's icon and label.** A
+  vault path, a `[[wikilink]]`, or an `https://` URL; a plain `http://` URL
+  or another scheme warns and skips the image instead of drawing nothing
+  said about it, and so does a vault path that does not resolve to a file,
+  the warning naming both the tile and the path. A tile with no `image`
+  draws exactly as before.
+- **`progress` takes `columns`, the same key `tiles`, `stats` and `countdown`
+  already have.** 1 to 4, laying bars out side by side instead of one per
+  row; without it the layout is exactly what it was before, one bar per row.
+- **A heatmap cell's tooltip reads better, and works on a phone.** The date
+  is now the locale's own medium format ("Sep 25, 2026", "25 сент. 2026 г.")
+  instead of the bare `YYYY-MM-DD` key, and it names the note behind the
+  value: the linked note's name when exactly one contributed that day, or
+  how many when several did ("3 notes"). Layers, `skip_field`'s "day off"
+  and today's own marker still compose in the same order as before. On
+  Obsidian's mobile build, where there is no hover to read a `title` from:
+  the first tap on a cell shows that same text on a line under the grid and
+  rings the cell, and a second tap on it opens the note the way a desktop
+  click already does; tapping another cell moves the line and the ring.
+  Desktop behaviour is unchanged.
+- **The heatmap rings today's cell.** An outline, not a colour change, so a
+  painted value or a `skip_field` hatch both stay fully visible underneath
+  it. Shows on the current year's grid and on a `range` grid, whether or not
+  today has data yet, and moves with `startDayHour` the same way every other
+  "today" in the plugin already does. The tooltip gains its own marker too,
+  appended after `skip_field`'s "day off" wording when a day is both.
+- **`heatmap` takes `range`, one grid over a window ending today instead of a
+  grid per calendar year.** `range: 365d` is a rolling year that crosses 1
+  January in a single grid rather than splitting into two; `range` also
+  takes `week`, `month` and `year` (1 January of the current year to today),
+  exactly the same vocabulary `stats`' `period` already uses. Columns still
+  align to the week the way a per-year grid's do; a day outside the window
+  is neither drawn nor counted, and the caption's count and average cover
+  only the days inside it. Everything else keeps working over that one
+  grid: bands, `layers`, `skip_field` and its legend row, tooltips and
+  links. A window spanning more than one calendar year names the year on
+  its first month label and on every January (`Oct 2025 ... Jan 2026`).
+  Without `range`, behaviour is unchanged: a grid per calendar year
+  that has data, never later than today. An unrecognised `range` warns
+  naming the value and the valid forms, and falls back to that default.
+  Schema 1.6.0.
+- **`agg: streak` on `stats` and `progress` takes `skip_field`, and `heatmap`
+  takes it too.** `skip_field: vacation` marks a day special: any note
+  landing on it with the property set to anything other than `false`, a
+  blank string, `0` or absent (`vacation: true`, `sick: flu`) is transparent
+  to a streak, the same way `days: weekdays` already treats a weekend. It
+  neither breaks the run nor extends it, whatever `field` holds that day,
+  and combines with `days: weekdays` by simple OR. Ignored, with a warning
+  folded into the existing one, on any aggregate other than `streak`. On
+  `heatmap`, the same key hatches a special day's cell instead: its painted
+  colour, if it has one, still shows through, and its count in the caption
+  is unchanged, since a special day with nothing painted is still not
+  present. Works with `layers` too. Schema 1.6.0.
+- **`agg: streak` on `stats` and `progress` takes `at_least`, `at_most` and
+  `days`.** `at_least: 5000` (steps) and/or `at_most: 5` (cigarettes) turn a
+  streak into a threshold: a day counts only once its notes' `field` values,
+  summed for that day, satisfy the bound; two notes on the same day add up
+  first, the same way the heatmap's default `per_day: sum` does. Both need
+  `field:` and are ignored without one; a threshold with `at_least` above
+  `at_most` leaves no day able to qualify, so the streak reads a plain `0`
+  rather than refusing to draw. `days: weekdays` makes Saturday and Sunday
+  transparent: they neither break the run nor extend it, whatever they hold,
+  so a Friday followed by a Monday is a run of two. Every key is ignored,
+  with a warning, on any aggregate other than `streak`. Schema 1.6.0.
+- **`field`, `where` and `date_field` reach into nested frontmatter, not only
+  the top level.** `field: health.sleep` reads `sleep` under a top-level
+  `health:` map, the same way for every block that reads a field, for `where`
+  conditions (`health.sleep >= 80`) and for `date_field` (`meta.date`). A
+  literal key with a dot in it, if one is written flat, still wins first; a
+  list is never indexed (`runs.0` finds nothing), and a path that meets
+  anything but a nested object partway resolves to nothing rather than
+  erroring. Schema 1.6.0.
+- **`heatmap`'s `field` takes a list, and `per_day` says how a day's values
+  combine.** `field: [mood_am, mood_pm]` collapses several properties on one
+  note into a single cell, the same way two notes on the same day already
+  did; `per_day: sum` (the default, unchanged from before), `avg` or `max`
+  now controls that collapse either way, and applies whether it is several
+  notes, several fields, or both at once landing on a day. A field absent
+  from a note contributes nothing, not a zero. An unrecognised `per_day`
+  warns naming the valid options and falls back to `sum`; an empty `field`
+  list or a non-string entry in it is an error; a field that never
+  contributes anywhere in a multi-field list warns naming it, so a typo in
+  one entry does not read as "nothing works". A repeated entry in the list
+  is counted once, and a cell's tooltip rounds an averaged value the same
+  way a stats card would, instead of a raw JavaScript float.
+- **`heatmap`'s `layers` puts several activities on one grid, each its own
+  colour.** `layers: [{field: gym, color: blue}, {field: run, color: green,
+  label: Running}]` replaces the block's own `field`; a layer without
+  `color` gets the next free one from the palette, in order, skipping any
+  colour another layer already claims. When more than one layer paints a
+  day, the first one in the list colours the cell and supplies the value
+  `bands` reads, but the tooltip still lists every layer with a value that
+  day. The legend gains a row per layer, plus the usual bands row when
+  `bands` is also set; the caption counts a day painted by any layer and
+  drops the average, since averaging different fields together says
+  nothing. `layers` and the block's own `field` are not used together, and
+  a top-level `color` is ignored, with a warning, once `layers` is set.
+  Schema 1.6.0.
+
+### Changed
+
+- **A heatmap without `bands` now shades by its own range instead of
+  painting every day with data the same colour.** Each grid (a calendar
+  year, or the one `range` window) fits its own 4-band scale to only the
+  values it paints, so a low day and a high day are visibly different and
+  a narrow year is never stretched to the same scale as a wide one; a
+  `range` grid's scale never reaches outside its own window either, even
+  when a far older note holds a far more extreme value. A checkbox field
+  stays exactly as it was, one flat colour, since a ticked day is always
+  exactly 1; so does a grid where every painted value comes out equal,
+  since there is no spread to fit a scale to. `layers` gets the same
+  fitted scale once it is built, still with neutral grey swatches in its
+  bands row, and fits it from its numeric layers alone: a checkbox layer
+  mixed in with a numeric one always paints at full strength rather than
+  being scored against a scale that was never really about it. A
+  threshold is rounded to the data's own precision (whole numbers stay
+  whole; a decimal value gets as many places as the data itself was
+  written with, up to two) before it becomes a label, so the number shown
+  is always the actual boundary a day is tested against. Set `bands` to
+  pin the scale yourself, unchanged from before.
+
+### Fixed
+
+- **A heatmap grid stopped following the end after a pane resize animation.**
+  While a sidebar collapse or a split resize animated the pane wider, the
+  browser clamps a not-yet-settled grid's scroll position frame by frame;
+  each clamped frame used to be read as the reader dragging the grid by
+  hand, which stopped it from ever re-pinning to the end again even though
+  nothing had been touched. A clamped frame is now told apart from a real
+  drag and no longer stops the grid from following the end.
+
 ### Docs
 
 - **`streak` and the heatmap's default colouring are now spelled out in the

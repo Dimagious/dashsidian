@@ -43,14 +43,17 @@ test.describe("dated names beyond an exact YYYY-MM-DD (B-081)", () => {
         );
         expect(painted).toBe(2); // two distinct days painted, not three notes
 
-        await expect(view.locator('[title="2026-01-05: score 8"]')).toHaveCount(1);
+        // The tooltip's date is the locale's own medium format (B-092), and
+        // a single contributing note is named by its own title.
+        await expect(view.locator('[title="Jan 5, 2026: score 8 (2026-01-05 Monday)"]')).toHaveCount(1);
         // The two 2026-01-06 notes (score 5 and score 2) sum into one cell
-        // rather than one overwriting the other.
-        await expect(view.locator('[title="2026-01-06: score 7"]')).toHaveCount(1);
+        // rather than one overwriting the other, and the tooltip names how
+        // many contributed rather than either one's title.
+        await expect(view.locator('[title="Jan 6, 2026: score 7 (2 notes)"]')).toHaveCount(1);
 
         // The link target is deterministic: "(evening)" sorts before
         // "Tuesday" by path, so that is the note the cell opens.
-        const cell = view.locator('a.dashy-hm-cell[title="2026-01-06: score 7"]');
+        const cell = view.locator('a.dashy-hm-cell[title="Jan 6, 2026: score 7 (2 notes)"]');
         await expect(cell).toHaveAttribute("data-href", "Journal/2026-01-06 (evening).md");
     });
 });

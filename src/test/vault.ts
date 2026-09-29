@@ -36,22 +36,42 @@ function toFile(note: FakeNote) {
     return { path: note.path, basename, parent: { path: folder }, note };
 }
 
+/** `extension` is the one field `adapters/vault.ts#resolveImage` uses to
+ * tell a fake file from a fake folder; `alsoExists` never stands for a
+ * folder in this fixture, so every present path gets one. */
+function extensionOf(path: string): string {
+    const dot = path.lastIndexOf(".");
+    return dot === -1 ? "" : path.slice(dot + 1);
+}
+
 export function mockApp(vault: FakeVault = {}): App {
     const notes = vault.notes ?? [];
     const files = notes.map(toFile);
-    const present = new Set([...files.map((f) => f.path), ...(vault.alsoExists ?? [])]);
+    const present = [...files.map((f) => f.path), ...(vault.alsoExists ?? [])];
+    const presentSet = new Set(present);
 
     const app = {
         vault: {
             getMarkdownFiles: () => files,
             getAbstractFileByPath: (path: string) =>
-                present.has(path) ? { path } : null,
+                presentSet.has(path) ? { path, extension: extensionOf(path) } : null,
+            // A fake, but a stable and inspectable one: tests assert on the
+            // exact string rather than trusting any non-null value.
+            getResourcePath: (file: { path: string }) => `app://local/${file.path}`,
         },
         metadataCache: {
             getFileCache: (file: { note?: FakeNote }) => ({
                 frontmatter: file.note?.frontmatter ?? {},
                 tags: (file.note?.tags ?? []).map((tag) => ({ tag })),
             }),
+            // Obsidian resolves a bare filename among duplicates by basename;
+            // this fixture only ever has one note per basename, so an exact
+            // match first and a basename search second covers it.
+            getFirstLinkpathDest: (linkpath: string) => {
+                if (presentSet.has(linkpath)) return { path: linkpath, extension: extensionOf(linkpath) };
+                const found = present.find((p) => p.slice(p.lastIndexOf("/") + 1) === linkpath);
+                return found ? { path: found, extension: extensionOf(found) } : null;
+            },
         },
     } as Record<string, unknown>;
 

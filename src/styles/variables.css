@@ -11,6 +11,9 @@
 body {
   --dashy-radius: 12px;
   --dashy-gap: 14px;
+  /* a tile's cover image (B-083): a fixed height so a row of tiles, covered
+     and plain alike, still lines up */
+  --dashy-tile-cover: 120px;
   --dashy-cell: 13px;
   --dashy-cell-gap: 3px;
   /* Roughly 2.5 week columns: wide enough to read as a fade, not a hard cut. */
@@ -29,6 +32,21 @@ body {
 
   --dashy-delta-good: var(--color-green, #2f9e44);
   --dashy-delta-bad: var(--color-red, #e93147);
+
+  /* The hatch line on a heatmap's special-day cells (B-095). A plain
+     `text-muted` fallback here, without `color-mix`, so a browser without it
+     still gets a visible (if fully opaque) hatch rather than none. */
+  --dashy-hm-skip: var(--text-muted);
+  /* The ring around today's heatmap cell (B-099). The theme's own accent
+     colour, readable against a painted cell's fill in both light and dark
+     without this stylesheet naming a colour of its own. */
+  --dashy-hm-today: var(--text-normal);
+  /* The band around a tapped cell on a phone (B-092), a colour of its own
+     so it reads as a separate signal from `--dashy-hm-today`'s ring rather
+     than one doing double duty. A cell that is both moves this band inward
+     instead of overlapping today's own outline — see `.is-today.is-selected`
+     in blocks.css. */
+  --dashy-hm-selected: var(--interactive-accent);
 }
 
 @supports (color: color-mix(in srgb, red 50%, blue)) {
@@ -36,5 +54,8 @@ body {
     --dashy-surface: color-mix(in srgb, var(--interactive-accent) 7%, var(--background-primary));
     --dashy-surface-hi: color-mix(in srgb, var(--interactive-accent) 15%, var(--background-primary));
     --dashy-border: color-mix(in srgb, var(--interactive-accent) 28%, var(--background-modifier-border));
+    /* Semi-transparent once color-mix is available, so the hatch reads as an
+       overlay rather than fully hiding a painted cell's own colour underneath. */
+    --dashy-hm-skip: color-mix(in srgb, var(--text-muted) 55%, transparent);
   }
 }

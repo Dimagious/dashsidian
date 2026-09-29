@@ -42,6 +42,31 @@ describe("progress — the bar says what the number says", () => {
     });
 });
 
+describe("progress — a nested frontmatter path in field (B-100)", () => {
+    const nested = mockContext({
+        notes: [
+            { path: "Diary/2026-01-01.md", frontmatter: { health: { steps: 4000 } } },
+            { path: "Diary/2026-01-02.md", frontmatter: { health: { steps: 6000 } } },
+        ],
+    });
+    const nestedBars = (config: string) => {
+        const el = host();
+        renderProgress(nested, config, el);
+        return el;
+    };
+
+    it("sums a dotted path towards the goal", () => {
+        const el = nestedBars("items:\n  - { label: Steps, source: Diary, field: health.steps, agg: sum, goal: 20000 }");
+        expect(texts(el, ".dashy-progress-value")[0]).toContain("10 000 / 20 000");
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+    });
+
+    it("a truly missing nested path warns and names it", () => {
+        const el = nestedBars("items:\n  - { label: Km, source: Diary, field: health.km, agg: sum, goal: 100 }");
+        expect(diagnostics(el, "warning")[0]).toContain("health.km");
+    });
+});
+
 describe("progress — past the goal", () => {
     it("the percent keeps climbing past 100", () => {
         const el = bars("items:\n  - { label: Days, source: Diary, agg: count, goal: 4 }");
@@ -111,6 +136,37 @@ describe("progress — edges", () => {
         const el = bars("items:\n  - { label: Days, source: Diary, agg: count, goal: 40, colour2: red }");
         expect(diagnostics(el, "warning")).toHaveLength(1);
         expect(nodes(el, ".dashy-progress-row")).toHaveLength(1);
+    });
+});
+
+describe("progress — columns (B-102)", () => {
+    it("without columns the grid stays one bar per row, unchanged", () => {
+        const el = bars("items:\n  - { label: Days, source: Diary, agg: count, goal: 40 }");
+        expect(nodes(el, ".dashy-progress")[0]?.style.getPropertyValue("--dashy-progress-columns")).toBe("1");
+    });
+
+    it("columns reach the grid as a custom property", () => {
+        const el = bars("columns: 3\nitems:\n  - { label: Days, source: Diary, agg: count, goal: 40 }");
+        expect(nodes(el, ".dashy-progress")[0]?.style.getPropertyValue("--dashy-progress-columns")).toBe("3");
+    });
+
+    it("columns are clamped to what the grid can show", () => {
+        for (const [given, expected] of [["0", "1"], ["99", "4"], ["-4", "1"]] as const) {
+            const el = bars(`columns: ${given}\nitems:\n  - { label: Days, source: Diary, agg: count, goal: 40 }`);
+            expect(nodes(el, ".dashy-progress")[0]?.style.getPropertyValue("--dashy-progress-columns")).toBe(expected);
+        }
+    });
+
+    it("only a several-column grid is marked for the phone's two-column narrowing", () => {
+        const one = bars("items:\n  - { label: Days, source: Diary, agg: count, goal: 40 }");
+        expect(nodes(one, ".dashy-progress")[0]?.classList.contains("is-multi")).toBe(false);
+        const three = bars("columns: 3\nitems:\n  - { label: Days, source: Diary, agg: count, goal: 40 }");
+        expect(nodes(three, ".dashy-progress")[0]?.classList.contains("is-multi")).toBe(true);
+    });
+
+    it("the root keys are still checked when there is an items list", () => {
+        const el = bars("colums: 3\nitems:\n  - { label: Days, source: Diary, agg: count, goal: 40 }");
+        expect(diagnostics(el, "warning")[0]).toContain("columns");
     });
 });
 
@@ -389,5 +445,56 @@ describe("progress — period narrows before counting", () => {
         );
         expect(diagnostics(el, "warning")).toHaveLength(1);
         expect(diagnostics(el, "warning")[0]).toContain("fortnight");
+    });
+});
+
+describe("progress — streak threshold and weekdays, end to end (B-101)", () => {
+    it("at_least turns streak into a threshold on the day's summed field", () => {
+        const steps = mockContext({
+            notes: [
+                { path: "Diary/2026-09-18.md", frontmatter: { steps: 4999 } },
+                { path: "Diary/2026-09-19.md", frontmatter: { steps: 5000 } },
+                { path: "Diary/2026-09-20.md", frontmatter: { steps: 6000 } },
+            ],
+        });
+        const el = host();
+        renderProgress(
+            steps,
+            "items:\n  - { label: Active streak, source: Diary, field: steps, agg: streak, at_least: 5000, goal: 5 }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-progress-value")[0]).toContain("2 / 5");
+    });
+
+    it("days: weekdays bridges a weekend gap: Friday to Monday is a run of two", () => {
+        const gym = mockContext({
+            notes: [
+                { path: "Diary/2026-09-18.md", frontmatter: { gym: true } }, // Friday
+                { path: "Diary/2026-09-21.md", frontmatter: { gym: true } }, // Monday
+            ],
+        });
+        const el = host();
+        renderProgress(
+            gym,
+            "items:\n  - { label: Gym streak, source: Diary, field: gym, agg: streak, days: weekdays, goal: 5 }",
+            el,
+        );
+        expect(texts(el, ".dashy-progress-value")[0]).toContain("2 / 5");
+    });
+
+    it("at_least/at_most/days on a non-streak bar warn once and are ignored", () => {
+        const el = bars(
+            "items:\n  - { label: Run, source: Diary, field: km, agg: sum, at_least: 5, goal: 100 }",
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+        expect(diagnostics(el, "warning")[0]).toContain("at_least");
+    });
+
+    it("a threshold on a streak with no field warns and is ignored", () => {
+        const el = bars("items:\n  - { label: Streak, source: Diary, agg: streak, at_least: 5, goal: 5 }");
+        expect(diagnostics(el, "warning")[0]).toContain("field");
+        // Without the (ignored) threshold, every diary day counts.
+        expect(texts(el, ".dashy-progress-value")[0]).toContain("10 / 5");
     });
 });

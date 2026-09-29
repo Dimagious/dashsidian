@@ -7,7 +7,7 @@
  * see core/bands.ts.
  */
 
-import { AGGS, isAgg, type Agg } from "./aggregate";
+import { AGGS, isAgg, isStreakDays, type Agg, type StreakDays } from "./aggregate";
 import { readTrendDays } from "./sparkline";
 import { nearest, describeValue, type Diagnostic } from "../shared/parse";
 import { t } from "../i18n";
@@ -22,6 +22,14 @@ export interface StatSpec {
     precision?: number;
     /** how many days of history to sketch beside the number */
     trend?: number;
+    /** `agg: streak` only: inclusive lower bound on a day's summed field value */
+    atLeast?: number;
+    /** `agg: streak` only: inclusive upper bound on a day's summed field value */
+    atMost?: number;
+    /** `agg: streak` only: unset/`"all"` counts every day, `"weekdays"` skips Saturday and Sunday */
+    days?: StreakDays;
+    /** `agg: streak` only: a property marking a day special (vacation, sick); see core/special-days.ts */
+    skipField?: string;
 }
 
 /** Aggregates that need no field: they count notes, not numbers inside them. */
@@ -58,6 +66,14 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
                 : t("stats.unknownAgg", { card, agg, available }),
         });
         return { spec: null, diagnostics };
+    }
+
+    // Checked against the raw agg, ahead of everything else below, so it
+    // fires whatever else is also wrong with the card (a missing `field`
+    // included) rather than only when the rest of the card parses cleanly.
+    if (rawAgg !== "streak" && (item.at_least !== undefined || item.at_most !== undefined
+        || item.days !== undefined || item.skip_field !== undefined)) {
+        diagnostics.push({ level: "warning", message: t("stats.streakKeysIgnored", { card }) });
     }
 
     const field = typeof item.field === "string" && item.field.trim() ? item.field.trim() : undefined;
@@ -98,6 +114,71 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
             diagnostics.push({ level: "warning", message: t("stats.trendNeedsField", { card }) });
         } else {
             spec.trend = days;
+        }
+    }
+
+    if (rawAgg === "streak") {
+        if (item.at_least !== undefined || item.at_most !== undefined) {
+            if (!field) {
+                diagnostics.push({ level: "warning", message: t("stats.streakThresholdNeedsField", { card }) });
+            } else {
+                let atLeast: number | undefined;
+                let atMost: number | undefined;
+                if (item.at_least !== undefined) {
+                    if (typeof item.at_least === "number" && Number.isFinite(item.at_least)) {
+                        atLeast = item.at_least;
+                    } else {
+                        diagnostics.push({
+                            level: "warning",
+                            message: t("stats.streakThresholdInvalid", {
+                                card, key: "at_least", value: describeValue(item.at_least),
+                            }),
+                        });
+                    }
+                }
+                if (item.at_most !== undefined) {
+                    if (typeof item.at_most === "number" && Number.isFinite(item.at_most)) {
+                        atMost = item.at_most;
+                    } else {
+                        diagnostics.push({
+                            level: "warning",
+                            message: t("stats.streakThresholdInvalid", {
+                                card, key: "at_most", value: describeValue(item.at_most),
+                            }),
+                        });
+                    }
+                }
+                // Still computed, not refused: `longestStreak` over an empty
+                // set of qualifying days honestly comes out 0, the same dash
+                // free honesty as an all-false field above.
+                if (atLeast !== undefined && atMost !== undefined && atLeast > atMost) {
+                    diagnostics.push({ level: "warning", message: t("stats.streakThresholdImpossible", { card }) });
+                }
+                if (atLeast !== undefined) spec.atLeast = atLeast;
+                if (atMost !== undefined) spec.atMost = atMost;
+            }
+        }
+
+        if (item.days !== undefined) {
+            if (isStreakDays(item.days)) {
+                spec.days = item.days;
+            } else {
+                diagnostics.push({
+                    level: "warning",
+                    message: t("stats.streakDaysInvalid", { card, value: describeValue(item.days) }),
+                });
+            }
+        }
+
+        if (item.skip_field !== undefined) {
+            if (typeof item.skip_field === "string" && item.skip_field.trim()) {
+                spec.skipField = item.skip_field.trim();
+            } else {
+                diagnostics.push({
+                    level: "warning",
+                    message: t("stats.skipFieldInvalid", { card, value: describeValue(item.skip_field) }),
+                });
+            }
         }
     }
 

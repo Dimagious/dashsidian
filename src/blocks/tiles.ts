@@ -2,7 +2,9 @@ import type { BlockContext } from "./context";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
 import { readDateField } from "../core/note-date";
 import { readPeriod, filterByPeriod, dateFieldHasEffect } from "../core/period";
+import { classifyImage } from "../core/image";
 import { firstDayOfWeek } from "../adapters/datetime";
+import { resolveImage } from "../adapters/vault";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
 import { t } from "../i18n";
@@ -25,6 +27,8 @@ interface Tile {
     icon?: string;
     sub?: string;
     badge?: TileBadge;
+    /** a resolved URL, either a vault resource or an https one straight through */
+    cover?: string;
 }
 
 export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement): void {
@@ -77,6 +81,25 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
         const tile: Tile = { label: label || path, path, accent: item.accent === true };
         if (typeof item.icon === "string") tile.icon = item.icon;
         if (typeof item.sub === "string") tile.sub = item.sub;
+
+        if (typeof item.image === "string") {
+            const ref = classifyImage(item.image);
+            if (ref.kind === "url") {
+                tile.cover = ref.url;
+            } else if (ref.kind === "vault") {
+                const resolved = resolveImage(ctx.app, ref.path);
+                if (resolved) {
+                    tile.cover = resolved;
+                } else {
+                    diags.push({
+                        level: "warning",
+                        message: t("tiles.imageMissing", { card: cardLabel, path: ref.path }),
+                    });
+                }
+            } else {
+                diags.push({ level: "warning", message: t("tiles.imageUnsupported", { card: cardLabel, value: ref.value }) });
+            }
+        }
 
         if (isCountBadge) {
             const missing = unmatchedSource(notes, { source: path });
@@ -137,10 +160,19 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
     grid.style.setProperty("--dashy-tile-columns", String(Math.max(1, Math.min(8, columns))));
 
     for (const tile of tiles) {
-        const tileEl = grid.createDiv({ cls: tile.accent ? "dashy-tile dashy-tile-accent" : "dashy-tile" });
+        let cls = tile.accent ? "dashy-tile dashy-tile-accent" : "dashy-tile";
+        if (tile.cover) cls += " dashy-tile-has-cover";
+        const tileEl = grid.createDiv({ cls });
         const link = tile.path
             ? internalLink(tileEl, tile.path, "dashy-tile-link")
             : tileEl.createDiv({ cls: "dashy-tile-link" });
+
+        if (tile.cover) {
+            link.createEl("img", {
+                cls: "dashy-tile-cover",
+                attr: { src: tile.cover, alt: tile.label },
+            });
+        }
 
         if (tile.icon) link.createSpan({ cls: "dashy-tile-icon", text: tile.icon });
 

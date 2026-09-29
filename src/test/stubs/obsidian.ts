@@ -62,5 +62,15 @@ export class Notice {
     constructor(public message: string) {}
 }
 
+/**
+ * A mutable object, like the real one: a test flips `Platform.isMobile` for
+ * the duration of a case and resets it in `afterEach`, the same way
+ * `setDateLocale`/`applyLocale` are toggled elsewhere in this suite.
+ */
+export const Platform = {
+    isMobile: false,
+    isMobileApp: false,
+};
+
 export type App = Record<string, never>;
 export type TFile = Record<string, never>;

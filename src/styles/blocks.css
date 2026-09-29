@@ -23,6 +23,20 @@
 }
 .dashy-tile:hover { transform: translateY(-3px); box-shadow: var(--dashy-shadow-hover); }
 .dashy-tile-accent { border-left: 3px solid var(--interactive-accent); }
+/* a cover image bleeds to the tile's own edges (see `dashy-tile-cover`
+   below), so the padding above it is dropped; the 18px/12px here must stay
+   in step with `.dashy-tile`'s own `padding` above */
+/* overflow keeps the bleeding cover inside the tile's rounded corners; set
+   only on a covered tile, so a tile without one is exactly as before */
+.dashy-tile-has-cover { padding-top: 0; overflow: hidden; }
+.dashy-tile-cover {
+  display: block;
+  width: calc(100% + 24px);
+  margin: 0 -12px 12px;
+  height: var(--dashy-tile-cover);
+  object-fit: cover;
+  border-radius: var(--dashy-radius) var(--dashy-radius) 0 0;
+}
 .dashy-tile-link,
 .dashy-tile-link:hover { display: block; text-decoration: none; color: inherit; }
 .dashy-tile-icon { display: block; font-size: 1.6em; margin-bottom: 6px; }
@@ -97,7 +111,16 @@
 .dashy-suggest-what { font-size: 0.8em; color: var(--text-muted); }
 
 /* progress */
-.dashy-progress { margin: 0 0 24px; display: flex; flex-direction: column; gap: 14px; }
+.dashy-progress {
+  display: grid;
+  grid-template-columns: repeat(var(--dashy-progress-columns, 1), minmax(0, 1fr));
+  gap: var(--dashy-gap);
+  margin: 0 0 24px;
+}
+/* the grid track shrinks a row before it grows past its column; without
+   this a long "value / goal" line forces a `columns` grid wider than
+   the block, the same overflow guard `dashy-tile` and `dashy-stat` use */
+.dashy-progress-row { min-width: 0; }
 .dashy-progress-head {
   display: flex; align-items: baseline; gap: 6px;
   margin-bottom: 5px; font-size: 0.9em;
@@ -234,11 +257,52 @@
 .dashy-hm-pad { background: transparent; }
 a.dashy-hm-cell { cursor: pointer; text-decoration: none; color: inherit; }
 a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1px; }
+/* A special day (B-095: vacation, sick, anything `skip_field` marks): a
+   diagonal hatch on top of `background-color`, whatever that is set to
+   inline by heatmap.ts. Drawn as a second layer, `background-image` over
+   `background-color`, so a painted cell keeps its own colour showing through
+   the gaps rather than being replaced by the hatch. */
+.dashy-hm-cell.is-skipped {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--dashy-hm-skip) 0,
+    var(--dashy-hm-skip) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
+/* Today's cell (B-099): a ring, never the fill, so a painted colour or the
+   is-skipped hatch stays visible inside it. Drawn inset: today is always the
+   grid's last column, and an outer ring would be clipped by the scroller's
+   overflow on the right (and top or bottom on the first and last row). */
+.dashy-hm-cell.is-today {
+  outline: 2px solid var(--dashy-hm-today);
+  outline-offset: -2px;
+}
+/* A tapped cell on a phone (B-092): drawn as an inset box-shadow, not an
+   outline, so it paints in its own layer rather than replacing `is-today`'s
+   outline outright. On its own this still sits in the same 2px band as that
+   outline, which the more specific rule below accounts for. */
+.dashy-hm-cell.is-selected {
+  box-shadow: inset 0 0 0 2px var(--dashy-hm-selected);
+}
+/* Today's own cell, tapped: outline and box-shadow would otherwise land on
+   the exact same 2px band and one would simply paint over the other,
+   leaving a tap on today's cell looking like nothing happened. Moving the
+   selected band inward instead keeps both visible at once — today's ring
+   as the outer edge, the accent band just inside it — while a `--dashy-cell:
+   13px` cell still keeps a 5px fill/hatch visible at the centre. */
+.dashy-hm-cell.is-today.is-selected {
+  box-shadow: inset 0 0 0 4px var(--dashy-hm-selected);
+}
 .dashy-hm-legend {
   display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
   margin-top: 10px; font-size: 0.75em; color: var(--text-muted);
 }
 .dashy-hm-leg { display: flex; align-items: center; gap: 5px; }
+/* The tapped cell's own tooltip text (B-092), only ever built on mobile —
+   see heatmap.ts. Empty and so invisible until the first tap. */
+.dashy-hm-status { margin-top: 6px; font-size: 0.75em; color: var(--text-muted); }
 
 /* A grid too wide for its note fades the edge that still has months to
    scroll to, and only that edge: none of this shows once the year fits. The
@@ -267,11 +331,25 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
   );
 }
 .dashy-hm-swatch { width: var(--dashy-cell); height: var(--dashy-cell); border-radius: 2px; }
+/* The legend's own swatch for the hatch: no `background-color` set inline
+   for this one, so the same hatch pattern as a cell's own, plain and alone,
+   stands in for "a special day" rather than for any one colour. */
+.dashy-hm-swatch.is-skipped {
+  background-color: var(--dashy-empty);
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--dashy-hm-skip) 0,
+    var(--dashy-hm-skip) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
 
 @media (max-width: 768px) {
   .dashy-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashy-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashy-countdown { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashy-progress.is-multi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   /* Every pixel of gap is a pixel the bars do not get. */
   .dashy-stat-trend { gap: 0; }
   /* A card is about 156px wide here, so the same length classes shrink

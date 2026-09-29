@@ -7,7 +7,7 @@ description: >-
   for a dashboard, a home page, a tile grid, cards with counters or averages, a
   link to today's note, a day calendar, a heatmap, a habit tracker or a visual
   entry point into the vault.
-version: 1.5.0
+version: 1.6.0
 ---
 
 # Dashy — dashboard blocks
@@ -36,13 +36,14 @@ A grid of link tiles for navigating the vault.
 | `label` | string | yes | — | `title`, `name` | caption |
 | `path` | string | yes | — | — | where it leads; understands File.base#View |
 | `tag` | string | — | — | — | tag, with or without the hash; narrows `badge: count` |
-| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported; narrows `badge: count` |
+| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; the field name may be a dotted path into a nested property, like `health.sleep > 70`; `and`/`or` are not supported; narrows `badge: count` |
 | `period` | string\|number | — | — | — | narrow `badge: count` to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. Notes without a date are left out first. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages |
-| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name for `period`: `2026-03-02` or `2026-03-02T10:30`; has no effect without `period` |
+| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name for `period`: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`; has no effect without `period` |
 | `icon` | string | — | — | `emoji` | emoji |
 | `sub` | string | — | — | — | small caption under the title |
 | `badge` | string\|number | — | — | — | count, meaning the number of notes in the folder narrowed by `tag`, `where` and `period` when given, or your own string |
 | `accent` | boolean | — | — | — | accent stripe on the left |
+| `image` | string | — | — | — | a cover image above the icon and label: a vault path (`Attachments/gym.jpg`), a `[[wikilink]]`, or an `https://` URL. A vault path that does not resolve, or anything other than those three, warns and the tile draws without a cover |
 
 **Example**
 
@@ -73,13 +74,17 @@ Number cards: one value per card, computed over a selection of notes.
 | `label` | string | yes | — | `title`, `name` | caption under the number |
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
-| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported |
+| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; the field name may be a dotted path into a nested property, like `health.sleep > 70`; `and`/`or` are not supported |
 | `period` | string\|number | — | — | — | narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. Notes without a date are left out first, then every agg, count included, runs on what remains. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages |
-| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`. Feeds `period`'s window and the `streak`, `latest` and `trend` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` |
+| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`. Feeds `period`'s window and the `streak`, `latest` and `trend` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` |
 | `compare` | boolean | — | — | — | show the delta against the same stretch of the previous period, to date: this week compares against the same weekdays last week, not the whole of last week. Only with `period` set, and not with `agg: streak` |
 | `better` | string | — | — | — | `up` colours a rise green and a fall red; `down` reverses that for a number where less is better. No change stays neutral either way. Only with `compare: true` |
-| `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: "field contains ..."` and `agg: count` |
+| `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0), dotted for a nested one like `health.sleep`; required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: "field contains ..."` and `agg: count` |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
+| `at_least` | number | — | — | — | with `agg: streak` only: a day counts only once its notes' `field` values, summed for that day, reach this, like `at_least: 5000` steps; combine with `at_most` for a range. Needs `field`; ignored on any other aggregate |
+| `at_most` | number | — | — | — | with `agg: streak` only: a day counts only while its notes' `field` values, summed for that day, stay at or under this, like `at_most: 5` cigarettes; combine with `at_least` for a range. Needs `field`; ignored on any other aggregate |
+| `days` | string | — | `all` | — | with `agg: streak` only: `weekdays` makes Saturday and Sunday transparent, so they neither break the run nor add to it, whatever they hold; `all`, the default, counts every day. Ignored on any other aggregate |
+| `skip_field` | string | — | — | — | with `agg: streak` only: a property marking a day special, like `vacation: true` or `sick: flu`; a day is special once any note landing on it sets the property to anything other than `false`, a blank string, `0` or absent. A special day neither breaks the run nor adds to it, whatever `field` holds, the same way `days: weekdays` treats a weekend, and the two combine. Ignored on any other aggregate |
 | `unit` | string | — | — | — | a suffix after the number: km, %, d. |
 | `precision` | number | — | — | — | decimal places, 0 to 6; by default a whole number stays whole and a fraction gets one decimal |
 | `trend` | string\|number | — | — | — | sketch the last N days ending today: `30d`. Needs `field`. Its own trailing window, independent of `period` |
@@ -104,6 +109,7 @@ items:
 - `trend` sketches the days of a trailing window ending today, scaled between the smallest and largest value in that window rather than from zero. A day without a note is left out, not drawn as a zero, and two or more notes on the same day are summed into that one day's bar.
 - `period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting.
 - `compare` needs a note in both windows; when either the current or the previous stretch has none at all, the card shows its number alone with no delta. `streak` has no value of its own to compare and refuses `compare` outright, the way `trend` refuses `count`.
+- `at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. `skip_field` does the same for a day any note marks special, `vacation: true` or `sick: flu` for example, and combines with `days: weekdays`. All three keys apply to `agg: streak` only and are ignored on every other aggregate.
 
 ### `progress`
 
@@ -113,6 +119,7 @@ Bars towards a goal: how far a number has come against a target.
 
 | key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
+| `columns` | number | — | `1` | — | columns in the grid, 1 to 4; without it every bar is its own row |
 | `items` | list | yes | — | — | the list of bars |
 
 **List item**
@@ -123,11 +130,15 @@ Bars towards a goal: how far a number has come against a target.
 | `goal` | number | yes | — | `target` | the target to fill towards; must be above zero |
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
-| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported |
+| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; the field name may be a dotted path into a nested property, like `health.sleep > 70`; `and`/`or` are not supported |
 | `period` | string\|number | — | — | — | narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. The goal is measured against the period's value; notes without a date are left out first. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages |
-| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`. Feeds `period`'s window and the `streak` and `latest` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` |
-| `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0); required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: "field contains ..."` and `agg: count` |
+| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`. Feeds `period`'s window and the `streak` and `latest` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` |
+| `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0), dotted for a nested one like `health.sleep`; required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: "field contains ..."` and `agg: count` |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak |
+| `at_least` | number | — | — | — | with `agg: streak` only: a day counts only once its notes' `field` values, summed for that day, reach this, like `at_least: 5000` steps; combine with `at_most` for a range. Needs `field`; ignored on any other aggregate |
+| `at_most` | number | — | — | — | with `agg: streak` only: a day counts only while its notes' `field` values, summed for that day, stay at or under this, like `at_most: 5` cigarettes; combine with `at_least` for a range. Needs `field`; ignored on any other aggregate |
+| `days` | string | — | `all` | — | with `agg: streak` only: `weekdays` makes Saturday and Sunday transparent, so they neither break the run nor add to it, whatever they hold; `all`, the default, counts every day. Ignored on any other aggregate |
+| `skip_field` | string | — | — | — | with `agg: streak` only: a property marking a day special, like `vacation: true` or `sick: flu`; a day is special once any note landing on it sets the property to anything other than `false`, a blank string, `0` or absent. A special day neither breaks the run nor adds to it, whatever `field` holds, the same way `days: weekdays` treats a weekend, and the two combine. Ignored on any other aggregate |
 | `unit` | string | — | — | — | a suffix after the numbers: km, %, d. |
 | `precision` | number | — | — | — | decimal places, 0 to 6; by default a whole number stays whole and a fraction gets one decimal |
 | `icon` | string | — | — | `emoji` | emoji |
@@ -147,6 +158,7 @@ items:
 - `count` over nothing reads a plain `0` and an empty bar; every other aggregate, and `streak` with a `field` set, shows a dash instead: "no data" and "zero" are different answers.
 - `streak` counts the longest run of consecutive days on record, not the run still going today; label the bar "Best streak" or "Longest streak".
 - `period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting.
+- `at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. `skip_field` does the same for a day any note marks special, `vacation: true` or `sick: flu` for example, and combines with `days: weekdays`. All three keys apply to `agg: streak` only and are ignored on every other aggregate.
 
 ### `today`
 
@@ -220,13 +232,25 @@ A year by days: one cell per day, coloured by a number from frontmatter.
 |---|---|---|---|---|---|
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
-| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; `and`/`or` are not supported |
-| `field` | string | yes | — | `property`, `prop` | numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: "field contains ..."` and `agg: count` |
-| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30` |
-| `color` | string | — | `blue` | `colour` | blue green cyan purple pink orange red gray, or #rrggbb |
-| `bands` | list | — | — | — | thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band. Without `bands`, every day with data paints the same single colour: there is no automatic scale from the data's own minimum and maximum |
+| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; the field name may be a dotted path into a nested property, like `health.sleep > 70`; `and`/`or` are not supported |
+| `field` | string\|list | yes | — | `property`, `prop` | numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty; dotted for a nested one like `health.sleep`. Also takes a list, like `[mood_am, mood_pm]`, to collapse several properties from the same note into one day with `per_day`. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: "field contains ..."` and `agg: count` |
+| `per_day` | string | — | `sum` | — | how several values landing on one day combine: sum, avg or max. Several values happen either from two or more notes on the same day, or from a `field` list on one note, or both at once. An unrecognised value warns and falls back to sum. With `layers`, it applies to each layer's own field(s) separately |
+| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date` |
+| `skip_field` | string | — | — | — | a property marking a day special, like `vacation: true` or `sick: flu`; a day is special once any note landing on it sets the property to anything other than `false`, a blank string, `0` or absent. Its cell gets a hatched overlay, on top of its painted colour when it has one. Works with `layers` too |
+| `color` | string | — | `blue` | `colour` | blue green cyan purple pink orange red gray, or #rrggbb. Ignored, with a warning, when `layers` is set: each layer carries its own colour instead |
+| `layers` | list | — | — | — | several activities on one grid, each in its own colour, instead of one `field`: `[{field, color, label}]`. Not used together with the block's own `field`. The first layer painted on a day colours that cell and supplies its value and link; the tooltip lists every layer with a value that day, in list order. The caption then counts days where any layer painted and drops the average, since averaging different fields together says nothing useful |
+| `bands` | list | — | — | — | thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band. Without `bands`, each grid (a calendar year, or the one `range` window) shades itself by its own minimum and maximum: a checkbox field or a grid where every painted value is the same still paints one flat colour instead |
 | `link` | boolean | — | `true` | — | clicking a cell opens that day's note |
+| `range` | string\|number | — | — | — | one grid over a window ending today, instead of a grid per calendar year: `week`, `month`, `year` (1 January of the current year to today) or a rolling count of days like `365d`. Columns still align to the week the same way; a day outside the window is neither drawn nor counted. An unrecognised value warns and falls back to a grid per year |
 | `title` | string | — | — | — | a custom heading instead of the automatic one |
+
+**List item**
+
+| key | type | required | default | synonyms | what it does |
+|---|---|---|---|---|---|
+| `field` | string\|list | yes | — | `property`, `prop` | this layer's own numeric frontmatter property, or a checkbox; dotted for a nested one, or a list to collapse several properties into this layer's day. Same shapes as the block's own `field` |
+| `color` | string | — | — | `colour` | blue green cyan purple pink orange red gray, or #rrggbb. Without one, the next free colour from the palette, skipping colours other layers already claimed |
+| `label` | string | — | — | `title`, `name` | name shown in the legend and the cell tooltip. Defaults to the field name(s) |
 
 **Example**
 
@@ -240,8 +264,11 @@ bands: [90, 80, 60]
 ````
 
 - A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 Monday` counts, `2026-01-051` does not), unless `date_field` names a property instead. That is how the block knows which cell it belongs to.
-- Two or more notes landing on the same day paint one cell: its value is their sum, and a ticked or numeric note always outweighs a false one on the same day.
+- Two or more notes landing on the same day paint one cell, and so does a `field` list on one note: `per_day` (default sum) says how the day's values combine, and a ticked or numeric contributor always outweighs a false one on the same day.
 - Years are taken from the data, newest first, but never one later than today: a note dated in the future draws nothing extra and counts nowhere in the grid. If every dated note turns out to be in the future, the current year is still drawn, empty.
+- `layers` replaces `field` for tracking several activities on one grid, each its own colour: `layers: [{field: gym, color: blue}, {field: run, color: green, label: Running}]`. When two layers land on the same day, the first one in the list colours the cell; the tooltip still lists every layer that has a value that day.
+- `skip_field` marks special days, vacation or sick for example: they still show a hatched cell, keeping any painted colour underneath, and their count in the caption is unchanged (a special day with no value is still not present).
+- `range` draws one grid over a window ending today instead of a grid per year: `range: 365d` is a rolling year that crosses 1 January in a single grid rather than splitting into two. Everything else works the same over that one grid: bands, layers, skip_field and its legend row, the caption's count and average, tooltips and links.
 
 ## What the plugin does NOT do
 

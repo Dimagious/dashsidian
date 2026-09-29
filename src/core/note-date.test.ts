@@ -144,6 +144,14 @@ describe("resolveNoteDate — by date_field", () => {
         expect(resolveNoteDate(note("2026-03-02", {}), "finished")).toBeNull();
         expect(resolveNoteDate(note("book-1", {}), "finished")).toBeNull();
     });
+
+    it("date_field reaches a nested property", () => {
+        expect(resolveNoteDate(note("book-1", { meta: { date: "2026-03-02" } }), "meta.date")).toBe("2026-03-02");
+    });
+
+    it("date_field as a nested path with no match has no date, name included", () => {
+        expect(resolveNoteDate(note("2026-03-02", { meta: {} }), "meta.date")).toBeNull();
+    });
 });
 
 describe("readDateField", () => {
