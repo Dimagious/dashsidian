@@ -74,6 +74,12 @@ export interface YearLayout {
  * `today` is passed in rather than read from `new Date()` so that tests do not
  * depend on the day they run. `firstDay` comes from the locale: a US reader
  * expects the grid to start on Sunday, a Russian one on Monday.
+ *
+ * Delegates to `layoutRange` (B-093): a calendar year is just the window from
+ * 1 January to `end` inclusive. The only work left here is picking that `end`
+ * (today for the current year, 31 December otherwise) and dropping the `year`
+ * `layoutRange`'s month labels carry, which every caller of `layoutYear`
+ * already knows from `year` itself.
  */
 export function layoutYear(year: number, today: Date, firstDay = DEFAULT_FIRST_DAY): YearLayout {
     const jan1 = new Date(year, 0, 1);
@@ -81,25 +87,115 @@ export function layoutYear(year: number, today: Date, firstDay = DEFAULT_FIRST_D
     const cutoff = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const end = year === cutoff.getFullYear() && cutoff < dec31 ? cutoff : dec31;
 
-    const offset = weekdayRow(jan1.getDay(), firstDay);
-    const total = Math.round((end.getTime() - jan1.getTime()) / DAY_MS) + 1;
-    const columns = Math.ceil((total + offset) / 7);
-
-    const months: MonthLabel[] = [];
-    for (let m = 0; m < 12; m++) {
-        const first = new Date(year, m, 1);
-        if (first > end) break;
-        const dayIndex = Math.round((first.getTime() - jan1.getTime()) / DAY_MS);
-        months.push({ month: m, column: Math.floor((dayIndex + offset) / 7) + 1 });
-    }
-
-    return { year, offset, total, columns, months };
+    const range = layoutRange(dateKey(jan1), dateKey(end), firstDay);
+    return {
+        year,
+        offset: range.offset,
+        total: range.total,
+        columns: range.columns,
+        months: range.months.map(({ month, column }) => ({ month, column })),
+    };
 }
 
 /** Keys of every day of the year that lands in the grid, ascending. */
 export function eachDay(year: number, total: number): string[] {
     const out: string[] = [];
     for (let i = 0; i < total; i++) out.push(dateKey(new Date(year, 0, 1 + i)));
+    return out;
+}
+
+export interface RangeMonthLabel extends MonthLabel {
+    /**
+     * The calendar year this month label falls in. `MonthLabel.month` alone
+     * (0-11) is ambiguous once a window can cross a year boundary or, with a
+     * multi-year `Nd`, repeat the same month several times; carried here
+     * rather than folded into the label text, which stays exactly what
+     * `layoutYear`'s months already look like.
+     */
+    year: number;
+}
+
+export interface RangeLayout {
+    /** inclusive, YYYY-MM-DD */
+    start: string;
+    /** inclusive, YYYY-MM-DD */
+    end: string;
+    /** How many empty cells come before `start` so the first grid row is the first day of the week. */
+    offset: number;
+    /** How many days land in the grid, `start` and `end` both inclusive. */
+    total: number;
+    /** How many week columns the grid spans. */
+    columns: number;
+    /** Month labels with the column each one starts in: the first column's own month, plus every month that starts inside the window. */
+    months: RangeMonthLabel[];
+}
+
+/**
+ * A per-year grid (`layoutYear`) never packs two month labels closer than
+ * this many columns — `layoutRange`'s synthetic start-month label (below)
+ * is dropped rather than let a real one land any closer, which is what
+ * used to overflow `.dashy-hm-months` onto the cells beneath it once a real
+ * month's 1st fell in column 1 or 2 of the window (checker round 1, B-093:
+ * a plain `range: 365d` from today already hits this).
+ */
+const MIN_LABEL_SPACING = 4;
+
+/**
+ * Computes the layout of an arbitrary window (B-093), the generalisation of
+ * `layoutYear` a `range` other than "every calendar year" needs: `week`,
+ * `month`, rolling `Nd`, or a rolling year crossing 1 January in one grid
+ * rather than two.
+ *
+ * Columns are weeks aligned to `firstDay`, exactly like `layoutYear`: the
+ * first column may start mid-week (`offset` pad cells before `start`), the
+ * last ends at `end`. Month labels mark every column where a month starts
+ * inside the window ("real" labels, always kept), plus the window's own
+ * first column, which is not necessarily the start of a month (a
+ * "synthetic" label for whichever month `start` itself falls in). The
+ * synthetic one is dropped when a real label would land too close to it —
+ * see `MIN_LABEL_SPACING` — rather than let the two share, or nearly share,
+ * a column: `.dashy-hm-months` lays labels out with no row of their own to
+ * fall back to, so two in the same column overflow onto the grid below it.
+ */
+export function layoutRange(start: string, end: string, firstDay = DEFAULT_FIRST_DAY): RangeLayout {
+    const startDate = new Date(`${start}T00:00:00`);
+    const offset = weekdayRow(startDate.getDay(), firstDay);
+    const total = daysBetween(start, end) + 1;
+    const columns = Math.ceil((total + offset) / 7);
+
+    // Every real month start inside the window: begins one month after
+    // `start`'s own, so a `start` that already lands on the 1st is never
+    // reported twice.
+    const realMonths: RangeMonthLabel[] = [];
+    let cursor = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1);
+    for (;;) {
+        const key = dateKey(cursor);
+        if (key > end) break;
+        const dayIndex = daysBetween(start, key);
+        realMonths.push({ month: cursor.getMonth(), year: cursor.getFullYear(), column: Math.floor((dayIndex + offset) / 7) + 1 });
+        cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+    }
+
+    const startLabel: RangeMonthLabel = { month: startDate.getMonth(), year: startDate.getFullYear(), column: 1 };
+    // The gap to the first real label, not its raw column: the synthetic
+    // label always sits at column 1, so a real one at column 4 is only 3
+    // columns away, still inside `layoutYear`'s own Feb-to-Mar minimum.
+    const gapToFirstReal = realMonths[0] ? realMonths[0].column - startLabel.column : undefined;
+    const months = gapToFirstReal !== undefined && gapToFirstReal < MIN_LABEL_SPACING
+        ? realMonths
+        : [startLabel, ...realMonths];
+
+    return { start, end, offset, total, columns, months };
+}
+
+/** Keys of every day between `start` and `end`, both inclusive, ascending. */
+export function eachDayBetween(start: string, end: string): string[] {
+    const startDate = new Date(`${start}T00:00:00`);
+    const total = daysBetween(start, end) + 1;
+    const out: string[] = [];
+    for (let i = 0; i < total; i++) {
+        out.push(dateKey(new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + i)));
+    }
     return out;
 }
 

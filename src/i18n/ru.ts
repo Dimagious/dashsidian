@@ -122,9 +122,13 @@ export const ru: Catalog = {
     "heatmap.layerNotMap": "Слой {position} должен быть картой с `field`, получено «{value}».",
     "heatmap.layerLabelInvalid": "Слой {position}: `label` ожидает имя, получено «{value}».",
     "heatmap.layerAt": "Слой {position}: {message}",
+    "heatmap.rangeInvalid":
+        "`range` ожидает week, month, year или скользящее окно вроде 30d, получено «{value}». Рисуется сетка по годам.",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.caption": "{year}, {field}: среднее {average}, {present} из {total} дн.",
     "heatmap.captionMarks": "{year}, {field}: {present} из {total} дн.",
+    "heatmap.captionRange": "{field}: среднее {average}, {present} из {total} дн.",
+    "heatmap.captionRangeMarks": "{field}: {present} из {total} дн.",
     "heatmap.cell": "{date}: {field} {value}",
     "heatmap.cellLayers": "{date}: {parts}",
     "heatmap.cellPart": "{label} {value}",

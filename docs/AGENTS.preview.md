@@ -232,6 +232,7 @@ A year by days: one cell per day, coloured by a number from frontmatter.
 | `layers` | list | — | — | — | several activities on one grid, each in its own colour, instead of one `field`: `[{field, color, label}]`. Not used together with the block's own `field`. The first layer painted on a day colours that cell and supplies its value and link; the tooltip lists every layer with a value that day, in list order. The caption then counts days where any layer painted and drops the average, since averaging different fields together says nothing useful |
 | `bands` | list | — | — | — | thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band. Without `bands`, every day with data paints the same single colour: there is no automatic scale from the data's own minimum and maximum |
 | `link` | boolean | — | `true` | — | clicking a cell opens that day's note |
+| `range` | string\|number | — | — | — | one grid over a window ending today, instead of a grid per calendar year: `week`, `month`, `year` (1 January of the current year to today) or a rolling count of days like `365d`. Columns still align to the week the same way; a day outside the window is neither drawn nor counted. An unrecognised value warns and falls back to a grid per year |
 | `title` | string | — | — | — | a custom heading instead of the automatic one |
 
 **List item**
@@ -258,6 +259,7 @@ bands: [90, 80, 60]
 - Years are taken from the data, newest first, but never one later than today: a note dated in the future draws nothing extra and counts nowhere in the grid. If every dated note turns out to be in the future, the current year is still drawn, empty.
 - `layers` replaces `field` for tracking several activities on one grid, each its own colour: `layers: [{field: gym, color: blue}, {field: run, color: green, label: Running}]`. When two layers land on the same day, the first one in the list colours the cell; the tooltip still lists every layer that has a value that day.
 - `skip_field` marks special days, vacation or sick for example: they still show a hatched cell, keeping any painted colour underneath, and their count in the caption is unchanged (a special day with no value is still not present).
+- `range` draws one grid over a window ending today instead of a grid per year: `range: 365d` is a rolling year that crosses 1 January in a single grid rather than splitting into two. Everything else works the same over that one grid: bands, layers, skip_field and its legend row, the caption's count and average, tooltips and links.
 
 ## What the plugin does NOT do
 

@@ -124,8 +124,12 @@ export const fr: Catalog = {
     "heatmap.layerNotMap": "La couche {position} doit être une carte avec `field`, reçu « {value} ».",
     "heatmap.layerLabelInvalid": "Couche {position} : `label` attend un nom, reçu « {value} ».",
     "heatmap.layerAt": "Couche {position} : {message}",
+    "heatmap.rangeInvalid":
+        "`range` attend week, month, year ou une fenêtre glissante comme 30d, reçu « {value} ». Une grille par année est dessinée à la place.",
     "heatmap.caption": "{year}, {field} : moyenne {average}, {present} jours sur {total}",
     "heatmap.captionMarks": "{year}, {field} : {present} jours sur {total}",
+    "heatmap.captionRange": "{field} : moyenne {average}, {present} jours sur {total}",
+    "heatmap.captionRangeMarks": "{field} : {present} jours sur {total}",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.cell": "{date}: {field} {value}",
     "heatmap.cellLayers": "{date}: {parts}",

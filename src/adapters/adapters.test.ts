@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { snapshot, noteExists, VaultSnapshot } from "./vault";
 import { discoverPeriodics } from "./periodic";
-import { formatDate, currentLocale, weekdayNamesShort, monthNamesShort, firstDayOfWeek } from "./datetime";
+import { formatDate, currentLocale, weekdayNamesShort, monthNamesShort, firstDayOfWeek, monthYearShort } from "./datetime";
 import { applyObsidianLocale, applyLocale } from "./locale";
 import { setLocale, getLocale } from "../i18n";
 import { mockApp, countingContext, diary } from "../test/vault";
@@ -122,6 +122,10 @@ describe("datetime", () => {
         expect([0, 1, 6]).toContain(firstDayOfWeek());
     });
 
+    it("gives a short month name plus its year", () => {
+        expect(monthYearShort(new Date(2025, 8, 1))).toBe("Sep 2025");
+    });
+
     it("reports a locale code", () => {
         expect(currentLocale()).toMatch(/^[a-z]{2}/);
     });
@@ -142,6 +146,7 @@ describe("locale wiring", () => {
         // The catalog and moment have to agree, or one caption reads in each.
         expect(formatDate(new Date(2026, 0, 15), "MMMM")).toBe("Januar");
         expect(monthNamesShort()[0]).toBe("Jan.");
+        expect(monthYearShort(new Date(2025, 0, 1))).toBe("Jan. 2025");
     });
 
     it("an empty choice follows Obsidian, which is English here", () => {

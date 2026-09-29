@@ -5,7 +5,9 @@ import {
     weekdayRow,
     daysBetween,
     layoutYear,
+    layoutRange,
     eachDay,
+    eachDayBetween,
     longestStreak,
     currentStreak,
     isWeekend,
@@ -96,6 +98,125 @@ describe("eachDay", () => {
     it("returns keys in ascending order", () => {
         const days = eachDay(2026, 3);
         expect(days).toEqual(["2026-01-01", "2026-01-02", "2026-01-03"]);
+    });
+});
+
+describe("layoutRange (B-093)", () => {
+    it("a single day is always one column, whatever the offset", () => {
+        const l = layoutRange("2026-09-22", "2026-09-22", 1);
+        expect(l.total).toBe(1);
+        expect(l.columns).toBe(1);
+        expect(l.months).toEqual([{ month: 8, year: 2026, column: 1 }]);
+    });
+
+    it("a window that fits inside one week is one column", () => {
+        // Monday to Wednesday, weeks starting on Monday: no offset, 3 days.
+        const l = layoutRange("2026-09-21", "2026-09-23", 1);
+        expect(l.offset).toBe(0);
+        expect(l.total).toBe(3);
+        expect(l.columns).toBe(1);
+    });
+
+    it("crosses a year boundary in one grid, with a month label on each side", () => {
+        // 1 December 2025 is a Monday, so the window starts exactly on a
+        // week boundary and January's real label lands far enough away
+        // (column 5) that the synthetic December one survives too.
+        const l = layoutRange("2025-12-01", "2026-01-15", 1);
+        expect(l.offset).toBe(0);
+        expect(l.total).toBe(46); // 1 December through 15 January inclusive
+        expect(l.months).toEqual([
+            { month: 11, year: 2025, column: 1 },
+            { month: 0, year: 2026, column: 5 },
+        ]);
+    });
+
+    // Checker round 1, B-093: the window this README example (`range: 365d`
+    // from "today") actually produces used to carry two labels in the same
+    // column — the synthetic September one and the real October one, both
+    // landing in column 1 — which `.dashy-hm-months` (a `display: grid` row
+    // with no row template of its own) then overflowed onto the cells below
+    // it rather than stacking cleanly.
+    it("drops the synthetic start-month label once a real one would land within the minimum spacing", () => {
+        const l = layoutRange("2025-09-29", "2026-09-28", 0);
+        // September (month 8) is gone; October (month 9) is the first label
+        // now, sitting exactly where September's synthetic one would have.
+        expect(l.months[0]).toEqual({ month: 9, year: 2025, column: 1 });
+        expect(l.months.some((m) => m.month === 8 && m.year === 2025)).toBe(false);
+        const columns = l.months.map((m) => m.column);
+        expect(new Set(columns).size).toBe(columns.length); // no two labels share a column
+    });
+
+    it("the same drop happens for a short rolling window too, not only a year-long one", () => {
+        // range: 30d from 2026-09-28: the window starts 2026-08-30, and
+        // September's real 1st lands right where August's synthetic label
+        // would, one column later.
+        const l = layoutRange("2026-08-30", "2026-09-28", 0);
+        expect(l.months).toEqual([{ month: 8, year: 2026, column: 1 }]);
+    });
+
+    it("never packs two month labels closer than a per-year grid's own minimum spacing, over every day of a year, both rolling-window lengths and both week starts", () => {
+        for (const days of [30, 365]) {
+            for (const firstDay of [0, 1]) {
+                for (let doy = 0; doy < 365; doy++) {
+                    const today = new Date(2026, 0, 1 + doy);
+                    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (days - 1));
+                    const l = layoutRange(dateKey(start), dateKey(today), firstDay);
+                    for (let i = 1; i < l.months.length; i++) {
+                        const gap = (l.months[i]?.column ?? 0) - (l.months[i - 1]?.column ?? 0);
+                        expect(gap).toBeGreaterThanOrEqual(4);
+                    }
+                }
+            }
+        }
+    });
+
+    it("counts a leap day", () => {
+        const l = layoutRange("2024-02-28", "2024-03-01");
+        expect(l.total).toBe(3); // 28, 29 February, 1 March
+    });
+
+    it("survives a daylight saving switch", () => {
+        // Europe's clocks spring forward on 2026-03-29.
+        const l = layoutRange("2026-03-27", "2026-03-30");
+        expect(l.total).toBe(4);
+    });
+
+    it("a Sunday-first locale shifts the offset the same way layoutYear does", () => {
+        expect(layoutRange("2026-01-01", "2026-01-01", 1).offset).toBe(3);
+        expect(layoutRange("2026-01-01", "2026-01-01", 0).offset).toBe(4);
+    });
+
+    it("every cell still lands in the row of its weekday", () => {
+        for (const firstDay of [0, 1, 6]) {
+            const l = layoutRange("2026-09-01", "2026-09-30", firstDay);
+            const days = eachDayBetween("2026-09-01", "2026-09-30");
+            days.forEach((key, i) => {
+                const row = (i + l.offset) % 7;
+                const weekday = weekdayRow(new Date(`${key}T00:00:00`).getDay(), firstDay);
+                expect(row).toBe(weekday);
+            });
+        }
+    });
+});
+
+describe("eachDayBetween", () => {
+    it("returns keys in ascending order, both ends inclusive", () => {
+        expect(eachDayBetween("2026-01-01", "2026-01-03"))
+            .toEqual(["2026-01-01", "2026-01-02", "2026-01-03"]);
+    });
+
+    it("a single day returns just that day", () => {
+        expect(eachDayBetween("2026-01-01", "2026-01-01")).toEqual(["2026-01-01"]);
+    });
+
+    it("includes a leap day", () => {
+        expect(eachDayBetween("2024-02-28", "2024-03-01"))
+            .toEqual(["2024-02-28", "2024-02-29", "2024-03-01"]);
+    });
+
+    it("crosses a year boundary", () => {
+        expect(eachDayBetween("2025-12-30", "2026-01-02"))
+            .toEqual(["2025-12-30", "2025-12-31", "2026-01-01", "2026-01-02"]);
     });
 });
 

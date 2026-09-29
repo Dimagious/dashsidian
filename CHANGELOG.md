@@ -12,6 +12,21 @@ removed public export.
 
 ### Added
 
+- **`heatmap` takes `range`, one grid over a window ending today instead of a
+  grid per calendar year.** `range: 365d` is a rolling year that crosses 1
+  January in a single grid rather than splitting into two; `range` also
+  takes `week`, `month` and `year` (1 January of the current year to today),
+  exactly the same vocabulary `stats`' `period` already uses. Columns still
+  align to the week the way a per-year grid's do; a day outside the window
+  is neither drawn nor counted, and the caption's count and average cover
+  only the days inside it. Everything else keeps working over that one
+  grid: bands, `layers`, `skip_field` and its legend row, tooltips and
+  links. A window spanning more than one calendar year names the year on
+  its first month label and on every January (`Oct 2025 ... Jan 2026`).
+  Without `range`, behaviour is unchanged: a grid per calendar year
+  that has data, never later than today. An unrecognised `range` warns
+  naming the value and the valid forms, and falls back to that default.
+  Schema 1.6.0.
 - **`agg: streak` on `stats` and `progress` takes `skip_field`, and `heatmap`
   takes it too.** `skip_field: vacation` marks a day special: any note
   landing on it with the property set to anything other than `false`, a

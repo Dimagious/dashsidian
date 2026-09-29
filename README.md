@@ -377,6 +377,26 @@ top of its usual colour if it has one, or on its own over an otherwise empty cel
 the same way with `layers`, and does not change the caption's count: a special day with
 nothing painted is still not one of the "days" the caption counts.
 
+By default the heatmap draws a grid per calendar year that has data, never later than today.
+`range: 365d` draws one grid instead, a rolling year that crosses 1 January without splitting
+into two:
+
+````markdown
+```heatmap
+source: Diary
+field: sleep_score
+color: purple
+range: 365d
+```
+````
+
+`range` takes the same window `stats`' `period` does: `week`, `month`, `year` (1 January of
+the current year to today) or a rolling count of days like `90d`. Whichever one it is, a day
+outside that window is neither drawn nor counted, and the caption's count and average cover
+only the days inside it. Everything else works the same on a range grid: bands, `layers`,
+`skip_field` and its legend row, tooltips and links. A window that spans more than one year
+names the year on its first month and on every January.
+
 ## It keeps up with the vault
 
 Add a note, edit a number, delete something, and every block on the page redraws. No

@@ -1,5 +1,5 @@
 import type { BlockContext } from "./context";
-import { weekdayNamesShort, monthNamesShort, firstDayOfWeek } from "../adapters/datetime";
+import { weekdayNamesShort, monthNamesShort, monthYearShort, firstDayOfWeek } from "../adapters/datetime";
 import { selectNotes, readSource, unmatchedSource, type NoteRecord } from "../core/source";
 import { classifyField } from "../core/aggregate";
 import { readFields, readPerDay, dayValues, unusedFields } from "../core/day-values";
@@ -7,7 +7,11 @@ import { readLayers, combineLayers, type Layer } from "../core/layers";
 import { readDateField } from "../core/note-date";
 import { specialDays } from "../core/special-days";
 import { formatValue, roundedValue } from "../core/stat";
-import { layoutYear, dateKey, eachDay, yearsOf, rotateWeekdays, weekdayRow } from "../core/calendar";
+import {
+    layoutYear, layoutRange, eachDay, eachDayBetween, yearsOf, rotateWeekdays, weekdayRow,
+    type MonthLabel,
+} from "../core/calendar";
+import { parsePeriod, periodWindow, type Period } from "../core/period";
 import { toRgb, rgba, DEFAULT_COLOR, PALETTE, type Rgb } from "../core/palette";
 import { readBands, bandFor, type Band } from "../core/bands";
 import { scrollEdges, resolveScrollRestore, type ScrollSnapshot } from "../core/scroll";
@@ -22,8 +26,9 @@ const KNOWN = Object.keys(schema.blocks.heatmap.root);
 const KNOWN_ITEM = Object.keys(schema.blocks.heatmap.item);
 
 /**
- * One `ResizeObserver` per year grid drawn into a block's element, so the
- * next redraw can disconnect them before making new ones. `clearBlock` empties
+ * One `ResizeObserver` per grid drawn into a block's element (one per year,
+ * or the single one a `range` config draws), so the next redraw can
+ * disconnect them before making new ones. `clearBlock` empties
  * the element but does not touch a `ResizeObserver`: it keeps observing a
  * detached node forever unless told to stop, and every redraw would leak one
  * more. Keyed by the element rather than held in a closure because the block
@@ -39,13 +44,17 @@ function disconnectObservers(el: HTMLElement): void {
 }
 
 /**
- * A reader who has scrolled a year's grid by hand should not find it jumped
- * back to the end on the next vault event: every redraw clears the element
- * and rebuilds it from scratch (`clearBlock`, `drawYear`), so nothing about
+ * A reader who has scrolled a grid by hand should not find it jumped back to
+ * the end on the next vault event: every redraw clears the element and
+ * rebuilds it from scratch (`clearBlock`, `drawGrid`), so nothing about
  * where a scroller sat survives on its own unless it is read out of the DOM
- * first. One snapshot per year, `data-year` on `.dashy-hm-scroll` saying
- * which; a year missing from the new draw is simply absent from the map
- * `renderHeatmap` looks it up in.
+ * first. One snapshot per grid, `data-grid-key` on `.dashy-hm-scroll` saying
+ * which — a calendar year as a string with a plain `field`/`layers` config,
+ * or `RANGE_GRID_KEY` for the single grid a `range` config draws (B-093), so
+ * the two never collide even though a vault could plausibly have both kinds
+ * of key show up in the same page across separate heatmap blocks. A key
+ * missing from the new draw is simply absent from the map `renderHeatmap`
+ * looks it up in.
  *
  * Reads `dataset` only, never live `scrollLeft`/`clientWidth`/`scrollWidth`:
  * a redraw can land while the pane is not the active tab, where Obsidian
@@ -53,7 +62,7 @@ function disconnectObservers(el: HTMLElement): void {
  * live, that 0/0/0 reads as "at the end" (nothing to scroll right to) and
  * the real position is lost the moment the reader switches tabs, edits
  * something, and switches back. `dataset.scrollLeft`/`dataset.atEnd` are
- * instead kept up to date by the scroller itself, in `drawYear`, only while
+ * instead kept up to date by the scroller itself, in `drawGrid`, only while
  * it actually has a box to measure (`recordPosition`), so what is read here
  * is always the last *real* position, however long ago that was.
  *
@@ -69,16 +78,16 @@ function disconnectObservers(el: HTMLElement): void {
  * masquerade as an achieved settle, which hid a missing `settle()` call in
  * the restore path behind the very seed it should have overwritten.
  */
-function captureScrollState(el: HTMLElement): Map<number, ScrollSnapshot> {
-    const saved = new Map<number, ScrollSnapshot>();
+function captureScrollState(el: HTMLElement): Map<string, ScrollSnapshot> {
+    const saved = new Map<string, ScrollSnapshot>();
     for (const scroll of Array.from(el.querySelectorAll<HTMLElement>(".dashy-hm-scroll"))) {
-        const year = Number(scroll.dataset.year);
-        if (!Number.isInteger(year)) continue;
+        const key = scroll.dataset.gridKey;
+        if (!key) continue;
 
         if (scroll.dataset.settled === "true") {
             const scrollLeft = Number(scroll.dataset.scrollLeft);
             if (Number.isFinite(scrollLeft)) {
-                saved.set(year, { settled: true, scrollLeft, atEnd: scroll.dataset.atEnd === "true" });
+                saved.set(key, { settled: true, scrollLeft, atEnd: scroll.dataset.atEnd === "true" });
                 continue;
             }
         }
@@ -88,7 +97,7 @@ function captureScrollState(el: HTMLElement): Map<number, ScrollSnapshot> {
         // previous draw's snapshot forward instead of losing it.
         const pendingScrollLeft = Number(scroll.dataset.pendingScrollLeft);
         if (Number.isFinite(pendingScrollLeft)) {
-            saved.set(year, {
+            saved.set(key, {
                 settled: scroll.dataset.pendingSettled === "true",
                 scrollLeft: pendingScrollLeft,
                 atEnd: scroll.dataset.pendingAtEnd === "true",
@@ -98,8 +107,11 @@ function captureScrollState(el: HTMLElement): Map<number, ScrollSnapshot> {
     return saved;
 }
 
+/** `data-grid-key` for the single grid a `range` config draws (B-093), as opposed to a calendar year's own year number. */
+const RANGE_GRID_KEY = "range";
+
 export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement): void | (() => void) {
-    const restoreByYear = captureScrollState(el);
+    const restoreByKey = captureScrollState(el);
     clearBlock(el);
     disconnectObservers(el);
 
@@ -129,7 +141,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     if (hasLayers && value.color !== undefined) {
         diags.push({ level: "warning", message: t("heatmap.layersColorIgnored") });
     }
-    if (hasLayers) return renderLayeredHeatmap(ctx, value, diags, el, restoreByYear);
+    if (hasLayers) return renderLayeredHeatmap(ctx, value, diags, el, restoreByKey);
 
     const { fields, diagnostics: fieldDiags } = readFields(value);
     diags.push(...fieldDiags);
@@ -152,6 +164,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     const linkable = value.link !== false;
     const dateField = readDateField(value);
     const skipField = readSkipField(value, diags);
+    const range = readRange(value, diags);
     const { perDay, diagnostics: perDayDiags } = readPerDay(value);
     diags.push(...perDayDiags);
 
@@ -202,10 +215,10 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     renderDiagnostics(el, "heatmap", diags);
 
     const firstDay = firstDayOfWeek();
-    return drawYears(el, ctx, marks, {
+    return drawHeatmap(el, ctx, marks, {
         color, bands, field: fieldLabel, linkable, title: value.title, firstDay,
         showBandsLegend: true, special,
-    }, restoreByYear);
+    }, restoreByKey, range);
 }
 
 /** `readSource` + `unmatchedSource` + `selectNotes`, in the order every block runs them. */
@@ -238,6 +251,27 @@ function readSkipField(value: Record<string, unknown>, diags: Diagnostic[]): str
 }
 
 /**
+ * Reads `range` off the block's root config (B-093): a window ending today
+ * — `week`, `month`, `year`, or a rolling `Nd` — that draws one grid instead
+ * of the default grid per calendar year. Exactly stats' `period` vocabulary
+ * (`core/period.ts#parsePeriod`), reused rather than reinvented so an agent
+ * that already knows `period: 30d` on a stats card does not have to learn a
+ * second spelling here. Absent is silent; present but unreadable warns and
+ * falls back to the per-year grids, the same "keep drawing something
+ * sensible" shape every other malformed key in this block already takes.
+ */
+function readRange(value: Record<string, unknown>, diags: Diagnostic[]): Period | undefined {
+    const raw = value.range;
+    if (raw === undefined) return undefined;
+    const period = parsePeriod(raw);
+    if (!period) {
+        diags.push({ level: "warning", message: t("heatmap.rangeInvalid", { value: describeValue(raw) }) });
+        return undefined;
+    }
+    return period;
+}
+
+/**
  * `layers:` (B-096): several activities on one grid, each in its own colour,
  * in place of a single `field`. Mirrors the plain `field` path above —
  * source selection, the "nothing resolves anywhere" error, the "this one
@@ -251,7 +285,7 @@ function renderLayeredHeatmap(
     value: Record<string, unknown>,
     diags: Diagnostic[],
     el: HTMLElement,
-    restoreByYear: Map<number, ScrollSnapshot>,
+    restoreByKey: Map<string, ScrollSnapshot>,
 ): void | (() => void) {
     const { layers, diagnostics: layersDiags } = readLayers(value, KNOWN_ITEM);
     diags.push(...layersDiags);
@@ -269,6 +303,7 @@ function renderLayeredHeatmap(
     const linkable = value.link !== false;
     const dateField = readDateField(value);
     const skipField = readSkipField(value, diags);
+    const range = readRange(value, diags);
     const { perDay, diagnostics: perDayDiags } = readPerDay(value);
     diags.push(...perDayDiags);
 
@@ -312,9 +347,9 @@ function renderLayeredHeatmap(
     renderDiagnostics(el, "heatmap", diags);
 
     const firstDay = firstDayOfWeek();
-    return drawYears(el, ctx, marks, {
+    return drawHeatmap(el, ctx, marks, {
         // Defensive filler only, never any one layer's colour: a cell reads
-        // its colour from `layers[mark.layer]` (see `drawYear`), and the
+        // its colour from `layers[mark.layer]` (see `drawGrid`), and the
         // bands legend row paints in a neutral `PALETTE.gray` in `layers`
         // mode instead of this, precisely so the scale does not read as
         // belonging to whichever layer happens to be first. Kept because
@@ -328,7 +363,72 @@ function renderLayeredHeatmap(
         firstDay,
         showBandsLegend: bandsGiven,
         special,
-    }, restoreByYear);
+    }, restoreByKey, range);
+}
+
+/**
+ * Dispatches to a grid per calendar year (the default, unchanged behaviour)
+ * or the single `range` grid (B-093), depending on whether `range` parsed to
+ * anything. The two share everything past "which days make up the grid":
+ * `drawGrid` below neither knows nor cares which of them it was asked for.
+ */
+function drawHeatmap(
+    el: HTMLElement,
+    ctx: BlockContext,
+    marks: ReadonlyMap<string, Paintable>,
+    opts: Omit<DrawOptions, "restore">,
+    restoreByKey: Map<string, ScrollSnapshot>,
+    range: Period | undefined,
+): void | (() => void) {
+    return range
+        ? drawRangeGrid(el, ctx, marks, range, opts, restoreByKey)
+        : drawYears(el, ctx, marks, opts, restoreByKey);
+}
+
+/**
+ * How many days a grid's `dayKeys` actually carry a mark, and their average —
+ * shared by the per-year caption and the `range` caption (B-093), which
+ * otherwise differ only in whether a year number is worth saying.
+ */
+interface CaptionStats {
+    /** already formatted, `formatValue`'s own rounding */
+    average: string;
+    present: number;
+    total: number;
+    /** false for an all-boolean field (see the caption itself) or with `layers` */
+    showAverage: boolean;
+}
+
+function captionStats(
+    dayKeys: readonly string[],
+    marks: ReadonlyMap<string, Paintable>,
+    opts: Pick<DrawOptions, "layers">,
+): CaptionStats {
+    const dayMarks = dayKeys
+        .map((k) => marks.get(k))
+        .filter((v): v is Paintable => v !== undefined);
+    const present = dayMarks.filter((m) => m.painted).length;
+
+    // The average counts every recognised day, a `false` one included as 0 —
+    // the same sum a stats `avg` card over this field would show. Counting
+    // only the painted days used to read "average 1" for an all-boolean field
+    // no matter how many days were actually unticked, which is not the rate
+    // anyone reading a habit tracker would call "average".
+    const average = formatValue(
+        dayMarks.length ? dayMarks.reduce((s, m) => s + m.value, 0) / dayMarks.length : 0,
+    );
+
+    // Every painted day of an all-boolean field can only ever be 1: "average 1"
+    // states the obvious rather than informing, so the caption drops it.
+    // With `layers`, several different fields are being folded into one
+    // grid; averaging them together would not be "the average of a field",
+    // it would be a number about nothing in particular, so it is dropped
+    // unconditionally rather than only when every layer happens to be
+    // boolean.
+    const booleanOnly = !opts.layers && dayMarks.length > 0 && dayMarks.every((m) => m.isBool);
+    const showAverage = !opts.layers && !booleanOnly;
+
+    return { average, present, total: dayKeys.length, showAverage };
 }
 
 /**
@@ -343,22 +443,32 @@ function drawYears(
     el: HTMLElement,
     ctx: BlockContext,
     marks: ReadonlyMap<string, Paintable>,
-    opts: Omit<DrawOptions, "severalYears" | "restore">,
-    restoreByYear: Map<number, ScrollSnapshot>,
+    opts: Omit<DrawOptions, "restore">,
+    restoreByKey: Map<string, ScrollSnapshot>,
 ): void | (() => void) {
     const today = ctx.today();
     const years = yearsOf([...marks.keys()]).filter((y) => y <= today.getFullYear());
     const yearsToDraw = years.length ? years : [today.getFullYear()];
+    const severalYears = yearsToDraw.length > 1;
     const drawn: ResizeObserver[] = [];
     for (const year of yearsToDraw) {
+        const layout = layoutYear(year, today, opts.firstDay);
+        const dayKeys = eachDay(year, layout.total);
+        const stats = captionStats(dayKeys, marks, opts);
         // With more than one grid, each has to say which year it is —
         // otherwise two grids under the same custom title read as the same
         // thing drawn twice, which is exactly how it was first reported.
-        const observer = drawYear(el, year, today, marks, {
-            ...opts,
-            severalYears: yearsToDraw.length > 1,
-            restore: restoreByYear.get(year),
-        });
+        const caption = typeof opts.title === "string"
+            ? (severalYears ? t("heatmap.titleYear", { title: opts.title, year }) : opts.title)
+            : stats.showAverage
+                ? t("heatmap.caption", {
+                    year, field: opts.field, average: stats.average, present: stats.present, total: stats.total,
+                })
+                : t("heatmap.captionMarks", { year, field: opts.field, present: stats.present, total: stats.total });
+
+        const observer = drawGrid(el, {
+            key: String(year), dayKeys, offset: layout.offset, columns: layout.columns, months: layout.months,
+        }, caption, marks, { ...opts, restore: restoreByKey.get(String(year)) });
         if (observer) drawn.push(observer);
     }
     if (drawn.length) {
@@ -369,6 +479,48 @@ function drawYears(
         // calls for that case. It reads `observers` fresh rather than
         // closing over `drawn`, so it stays correct across any further
         // redraw between now and unload.
+        return () => disconnectObservers(el);
+    }
+}
+
+/**
+ * The single grid a `range` config draws (B-093): one window ending today,
+ * `week`/`month`/`year`/a rolling `Nd`, instead of a grid per calendar year.
+ * `range: year` and the default per-year grid look similar for the current
+ * year (both start 1 January) but are not the same thing: the default can
+ * draw one grid per year that has data, `range: year` always draws exactly
+ * one, the current year, whether or not it has any. A title, when given,
+ * never gets a year suffix here — there being only one grid is the whole
+ * point of asking for a range.
+ */
+function drawRangeGrid(
+    el: HTMLElement,
+    ctx: BlockContext,
+    marks: ReadonlyMap<string, Paintable>,
+    period: Period,
+    opts: Omit<DrawOptions, "restore">,
+    restoreByKey: Map<string, ScrollSnapshot>,
+): void | (() => void) {
+    const today = ctx.today();
+    // Not called `window`: that shadows the DOM global and is exactly the
+    // trap `core/period.ts#DateWindow` already warns about — the scorecard
+    // scanner and a reader both take `window.` for a call on it.
+    const dateWindow = periodWindow(period, today, opts.firstDay);
+    const layout = layoutRange(dateWindow.start, dateWindow.end, opts.firstDay);
+    const dayKeys = eachDayBetween(dateWindow.start, dateWindow.end);
+    const stats = captionStats(dayKeys, marks, opts);
+
+    const caption = typeof opts.title === "string"
+        ? opts.title
+        : stats.showAverage
+            ? t("heatmap.captionRange", { field: opts.field, average: stats.average, present: stats.present, total: stats.total })
+            : t("heatmap.captionRangeMarks", { field: opts.field, present: stats.present, total: stats.total });
+
+    const observer = drawGrid(el, {
+        key: RANGE_GRID_KEY, dayKeys, offset: layout.offset, columns: layout.columns, months: layout.months,
+    }, caption, marks, { ...opts, restore: restoreByKey.get(RANGE_GRID_KEY) });
+    if (observer) {
+        observers.set(el, [observer]);
         return () => disconnectObservers(el);
     }
 }
@@ -407,67 +559,51 @@ interface DrawOptions {
     special: ReadonlySet<string>;
     /** 0 is Sunday, 1 is Monday — whatever the locale says */
     firstDay: number;
-    /** Whether this grid is one of several, and so has to name its year. */
-    severalYears: boolean;
-    /** Where this year's scroller sat before this redraw, if anywhere worth restoring. */
+    /** Where this grid's scroller sat before this redraw, if anywhere worth restoring. */
     restore: ScrollSnapshot | undefined;
 }
 
-function drawYear(
+/**
+ * What `drawGrid` needs of a grid's shape, computed by its caller from
+ * either `layoutYear` or `layoutRange` (B-093): the two already share this
+ * exact shape, `RangeMonthLabel`'s extra `year` field simply along for the
+ * ride and never read here. `key` is the `data-grid-key` bookkeeping
+ * `captureScrollState` reads back on the next redraw — a year as a string,
+ * or `RANGE_GRID_KEY` for the one grid a `range` config draws.
+ */
+/**
+ * A month label `drawGrid` can place, optionally carrying which calendar
+ * year it falls in — set only by `layoutRange` (a `range` grid's window can
+ * cross a year boundary or, with a multi-year `Nd`, repeat a month), never
+ * by `layoutYear` (its own months are always the same, current, year).
+ */
+interface GridMonthLabel extends MonthLabel {
+    year?: number;
+}
+
+interface GridLayout {
+    key: string;
+    /** ascending, exactly the cells this grid draws, one per column-then-row position after `offset` pad cells */
+    dayKeys: readonly string[];
+    offset: number;
+    columns: number;
+    months: readonly GridMonthLabel[];
+}
+
+function drawGrid(
     el: HTMLElement,
-    year: number,
-    today: Date,
+    layout: GridLayout,
+    caption: string,
     marks: ReadonlyMap<string, Paintable>,
     opts: DrawOptions,
 ): ResizeObserver | null {
-    const layout = layoutYear(year, today, opts.firstDay);
     const wrap = el.createDiv({ cls: "dashy-hm-wrap" });
 
-    const dayKeys = eachDay(year, layout.total);
-    const yearMarks = dayKeys
-        .map((k) => marks.get(k))
-        .filter((v): v is Paintable => v !== undefined);
-    const present = yearMarks.filter((m) => m.painted);
-    // Whether this year's grid has at least one hatched cell, painted or
-    // not: the legend only earns its extra row when there is something on
-    // this particular grid for it to explain.
-    const specialInYear = dayKeys.some((k) => opts.special.has(k));
+    // Whether this grid has at least one hatched cell, painted or not: the
+    // legend only earns its extra row when there is something on this
+    // particular grid for it to explain.
+    const specialInGrid = layout.dayKeys.some((k) => opts.special.has(k));
 
-    // The average counts every recognised day, a `false` one included as 0 —
-    // the same sum a stats `avg` card over this field would show. Counting
-    // only the painted days used to read "average 1" for an all-boolean field
-    // no matter how many days were actually unticked, which is not the rate
-    // anyone reading a habit tracker would call "average".
-    const average = formatValue(
-        yearMarks.length ? yearMarks.reduce((s, m) => s + m.value, 0) / yearMarks.length : 0,
-    );
-
-    // Every painted day of an all-boolean field can only ever be 1: "average 1"
-    // states the obvious rather than informing, so the caption drops it.
-    // With `layers`, several different fields are being folded into one
-    // grid; averaging them together would not be "the average of a field",
-    // it would be a number about nothing in particular, so it is dropped
-    // unconditionally rather than only when every layer happens to be
-    // boolean.
-    const booleanOnly = !opts.layers && yearMarks.length > 0 && yearMarks.every((m) => m.isBool);
-    const showAverage = !opts.layers && !booleanOnly;
-
-    const caption = typeof opts.title === "string"
-        ? (opts.severalYears ? t("heatmap.titleYear", { title: opts.title, year }) : opts.title)
-        : showAverage
-            ? t("heatmap.caption", {
-                year,
-                field: opts.field,
-                average,
-                present: present.length,
-                total: layout.total,
-            })
-            : t("heatmap.captionMarks", {
-                year,
-                field: opts.field,
-                present: present.length,
-                total: layout.total,
-            });
     wrap.createDiv({ cls: "dashy-hm-title", text: caption });
 
     const body = wrap.createDiv({ cls: "dashy-hm-body" });
@@ -488,7 +624,7 @@ function drawYear(
     const scroll = main.createDiv({ cls: "dashy-hm-scroll" });
     // Read back by `captureScrollState` on the next redraw, before this
     // element is torn down; not translated, never shown, just bookkeeping.
-    scroll.dataset.year = String(year);
+    scroll.dataset.gridKey = layout.key;
     // Seeded from the previous draw's own snapshot immediately, not only
     // once a real width tick lands: a second redraw can happen before this
     // scroller ever measures anything of its own (two vault events close
@@ -505,21 +641,32 @@ function drawYear(
         scroll.dataset.pendingAtEnd = String(opts.restore.atEnd);
     }
     const months = monthNamesShort();
+    // A range grid's window can cross a year boundary; a per-year grid's
+    // months never carry a `year` at all (`GridMonthLabel.year` is only
+    // ever set by `layoutRange`), so this is always false there.
+    const spansYears = new Set(layout.months.map((m) => m.year).filter((y): y is number => y !== undefined)).size > 1;
 
     const monthRow = scroll.createDiv({ cls: "dashy-hm-months" });
     monthRow.style.gridTemplateColumns = `repeat(${layout.columns}, var(--dashy-cell))`;
-    for (const m of layout.months) {
-        const label = monthRow.createDiv({ cls: "dashy-hm-mon", text: months[m.month] ?? "" });
+    layout.months.forEach((m, i) => {
+        const year = m.year;
+        // Every January says which year once the grid spans more than one —
+        // otherwise two Januaries a year apart both just read "Jan". The
+        // grid's own first label gets the same treatment when it is not
+        // January either, so a range grid that does not start in January
+        // still tells the reader straight away which year it opens on.
+        const withYear = spansYears && year !== undefined && (i === 0 || m.month === 0);
+        const text = withYear && year !== undefined ? monthYearShort(new Date(year, m.month, 1)) : (months[m.month] ?? "");
+        const label = monthRow.createDiv({ cls: "dashy-hm-mon", text });
         label.style.gridColumnStart = String(m.column);
-    }
+    });
 
     // grid-auto-flow: column over 7 rows — cells are added in order, so the
-    // year starts with `offset` empty ones.
+    // grid starts with `offset` empty ones.
     const grid = scroll.createDiv({ cls: "dashy-hm-grid" });
     for (let i = 0; i < layout.offset; i++) grid.createDiv({ cls: "dashy-hm-cell dashy-hm-pad" });
 
-    for (let i = 0; i < layout.total; i++) {
-        const date = dateKey(new Date(year, 0, 1 + i));
+    for (const date of layout.dayKeys) {
         const hit = marks.get(date);
         const paintable = hit?.painted ? hit : undefined;
         const special = opts.special.has(date);
@@ -591,20 +738,21 @@ function drawYear(
         }
     }
     // Only earns its row on a grid that actually has a hatched cell: a
-    // `skip_field` set but never triggered anywhere in this year would
-    // otherwise add a swatch nothing on the grid explains.
-    if (specialInYear) {
+    // `skip_field` set but never triggered anywhere in this grid's window
+    // would otherwise add a swatch nothing on the grid explains.
+    if (specialInGrid) {
         const row = legend.createDiv({ cls: "dashy-hm-leg" });
         row.createDiv({ cls: "dashy-hm-swatch is-skipped" });
         row.createSpan({ text: t("heatmap.legendSkipped") });
     }
 
-    // Where the year does not fit, open it at the most recent day rather than
-    // at January (9f3db44): on a phone the visible third of a past year is
-    // empty, which reads as a broken grid; its data is at the end. `total`
-    // (core/calendar.ts) already stops the grid at the most recent day —
-    // today for the current year, 31 December for a past one — so "scroll to
-    // the end" and "scroll to the data" are the same target here.
+    // Where the grid does not fit, open it at the most recent day rather than
+    // at its start (9f3db44): on a phone the visible third of a past year is
+    // empty, which reads as a broken grid; its data is at the end. `layout`
+    // (`layoutYear`/`layoutRange`, core/calendar.ts) already stops at the
+    // most recent day the grid draws — today for the current year or a
+    // `range` window, 31 December for a past one — so "scroll to the end"
+    // and "scroll to the data" are the same target here.
     //
     // Getting that scroll to stick took more than "defer it until the width
     // is real": measured against a real Obsidian start, the very first

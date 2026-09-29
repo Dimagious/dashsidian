@@ -3,6 +3,7 @@ import { renderHeatmap } from "./heatmap";
 import { formatValue } from "../core/stat";
 import { mockContext, diary, host, texts, nodes, diagnostics } from "../test/vault";
 import { DEFAULT_SETTINGS } from "../types";
+import { setDateLocale } from "../adapters/datetime";
 
 // 2026 starts on a Thursday. With weeks starting on Sunday (the English
 // locale) that means four pad cells before January 1st.
@@ -1371,8 +1372,8 @@ describe("heatmap — restores the reader's scroll position across a redraw (B-0
             renderHeatmap(twoYears, "source: Diary\nfield: v", el);
             // Newest first: index 0 is 2026, index 1 is 2025.
             const [scroll2026, scroll2025] = nodes(el, ".dashy-hm-scroll");
-            expect(scroll2026?.dataset.year).toBe("2026");
-            expect(scroll2025?.dataset.year).toBe("2025");
+            expect(scroll2026?.dataset.gridKey).toBe("2026");
+            expect(scroll2025?.dataset.gridKey).toBe("2025");
 
             scroll2026!.dispatchEvent(new Event("wheel"));
             stubMetrics(scroll2026!, 100, 300, 600);
@@ -1384,8 +1385,8 @@ describe("heatmap — restores the reader's scroll position across a redraw (B-0
 
             renderHeatmap(twoYears, "source: Diary\nfield: v", el);
             const [redrawn2026, redrawn2025] = nodes(el, ".dashy-hm-scroll");
-            expect(redrawn2026?.dataset.year).toBe("2026");
-            expect(redrawn2025?.dataset.year).toBe("2025");
+            expect(redrawn2026?.dataset.gridKey).toBe("2026");
+            expect(redrawn2025?.dataset.gridKey).toBe("2025");
 
             stubMetrics(redrawn2026!, 0, 300, 600);
             stubMetrics(redrawn2025!, 0, 300, 900);
@@ -1654,6 +1655,265 @@ describe("heatmap — restores the reader's scroll position across a redraw (B-0
             stubMetrics(redrawn, 0, 300, 600);
             ManualResizeObserver.instances.at(-1)!.fire();
 
+            expect(redrawn.scrollLeft).toBe(150);
+        });
+    });
+});
+
+/**
+ * `range` (B-093): one grid over a window ending today — `week`, `month`,
+ * `year`, or a rolling `Nd` — instead of the default grid per calendar year.
+ * Deterministic throughout: `today` is fixed rather than read from the wall
+ * clock, the way `vi.setSystemTime` already does for the B-113 suite above.
+ */
+describe("heatmap — range draws one grid over a window (B-093)", () => {
+    // 2026-09-28 is a Monday. 2026-01-01 is a Thursday (see calendar.test.ts),
+    // and 364 days being exactly 52 weeks, 2025-09-29 lands on a Monday too.
+    const TODAY = new Date(2026, 8, 28);
+
+    afterEach(() => {
+        vi.useRealTimers();
+        setDateLocale(null);
+    });
+
+    const cellCount = (el: HTMLElement) =>
+        nodes(el, ".dashy-hm-cell").length - nodes(el, ".dashy-hm-pad").length;
+
+    it("range: 365d draws one grid crossing the year boundary, with the right day count and month labels", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        // Covers the whole window (2025-09-29 .. 2026-09-28) plus months
+        // before and after it, so the future and past tails have something
+        // to wrongly draw if the window were not actually enforced.
+        const notes = diary("Diary", "2025-01-01", 700, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: 365d", mockContext({ notes }));
+
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(cellCount(el)).toBe(365);
+
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        // No year prefix: a range grid is always the only one, so there is
+        // nothing for a year number to tell it apart from.
+        expect(caption).not.toMatch(/^\d{4}/);
+        expect(caption).toContain("365 of 365 days");
+
+        // The window is 2025-09-29 .. 2026-09-28: September's own synthetic
+        // start-month label collides with October's real one (both would
+        // land in column 1) and is dropped (checker round 1, B-093), so the
+        // grid opens on "Oct 2025" instead. From there every month is a
+        // plain abbreviation except January, which — like the grid's own
+        // first label — says which year once the window spans more than
+        // one: "Jan 2026". The following September is not disambiguated
+        // (there is no other September in this particular window to
+        // confuse it with), so it stays a bare "Sep".
+        expect(texts(el, ".dashy-hm-mon")).toEqual([
+            "Oct 2025", "Nov", "Dec", "Jan 2026", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
+        ]);
+    });
+
+    it("range: month draws the current month to date", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            { path: "Diary/2026-08-31.md", frontmatter: { steps: 1 } }, // before the window
+            ...diary("Diary", "2026-09-01", 28, () => ({ steps: 1 })), // the whole month to date
+            { path: "Diary/2026-09-29.md", frontmatter: { steps: 1 } }, // after today
+        ];
+        const el = map("source: Diary\nfield: steps\nrange: month", mockContext({ notes }));
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(cellCount(el)).toBe(28);
+        expect(texts(el, ".dashy-hm-title")[0]).toContain("28 of 28 days");
+    });
+
+    it("range: week draws this calendar week to date, seven cells or fewer", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            { path: "Diary/2026-09-26.md", frontmatter: { steps: 1 } }, // last week
+            { path: "Diary/2026-09-27.md", frontmatter: { steps: 1 } }, // Sunday, this week
+            { path: "Diary/2026-09-28.md", frontmatter: { steps: 1 } }, // Monday, today
+        ];
+        const el = map("source: Diary\nfield: steps\nrange: week", mockContext({ notes }));
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(cellCount(el)).toBeLessThanOrEqual(7);
+        expect(cellCount(el)).toBe(2);
+        expect(texts(el, ".dashy-hm-title")[0]).toContain("2 of 2 days");
+    });
+
+    it("range: 3650d names the year on every January, so ten of them are told apart", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2026-09-01", 28, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: 3650d", mockContext({ notes }));
+
+        const januaries = texts(el, ".dashy-hm-mon").filter((label) => label.startsWith("Jan"));
+        expect(januaries).toHaveLength(10);
+        expect(januaries.every((label) => /^Jan \d{4}$/.test(label))).toBe(true);
+        expect(new Set(januaries).size).toBe(10);
+    });
+
+    it("range: year draws the current year even when it has no data yet", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        // Only last year has notes: the field resolves, so no error, but
+        // nothing lands in the window.
+        const notes = diary("Diary", "2025-03-01", 10, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: year", mockContext({ notes }));
+
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        // 1 January to 28 September 2026, inclusive.
+        expect(cellCount(el)).toBe(271);
+        expect(nodes(el, ".dashy-hm-cell").filter((c) => c.style.backgroundColor !== "")).toHaveLength(0);
+    });
+
+    it("a bare number is a rolling window in days, like stats' period", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2026-08-01", 59, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: 30", mockContext({ notes }));
+
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(cellCount(el)).toBe(30);
+    });
+
+    it("a custom title is used exactly as written, with no year suffix", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2025-01-01", 700, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: 365d\ntitle: Sleep, rolling year", mockContext({ notes }));
+        expect(texts(el, ".dashy-hm-title")).toEqual(["Sleep, rolling year"]);
+    });
+
+    it("range: 30d draws a rolling 30-day window ending today", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2026-08-30", 30, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: 30d", mockContext({ notes }));
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(cellCount(el)).toBe(30);
+        expect(texts(el, ".dashy-hm-title")[0]).toContain("30 of 30 days");
+    });
+
+    it("an invalid range warns naming the value and the valid forms, and falls back to a grid per year", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2026-09-01", 5, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: fortnight", mockContext({ notes }));
+        const warnings = diagnostics(el, "warning");
+        expect(warnings.some((m) => m.includes("range") && m.includes("fortnight") && m.includes("30d"))).toBe(true);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        // Fell back to the per-year grid, keyed by year rather than "range".
+        expect(nodes(el, ".dashy-hm-scroll")[0]?.dataset.gridKey).toBe("2026");
+    });
+
+    it("a note outside the window is neither drawn nor counted, and the average is over the window's days only", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            { path: "Diary/2026-08-01.md", frontmatter: { steps: 999 } }, // well before the 30d window
+            ...diary("Diary", "2026-09-19", 10, () => ({ steps: 2 })), // last 10 days of the window
+        ];
+        const el = map("source: Diary\nfield: steps\nrange: 30d", mockContext({ notes }));
+        expect(cellCount(el)).toBe(30);
+        const caption = texts(el, ".dashy-hm-title")[0] ?? "";
+        expect(caption).toContain("10 of 30 days");
+        // Averaged over the 10 recognised days only (the same rule a
+        // calendar-year grid already follows), not diluted by the 20 empty
+        // ones and nowhere near the 999 outlier sitting outside the window.
+        expect(caption).toContain(`average ${formatValue(2)}`);
+    });
+
+    it("with layers: caption drops the average, and a cell outside the window never even resolves", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = [
+            { path: "Diary/2026-08-01.md", frontmatter: { gym: true } }, // outside the 30d window
+            { path: "Diary/2026-09-20.md", frontmatter: { gym: true, run: false } },
+            { path: "Diary/2026-09-21.md", frontmatter: { run: true } },
+        ];
+        const el = map(
+            "source: Diary\nrange: 30d\nlayers:\n  - { field: gym, color: blue }\n  - { field: run, color: green, label: Running }",
+            mockContext({ notes }),
+        );
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["gym", "Running"]);
+        expect(texts(el, ".dashy-hm-title")[0]).toBe("gym, Running: 2 of 30 days");
+        const cellFor = (date: string) =>
+            nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(date));
+        expect(cellFor("2026-09-20")?.style.backgroundColor).toContain("59, 130, 246"); // gym: blue
+        expect(cellFor("2026-08-01")).toBeUndefined();
+    });
+
+    it("with bands: the legend still draws the usual scale rows", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2026-09-19", 10, (i) => ({ steps: 50 + i * 5 }));
+        const el = map("source: Diary\nfield: steps\nrange: 30d\nbands: [90, 70]", mockContext({ notes }));
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["90+", "70–89"]);
+    });
+
+    it("with skip_field: the day-off legend row only appears once the special day is inside the window", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const outside = mockContext({
+            notes: [{ path: "Diary/2026-08-01.md", frontmatter: { steps: 1, vacation: true } }],
+        });
+        const outsideEl = map("source: Diary\nfield: steps\nrange: 30d\nskip_field: vacation", outside);
+        expect(texts(outsideEl, ".dashy-hm-leg")).not.toContain("Day off");
+
+        const inside = mockContext({
+            notes: [{ path: "Diary/2026-09-20.md", frontmatter: { steps: 1, vacation: true } }],
+        });
+        const insideEl = map("source: Diary\nfield: steps\nrange: 30d\nskip_field: vacation", inside);
+        expect(texts(insideEl, ".dashy-hm-leg")).toContain("Day off");
+    });
+
+    it("keys its scroller with a stable range key, not a year", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2026-09-19", 10, () => ({ steps: 1 }));
+        const el = map("source: Diary\nfield: steps\nrange: 30d", mockContext({ notes }));
+        expect(nodes(el, ".dashy-hm-scroll")[0]?.dataset.gridKey).toBe("range");
+    });
+
+    it("firstDay Sunday vs Monday shifts the pad count the same way a calendar-year grid does", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2025-01-01", 700, () => ({ steps: 1 }));
+        const context = mockContext({ notes });
+
+        const sundayFirst = map("source: Diary\nfield: steps\nrange: 365d", context);
+        expect(nodes(sundayFirst, ".dashy-hm-pad")).toHaveLength(1);
+
+        setDateLocale("ru");
+        const mondayFirst = map("source: Diary\nfield: steps\nrange: 365d", context);
+        expect(nodes(mondayFirst, ".dashy-hm-pad")).toHaveLength(0);
+    });
+
+    it("a range grid's scroll position survives a redraw independently of any year grid's own bookkeeping", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const notes = diary("Diary", "2026-09-19", 10, () => ({ steps: 1 }));
+        const rangeCtx = mockContext({ notes });
+        withManualResizeObserver(() => {
+            const el = host();
+            renderHeatmap(rangeCtx, "source: Diary\nfield: steps\nrange: 30d", el);
+            const scroller = nodes(el, ".dashy-hm-scroll")[0]!;
+            expect(scroller.dataset.gridKey).toBe("range");
+
+            scroller.dispatchEvent(new Event("wheel"));
+            stubMetrics(scroller, 150, 300, 600);
+            scroller.dispatchEvent(new Event("scroll"));
+
+            renderHeatmap(rangeCtx, "source: Diary\nfield: steps\nrange: 30d", el);
+            const redrawn = nodes(el, ".dashy-hm-scroll")[0]!;
+            expect(redrawn.scrollLeft).toBe(0); // not yet reported a real width
+
+            stubMetrics(redrawn, 0, 300, 600);
+            ManualResizeObserver.instances.at(-1)!.fire();
             expect(redrawn.scrollLeft).toBe(150);
         });
     });

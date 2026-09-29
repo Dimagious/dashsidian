@@ -84,3 +84,17 @@ export function firstDayOfWeek(): number {
 export function monthNamesShort(): string[] {
     return data().monthsShort();
 }
+
+/**
+ * A short month name plus its year, e.g. "Sep 2025" — for a heatmap `range`
+ * grid's month label (B-093) once the window spans more than one calendar
+ * year and the bare month name alone would no longer say which one. Goes
+ * through `formatDate` like every other rendered date, rather than pasting
+ * `monthNamesShort()[month]` next to a bare `year`: the two would drift
+ * apart the moment a locale's month-year order or punctuation is not
+ * "month, space, year" (moment's own `MMM YYYY` already gets this right
+ * for whichever locale is active).
+ */
+export function monthYearShort(date: Date): string {
+    return formatDate(date, "MMM YYYY");
+}

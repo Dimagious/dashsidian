@@ -127,4 +127,21 @@ field: sleep_score
 color: purple
 skip_field: vacation`,
     },
+    {
+        block: "heatmap",
+        title: "heatmap — range: 365d, одна сетка на скользящий год",
+        source: `source: Diary
+field: sleep_score
+color: purple
+bands: [90, 80, 60]
+range: 365d`,
+    },
+    {
+        block: "heatmap",
+        title: "heatmap — range: month, текущий месяц по сегодня",
+        source: `source: Diary
+field: steps
+color: green
+range: month`,
+    },
 ];

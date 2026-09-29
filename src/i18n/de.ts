@@ -124,8 +124,12 @@ export const de: Catalog = {
     "heatmap.layerNotMap": "Ebene {position} muss eine Map mit `field` sein, erhalten „{value}“.",
     "heatmap.layerLabelInvalid": "Ebene {position}: `label` erwartet einen Namen, erhalten „{value}“.",
     "heatmap.layerAt": "Ebene {position}: {message}",
+    "heatmap.rangeInvalid":
+        "`range` erwartet week, month, year oder ein rollendes Fenster wie 30d, erhalten „{value}“. Es wird ein Raster pro Jahr gezeichnet.",
     "heatmap.caption": "{year}, {field}: Durchschnitt {average}, {present} von {total} Tagen",
     "heatmap.captionMarks": "{year}, {field}: {present} von {total} Tagen",
+    "heatmap.captionRange": "{field}: Durchschnitt {average}, {present} von {total} Tagen",
+    "heatmap.captionRangeMarks": "{field}: {present} von {total} Tagen",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.cell": "{date}: {field} {value}",
     "heatmap.cellLayers": "{date}: {parts}",

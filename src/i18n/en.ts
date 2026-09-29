@@ -129,8 +129,12 @@ export const en = {
     "heatmap.layerNotMap": "Layer {position} must be a map with a `field`, got \"{value}\".",
     "heatmap.layerLabelInvalid": "Layer {position}: `label` expects a name, got \"{value}\".",
     "heatmap.layerAt": "Layer {position}: {message}",
+    "heatmap.rangeInvalid":
+        "`range` expects week, month, year or a rolling window such as 30d, got \"{value}\". Drawing a grid per year instead.",
     "heatmap.caption": "{year}, {field}: average {average}, {present} of {total} days",
     "heatmap.captionMarks": "{year}, {field}: {present} of {total} days",
+    "heatmap.captionRange": "{field}: average {average}, {present} of {total} days",
+    "heatmap.captionRangeMarks": "{field}: {present} of {total} days",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.cell": "{date}: {field} {value}",
     "heatmap.cellLayers": "{date}: {parts}",
