@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
     dateKey,
+    parseDateKey,
     rotateWeekdays,
     weekdayRow,
     daysBetween,
@@ -25,6 +26,37 @@ describe("dateKey", () => {
         // This is exactly what threw the whole grid off in the first version.
         const midnight = new Date(2026, 2, 29, 0, 0, 0);
         expect(dateKey(midnight)).toBe("2026-03-29");
+    });
+});
+
+describe("parseDateKey", () => {
+    it("is dateKey's inverse for an ordinary date", () => {
+        const d = parseDateKey("2026-09-25");
+        expect(d.getFullYear()).toBe(2026);
+        expect(d.getMonth()).toBe(8);
+        expect(d.getDate()).toBe(25);
+        expect(dateKey(d)).toBe("2026-09-25");
+    });
+
+    it("does not slip a day back the way new Date(key) does east of UTC", () => {
+        // A bare string parse reads "2026-01-01" as UTC midnight, which is
+        // still 2025-12-31 in a positive-offset zone. Built from the parts
+        // instead, this always lands on the local date the key names.
+        const d = parseDateKey("2026-01-01");
+        expect(d.getFullYear()).toBe(2026);
+        expect(d.getMonth()).toBe(0);
+        expect(d.getDate()).toBe(1);
+    });
+
+    it("round-trips the first and last day of the year", () => {
+        expect(dateKey(parseDateKey("2026-01-01"))).toBe("2026-01-01");
+        expect(dateKey(parseDateKey("2026-12-31"))).toBe("2026-12-31");
+    });
+
+    it("a malformed key returns an invalid Date rather than throwing", () => {
+        for (const bad of ["not-a-date", "2026-1-1", "2026/01/01", ""]) {
+            expect(Number.isNaN(parseDateKey(bad).getTime())).toBe(true);
+        }
     });
 });
 

@@ -38,6 +38,12 @@ body {
      colour, readable against a painted cell's fill in both light and dark
      without this stylesheet naming a colour of its own. */
   --dashy-hm-today: var(--text-normal);
+  /* The band around a tapped cell on a phone (B-092), a colour of its own
+     so it reads as a separate signal from `--dashy-hm-today`'s ring rather
+     than one doing double duty. A cell that is both moves this band inward
+     instead of overlapping today's own outline — see `.is-today.is-selected`
+     in blocks.css. */
+  --dashy-hm-selected: var(--interactive-accent);
 }
 
 @supports (color: color-mix(in srgb, red 50%, blue)) {

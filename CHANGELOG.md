@@ -12,6 +12,17 @@ removed public export.
 
 ### Added
 
+- **A heatmap cell's tooltip reads better, and works on a phone.** The date
+  is now the locale's own medium format ("Sep 25, 2026", "25 сент. 2026 г.")
+  instead of the bare `YYYY-MM-DD` key, and it names the note behind the
+  value: the linked note's name when exactly one contributed that day, or
+  how many when several did ("3 notes"). Layers, `skip_field`'s "day off"
+  and today's own marker still compose in the same order as before. On
+  Obsidian's mobile build, where there is no hover to read a `title` from:
+  the first tap on a cell shows that same text on a line under the grid and
+  rings the cell, and a second tap on it opens the note the way a desktop
+  click already does; tapping another cell moves the line and the ring.
+  Desktop behaviour is unchanged.
 - **The heatmap rings today's cell.** An outline, not a colour change, so a
   painted value or a `skip_field` hatch both stay fully visible underneath
   it. Shows on the current year's grid and on a `range` grid, whether or not

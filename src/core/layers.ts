@@ -14,7 +14,7 @@
  * Pure module: no Obsidian, no DOM.
  */
 
-import type { DayMark } from "./day-values";
+import type { DayMark, DayNote } from "./day-values";
 import { readFields } from "./day-values";
 import { assignLayerColors, toRgb, type Rgb } from "./palette";
 import { isRecord, describeValue, unknownKeys, type Diagnostic } from "../shared/parse";
@@ -139,6 +139,14 @@ export interface LayeredMark {
     layer: number;
     /** every layer with a mark this day, in list order — the tooltip lists all of them */
     parts: readonly { label: string; value: number }[];
+    /**
+     * Every distinct note that contributed to ANY layer this day (B-092): the
+     * union across layers, by path, not just the winning layer's own list —
+     * one note logging both `gym` and `run` in a single entry still counts
+     * once, the same way `dayValues` itself already dedupes a note
+     * contributing through two fields.
+     */
+    notes: readonly DayNote[];
 }
 
 /**
@@ -165,11 +173,13 @@ export function combineLayers(
     const combined = new Map<string, LayeredMark>();
     for (const day of days) {
         const parts: { label: string; value: number }[] = [];
+        const notes = new Map<string, DayNote>();
         let winner = -1;
         for (let i = 0; i < perLayerMarks.length; i++) {
             const mark = perLayerMarks[i]?.get(day);
             if (!mark) continue;
             parts.push({ label: labels[i] ?? "", value: mark.value });
+            for (const note of mark.notes) notes.set(note.path, note);
             if (winner === -1 && mark.painted) winner = i;
         }
         const winning = winner === -1 ? undefined : perLayerMarks[winner]?.get(day);
@@ -179,6 +189,7 @@ export function combineLayers(
             painted: winner !== -1,
             layer: winner,
             parts,
+            notes: Array.from(notes.values()),
         });
     }
     return combined;

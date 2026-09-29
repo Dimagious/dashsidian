@@ -98,3 +98,16 @@ export function monthNamesShort(): string[] {
 export function monthYearShort(date: Date): string {
     return formatDate(date, "MMM YYYY");
 }
+
+/**
+ * A medium, locale-appropriate date: "Sep 25, 2026" in English, "25 сент.
+ * 2026 г." in Russian. Used for a heatmap cell's tooltip (B-092) in place of
+ * the bare `YYYY-MM-DD` key it used to show: a reader taps or hovers a cell,
+ * not a machine parsing it, so the date should read the way their own
+ * calendar app would show it. moment's own "ll" format, not a hand-rolled
+ * one, so it already knows the ordering, punctuation and abbreviations that
+ * differ from one language to the next.
+ */
+export function formatDayMedium(date: Date): string {
+    return formatDate(date, "ll");
+}

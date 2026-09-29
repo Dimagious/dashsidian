@@ -58,9 +58,11 @@ test.describe("checkbox properties feed the aggregates", () => {
         expect(painted).toBe(7);
 
         // A false day is present data, not missing data: it reads as "no data"
-        // on the cell, same as a day nothing ever set.
-        await expect(view.locator('[title="2026-01-01: no data"]')).toHaveCount(1);
-        await expect(view.locator('[title="2026-01-04: gym 1"]')).toHaveCount(1);
+        // on the cell, same as a day nothing ever set. The tooltip's date is
+        // the locale's own medium format (B-092), and a painted cell names
+        // the one note behind its value.
+        await expect(view.locator('[title="Jan 1, 2026: no data"]')).toHaveCount(1);
+        await expect(view.locator('[title="Jan 4, 2026: gym 1 (2026-01-04)"]')).toHaveCount(1);
         await expect(view.locator(".dashy-hm-title")).toHaveText(/7 of \d+ days/);
     });
 
@@ -69,7 +71,7 @@ test.describe("checkbox properties feed the aggregates", () => {
         const view = win.locator(READING_VIEW);
         const values = view.locator(".dashy-stat-value");
         await expect(values.nth(0)).toHaveText("7");
-        await expect(view.locator('[title="2026-01-04: gym 1"]')).toHaveCount(1);
+        await expect(view.locator('[title="Jan 4, 2026: gym 1 (2026-01-04)"]')).toHaveCount(1);
 
         // The Properties pane writes through fileManager.processFrontMatter,
         // not a raw modify of the file's text.
@@ -104,8 +106,8 @@ test.describe("checkbox properties feed the aggregates", () => {
         );
         expect(painted).toBe(6);
 
-        await expect(view.locator('[title="2026-01-04: gym 1"]')).toHaveCount(0);
-        await expect(view.locator('[title="2026-01-04: no data"]')).toHaveCount(1);
+        await expect(view.locator('[title="Jan 4, 2026: gym 1 (2026-01-04)"]')).toHaveCount(0);
+        await expect(view.locator('[title="Jan 4, 2026: no data"]')).toHaveCount(1);
         await expect(view.locator(".dashy-hm-title")).toHaveText(/6 of \d+ days/);
     });
 
@@ -140,7 +142,7 @@ test.describe("checkbox properties feed the aggregates", () => {
 
         await expect(values.nth(0)).toHaveText("6");
         await expect(values.nth(1)).toHaveText("2");
-        await expect(view.locator('[title="2026-01-04: no data"]')).toHaveCount(1);
+        await expect(view.locator('[title="Jan 4, 2026: no data"]')).toHaveCount(1);
     });
 
     // The grid spans January through today (the e2e vault's clock sits well

@@ -330,8 +330,12 @@ one cell, and a ticked or numeric contributor always outweighs a `false` one on 
 `per_day` says how the day's values combine: `sum` (the default) suits steps or pages split
 across two notes, `avg` suits a score logged more than once a day, and `max` keeps the best
 reading. Clicking a cell opens that day's note; with more than one contributing, it opens the
-first by path. The week starts where your language starts it: Monday here, Sunday in the US,
-Canada and Japan.
+first by path. A cell's tooltip shows the day in your own language's date format, the value,
+and the note behind it: its name when only one contributed, or how many when several did. On a
+phone, where there is no hover to read it from, the first tap on a cell shows that same text on
+a line under the grid and rings the cell; a second tap on it opens the note, and tapping another
+cell moves the line and the ring instead. The week starts where your language starts it: Monday
+here, Sunday in the US, Canada and Japan.
 
 `field` can also be a checkbox property: a ticked day counts as 1 and paints its cell.
 That is the whole of [the habit tracker](#a-habit-tracker-from-daily-note-checkboxes). A

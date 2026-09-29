@@ -139,6 +139,16 @@ export const en = {
     "heatmap.cell": "{date}: {field} {value}",
     "heatmap.cellLayers": "{date}: {parts}",
     "heatmap.cellPart": "{label} {value}",
+    "heatmap.cellWithNote": "{cell} ({note})",
+    // The count is merged into one sentence rather than drawn apart, unlike
+    // `countdown.daysLeft`: this text lives inside a `title` attribute and a
+    // single status line, neither of which can hold a separate large number.
+    // The "one" form is never actually reached (a single note names itself
+    // instead, see heatmap.ts), kept filled for the languages that need it.
+    "heatmap.notesCount.one": "{count} note",
+    "heatmap.notesCount.few": "{count} notes",
+    "heatmap.notesCount.many": "{count} notes",
+    "heatmap.notesCount.other": "{count} notes",
     "heatmap.cellEmpty": "{date}: no data",
     "heatmap.cellSkipped": "{cell}, day off",
     "heatmap.cellEmptySkipped": "{date}: day off",

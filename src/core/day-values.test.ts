@@ -23,7 +23,10 @@ describe("dayValues — single field, default sum (matches 1.3.0 exactly)", () =
     it("one note, one field: the value is that note's number", () => {
         const notes = [note("Diary/2026-01-01.md", { sleep_score: 80 })];
         const marks = dayValues(notes, ["sleep_score"], "sum");
-        expect(marks.get("2026-01-01")).toEqual({ value: 80, path: "Diary/2026-01-01.md", isBool: false, painted: true });
+        expect(marks.get("2026-01-01")).toEqual({
+            value: 80, path: "Diary/2026-01-01.md", isBool: false, painted: true,
+            notes: [{ path: "Diary/2026-01-01.md", name: "2026-01-01" }],
+        });
     });
 
     it("two notes on the same day sum", () => {
@@ -99,7 +102,10 @@ describe("dayValues — painted and isBool", () => {
     it("a day where every contribution is false is painted: false", () => {
         const notes = [note("Diary/2026-01-01.md", { gym_am: false, gym_pm: false })];
         const marks = dayValues(notes, ["gym_am", "gym_pm"], "sum");
-        expect(marks.get("2026-01-01")).toEqual({ value: 0, path: "", isBool: true, painted: false });
+        expect(marks.get("2026-01-01")).toEqual({
+            value: 0, path: "", isBool: true, painted: false,
+            notes: [{ path: "Diary/2026-01-01.md", name: "2026-01-01" }],
+        });
     });
 
     it("one false and one number on the same day is painted, value is their sum", () => {
@@ -108,7 +114,13 @@ describe("dayValues — painted and isBool", () => {
             note("Diary/2026-01-01 evening.md", { gym: 1 }),
         ];
         const marks = dayValues(notes, ["gym"], "sum");
-        expect(marks.get("2026-01-01")).toEqual({ value: 1, path: "Diary/2026-01-01 evening.md", isBool: false, painted: true });
+        expect(marks.get("2026-01-01")).toEqual({
+            value: 1, path: "Diary/2026-01-01 evening.md", isBool: false, painted: true,
+            notes: [
+                { path: "Diary/2026-01-01.md", name: "2026-01-01" },
+                { path: "Diary/2026-01-01 evening.md", name: "2026-01-01 evening" },
+            ],
+        });
     });
 
     it("isBool is true only when every contributing pair, across every field, is a genuine boolean", () => {
@@ -121,6 +133,45 @@ describe("dayValues — painted and isBool", () => {
             [note("Diary/2026-01-01.md", { gym_am: true, steps: 500 })], ["gym_am", "steps"], "sum",
         );
         expect(mixed.get("2026-01-01")?.isBool).toBe(false);
+    });
+});
+
+describe("dayValues — notes (B-092, for a cell's tooltip)", () => {
+    it("one contributing note", () => {
+        const notes = [note("Diary/2026-01-01.md", { steps: 100 })];
+        expect(dayValues(notes, ["steps"], "sum").get("2026-01-01")?.notes).toEqual([
+            { path: "Diary/2026-01-01.md", name: "2026-01-01" },
+        ]);
+    });
+
+    it("several notes on the same day are all counted", () => {
+        const notes = [
+            note("Diary/2026-01-01.md", { steps: 100 }),
+            note("Diary/2026-01-01 evening.md", { steps: 200 }),
+            note("Diary/2026-01-01 third.md", { steps: 50 }),
+        ];
+        expect(dayValues(notes, ["steps"], "sum").get("2026-01-01")?.notes).toHaveLength(3);
+    });
+
+    it("the same note contributing through two fields is counted once, not twice", () => {
+        const notes = [note("Diary/2026-01-01.md", { mood_am: 5, mood_pm: 7 })];
+        const marks = dayValues(notes, ["mood_am", "mood_pm"], "sum");
+        expect(marks.get("2026-01-01")?.notes).toEqual([{ path: "Diary/2026-01-01.md", name: "2026-01-01" }]);
+    });
+
+    it("a false-only contributor still counts as a note that holds this day's data", () => {
+        const notes = [note("Diary/2026-01-01.md", { gym: false })];
+        const marks = dayValues(notes, ["gym"], "sum");
+        expect(marks.get("2026-01-01")?.painted).toBe(false);
+        expect(marks.get("2026-01-01")?.notes).toEqual([{ path: "Diary/2026-01-01.md", name: "2026-01-01" }]);
+    });
+
+    it("one false and one true note both count, even though only one paints", () => {
+        const notes = [
+            note("Diary/2026-01-01.md", { gym: false }),
+            note("Diary/2026-01-01 evening.md", { gym: 1 }),
+        ];
+        expect(dayValues(notes, ["gym"], "sum").get("2026-01-01")?.notes).toHaveLength(2);
     });
 });
 

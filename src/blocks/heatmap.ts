@@ -1,14 +1,15 @@
 import type { BlockContext } from "./context";
-import { weekdayNamesShort, monthNamesShort, monthYearShort, firstDayOfWeek } from "../adapters/datetime";
+import { weekdayNamesShort, monthNamesShort, monthYearShort, firstDayOfWeek, formatDayMedium } from "../adapters/datetime";
+import { isMobile } from "../adapters/platform";
 import { selectNotes, readSource, unmatchedSource, type NoteRecord } from "../core/source";
 import { classifyField } from "../core/aggregate";
-import { readFields, readPerDay, dayValues, unusedFields } from "../core/day-values";
+import { readFields, readPerDay, dayValues, unusedFields, type DayNote } from "../core/day-values";
 import { readLayers, combineLayers, type Layer } from "../core/layers";
 import { readDateField } from "../core/note-date";
 import { specialDays } from "../core/special-days";
 import { formatValue, roundedValue } from "../core/stat";
 import {
-    layoutYear, layoutRange, eachDay, eachDayBetween, yearsOf, rotateWeekdays, weekdayRow, dateKey,
+    layoutYear, layoutRange, eachDay, eachDayBetween, yearsOf, rotateWeekdays, weekdayRow, dateKey, parseDateKey,
     type MonthLabel,
 } from "../core/calendar";
 import { parsePeriod, periodWindow, type Period } from "../core/period";
@@ -17,7 +18,7 @@ import { readBands, bandFor, type Band } from "../core/bands";
 import { scrollEdges, resolveScrollRestore, isEndClamp, type ScrollSnapshot } from "../core/scroll";
 import { parseConfig, isRecord, unknownKeys, describeValue, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
-import { t } from "../i18n";
+import { t, tPlural } from "../i18n";
 import schema from "./schema.json";
 
 /** Keys come from schema.json — the same source the agent skill is built from. */
@@ -371,18 +372,30 @@ function renderLayeredHeatmap(
  * or the single `range` grid (B-093), depending on whether `range` parsed to
  * anything. The two share everything past "which days make up the grid":
  * `drawGrid` below neither knows nor cares which of them it was asked for.
+ *
+ * `mobile`/`tap` (B-092) are computed exactly once here, not inside
+ * `drawGrid`: a multi-year heatmap calls `drawGrid` once per year, and a
+ * selection or a status line owned by any one of those calls would leave
+ * every other year free to have a cell of its own selected at the same
+ * time. One `MobileTapState`, shared by every grid this render draws, is
+ * what makes tapping a cell in one year clear the selection in another.
  */
 function drawHeatmap(
     el: HTMLElement,
     ctx: BlockContext,
     marks: ReadonlyMap<string, Paintable>,
-    opts: Omit<DrawOptions, "restore" | "today">,
+    opts: Omit<DrawOptions, "restore" | "today" | "mobile" | "tap">,
     restoreByKey: Map<string, ScrollSnapshot>,
     range: Period | undefined,
 ): void | (() => void) {
+    const full: Omit<DrawOptions, "restore" | "today"> = {
+        ...opts,
+        mobile: isMobile(),
+        tap: { selectedCell: null, selectedDate: null, status: undefined },
+    };
     return range
-        ? drawRangeGrid(el, ctx, marks, range, opts, restoreByKey)
-        : drawYears(el, ctx, marks, opts, restoreByKey);
+        ? drawRangeGrid(el, ctx, marks, range, full, restoreByKey)
+        : drawYears(el, ctx, marks, full, restoreByKey);
 }
 
 /**
@@ -476,6 +489,10 @@ function drawYears(
         }, caption, marks, { ...opts, restore: restoreByKey.get(String(year)), today: todayKey });
         if (observer) drawn.push(observer);
     }
+    // B-092: one status line for the whole block, after the last grid —
+    // not one per year, which is what having `drawGrid` build its own used
+    // to draw.
+    attachStatusLine(el, opts);
     if (drawn.length) {
         observers.set(el, drawn);
         // Redraws clean up after themselves (the `disconnectObservers` call
@@ -525,6 +542,9 @@ function drawRangeGrid(
     const observer = drawGrid(el, {
         key: RANGE_GRID_KEY, dayKeys, offset: layout.offset, columns: layout.columns, months: layout.months,
     }, caption, marks, { ...opts, restore: restoreByKey.get(RANGE_GRID_KEY), today: todayKey });
+    // B-092: only ever one grid here, but the status line still lives
+    // outside `drawGrid` itself — the same single funnel `drawYears` uses.
+    attachStatusLine(el, opts);
     if (observer) {
         observers.set(el, [observer]);
         return () => disconnectObservers(el);
@@ -547,6 +567,24 @@ interface Paintable {
     isBool?: boolean;
     layer?: number;
     parts?: readonly { label: string; value: number }[];
+    /** every note that contributed here (B-092) — always at least one on any mark this shape describes */
+    notes: readonly DayNote[];
+}
+
+/**
+ * The tap-to-read, tap-to-open state for one `renderHeatmap` call (B-092),
+ * shared by every grid it draws — a multi-year heatmap is still one block
+ * with one selection, not one per year. `status` starts `undefined` and is
+ * filled in once, after every grid has been drawn (`drawYears`/
+ * `drawRangeGrid`), by a single line placed after the last one; every
+ * cell's click closure only ever reads it later, once a tap actually
+ * happens, by which point the whole render has already finished building
+ * the DOM top to bottom.
+ */
+interface MobileTapState {
+    selectedCell: HTMLElement | null;
+    selectedDate: string | null;
+    status: HTMLElement | undefined;
 }
 
 interface DrawOptions {
@@ -576,6 +614,10 @@ interface DrawOptions {
      * year the grid belongs to.
      */
     today: string;
+    /** B-092: whether the tap-to-read interaction runs at all — computed once per render, not per grid. */
+    mobile: boolean;
+    /** B-092: this render's one shared selection, across every grid `drawGrid` is called for. */
+    tap: MobileTapState;
 }
 
 /**
@@ -603,6 +645,33 @@ interface GridLayout {
     offset: number;
     columns: number;
     months: readonly GridMonthLabel[];
+}
+
+/**
+ * The tooltip's own note part (B-092): the contributing note's name when
+ * there was exactly one, or how many when several — never both a name and a
+ * count. `undefined` for the empty list a truly empty cell has, so the
+ * caller can tell "nothing to add" apart from "add this text".
+ */
+function noteSuffix(notes: readonly DayNote[]): string | undefined {
+    if (notes.length === 1) return notes[0]?.name;
+    if (notes.length > 1) return tPlural("heatmap.notesCount", notes.length);
+    return undefined;
+}
+
+/**
+ * The block-wide status line a tap writes into (B-092): built once per
+ * render, after every grid `drawYears`/`drawRangeGrid` draws — never inside
+ * any one grid's own `.dashy-hm-wrap`, so a multi-year heatmap gets one line
+ * after the last grid rather than one per year. A no-op on desktop, and
+ * `opts.tap` (shared by every grid drawn this render) is where each grid's
+ * own click handlers already expect to find the result.
+ */
+function attachStatusLine(el: HTMLElement, opts: Pick<DrawOptions, "mobile" | "tap">): void {
+    if (!opts.mobile) return;
+    const status = el.createDiv({ cls: "dashy-hm-status" });
+    status.setAttr("aria-live", "polite");
+    opts.tap.status = status;
 }
 
 function drawGrid(
@@ -699,6 +768,14 @@ function drawGrid(
         // paints or hatches exactly as any other day would; only an outline
         // class is added on top.
         cell.classList.toggle("is-today", isToday);
+        // B-092: a locale-appropriate date, "Sep 25, 2026" rather than the
+        // bare `YYYY-MM-DD` key — a reader taps or hovers a cell, not a
+        // machine parsing it. Built once, shared by every branch below.
+        const dateLabel = formatDayMedium(parseDateKey(date));
+        // Hoisted out of the branches below (rather than declared separately
+        // in each, as before) so the mobile tap handling further down can
+        // reuse the exact text a hover already shows, painted or empty.
+        let tooltip: string;
         if (paintable) {
             const band = bandFor(opts.bands, paintable.value);
             // The winning layer's own colour, when there is one — set only
@@ -716,9 +793,9 @@ function drawGrid(
             // JS float division produces. `formatValue`'s own digit
             // grouping is left out on purpose — its narrow no-break space
             // has no business inside a `title` attribute.
-            const baseTooltip = paintable.parts
+            let baseTooltip = paintable.parts
                 ? t("heatmap.cellLayers", {
-                    date,
+                    date: dateLabel,
                     // Each layer's own "label value" piece goes through
                     // `t()` on its own (`heatmap.cellPart`), same as any
                     // other user-facing text; only the plain ", " between
@@ -728,21 +805,49 @@ function drawGrid(
                         .map((p) => t("heatmap.cellPart", { label: p.label, value: roundedValue(p.value) }))
                         .join(", "),
                 })
-                : t("heatmap.cell", { date, field: opts.field, value: roundedValue(paintable.value) });
+                : t("heatmap.cell", { date: dateLabel, field: opts.field, value: roundedValue(paintable.value) });
+            // B-092: which note(s) this day's value came from — its name
+            // when there was exactly one, "N notes" when several. Folded
+            // into `baseTooltip` itself, before the day-off/today wrapping
+            // below, so it stays "date: field value (note), day off, today"
+            // rather than landing after them.
+            const note = noteSuffix(paintable.notes);
+            if (note) baseTooltip = t("heatmap.cellWithNote", { cell: baseTooltip, note });
             // Both markers wrap the same way, applied in this fixed order:
             // "day off" (B-095) reads as a property of the day's data, the
             // more immediate fact, and "today" (B-099) as a note about the
             // day itself, so it comes last — "…, day off, today" rather than
             // the other way round.
-            let tooltip = special ? t("heatmap.cellSkipped", { cell: baseTooltip }) : baseTooltip;
+            tooltip = special ? t("heatmap.cellSkipped", { cell: baseTooltip }) : baseTooltip;
             if (isToday) tooltip = t("heatmap.cellToday", { cell: tooltip });
             cell.style.backgroundColor = rgba(rgb, band?.alpha ?? 1);
             cell.setAttr("aria-label", tooltip);
             cell.setAttr("title", tooltip);
         } else {
-            let tooltip = special ? t("heatmap.cellEmptySkipped", { date }) : t("heatmap.cellEmpty", { date });
+            tooltip = special ? t("heatmap.cellEmptySkipped", { date: dateLabel }) : t("heatmap.cellEmpty", { date: dateLabel });
             if (isToday) tooltip = t("heatmap.cellToday", { cell: tooltip });
             cell.setAttr("title", tooltip);
+        }
+        // B-092: on a phone there is no hover, so the same tooltip text
+        // needs a tap-reachable home. The first tap on a cell shows it on
+        // the block's own status line (`opts.tap`, shared by every grid
+        // this render draws — see `drawHeatmap`) and marks the cell
+        // `is-selected`, intercepting the click so it does not also open
+        // the note; a second tap on the SAME cell is left alone, and
+        // Obsidian's own `.internal-link` handling opens it exactly as a
+        // desktop click already does. Gated on `opts.mobile` alone: on
+        // desktop nothing here runs, and the interaction is unchanged.
+        if (opts.mobile) {
+            cell.addEventListener("click", (evt) => {
+                if (opts.tap.selectedDate === date) return;
+                evt.preventDefault();
+                evt.stopPropagation();
+                opts.tap.selectedCell?.classList.remove("is-selected");
+                cell.classList.add("is-selected");
+                opts.tap.selectedCell = cell;
+                opts.tap.selectedDate = date;
+                opts.tap.status?.setText(tooltip);
+            });
         }
     }
 

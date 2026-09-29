@@ -45,6 +45,32 @@ export function daysBetween(a: string, b: string): number {
     return Math.round((Date.parse(b) - Date.parse(a)) / DAY_MS);
 }
 
+const DATE_KEY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * The inverse of `dateKey`: a `YYYY-MM-DD` key back to the local calendar
+ * date it names (B-092, for a cell's tooltip). Built from the three parts,
+ * never `new Date(key)`: that parses as UTC midnight, which lands on the
+ * previous day anywhere west of it.
+ *
+ * Every caller only ever hands this a key this module itself already
+ * produced (`dateKey`, `eachDay`, `eachDayBetween`), so a key that does not
+ * match `YYYY-MM-DD` is a programming error, not a reader's mistake — there
+ * is no config, no diagnostic to report it through. This module never
+ * throws, so an invalid `Date` (every field reads `NaN`, and `moment`
+ * formats it as "Invalid date" rather than crashing) is the sentinel here,
+ * the same "give the caller a value it can still hold onto" choice
+ * `daysBetween` above already makes for a bad key of its own.
+ */
+export function parseDateKey(key: string): Date {
+    const match = DATE_KEY.exec(key);
+    const year = match?.[1];
+    const month = match?.[2];
+    const day = match?.[3];
+    if (year === undefined || month === undefined || day === undefined) return new Date(NaN);
+    return new Date(Number(year), Number(month) - 1, Number(day));
+}
+
 export interface MonthLabel {
     /** month index, 0 = January */
     month: number;

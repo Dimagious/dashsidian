@@ -1,12 +1,27 @@
 import { describe, it, expect, afterEach } from "vitest";
+import { Platform } from "obsidian";
 import { snapshot, noteExists, VaultSnapshot } from "./vault";
 import { discoverPeriodics } from "./periodic";
-import { formatDate, currentLocale, weekdayNamesShort, monthNamesShort, firstDayOfWeek, monthYearShort } from "./datetime";
+import {
+    formatDate, currentLocale, weekdayNamesShort, monthNamesShort, firstDayOfWeek, monthYearShort, formatDayMedium,
+} from "./datetime";
 import { applyObsidianLocale, applyLocale } from "./locale";
+import { isMobile } from "./platform";
 import { setLocale, getLocale } from "../i18n";
 import { mockApp, countingContext, diary } from "../test/vault";
 
-afterEach(() => applyLocale(""));
+afterEach(() => {
+    applyLocale("");
+    Platform.isMobile = false;
+});
+
+describe("isMobile", () => {
+    it("reads Platform.isMobile", () => {
+        expect(isMobile()).toBe(false);
+        Platform.isMobile = true;
+        expect(isMobile()).toBe(true);
+    });
+});
 
 describe("vault snapshot", () => {
     it("turns files into records the pure layer can read", () => {
@@ -126,6 +141,10 @@ describe("datetime", () => {
         expect(monthYearShort(new Date(2025, 8, 1))).toBe("Sep 2025");
     });
 
+    it("gives a medium date for a heatmap cell's tooltip", () => {
+        expect(formatDayMedium(new Date(2026, 8, 25))).toBe("Sep 25, 2026");
+    });
+
     it("reports a locale code", () => {
         expect(currentLocale()).toMatch(/^[a-z]{2}/);
     });
@@ -147,6 +166,7 @@ describe("locale wiring", () => {
         expect(formatDate(new Date(2026, 0, 15), "MMMM")).toBe("Januar");
         expect(monthNamesShort()[0]).toBe("Jan.");
         expect(monthYearShort(new Date(2025, 0, 1))).toBe("Jan. 2025");
+        expect(formatDayMedium(new Date(2026, 0, 15))).toBe("15. Jan. 2026");
     });
 
     it("an empty choice follows Obsidian, which is English here", () => {

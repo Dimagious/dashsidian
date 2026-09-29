@@ -17,6 +17,7 @@ const mark = (overrides: Partial<DayMark> = {}): DayMark => ({
     path: "Diary/2026-01-01.md",
     isBool: false,
     painted: true,
+    notes: [{ path: "Diary/2026-01-01.md", name: "2026-01-01" }],
     ...overrides,
 });
 
@@ -202,6 +203,35 @@ describe("combineLayers — which layer colours a day", () => {
         const combined = combineLayers(perLayer, ["gym", "run", "sleep"]);
         const day = combined.get("2026-01-01") as LayeredMark;
         expect(day.parts).toEqual([{ label: "gym", value: 1 }, { label: "sleep", value: 7 }]);
+    });
+
+    it("notes: the union across layers, not just the winning one's own list", () => {
+        const perLayer = [
+            new Map([["2026-01-01", mark({
+                path: "a.md", notes: [{ path: "a.md", name: "a" }, { path: "b.md", name: "b" }],
+            })]]),
+            new Map([["2026-01-01", mark({ path: "b.md", notes: [{ path: "b.md", name: "b" }] })]]),
+        ];
+        const combined = combineLayers(perLayer, ["gym", "run"]);
+        // "b.md" contributed to both layers; the union counts it once.
+        expect(combined.get("2026-01-01")?.notes).toEqual([
+            { path: "a.md", name: "a" },
+            { path: "b.md", name: "b" },
+        ]);
+    });
+
+    it("a false-only layer's note still joins the union", () => {
+        const perLayer = [
+            new Map([["2026-01-01", mark({
+                painted: false, notes: [{ path: "a.md", name: "a" }],
+            })]]),
+            new Map([["2026-01-01", mark({ path: "b.md", notes: [{ path: "b.md", name: "b" }] })]]),
+        ];
+        const combined = combineLayers(perLayer, ["gym", "run"]);
+        expect(combined.get("2026-01-01")?.notes).toEqual([
+            { path: "a.md", name: "a" },
+            { path: "b.md", name: "b" },
+        ]);
     });
 
     it("per_day applies to each layer's own dayValues before layers are combined", () => {

@@ -24,6 +24,13 @@ export function isPerDay(v: unknown): v is PerDay {
     return typeof v === "string" && (PER_DAY as readonly string[]).includes(v);
 }
 
+/** One note that contributed a value to a day, identified and named at once (B-092). */
+export interface DayNote {
+    path: string;
+    /** file name without the extension, as `core/source.ts#NoteRecord.name` already carries it */
+    name: string;
+}
+
 /** A day the field(s) resolved on. `painted` is false only for a boolean `false`. */
 export interface DayMark {
     /** the collapsed value: sum, average or max of every contributing number, per `per_day` */
@@ -33,6 +40,15 @@ export interface DayMark {
     /** whether every contributing (note, field) pair was a genuine YAML boolean */
     isBool: boolean;
     painted: boolean;
+    /**
+     * Every distinct note that contributed a value this day, across every
+     * field in `fields` (B-092, for a cell's tooltip). A note counts once
+     * here even if two of its fields both resolved, and even when its own
+     * contribution was a boolean `false`: the tooltip's note count answers
+     * "how many notes hold this day's data", not "how many painted it" —
+     * `painted` already answers that separately.
+     */
+    notes: readonly DayNote[];
 }
 
 /** Accumulator for one day while its contributing (note, field) pairs are being folded together. */
@@ -42,6 +58,8 @@ interface DayGroup {
     paintedPath: string | null;
     /** whether every contributing pair has been a boolean mark so far */
     allBool: boolean;
+    /** keyed by path so the same note contributing through two fields still counts once */
+    notes: Map<string, DayNote>;
 }
 
 function collapse(values: readonly number[], perDay: PerDay): number {
@@ -89,10 +107,12 @@ export function dayValues(
             const v = numberAt(n, field);
             if (v === null) continue;
             const painted = !isFalseMark(n, field);
-            const g = groups.get(day) ?? { values: [], paintedPath: null, allBool: true };
+            const g: DayGroup = groups.get(day)
+                ?? { values: [], paintedPath: null, allBool: true, notes: new Map<string, DayNote>() };
             g.values.push(v);
             g.allBool = g.allBool && isBooleanMark(n, field);
             if (painted && (g.paintedPath === null || n.path < g.paintedPath)) g.paintedPath = n.path;
+            g.notes.set(n.path, { path: n.path, name: n.name });
             groups.set(day, g);
         }
     }
@@ -104,6 +124,7 @@ export function dayValues(
             path: g.paintedPath ?? "",
             isBool: g.allBool,
             painted: g.paintedPath !== null,
+            notes: Array.from(g.notes.values()),
         });
     }
     return marks;

@@ -256,11 +256,30 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
   outline: 2px solid var(--dashy-hm-today);
   outline-offset: -2px;
 }
+/* A tapped cell on a phone (B-092): drawn as an inset box-shadow, not an
+   outline, so it paints in its own layer rather than replacing `is-today`'s
+   outline outright. On its own this still sits in the same 2px band as that
+   outline, which the more specific rule below accounts for. */
+.dashy-hm-cell.is-selected {
+  box-shadow: inset 0 0 0 2px var(--dashy-hm-selected);
+}
+/* Today's own cell, tapped: outline and box-shadow would otherwise land on
+   the exact same 2px band and one would simply paint over the other,
+   leaving a tap on today's cell looking like nothing happened. Moving the
+   selected band inward instead keeps both visible at once — today's ring
+   as the outer edge, the accent band just inside it — while a `--dashy-cell:
+   13px` cell still keeps a 5px fill/hatch visible at the centre. */
+.dashy-hm-cell.is-today.is-selected {
+  box-shadow: inset 0 0 0 4px var(--dashy-hm-selected);
+}
 .dashy-hm-legend {
   display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
   margin-top: 10px; font-size: 0.75em; color: var(--text-muted);
 }
 .dashy-hm-leg { display: flex; align-items: center; gap: 5px; }
+/* The tapped cell's own tooltip text (B-092), only ever built on mobile —
+   see heatmap.ts. Empty and so invisible until the first tap. */
+.dashy-hm-status { margin-top: 6px; font-size: 0.75em; color: var(--text-muted); }
 
 /* A grid too wide for its note fades the edge that still has months to
    scroll to, and only that edge: none of this shows once the year fits. The
