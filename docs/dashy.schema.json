@@ -412,8 +412,7 @@
         },
         "field": {
           "type": "string|list",
-          "required": true,
-          "doc": "numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty; dotted for a nested one like `health.sleep`. Also takes a list, like `[mood_am, mood_pm]`, to collapse several properties from the same note into one day with `per_day`. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: \"field contains ...\"` and `agg: count`",
+          "doc": "required unless `layers` is set, and not allowed together with it: exactly one of the two. A numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty; dotted for a nested one like `health.sleep`. Also takes a list, like `[mood_am, mood_pm]`, to collapse several properties from the same note into one day with `per_day`. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: \"field contains ...\"` and `agg: count`",
           "aliases": [
             "property",
             "prop"

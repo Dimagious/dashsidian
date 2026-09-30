@@ -10,6 +10,13 @@ removed public export.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The agent skill no longer calls `heatmap.field` required.** A heatmap
+  takes either `field` or `layers`, never both, yet the schema marked `field`
+  required, so an agent or a schema-driven validator rejected a correct
+  block with `layers`. The skill now says exactly one of the two.
+
 ## [1.4.0] - 2026-09-29
 
 ### Added

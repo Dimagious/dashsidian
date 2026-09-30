@@ -47,6 +47,15 @@ describe("the generated skill corrects what agents got wrong", () => {
         expect(SKILL_MARKDOWN).toContain("The date does not repeat every year");
     });
 
+    it("heatmap field is not marked required, since layers replaces it (B-124)", () => {
+        const heatmap = schema.blocks.heatmap as { root: Record<string, { required?: boolean }> };
+        expect(heatmap.root.field.required).toBeUndefined();
+        expect(SKILL_MARKDOWN).toContain("required unless `layers` is set, and not allowed together with it");
+        // The layer's own `field` stays required: a layer without one paints nothing.
+        const item = schema.blocks.heatmap as { item: Record<string, { required?: boolean }> };
+        expect(item.item.field.required).toBe(true);
+    });
+
     it("no example labels a streak card as a running count, and none leaks a unit onto it", () => {
         for (const [name, block] of Object.entries(schema.blocks as Record<string, { example: string }>)) {
             const streakItems = block.example
