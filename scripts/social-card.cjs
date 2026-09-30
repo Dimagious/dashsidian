@@ -36,7 +36,7 @@ const CROP = { x: 279, y: 236, width: 719, height: 462, scale: 0.855 };
 const { name: PLUGIN_NAME } = JSON.parse(fs.readFileSync(path.join(ROOT, "manifest.json"), "utf8"));
 
 /**
- * Not the manifest description — that one is a list of six blocks, written for
+ * Not the manifest description — that one is a list of the blocks, written for
  * a catalogue entry where the reader has already stopped to look. A card is
  * read in a feed, at a glance.
  */

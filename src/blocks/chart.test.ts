@@ -212,6 +212,22 @@ describe("chart: series, legend and goal", () => {
         const counts = titles(el).map((x) => (/notes (\d)/.exec(x) ?? [])[1]);
         expect(counts.filter((c) => c === "1")).toHaveLength(3);
     });
+
+    /** The days whose bucket counted a note, from the hit columns' tooltips. */
+    const countedDays = (el: HTMLElement): string[] =>
+        titles(el).filter((x) => /notes 1 /.test(x)).map((x) => x.slice(0, x.indexOf(":")));
+
+    it("`where` joined with `and` keeps only the notes where every condition holds", () => {
+        const el = chart("source: Diary\nagg: count\nrange: 10d\nwhere: \"mood >= 5 and gym = true\"");
+        expect(countedDays(el)).toEqual(["Sep 23, 2026", "Sep 29, 2026"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("`where` written as a list is the same filter as `and`", () => {
+        const el = chart("source: Diary\nagg: count\nrange: 10d\nwhere: [\"mood >= 4\", gym = true]");
+        expect(countedDays(el)).toEqual(["Sep 23, 2026", "Sep 25, 2026", "Sep 29, 2026"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
 });
 
 describe("chart: durations (B-121)", () => {

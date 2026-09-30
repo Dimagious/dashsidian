@@ -219,7 +219,7 @@ describe("the schema examples survive a newcomer-shaped vault", () => {
         // in its default 30-day window rather than an empty plot.
         const chartEl = host();
         renderChart(ctx, fitExample(blocks.chart!.example, profile), chartEl);
-        expect(chartEl.querySelector(".dashy-chart-title")?.textContent).toBe("mood: sum per day, last 30 days");
+        expect(chartEl.querySelector(".dashy-chart-title")?.textContent).toBe("mood: average per day, last 30 days");
         expect(chartEl.querySelector(".dashy-chart-empty")).toBeNull();
     });
 });

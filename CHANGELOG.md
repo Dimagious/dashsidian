@@ -28,8 +28,8 @@ removed public export.
   joined by `and` in one string, `where: "year = 2026 and rating >= 4"`; a
   list item may hold `and` too. `and` counts in any case, as a whole word
   outside quotes, so `status = "waiting and ready"` is still one condition.
-  This works on `tiles`, `stats`, `progress` and `heatmap`, wherever `where`
-  already did. `or` is still not supported: it warns, now saying that `and`
+  This works on `tiles`, `stats`, `progress`, `heatmap` and `chart`,
+  wherever `where` already did. `or` is still not supported: it warns, now saying that `and`
   and a list are, and the block draws unfiltered. One unreadable condition,
   an empty list, or a list item that is not a condition drops the whole
   filter with a warning, never just the bad part; the warning quotes the
@@ -66,12 +66,14 @@ removed public export.
   "so far". `series` puts up to four properties side by side, each with its
   own `agg`, label and colour, never stacked; a list in the root `field` is
   an error pointing at `series`. `goal` draws a dashed line the axis always
-  shows, `type: bar` starts at zero, a day opens its note on click, and a
+  shows, its label haloed in the note's background so it stays readable
+  over a bar or the line, `type: bar` starts at zero, a day opens its note on click, and a
   phone reads a bucket on the first tap. Durations read as durations in the
   tooltip, and on the axis and the goal once every series holds them. The
   height is the `--dashy-chart-height` CSS variable, not a key. Over 400
   buckets are cut to the latest 400 and a single bucket warns. Pie, stacked
-  and dual-axis charts stay with Obsidian Charts. Schema 1.7.0.
+  and dual-axis charts stay with Obsidian Charts. The first-run example
+  averages its property per day (`agg: avg`). Schema 1.7.0.
 - **A key borrowed from a neighbouring block says what it is called here.**
   `layers`, `per_day`, `period` or `trend` in a chart warn with `series`,
   `agg` or `range`, instead of an unknown key with no guess. The table

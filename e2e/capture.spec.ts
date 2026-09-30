@@ -64,7 +64,27 @@ async function setUp(win: import("@playwright/test").Page, theme: "obsidian" | "
         a?.workspace?.trigger?.("css-change");
     }, theme);
     // The dashboard is drawn from a snapshot that fills in as Obsidian indexes.
-    await expect(win.locator(READING_VIEW).locator(".dashy-hm-cell").first()).toBeVisible();
+    // Every test starts a cold Obsidian, and a first heatmap cell only means
+    // the first notes are in: a shot taken then shows a dash on "Steps this
+    // week" and no sparklines. Wait until every note has its metadata cached.
+    const view = win.locator(READING_VIEW);
+    await expect(view.locator(".dashy-hm-cell").first()).toBeVisible();
+    await expect.poll(() => win.evaluate(() => {
+        const a = (globalThis as unknown as {
+            app?: {
+                vault?: { getMarkdownFiles?: () => unknown[] };
+                metadataCache?: { getFileCache?: (f: unknown) => unknown };
+            };
+        }).app;
+        const files = a?.vault?.getMarkdownFiles?.() ?? [];
+        const cached = files.filter((f) => a?.metadataCache?.getFileCache?.(f)).length;
+        return files.length > 0 && cached === files.length;
+    }), { timeout: 60_000 }).toBe(true);
+    // Then the redraw that follows the last cache event: no card left on a
+    // dash, and the sparklines drawn.
+    await expect(view.locator(".dashy-stat-trend").first()).toBeVisible({ timeout: 15_000 });
+    await expect.poll(async () => (await view.locator(".dashy-stat-value").allTextContents())
+        .some((text) => text.trim() === "—"), { timeout: 15_000 }).toBe(false);
     await win.waitForTimeout(1_200);
 
     // "Indexing complete." sits over the top right corner of every shot.
@@ -121,6 +141,147 @@ for (const theme of ["obsidian", "moonstone"] as const) {
     });
 }
 
+/** Opens a demo note in the current leaf and waits until its blocks are drawn. */
+async function openNote(win: import("@playwright/test").Page, file: string, ready: string): Promise<void> {
+    await win.evaluate(async (link) => {
+        const a = (globalThis as unknown as {
+            app?: {
+                vault?: { setConfig?: (k: string, v: unknown) => void };
+                workspace?: { openLinkText?: (l: string, s: string) => Promise<void>; trigger?: (e: string) => void };
+            };
+        }).app;
+        // The reel below turns readable line length off; these shots are read
+        // at the README's column width, so they keep it on whatever ran before.
+        a?.vault?.setConfig?.("readableLineLength", true);
+        a?.workspace?.trigger?.("css-change");
+        await a?.workspace?.openLinkText?.(link, "");
+    }, file);
+    const view = win.locator(READING_VIEW);
+    await expect(view.locator(ready).first()).toBeVisible();
+    await win.locator(".markdown-preview-view").first().evaluate((el) => { el.scrollTop = 0; });
+    await win.waitForTimeout(800);
+    await win.evaluate(() => {
+        for (const notice of Array.from(document.querySelectorAll(".notice"))) notice.remove();
+    });
+    // A README picture showing a warning box would be advertising a mistake.
+    await expect(view.locator(".dashy-diag-warning, .dashy-diag-error")).toHaveCount(0);
+}
+
+/** The union of two boxes, the way the habit tracker shot is clipped. */
+async function union(
+    first: import("@playwright/test").Locator,
+    last: import("@playwright/test").Locator,
+): Promise<{ x: number; y: number; width: number; height: number }> {
+    const top = await first.boundingBox();
+    const bottom = await last.boundingBox();
+    if (!top || !bottom) throw new Error("capture: blocks are not on screen");
+    const x = Math.min(top.x, bottom.x);
+    return {
+        x,
+        y: top.y,
+        width: Math.max(top.x + top.width, bottom.x + bottom.width) - x,
+        height: bottom.y + bottom.height - top.y,
+    };
+}
+
+for (const theme of ["obsidian", "moonstone"] as const) {
+    const suffix = theme === "obsidian" ? "dark" : "light";
+
+    test(`charts, streaks and sleep, ${suffix}`, async ({ win }) => {
+        await setUp(win, theme);
+        const view = win.locator(READING_VIEW);
+
+        // The opening picture: the whole window, cut under the last block
+        // rather than mid-card, with the note's title in it.
+        await openNote(win, "Training.md", ".dashy-chart-svg");
+        const heat = await view.locator(".block-language-heatmap").last().boundingBox();
+        if (!heat) throw new Error("capture: the hero heatmap is not on screen");
+        const heroBottom = heat.y + heat.height + 24;
+        if (heroBottom > HEIGHT) throw new Error(`capture: the hero runs to ${Math.round(heroBottom)}px, past the window`);
+        await win.screenshot({
+            path: path.join(SHOTS, `hero-${suffix}.png`),
+            clip: { x: 0, y: 0, width: WIDTH, height: Math.round(heroBottom) },
+        });
+
+        await openNote(win, "Charts.md", ".dashy-chart-svg");
+        const crops: [string, import("@playwright/test").Locator][] = [
+            ["chart-weekly", view.locator(".dashy-chart").nth(0)],
+            ["chart-series", view.locator(".dashy-chart").nth(1)],
+            ["streak", view.locator(".dashy-stats").first()],
+        ];
+        for (const [name, block] of crops) {
+            await block.scrollIntoViewIfNeeded();
+            await block.screenshot({ path: path.join(SHOTS, `${name}-${suffix}.png`) });
+        }
+
+        await openNote(win, "Sleep.md", ".dashy-hm-cell");
+        const cards = view.locator(".dashy-stats").first();
+        await cards.evaluate((el) => el.scrollIntoView({ block: "start" }));
+        await win.waitForTimeout(300);
+        const grid = view.locator(".block-language-heatmap").last().locator(".dashy-hm-wrap").last();
+        await win.screenshot({ path: path.join(SHOTS, `sleep-${suffix}.png`), clip: await union(cards, grid) });
+
+        // Back where `setUp` expects to find the next test.
+        await openNote(win, "Dashboard.md", ".dashy-hm-cell");
+    });
+}
+
+/**
+ * The same weekly chart from a `dataviewjs` script and from a Dashy block.
+ * Dataview and Obsidian Charts are switched on for this shot only and off
+ * again after it, so no other picture is drawn with them loaded. Skipped when
+ * scripts/demo-vault.cjs found no copy of them to put in the vault.
+ */
+const COMPARE_PLUGINS = ["dataview", "obsidian-charts"];
+const compareReady = COMPARE_PLUGINS.every((id) =>
+    fs.existsSync(path.resolve(".capture/vault/.obsidian/plugins", id, "main.js")));
+
+for (const theme of ["obsidian", "moonstone"] as const) {
+    const suffix = theme === "obsidian" ? "dark" : "light";
+
+    test(`dataviewjs comparison, ${suffix}`, async ({ win }) => {
+        test.skip(!compareReady, "no Dataview/Obsidian Charts under .capture/livecheck: comparison shot skipped");
+        await setUp(win, theme);
+        const toggle = (on: boolean): Promise<void> => win.evaluate(async ({ ids, enable }) => {
+            const plugins = (globalThis as unknown as {
+                app?: { plugins?: { enablePlugin?: (id: string) => Promise<unknown>; disablePlugin?: (id: string) => Promise<unknown> } };
+            }).app?.plugins;
+            for (const id of ids) await (enable ? plugins?.enablePlugin?.(id) : plugins?.disablePlugin?.(id));
+        }, { ids: COMPARE_PLUGINS, enable: on });
+
+        await toggle(true);
+        try {
+            // A script run before Dataview finished indexing sees a handful of
+            // notes and draws a handful of weeks. Wait for the index, then
+            // open the note, so the script gets the whole diary.
+            await expect.poll(() => win.evaluate(() => {
+                const dv = (globalThis as unknown as {
+                    app?: { plugins?: { plugins?: { dataview?: { index?: { initialized?: boolean } } } } };
+                }).app?.plugins?.plugins?.dataview;
+                return dv?.index?.initialized === true;
+            }), { timeout: 30_000 }).toBe(true);
+            await openNote(win, "Dataview compare.md", ".dashy-chart-svg");
+            const view = win.locator(READING_VIEW);
+            const canvas = view.locator(".block-language-dataviewjs canvas").first();
+            await expect(canvas).toBeVisible({ timeout: 15_000 });
+            await win.waitForTimeout(1_500); // Chart.js animates its bars in
+            await win.evaluate(() => {
+                for (const notice of Array.from(document.querySelectorAll(".notice"))) notice.remove();
+            });
+            const top = await view.locator(".markdown-preview-sizer").first().boundingBox();
+            const last = await view.locator(".dashy-chart").last().boundingBox();
+            if (!top || !last) throw new Error("capture: the comparison note is not on screen");
+            await win.screenshot({
+                path: path.join(SHOTS, `compare-${suffix}.png`),
+                clip: { x: top.x, y: top.y, width: top.width, height: last.y + last.height - top.y },
+            });
+        } finally {
+            await toggle(false);
+            await openNote(win, "Dashboard.md", ".dashy-hm-cell");
+        }
+    });
+}
+
 test("diagnostics", async ({ win }) => {
     await setUp(win, "obsidian");
     await win.evaluate(async () => {
@@ -131,12 +292,13 @@ test("diagnostics", async ({ win }) => {
     });
     const view = win.locator(READING_VIEW);
     await expect(view.locator(".dashy-diag-warning").first()).toBeVisible();
+    await expect(view.locator(".dashy-chart-svg").first()).toBeVisible();
 
     // Clipped to where the content actually ends. The preview container has a
     // min-height, so screenshotting it leaves half a page of empty note under
     // a picture whose subject is four lines tall.
     const top = await view.locator(".markdown-preview-sizer").first().boundingBox();
-    const last = await view.locator(".dashy-stats").last().boundingBox();
+    const last = await view.locator(".dashy-chart").last().boundingBox();
     if (top && last) {
         await win.screenshot({
             path: path.join(SHOTS, "diagnostics-dark.png"),
@@ -150,9 +312,23 @@ test("settings", async ({ app, win }) => {
     // Since Obsidian 1.13 the settings live in a window of their own.
     const settings = await openSettings(app, win);
     await settings.waitForTimeout(600);
+    // The README puts this picture under the agent section and describes its
+    // two install buttons, so they have to be in it. The pane outgrew one
+    // window when "New day" arrived: scroll until the last setting (the
+    // AGENTS.md row) sits at the bottom, and let the top fall where it may.
+    const pane = settings.locator(".vertical-tab-content-container").first();
+    const agents = pane.locator(".setting-item").filter({ hasText: "AGENTS.md in the vault root" }).first();
+    await expect(agents).toHaveCount(1);
+    await agents.evaluate((el) => el.scrollIntoView({ block: "end" }));
+    await settings.waitForTimeout(300);
+    const heading = pane.getByText("AI agent skill", { exact: true }).first();
+    const headingBox = await heading.boundingBox();
+    const paneBox = await pane.boundingBox();
+    if (!headingBox || !paneBox || headingBox.y < paneBox.y) {
+        throw new Error("capture: the agent section does not fit in the settings window");
+    }
     // The settings pane alone, without Obsidian's own tab list beside it.
-    await settings.locator(".vertical-tab-content-container").first()
-        .screenshot({ path: path.join(SHOTS, "settings-dark.png") });
+    await pane.screenshot({ path: path.join(SHOTS, "settings-dark.png") });
 });
 
 /**

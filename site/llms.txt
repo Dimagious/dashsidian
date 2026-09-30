@@ -1,8 +1,8 @@
 # Dashy
 
-Dashy is an Obsidian plugin: a dashboard inside a note, built from six
-markdown blocks (today, tiles, stats, progress, countdown, heatmap)
-configured in YAML. No JavaScript, no Dataview. It reads frontmatter
+Dashy is an Obsidian plugin: a dashboard inside a note, built from seven
+markdown blocks (today, tiles, stats, progress, countdown, heatmap,
+chart) configured in YAML. No JavaScript, no Dataview. It reads frontmatter
 through Obsidian's own metadata cache and writes nothing to your notes
 unless you ask it to.
 
@@ -13,7 +13,7 @@ Plugin id: dashsidian
 
 ## Documentation
 
-- README, install steps and all six blocks with examples:
+- README, install steps and all seven blocks with examples:
   https://raw.githubusercontent.com/Dimagious/dashsidian/master/README.md
 - Changelog:
   https://raw.githubusercontent.com/Dimagious/dashsidian/master/CHANGELOG.md

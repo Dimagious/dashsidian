@@ -281,7 +281,7 @@ A number over time: a line or bars per day, week or month, for one property or a
 |---|---|---|---|---|---|
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
-| `where` | string | — | — | — | a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; the field name may be a dotted path into a nested property, like `health.sleep > 70`; `and`/`or` are not supported |
+| `where` | string\|list | — | — | — | a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, "rating >= 4"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or`. One unreadable condition drops the whole filter with a warning, and the chart is drawn unfiltered |
 | `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date` |
 | `field` | string | — | — | `property`, `prop` | required unless `series` is set or `agg` is `count`, and not allowed together with `series`. One numeric frontmatter property, or a checkbox (ticked is 1, unticked 0); dotted for a nested one like `health.sleep`. A duration string like `5h 58min` or `7:30` counts as minutes, and tooltips, the y axis and the goal label then read `5h 58m`; a field mixing durations and plain numbers counts both as minutes, shows plain numbers and warns. One property only: a list here is an error, write `series` for several lines, or `series: [{field: [a, b]}]` to fold several properties into one line. A field missing from the selection, holding text rather than a number, or holding numbers only on undated notes errors and says which |
 | `series` | list | — | — | — | several lines, or groups of bars, instead of one `field`: `[{field, agg, label, color}]`, at most 4. Not used together with the block's own `field`. Every series is its own line, or its own bar beside the others, never stacked, and all of them share one y axis |
@@ -319,6 +319,7 @@ A number over time: a line or bars per day, week or month, for one property or a
 ```chart
 source: 01-Areas/Personal/Diary
 field: sleep_score
+agg: avg
 ```
 ````
 

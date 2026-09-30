@@ -54,6 +54,9 @@ body {
   --dashy-chart-grid: var(--dashy-border);
   --dashy-chart-text: var(--text-muted);
   --dashy-chart-goal: var(--text-faint);
+  /* A halo around the goal's end label, in the note's own background, so the
+     label stays legible where a tall bar or the line runs under it. */
+  --dashy-chart-halo: var(--background-primary);
   /* How strongly the still-running last bucket paints: an opacity, not a
      colour, so it lightens whichever series colour it is applied to. */
   --dashy-chart-partial: 0.45;
