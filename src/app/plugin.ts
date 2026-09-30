@@ -7,6 +7,7 @@ import { createDayRollover, type DayRollover } from "../core/day-rollover";
 import { buildContext, type BlockContext } from "../blocks/context";
 import { renderCountdown } from "../blocks/countdown";
 import { renderHeatmap } from "../blocks/heatmap";
+import { renderChart } from "../blocks/chart";
 import { renderProgress } from "../blocks/progress";
 import { renderStats } from "../blocks/stats";
 import { renderToday } from "../blocks/today";
@@ -31,6 +32,7 @@ const BLOCKS: Record<string, Draw> = {
     today: renderToday,
     countdown: renderCountdown,
     heatmap: renderHeatmap,
+    chart: renderChart,
 };
 
 /** How long to wait for the vault to stop changing before redrawing. */

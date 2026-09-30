@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dashy</title>
-<meta name="description" content="Dashy is an Obsidian plugin: a dashboard inside a note from six markdown blocks, configured in YAML. No JavaScript, no Dataview.">
+<meta name="description" content="Dashy is an Obsidian plugin: a dashboard inside a note from seven markdown blocks, configured in YAML. No JavaScript, no Dataview.">
 <link rel="canonical" href="https://dimagious.github.io/dashsidian/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%238b6cef'/%3E%3Crect x='7' y='7.5' width='11' height='3' rx='1.5' fill='%23fff'/%3E%3Crect x='7' y='13' width='8.5' height='7' rx='2' fill='%23fff' fill-opacity='.55'/%3E%3Crect x='16.5' y='13' width='8.5' height='7' rx='2' fill='%23fff'/%3E%3Crect x='7' y='22.5' width='18' height='3' rx='1.5' fill='%23fff' fill-opacity='.35'/%3E%3Crect x='7' y='22.5' width='12' height='3' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -12,13 +12,13 @@
 <meta property="og:site_name" content="Dashy">
 <meta property="og:url" content="https://dimagious.github.io/dashsidian/">
 <meta property="og:title" content="Dashy: a dashboard inside an Obsidian note">
-<meta property="og:description" content="Six markdown blocks, configured in YAML. No JavaScript, no Dataview.">
+<meta property="og:description" content="Seven markdown blocks, configured in YAML. No JavaScript, no Dataview.">
 <meta property="og:image" content="https://dimagious.github.io/dashsidian/img/social-preview.png">
 <meta property="og:image:width" content="1280">
 <meta property="og:image:height" content="640">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Dashy: a dashboard inside an Obsidian note">
-<meta name="twitter:description" content="Six markdown blocks, configured in YAML. No JavaScript, no Dataview.">
+<meta name="twitter:description" content="Seven markdown blocks, configured in YAML. No JavaScript, no Dataview.">
 <meta name="twitter:image" content="https://dimagious.github.io/dashsidian/img/social-preview.png">
 <style>
 /* ---------- self-hosted fonts: Inter and JetBrains Mono, latin, woff2 only ---------- */
@@ -375,7 +375,7 @@ details.callout[open] > summary .chev { transform: rotate(90deg); }
 details.callout[open] > summary { margin-bottom: 6px; }
 details.callout .callout-title { margin-bottom: 0; }
 
-/* ---------- block index (the six) ---------- */
+/* ---------- block index (the seven) ---------- */
 .six { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
 .six a {
   display: block; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; text-decoration: none;
@@ -594,14 +594,14 @@ footer.note-foot a { color: var(--muted); }
         <div class="props" aria-label="Properties">
           <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
           <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>plugin id</div><div class="v"><code>dashsidian</code></div></div>
-          <div class="prop"><div class="k"><svg><use href="#i-tag"/></svg>blocks</div><div class="v"><span class="pill">today</span><span class="pill">tiles</span><span class="pill">stats</span><span class="pill">progress</span><span class="pill">countdown</span><span class="pill">heatmap</span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-tag"/></svg>blocks</div><div class="v"><span class="pill">today</span><span class="pill">tiles</span><span class="pill">stats</span><span class="pill">progress</span><span class="pill">countdown</span><span class="pill">heatmap</span><span class="pill">chart</span></div></div>
           <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>needs dataview</div><div class="v"><span class="check off" aria-label="no"></span></div></div>
           <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>mobile</div><div class="v"><span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span></div></div>
           <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>version</div><div class="v">{{version}} <span class="muted" style="font-size:13px">· Obsidian {{minAppVersion}} or later</span></div></div>
           <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>license</div><div class="v">MIT</div></div>
         </div>
 
-        <p class="lede">A dashboard inside an Obsidian note, built from six markdown blocks. Each block is a few lines of YAML. No JavaScript, and no Dataview.</p>
+        <p class="lede">A dashboard inside an Obsidian note, built from seven markdown blocks. Each block is a few lines of YAML. No JavaScript, and no Dataview.</p>
 
         <div class="actions">
           <a class="btn primary" href="#install"><svg><use href="#i-plug"/></svg>Get it from Community plugins</a>
@@ -629,7 +629,7 @@ monthly: true
 ```</code></pre>
         </div>
 
-        <h3>Six blocks, one job each</h3>
+        <h3>Seven blocks, one job each</h3>
         <div class="six">
           <a href="#today"><code>today</code><span>Today's date and links to the daily, weekly and monthly notes</span></a>
           <a href="#tiles"><code>tiles</code><span>Link tiles into the vault, with note counts</span></a>
@@ -637,6 +637,7 @@ monthly: true
           <a href="#progress"><code>progress</code><span>Bars towards a goal</span></a>
           <a href="#countdown"><code>countdown</code><span>Days until a date</span></a>
           <a href="#heatmap"><code>heatmap</code><span>A year of days, coloured by a number</span></a>
+          <a href="https://github.com/Dimagious/dashsidian#chart-a-number-over-time"><code>chart</code><span>Lines or bars of a number over days, weeks or months</span></a>
         </div>
 
         <div class="callout accent">
@@ -666,11 +667,12 @@ monthly: true
             <li><b>today</b><small>Today's date and the periodic notes</small></li>
             <li><b>countdown</b><small>Days until a date</small></li>
             <li><b>heatmap</b><small>A year of days, coloured by a number</small></li>
+            <li><b>chart</b><small>Lines or bars of a number over days, weeks or months</small></li>
           </ul>
         </div>
         <p class="muted" style="font-size:14px">The picker's own labels. Also on the <a href="https://community.obsidian.md/plugins/dashsidian">plugin listing</a>.</p>
         <figure class="shot" style="max-width:560px">
-          <img src="img/firstrun-picker.png" width="700" height="484" loading="lazy" alt="Obsidian's own command palette open on Dashy: Insert block, listing the six blocks to pick from">
+          <img src="img/firstrun-picker.png" width="700" height="484" loading="lazy" alt="Obsidian's own command palette open on Dashy: Insert block, listing the seven blocks to pick from">
           <figcaption>The real picker, in Obsidian.</figcaption>
         </figure>
       </section>
@@ -993,13 +995,13 @@ items:
       <section class="file" id="scope" data-title="What it leaves out" data-path="What it leaves out">
         <div class="crumb">What it leaves out.md</div>
         <h2>What it leaves out</h2>
-        <p>The list stops at six blocks on purpose. Dashy does not draw:</p>
+        <p>The list stops at seven blocks on purpose. Dashy does not draw:</p>
         <ul class="nope">
-          <li>charts (see <a href="https://github.com/phibr0/obsidian-charts">Obsidian Charts</a>)</li>
+          <li>pie, radar or scatter charts, stacked bars (see <a href="https://github.com/phibr0/obsidian-charts">Obsidian Charts</a>)</li>
           <li>tables and queries (Bases, Dataview)</li>
           <li>kanban boards or task lists</li>
         </ul>
-        <p style="margin-top:14px"><code>where</code> takes one condition. If that stops you building something, <a href="https://github.com/Dimagious/dashsidian/issues">say what you tried</a>; that is the quickest way to change it.</p>
+        <p style="margin-top:14px"><code>where</code> takes several conditions that must all hold, not <code>or</code>. If that stops you building something, <a href="https://github.com/Dimagious/dashsidian/issues">say what you tried</a>; that is the quickest way to change it.</p>
       </section>
 
       <!-- ============ Questions.md ============ -->
@@ -1053,7 +1055,7 @@ items:
   </div>
 </div>
 
-<div class="statusbar" aria-hidden="true"><span>6 blocks</span><span>5 languages</span><span>MIT</span></div>
+<div class="statusbar" aria-hidden="true"><span>7 blocks</span><span>5 languages</span><span>MIT</span></div>
 
 <div class="overlay drawer-scrim" id="drawerScrim"></div>
 <div class="overlay" id="paletteScrim"></div>

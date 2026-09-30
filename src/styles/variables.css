@@ -47,6 +47,19 @@ body {
      instead of overlapping today's own outline — see `.is-today.is-selected`
      in blocks.css. */
   --dashy-hm-selected: var(--interactive-accent);
+
+  /* The chart block (ADR 0005). Its height is the only size a reader can
+     change, from a CSS snippet: there is no `height` key on purpose. */
+  --dashy-chart-height: 160px;
+  --dashy-chart-grid: var(--dashy-border);
+  --dashy-chart-text: var(--text-muted);
+  --dashy-chart-goal: var(--text-faint);
+  /* A halo around the goal's end label, in the note's own background, so the
+     label stays legible where a tall bar or the line runs under it. */
+  --dashy-chart-halo: var(--background-primary);
+  /* How strongly the still-running last bucket paints: an opacity, not a
+     colour, so it lightens whichever series colour it is applied to. */
+  --dashy-chart-partial: 0.45;
 }
 
 @supports (color: color-mix(in srgb, red 50%, blue)) {

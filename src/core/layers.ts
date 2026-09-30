@@ -137,8 +137,8 @@ export interface LayeredMark {
     painted: boolean;
     /** index into the `layers` list of the layer that coloured this day, only when `painted` */
     layer: number;
-    /** every layer with a mark this day, in list order — the tooltip lists all of them */
-    parts: readonly { label: string; value: number }[];
+    /** every layer with a mark this day, in list order — the tooltip lists all of them; `layer` indexes `layers` */
+    parts: readonly { label: string; value: number; layer: number }[];
     /**
      * Every distinct note that contributed to ANY layer this day (B-092): the
      * union across layers, by path, not just the winning layer's own list —
@@ -181,13 +181,13 @@ export function combineLayers(
 
     const combined = new Map<string, LayeredMark>();
     for (const day of days) {
-        const parts: { label: string; value: number }[] = [];
+        const parts: { label: string; value: number; layer: number }[] = [];
         const notes = new Map<string, DayNote>();
         let winner = -1;
         for (let i = 0; i < perLayerMarks.length; i++) {
             const mark = perLayerMarks[i]?.get(day);
             if (!mark) continue;
-            parts.push({ label: labels[i] ?? "", value: mark.value });
+            parts.push({ label: labels[i] ?? "", value: mark.value, layer: i });
             for (const note of mark.notes) notes.set(note.path, note);
             if (winner === -1 && mark.painted) winner = i;
         }

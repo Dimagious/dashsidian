@@ -6,7 +6,8 @@
  * module wraps readStat instead of repeating its validation.
  */
 
-import { readStat, type StatSpec } from "./stat";
+import { readStat, noteDurationThreshold, type StatSpec } from "./stat";
+import { parseDuration } from "./duration";
 import type { Diagnostic } from "../shared/parse";
 import { t } from "../i18n";
 
@@ -24,13 +25,14 @@ export function readProgress(item: Record<string, unknown>, label: string): Prog
     const { spec, diagnostics } = readStat(item, label);
 
     // Number() would take `true` for 1 and `[5]` for 5. A goal is a number the
-    // user wrote, and everything else is a mistake worth reporting.
+    // user wrote, or a duration like `8h` (read as minutes, core/duration.ts),
+    // and everything else is a mistake worth reporting.
     const written = item.goal;
+    const numeric = typeof written === "string" && written.trim() !== "" ? Number(written) : Number.NaN;
+    const duration = typeof written === "string" && !Number.isFinite(numeric) ? parseDuration(written) : null;
     const goal = typeof written === "number"
         ? written
-        : typeof written === "string" && written.trim() !== ""
-            ? Number(written)
-            : Number.NaN;
+        : duration ?? numeric;
     if (written === undefined || !Number.isFinite(goal)) {
         diagnostics.push({ level: "error", message: t("progress.goalRequired", { card }) });
         return { spec: null, diagnostics };
@@ -38,12 +40,16 @@ export function readProgress(item: Record<string, unknown>, label: string): Prog
     // A goal of zero or less has no bar to draw: every value is already past it,
     // and dividing by it produces Infinity rather than a number anyone wants.
     if (goal <= 0) {
-        diagnostics.push({ level: "error", message: t("progress.goalNotPositive", { card, goal }) });
+        // As written: `goal: 0h` reads back as "0h", not as the minutes it became.
+        const shown = typeof written === "string" ? written.trim() : goal;
+        diagnostics.push({ level: "error", message: t("progress.goalNotPositive", { card, goal: shown }) });
         return { spec: null, diagnostics };
     }
 
     if (!spec) return { spec: null, diagnostics };
-    return { spec: { ...spec, goal }, diagnostics };
+    const withGoal: ProgressSpec = { ...spec, goal };
+    if (duration !== null) noteDurationThreshold(withGoal, "goal", written);
+    return { spec: withGoal, diagnostics };
 }
 
 /**

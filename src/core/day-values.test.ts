@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { dayValues, readFields, readPerDay, unusedFields, isPerDay, PER_DAY } from "./day-values";
+import {
+    dayValues, readFields, readPerDay, unusedFields, isPerDay, PER_DAY, heatmapDurationDiagnostics,
+} from "./day-values";
 import type { NoteRecord } from "./source";
 
 const note = (path: string, frontmatter: Record<string, unknown>): NoteRecord => {
@@ -285,5 +287,38 @@ describe("unusedFields", () => {
     it("a field holding only text counts as unused too", () => {
         const notes = [note("Diary/2026-01-01.md", { mood_am: 5, note: "hi" })];
         expect(unusedFields(notes, ["mood_am", "note"])).toEqual(["note"]);
+    });
+});
+
+// B-121
+describe("dayValues — durations", () => {
+    it("a day's duration strings collapse in minutes like any number", () => {
+        const notes = [
+            note("Diary/2026-01-01.md", { nap: "20m" }),
+            note("Diary/2026-01-01 evening.md", { nap: "0:25" }),
+        ];
+        expect(dayValues(notes, ["nap"], "sum").get("2026-01-01")?.value).toBe(45);
+    });
+});
+
+describe("heatmapDurationDiagnostics", () => {
+    it("a mixed field names one note of each kind", () => {
+        expect(heatmapDurationDiagnostics(
+            { kind: "mixed", durationNote: "Diary/a.md", plainNote: "Diary/b.md" }, "sleep", undefined,
+        ).map((d) => d.message)).toEqual([
+            '"sleep" mixes durations ("Diary/a.md") and plain numbers ("Diary/b.md"). '
+            + "All of them are counted as minutes and shown as plain numbers.",
+        ]);
+    });
+
+    it("a duration `bands` threshold on plain numbers warns, naming the threshold as written", () => {
+        expect(heatmapDurationDiagnostics({ kind: "plain" }, "steps", [{ min: "7h" }, 1000]).map((d) => d.message))
+            .toEqual(['`bands` threshold "7h" is a duration, but "steps" holds plain numbers. It is applied as minutes.']);
+    });
+
+    it("nothing to say: durations with duration bands, plain numbers with plain bands", () => {
+        expect(heatmapDurationDiagnostics({ kind: "duration" }, "sleep", ["8h", 420])).toEqual([]);
+        expect(heatmapDurationDiagnostics({ kind: "plain" }, "steps", [10000, 5000])).toEqual([]);
+        expect(heatmapDurationDiagnostics({ kind: "plain" }, "steps", undefined)).toEqual([]);
     });
 });

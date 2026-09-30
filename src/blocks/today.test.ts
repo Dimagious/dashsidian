@@ -132,6 +132,14 @@ describe("today — edges", () => {
         expect(diagnostics(el, "warning")[0]).toContain("weekly");
     });
 
+    it("a synonym of a key today does not have is reported as written (B-125)", () => {
+        // `folder` means `source` elsewhere; today has no `source`, so the
+        // warning must not name a key the author never wrote.
+        const el = row("daily: true\nfolder: Diary");
+        expect(diagnostics(el, "warning")).toEqual(['⚠️ today: Unknown key "folder", ignored.']);
+        expect(nodes(el, ".dashy-today-chip")).toHaveLength(1);
+    });
+
     it("a list where a set of fields was expected is reported", () => {
         const el = row("- daily");
         expect(diagnostics(el, "error")).toHaveLength(1);

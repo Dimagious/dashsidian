@@ -5,6 +5,7 @@ import type { NoteRecord } from "./source";
 import schema from "../blocks/schema.json";
 import { renderStats } from "../blocks/stats";
 import { renderProgress } from "../blocks/progress";
+import { renderChart } from "../blocks/chart";
 import { mockContext, host, diagnostics } from "../test/vault";
 
 const note = (folder: string, name: string, fm: Record<string, unknown> = {}): NoteRecord =>
@@ -45,6 +46,19 @@ describe("profileVault", () => {
             note("Diary", "c", { gym: true, sleep_score: 90 }),
         ];
         expect(profileVault(notes).field).toBe("sleep_score");
+    });
+
+    // B-121: a duration string reads as minutes everywhere else now, but the
+    // examples carry plain thresholds (`bands: [90, 80, 60]`, `goal: 200,
+    // unit: km`), which would be minutes and a unit warning over it.
+    it("a duration property is passed over for a real number, even when it is the most common", () => {
+        const notes = [
+            note("Diary", "a", { sleep_duration: "7h 10m", sleep_score: 82 }),
+            note("Diary", "b", { sleep_duration: "6:40" }),
+            note("Diary", "c", { sleep_duration: "8h", sleep_score: 90 }),
+        ];
+        expect(profileVault(notes).field).toBe("sleep_score");
+        expect(profileVault([note("Diary", "a", { sleep_duration: "7h" })]).field).toBeNull();
     });
 
     it("a vault with only a checkbox property has no field to suggest", () => {
@@ -174,7 +188,7 @@ describe("the schema examples survive a newcomer-shaped vault", () => {
 
     afterEach(() => vi.useRealTimers());
 
-    it("stats and progress render every fitted example with no diagnostics", () => {
+    it("stats, progress and chart render every fitted example with no diagnostics", () => {
         const notes = newcomerVaultNotes(TODAY);
         const profile = profileVault(notes);
         // Ties break alphabetically (see profileVault above), and every
@@ -191,14 +205,21 @@ describe("the schema examples survive a newcomer-shaped vault", () => {
         vi.setSystemTime(TODAY);
 
         const blocks = schema.blocks as Record<string, { example: string }>;
-        for (const name of ["stats", "progress"] as const) {
+        for (const name of ["stats", "progress", "chart"] as const) {
             const fitted = fitExample(blocks[name]!.example, profile);
             const el = host();
             if (name === "stats") renderStats(ctx, fitted, el);
-            else renderProgress(ctx, fitted, el);
+            else if (name === "progress") renderProgress(ctx, fitted, el);
+            else renderChart(ctx, fitted, el);
 
             expect(diagnostics(el, "error"), `${name}:\n${fitted}`).toEqual([]);
             expect(diagnostics(el, "warning"), `${name}:\n${fitted}`).toEqual([]);
         }
+        // The chart example is the newcomer's own `mood` per day, with data
+        // in its default 30-day window rather than an empty plot.
+        const chartEl = host();
+        renderChart(ctx, fitExample(blocks.chart!.example, profile), chartEl);
+        expect(chartEl.querySelector(".dashy-chart-title")?.textContent).toBe("mood: average per day, last 30 days");
+        expect(chartEl.querySelector(".dashy-chart-empty")).toBeNull();
     });
 });

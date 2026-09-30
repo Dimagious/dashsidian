@@ -8,7 +8,7 @@
  */
 
 import type { NoteRecord } from "./source";
-import { numberAt, isBooleanMark } from "./aggregate";
+import { numberAt, isBooleanMark, isDurationMark } from "./aggregate";
 
 export interface VaultProfile {
     /** the folder holding the most notes, or null for a vault with none */
@@ -39,6 +39,11 @@ export function profileVault(notes: readonly NoteRecord[]): VaultProfile {
             // fluke, and `bands: [90, 80, 60]` over a 1/0 value is nonsense.
             // A real number is still the honest guess for "what field".
             if (isBooleanMark(note, key)) continue;
+            // A duration string (`sleep: 7h 30m`) is a number too now, but
+            // the examples' thresholds are plain numbers: `bands: [90, 80,
+            // 60]` would read as minutes and `unit: km` would earn a warning
+            // on the very first block a newcomer inserts.
+            if (isDurationMark(note, key)) continue;
             if (numberAt(note, key) !== null) byField.set(key, (byField.get(key) ?? 0) + 1);
         }
     }

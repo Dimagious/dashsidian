@@ -28,12 +28,56 @@ removed public export.
   joined by `and` in one string, `where: "year = 2026 and rating >= 4"`; a
   list item may hold `and` too. `and` counts in any case, as a whole word
   outside quotes, so `status = "waiting and ready"` is still one condition.
-  This works on `tiles`, `stats`, `progress` and `heatmap`, wherever `where`
-  already did. `or` is still not supported: it warns, now saying that `and`
+  This works on `tiles`, `stats`, `progress`, `heatmap` and `chart`,
+  wherever `where` already did. `or` is still not supported: it warns, now saying that `and`
   and a list are, and the block draws unfiltered. One unreadable condition,
   an empty list, or a list item that is not a condition drops the whole
   filter with a warning, never just the bad part; the warning quotes the
   bad condition or item.
+- **Durations count as numbers.** `sleep: 5h 58min`, `7:30` or `0:51:20`
+  used to read as text, so a card over them showed a dash. `stats`,
+  `progress` and `heatmap` now read them as minutes: `H:MM` and `H:MM:SS`,
+  or `h`, `m`/`min`, `s`/`sec`, largest first, each at most once, spaces
+  optional (`1h30m`, `45m`, `90 min`, `1.5h`). The whole value must be the
+  duration, so `10 km · 51min` stays text; localized units, ISO `PT1H30M`
+  and negatives are not read, and `H:MM` is always a duration, not a time
+  of day. When every value of the field in the selection is a duration,
+  `sum`, `avg`, `min`, `max` and `latest`, a bar's value and goal, a
+  `compare` delta, and a heatmap's tooltips, caption average and legend
+  read as `5h 58m`, `45m`, `8h` or `51m 20s`; `count`, `streak` and
+  `current_streak` still count. `precision` has no effect there, and a `unit` is dropped with a
+  warning. `goal`, `at_least`, `at_most` and `bands` take the same formats
+  (`goal: 8h`, `bands: [8h, 7h]` or `{min: 7h}`); a plain number there
+  means minutes. A duration threshold against a field of plain numbers, a
+  duration goal on `count`, `streak` or `current_streak`, and a field mixing durations with
+  plain numbers each warn (the last one naming a note of each kind, and
+  not on `count` or a streak without a threshold, where the mix changes
+  nothing shown), and are still counted in minutes. The first-run example never picks a
+  duration field.
+- **A `chart` block: a number over time.** A line or bars of one property
+  per day, week or month, in a window ending today: `source` and `field`
+  are the whole config for the last 30 days. `bucket: week` starts on the
+  interface language's first day, `month` on the 1st; `range` takes the
+  heatmap's window and defaults to `30d`, `182d` or `365d` by bucket, its
+  start moved back to a whole bucket. `agg` (`sum`, `avg`, `min`, `max`,
+  `count`) collapses a bucket over every value in it, so a week's `avg`
+  matches a `stats` card's; an empty bucket is a gap, not a zero. The
+  still-running last bucket is drawn lighter or hollow and its tooltip says
+  "so far". `series` puts up to four properties side by side, each with its
+  own `agg`, label and colour, never stacked; a list in the root `field` is
+  an error pointing at `series`. `goal` draws a dashed line the axis always
+  shows, its label haloed in the note's background so it stays readable
+  over a bar or the line, `type: bar` starts at zero, a day opens its note on click, and a
+  phone reads a bucket on the first tap. Durations read as durations in the
+  tooltip, and on the axis and the goal once every series holds them. The
+  height is the `--dashy-chart-height` CSS variable, not a key. Over 400
+  buckets are cut to the latest 400 and a single bucket warns. Pie, stacked
+  and dual-axis charts stay with Obsidian Charts. The first-run example
+  averages its property per day (`agg: avg`). Schema 1.7.0.
+- **A key borrowed from a neighbouring block says what it is called here.**
+  `layers`, `per_day`, `period` or `trend` in a chart warn with `series`,
+  `agg` or `range`, instead of an unknown key with no guess. The table
+  lives in the schema, and the agent skill prints it under the block.
 
 ### Fixed
 
@@ -41,6 +85,12 @@ removed public export.
   takes either `field` or `layers`, never both, yet the schema marked `field`
   required, so an agent or a schema-driven validator rejected a correct
   block with `layers`. The skill now says exactly one of the two.
+- **An unknown-key warning names the key you wrote.** A key synonym was
+  applied even in a block that has no such key, so `folder:` in `today`
+  was reported as `Unknown key "source"`, and `target:` in `stats` as
+  `Unknown key "goal"`. A synonym now applies only where its key exists
+  (`folder` still means `source` in `stats`, `target` still means `goal`
+  in `progress`), and the warning quotes your own spelling otherwise.
 
 ## [1.4.0] - 2026-09-29
 

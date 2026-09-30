@@ -13,6 +13,8 @@ import {
     currentStreak,
     isWeekend,
     yearsOf,
+    bucketStart,
+    eachBucket,
 } from "./calendar";
 
 describe("dateKey", () => {
@@ -442,5 +444,66 @@ describe("weekdayRow", () => {
                 expect(row).toBeLessThan(7);
             }
         }
+    });
+});
+
+describe("bucketStart (ADR 0005)", () => {
+    // 2026-09-30 is a Wednesday.
+    it("a day is its own bucket", () => {
+        expect(bucketStart("2026-09-30", "day", 1)).toBe("2026-09-30");
+    });
+
+    it("a week starts on Monday when the locale says so", () => {
+        expect(bucketStart("2026-09-30", "week", 1)).toBe("2026-09-28");
+        expect(bucketStart("2026-09-28", "week", 1)).toBe("2026-09-28");
+        expect(bucketStart("2026-10-04", "week", 1)).toBe("2026-09-28");
+    });
+
+    it("a week starts on Sunday in an English locale", () => {
+        expect(bucketStart("2026-09-30", "week", 0)).toBe("2026-09-27");
+        expect(bucketStart("2026-09-27", "week", 0)).toBe("2026-09-27");
+        expect(bucketStart("2026-10-03", "week", 0)).toBe("2026-09-27");
+    });
+
+    it("a week crossing 1 January starts in the old year", () => {
+        expect(bucketStart("2027-01-01", "week", 1)).toBe("2026-12-28");
+    });
+
+    it("a month starts on the 1st", () => {
+        expect(bucketStart("2026-09-30", "month", 1)).toBe("2026-09-01");
+        expect(bucketStart("2024-02-29", "month", 0)).toBe("2024-02-01");
+    });
+});
+
+describe("eachBucket (ADR 0005)", () => {
+    it("days, both ends inclusive", () => {
+        expect(eachBucket("2026-09-28", "2026-10-01", "day"))
+            .toEqual(["2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01"]);
+    });
+
+    it("weeks step by seven days, the last one holding `end`", () => {
+        expect(eachBucket("2026-09-14", "2026-09-30", "week")).toEqual(["2026-09-14", "2026-09-21", "2026-09-28"]);
+    });
+
+    it("months step to the 1st whatever their length, across 1 January", () => {
+        expect(eachBucket("2025-11-01", "2026-03-15", "month"))
+            .toEqual(["2025-11-01", "2025-12-01", "2026-01-01", "2026-02-01", "2026-03-01"]);
+    });
+
+    it("a DST switch inside the window neither adds nor drops a day or a week", () => {
+        // Europe moves its clocks on 2026-03-29 and 2026-10-25, the US on
+        // 2026-03-08 and 2026-11-01: calendar arithmetic ignores all four.
+        const days = eachBucket("2026-03-01", "2026-03-31", "day");
+        expect(days).toHaveLength(31);
+        expect(new Set(days).size).toBe(31);
+        expect(eachBucket("2026-10-19", "2026-11-08", "week")).toEqual(["2026-10-19", "2026-10-26", "2026-11-02"]);
+    });
+
+    it("a start after the end is no buckets at all", () => {
+        expect(eachBucket("2026-10-01", "2026-09-30", "day")).toEqual([]);
+    });
+
+    it("a malformed start ends at once instead of looping", () => {
+        expect(eachBucket("not a key", "2026-09-30", "day")).toEqual([]);
     });
 });

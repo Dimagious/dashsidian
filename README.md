@@ -2,7 +2,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/banner-dark.svg">
-  <img alt="Dashy: a dashboard inside an Obsidian note, built from six markdown blocks (dashsidian)"
+  <img alt="Dashy: a dashboard inside an Obsidian note, built from seven markdown blocks (dashsidian)"
        src="docs/banner-light.svg">
 </picture>
 
@@ -10,41 +10,154 @@
 [![Latest release](https://img.shields.io/github/v/release/Dimagious/dashsidian?color=7c5ce8)](https://github.com/Dimagious/dashsidian/releases)
 [![Stars](https://img.shields.io/github/stars/Dimagious/dashsidian?color=7c5ce8)](https://github.com/Dimagious/dashsidian/stargazers)
 
-[Install](#install) · [Habit tracker](#a-habit-tracker-from-daily-note-checkboxes) · [Blocks](#the-blocks) · [Questions](#questions) · [Website](https://dimagious.github.io/dashsidian/)
+[Install](#install) · [Charts](#chart-a-number-over-time) · [Habit tracker](#a-habit-tracker-from-daily-note-checkboxes) · [Blocks](#the-blocks) · [Questions](#questions) · [Website](https://dimagious.github.io/dashsidian/)
 
-Build a dashboard inside an Obsidian note from six markdown blocks. The config is YAML,
-a few lines of it. **No JavaScript, and no Dataview.** The same blocks turn the checkboxes
-in your daily notes into [a habit tracker](#a-habit-tracker-from-daily-note-checkboxes).
+**Charts, streaks, heatmaps and goals from the properties in your daily notes.**
+Each block is a few lines of YAML. No JavaScript, no Dataview, and it runs on your phone.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/dashboard-dark.png">
-  <img alt="A Dashy dashboard: a day row, navigation tiles, number cards and progress bars"
-       src="docs/screens/dashboard-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/hero-dark.png">
+  <img alt="One Obsidian note: four cards (sleep this week, days in a row, run this week, gym days), weekly running bars against a 30 km goal line, and six months of nights as a heatmap"
+       src="docs/screens/hero-light.png">
 </picture>
 
-Everything above is one note. Here is the whole of the first block in it:
+That page is one note and three blocks: `stats`, `chart` and `heatmap`. The chart in the
+middle is this, in full:
 
 ````markdown
-```today
-daily: true
-weekly: true
-monthly: true
+```chart
+source: Diary
+field: run_km
+type: bar
+bucket: week
+unit: km
+goal: 30
+title: Running, last six months
 ```
 ````
 
-## What it is used for
+## What you can build
 
-| What | Blocks |
+| | Blocks |
 |---|---|
-| [A habit tracker from daily note checkboxes](#a-habit-tracker-from-daily-note-checkboxes) | `stats`, `heatmap` |
-| [A reading log, a goal for the year](#progress-how-far-along) | `progress` |
-| [A home page with tiles that count a selection, not a whole folder](#tiles-navigation) | `tiles` |
-| [Countdowns to a race, a holiday, a review](#countdown-what-is-coming) | `countdown` |
+| [A habit tracker from daily note checkboxes](#a-habit-tracker-from-daily-note-checkboxes), with [the streak you are on today](#the-streak-you-are-on-right-now) | `stats`, `heatmap` |
+| [A sleep log](#sleep-in-hours-and-minutes) that reads `7h 38min` the way your tracker writes it | `stats`, `chart`, `heatmap` |
+| [Weekly training volume](#chart-a-number-over-time) against a goal line | `chart` |
+| [A reading goal for the year](#progress-how-far-along) | `progress` |
+| [A home page](#tiles-navigation) with today's notes and live folder counts | `today`, `tiles` |
+| [Countdowns](#countdown-what-is-coming) to a race, a holiday, a review | `countdown` |
+
+## Install
+
+Settings → **Community plugins** → **Browse** → search for **Dashy** → Install → Enable.
+
+Open a note, run **Dashy: Insert block** from the command palette, pick a block. A working
+example lands at the cursor, already pointed at a folder and a property from your own vault.
+
+## New in 1.5.0
+
+- **`chart`**: a line or bars over days, weeks or months, up to four series, with a goal line.
+- **Durations**: `5h 58min`, `7:30` and `0:51:20` count as numbers, and `7:30` comes back as `7h 30m`.
+- **`current_streak`**: the run you are on today, next to the best one on record.
+- **`where` takes several conditions**: `where: "year = 2026 and rating >= 4"`.
+- **Clearer errors**: a key borrowed from another block names what it is called here.
+
+Full list in the [changelog](CHANGELOG.md).
+
+## `chart`: a number over time
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/chart-weekly-dark.png">
+  <img alt="Weekly bars of running distance over half a year, a dashed goal line at 30 km, the current week drawn lighter"
+       src="docs/screens/chart-weekly-light.png">
+</picture>
+
+````markdown
+```chart
+source: Diary
+field: run_km
+type: bar
+bucket: week
+unit: km
+goal: 30
+```
+````
+
+Your notes already hold one number per day. `bucket: week` adds them up by week, the week
+starting where your language starts it. The week you are in is drawn lighter and its tooltip
+says "so far". A week with no runs is a gap, never a fake zero.
+
+Two lines, `source` and `field`, are enough for the last 30 days as a line. Put up to four
+properties on one chart with `series`:
+
+````markdown
+```chart
+source: Diary
+type: bar
+bucket: week
+series:
+  - { field: run_time, label: Run }
+  - { field: bike_time, label: Bike, color: orange }
+  - { field: swim_time, label: Swim, color: cyan }
+```
+````
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/chart-series-dark.png">
+  <img alt="Grouped weekly bars for run, bike and swim time, the y axis labelled in hours"
+       src="docs/screens/chart-series-light.png">
+</picture>
+
+Hover a bar for its value and the note behind it; click a day to open that note. On a phone,
+the first tap shows the value and a second tap opens the note.
+
+<details>
+<summary>Every <code>chart</code> key, and how the edges behave</summary>
+
+| Key | What it does |
+|---|---|
+| `source`, `tag`, `where`, `date_field` | which notes, the same as on every block |
+| `field` | one numeric or checkbox property. A list here is an error that points at `series` |
+| `series` | up to four `{ field, agg, label, color }` entries instead of `field`. Side by side, never stacked, one y axis. An entry's `field` may be a list that folds several properties into one series |
+| `agg` | how a bucket becomes one number: `sum` (default), `avg`, `min`, `max`, `count`. `count` needs no `field` |
+| `bucket` | `day` (default), `week`, `month` |
+| `range` | `week`, `month`, `year` or a count of days like `90d`. Defaults to 30 days for `day`, 182 for `week`, 365 for `month` |
+| `type` | `line` (default) or `bar` |
+| `goal` | a dashed line with its value; the y axis always stretches to show it |
+| `unit`, `precision` | suffix and decimals for the tooltip, the goal and the top axis label |
+| `label`, `color` | for a single series; with `series` each entry carries its own |
+| `link` | clicking a day opens its note (default `true`); weeks and months have no single note |
+| `title` | your own heading |
+
+- A bucket's values are every value on every note dated in it. A week's `avg` is the same
+  number a `stats` card with `agg: avg, period: week` shows. `sum` of a checkbox counts ticked days.
+- A bucket with no data is a gap in the line and has no bar. An unticked checkbox is a real 0,
+  and so is `count` over an empty bucket.
+- The window's start moves back to the start of its bucket, so the first week is whole. More
+  than 400 buckets are cut to the latest 400; a single bucket is drawn with a warning.
+- Bars start at zero and hang below it for negative values. A line runs from its own lowest
+  value to its highest, with at most three labelled gridlines.
+- A week's tooltip names it: "Week of Sun Sep 27, 2026". A month starts on the 1st.
+- A field nothing carries, one that holds text, or one found only on undated notes is an error
+  that says which. An empty window draws its axes and says so.
+- The chart is 160 pixels tall, 120 on a narrow screen. There is no `height` key; a CSS snippet
+  changes every chart at once: `body { --dashy-chart-height: 240px; }`
+- Not in it, on purpose: pie, radar and scatter charts, stacked bars, running totals, a second
+  y axis, smoothing, zoom, axis settings. Steps and sleep on one page are two chart blocks.
+  For the rest there is [Obsidian Charts](https://github.com/phibr0/obsidian-charts).
+
+</details>
 
 ## A habit tracker from daily note checkboxes
 
-Tick a box in a daily note's Properties, say `gym: true`, and the note already feeds a habit
-tracker. Every block that reads a `field` counts a ticked day as 1 and an unticked one as 0.
+Tick `gym: true` in a daily note's Properties and that note already feeds a habit tracker.
+Every block that reads a `field` counts a ticked day as 1 and an unticked one as 0.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/habits-dark.png">
+  <img alt="A gym habit tracker: cards for days, longest streak, this week against last week and this month, over a year of ticked days"
+       src="docs/screens/habits-light.png">
+</picture>
 
 ````markdown
 ```stats
@@ -61,54 +174,178 @@ field: gym
 ```
 ````
 
+`period: week` means this week, every week, without an edit. `compare: true` sets it against the
+same days of last week and turns green when you went more often.
+
+### The streak you are on right now
+
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/habits-dark.png">
-  <img alt="A gym habit tracker: cards for days, longest streak, this week against last week and this month, over a year of ticked days"
-       src="docs/screens/habits-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/streak-dark.png">
+  <img alt="Two cards: 12 days in a row, and a best streak of 31 days"
+       src="docs/screens/streak-light.png">
 </picture>
 
-`sum` counts the days you went. `streak` finds your longest run, and an unticked day breaks it
-the way a missing note does; `current_streak` counts the run still going today instead.
-`period: week` narrows a card to the current week, starting on Monday or Sunday as your
-language has it, and `compare: true` sets it against the same days of last week, green when you
-went more often. The heatmap paints the ticked days.
+````markdown
+```stats
+columns: 2
+items:
+  - { label: Days in a row, source: Diary, field: meditate, agg: current_streak, unit: days, icon: 🔥 }
+  - { label: Best streak, source: Diary, field: meditate, agg: streak, unit: days }
+```
+````
 
-You write this once. `period` counts from today, so "this week" is always this week and a
-`period: year` card starts over on 1 January without an edit. If you log a day's habit after
-midnight, push **New day starts at** in Dashy's settings later: it moves where `period` and
-`compare` draw the line, and how far the heatmap's current day reaches, without touching a
-single note.
+`current_streak` counts back from today. Today never breaks it: a day with no note yet leaves
+the run counted up to yesterday, and only a missed yesterday resets it.
 
-## How it differs from a query plugin
+Streaks bend to real life. `at_least: 5000` counts a day only once the steps get there.
+`days: weekdays` lets Friday and Monday join into one run. `skip_field: vacation` makes a
+holiday neither break a streak nor extend it.
 
-Dashy reads your notes' frontmatter through Obsidian's own metadata cache. Four
-consequences of that, worth knowing before you install anything:
+<details>
+<summary>How a streak is counted, in full</summary>
 
-- **One plugin, not two.** Nothing to install alongside it, nothing to explain to someone
-  you share a vault with.
-- **No code in your notes.** A `dataviewjs` block is a program. These are eight lines of
-  YAML that you, a month from now, can read at a glance.
-- **It follows your theme.** Not one colour is hard-coded. Every surface mixes from the
-  variables your theme and accent colour define.
-- **It tells you when the config is wrong.** A block that cannot draw says so, in the note,
-  with the line number and a guess at what you meant.
+- `streak` is the longest run on record; `current_streak` is the run going on now, counted back
+  from today by the same rules. It counts within the card's selection, so `period: month` stops
+  it at the first of the month. Notes dated after today are ignored.
+- An unticked checkbox breaks a run the way a day with no note does, and so does a note that
+  never mentions the field. A numeric `0` is a value and keeps the run going: "0 steps" logged is
+  data, "no note today" is not.
+- Two notes on the same day count as one day, never a break.
+- `at_least` and `at_most` replace "has a value" with a bound on the day's values, summed if
+  several notes landed on it. Both together make a range. If `at_least` ends up above
+  `at_most`, no day qualifies and the streak reads `0`. Under `current_streak`, a today that has
+  not met the bound yet does not break the run.
+- `days: weekdays` removes Saturday and Sunday: they neither break a run nor extend it.
+- `skip_field` does the same for any day a note marks with a value other than `false`, blank or
+  `0`, like `vacation: true` or `sick: flu`. It combines with `days: weekdays`.
+- `streak` and `current_streak` refuse `compare`. Without a `field`, a streak counts days that
+  have any dated note.
 
-What it does not do: charts (that is
-[Obsidian Charts](https://github.com/phibr0/obsidian-charts)), tables and queries (Bases,
-Dataview), kanban, tasks. Each of the six blocks has one job.
+</details>
 
-## Install
+## Sleep in hours and minutes
 
-Settings → **Community plugins** → **Browse** → search for **Dashy** → Install → Enable.
+Your watch writes `sleep: 7h 38min`. Dashy reads it as a number and shows it back as `7h 38m`:
+averages, goals, deltas, heatmap colours and chart axes.
 
-Then open a note and run **Dashy: Insert block** from the command palette. Pick a block and
-a working example lands at the cursor, ready to edit. Everything below is that example.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/sleep-dark.png">
+  <img alt="A sleep page: this week's average against last week, the shortest night and a run of 7h+ nights, a 30-day line of nightly sleep with an 8 hour goal, and five months of nights as a heatmap"
+       src="docs/screens/sleep-light.png">
+</picture>
+
+````markdown
+```stats
+columns: 3
+items:
+  - { label: Sleep this week, source: Diary, field: sleep, agg: avg, period: week, compare: true, better: up }
+  - { label: Shortest night, source: Diary, field: sleep, agg: min, period: month }
+  - { label: 7h+ nights in a row, source: Diary, field: sleep, agg: current_streak, at_least: 7h }
+```
+
+```chart
+source: Diary
+field: sleep
+agg: avg
+goal: 8h
+```
+
+```heatmap
+source: Diary
+field: sleep
+color: purple
+bands: [8h, 7h, 6h]
+range: 182d
+```
+````
+
+<details>
+<summary>Which formats are read, and how they are shown</summary>
+
+Read by `stats`, `progress`, `heatmap` and `chart`, as minutes:
+
+- `H:MM` or `H:MM:SS`: `7:30`, `25:10`, `0:51:20`
+- `h`, `m` or `min`, `s` or `sec`, largest first, each at most once, spaces optional:
+  `5h 58min`, `1h30m`, `45m`, `90 min`, `1.5h`, `30s`
+
+Not read: a value with anything else in it (`running: "10 km · 51min"` stays text), localized
+units (`ч`, `мин`), ISO `PT1H30M`, negative durations. `H:MM` is always a duration, never a time
+of day: `bedtime: 23:40` counts as 23 hours 40 minutes.
+
+When every value of the field in the selection is a duration, the result reads as one: `sum`,
+`avg`, `min`, `max` and `latest` on a card, a bar's value and goal (`7h 5m / 8h`), a `compare`
+delta (`▲ +36m`), a heatmap's tooltips, caption average and legend, and a chart's tooltips,
+y axis and goal (the axis and goal once every series holds durations). Hours are left out under
+an hour (`45m`), minutes when there are none (`8h`), seconds show only under an hour (`51m 20s`).
+There are no days: a week of sleep reads `49h 35m`. `count` and `streak` still count notes and days.
+
+`goal`, `at_least`, `at_most` and `bands` take the same formats. A plain number there means
+minutes, so `goal: 480` equals `goal: 8h`. `precision` has no effect on a duration, and a `unit`
+is dropped with a warning. A field mixing durations and plain numbers counts both as minutes,
+shows a plain number, and warns, naming one note of each kind.
+
+</details>
+
+## From `dataviewjs` to Dashy
+
+Weekly running distance as bars, the way it is often done today with Dataview and Obsidian Charts:
+
+````markdown
+```dataviewjs
+const weeks = {};
+for (const p of dv.pages('"Diary"').where(p => p.run_km && p.file.day)) {
+  const key = p.file.day.startOf("week").toFormat("yyyy-MM-dd");
+  weeks[key] = (weeks[key] ?? 0) + p.run_km;
+}
+const labels = Object.keys(weeks).sort().slice(-26);
+window.renderChart({
+  type: "bar",
+  data: { labels, datasets: [{ label: "Run, km", data: labels.map(k => weeks[k]) }] },
+}, this.container);
+```
+````
+
+The same chart in Dashy, with a goal line added:
+
+````markdown
+```chart
+source: Diary
+field: run_km
+type: bar
+bucket: week
+unit: km
+goal: 30
+```
+````
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/compare-dark.png">
+  <img alt="The same weekly running chart twice: the dataviewjs and Obsidian Charts version with rotated ISO week labels and the no-run weeks missing from its axis, and the Dashy chart with the empty weeks as a gap and a dashed 30 km goal line"
+       src="docs/screens/compare-light.png">
+</picture>
+
+The script works. The top chart keeps Obsidian Charts' default colours, untouched. It
+also needs two plugins, drops the weeks you did not run from the axis, and puts a program in
+your notes that you debug in a year's time. Tracker users know the other side: one point per
+note, and summing by week is still an
+[open request](https://github.com/pyrochlore/obsidian-tracker/issues/518). Dashy does the
+grouping, the empty weeks, the running week and the theme colours for you, and tells you in the
+note when a key is wrong.
 
 ## The blocks
 
+Seven blocks, one job each. Every one reads frontmatter through Obsidian's own metadata cache.
+Each block below has a picture, its YAML and, where there is more to say, a folded list of
+details. Every key of every block is in
+[`docs/SKILL.preview.md`](docs/SKILL.preview.md), the reference the agent skill ships.
+
 ### `today`: where the day starts
 
-A row with today's date and links to the daily, weekly and monthly notes.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/today-dark.png">
+  <img alt="A date and three chips linking to the daily, weekly and monthly notes"
+       src="docs/screens/today-light.png">
+</picture>
 
 ````markdown
 ```today
@@ -118,29 +355,30 @@ monthly: true
 ```
 ````
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/today-dark.png">
-  <img alt="A date and three chips linking to the daily, weekly and monthly notes"
-       src="docs/screens/today-light.png">
-</picture>
+Today's date and links to your periodic notes. A note that does not exist yet gets a dimmed
+link; click it and the note is created.
 
-Folders and filename formats come from [Periodic
-Notes](https://github.com/liamcain/obsidian-periodic-notes) when you have it, and from the
-core **Daily notes** plugin for the day. Anything you set in Dashy's own settings wins over
-both. A note that does not exist yet still gets a link, drawn dimmed. Clicking it creates
-the note.
+<details>
+<summary>Folders, formats and when "today" starts</summary>
 
-Dashy's own **New day starts at** setting (00:00 to 06:00, midnight by default) decides what
-"today" means here, and for every other block on the page: `period` and `compare` windows,
-the heatmap's current day, `countdown`. It changes which day this block points to, not which
-day a note itself falls on; a note's own date is still its name or `date_field`. Obsidian's
-own "Open today's daily note" command keeps creating the calendar date's note at any hour;
-push this setting later and this block keeps linking yesterday's daily note until the chosen
-hour comes around.
+Folders and filename formats come from [Periodic Notes](https://github.com/liamcain/obsidian-periodic-notes)
+when you have it, and from the core **Daily notes** plugin for the day. Anything you set in
+Dashy's own settings wins over both.
+
+**New day starts at** (00:00 to 06:00, midnight by default) decides what "today" means for
+every block on the page: `period` and `compare` windows, the heatmap's and chart's current day,
+`countdown`, `current_streak`. It changes which day this block points to, not which day a note
+falls on; a note's date is still its name or `date_field`. Obsidian's own "Open today's daily
+note" keeps creating the calendar date's note at any hour.
+
+</details>
 
 ### `tiles`: navigation
 
-A grid of links into the vault, with a live count of what is in each folder.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/tiles-dark.png">
+  <img alt="Four tiles with emoji, labels and note counts" src="docs/screens/tiles-light.png">
+</picture>
 
 ````markdown
 ```tiles
@@ -153,18 +391,14 @@ items:
 ```
 ````
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/tiles-dark.png">
-  <img alt="Four tiles with emoji, labels and note counts" src="docs/screens/tiles-light.png">
-</picture>
+A grid of links into the vault with a live count on each. `path` also takes a Bases view,
+`path: Vault.base#My view`, which is the answer whenever you want a table.
 
-`path` also understands a Bases view (`path: Vault.base#My view`), which is the answer
-whenever you want a table.
+<details>
+<summary>Counting a selection, and cover images</summary>
 
-`badge: count` normally counts everything under `path`. Add `tag`, `where`, `period` and
-`date_field` to narrow it, the same keys and the same meaning as on `stats` below: a mail
-inbox where only this month's messages matter, or a calendar folder where only today's
-events do, without editing the block when the month turns.
+`badge: count` counts everything under `path`. Add `tag`, `where`, `period` and `date_field` to
+narrow it, with the same meaning as on `stats`: only this month's mail, only today's events.
 
 ````markdown
 ```tiles
@@ -175,29 +409,21 @@ items:
 ```
 ````
 
-These four keys only mean something next to `badge: count`; on a tile with no badge or a
-custom one they are ignored and warn, since there is nothing there for them to narrow.
+Those four keys only mean something next to `badge: count`; elsewhere they warn and are ignored.
 
-Add `image` and a tile gets a cover photo above its icon and label: a vault path
-(`Attachments/gym.jpg`), a `[[wikilink]]`, or an `https://` URL.
+`image` puts a cover photo above the icon: a vault path (`Attachments/gym.jpg`), a
+`[[wikilink]]`, or an `https://` URL. A plain `http://` URL, another scheme, or a vault path
+that does not resolve warns, names the value, and draws the tile without the cover.
 
-````markdown
-```tiles
-columns: 2
-items:
-  - { label: Gym, path: Diary, icon: 🏋, image: Attachments/gym.jpg }
-  - { label: Books, path: Books, icon: 📚, image: "[[shelf.jpg]]" }
-```
-````
-
-A plain `http://` URL and any other scheme are refused, not just quietly skipped: the tile
-warns, names the value, and draws without the cover. The same happens for a vault path that
-does not resolve to a file, the warning naming both the tile and the path. A tile with no
-`image` at all is unaffected either way.
+</details>
 
 ### `stats`: the numbers
 
-One card per number, counted over whatever selection you describe.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/stats-dark.png">
+  <img alt="Eight cards showing counts, averages, sums and streaks, two with sparklines"
+       src="docs/screens/stats-light.png">
+</picture>
 
 ````markdown
 ```stats
@@ -210,96 +436,50 @@ items:
 ```
 ````
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/stats-dark.png">
-  <img alt="Eight cards showing counts, averages, sums and streaks, two with sparklines"
-       src="docs/screens/stats-light.png">
-</picture>
+One card per number. `agg` is `count`, `sum`, `avg`, `min`, `max`, `latest`, `streak` or
+`current_streak`. `trend: 30d` sketches the last thirty days beside the number.
 
-`agg` is one of `count`, `sum`, `avg`, `min`, `max`, `latest`, `streak`, `current_streak`. Add
-`trend: 30d` and the card sketches the last thirty days beside the number, scaled between its
-own smallest and largest value. Sleep scores of 70 to 80 plotted from zero are a flat line that
-says nothing. A day with no note is left out rather than drawn as a zero, two notes landing on
-the same day are summed into that one day's bar, and a diary that stopped months ago draws
-nothing at all, which is the honest answer.
+<details>
+<summary>Selections, periods, compare and the honest dash</summary>
 
-With nothing to count, a field aggregate like `sum` or `avg` shows a dash rather than a
-zero: "no notes at all" and "the sum is zero" are different answers, and a zero for the
-first would be a lie. `count` has no such gap; an empty selection reads a plain `0`, the
-same as everywhere else it counts notes. The dash rule also covers a `field` that no
-selected note actually carries: the card shows a dash and a warning naming it, rather than
-a plausible-looking zero that hides a typo. A field that holds text instead of a number,
-like Garmin's `running: "10 km · 51min"`, warns too; count how many notes have it set with
-`where: "field contains ..."` and `agg: count` instead.
+**Which notes.** `source` is a folder, `tag` a tag, `where` a condition on frontmatter:
+`where: "rating >= 4"`, `where: "tags contains books"`. Several conditions must all hold, as a
+list, `where: [year = 2026, "rating >= 4"]`, or joined by `and`, `where: "year = 2026 and rating >= 4"`.
+`and` counts in any case, as a whole word outside quotes, so `status = "waiting and ready"` stays
+one condition. `or` is not supported: it warns and the filter is ignored. One unreadable
+condition drops the whole filter with a warning quoting it, and the numbers are drawn unfiltered.
 
-`field` reaches into a nested frontmatter property too: `field: health.sleep` reads `sleep`
-under a top-level `health:` map. A literal key with a dot in it wins first, since YAML
-allows one and some vaults already have `health.sleep: 82` written flat; only when that
-exact key is absent does the path get split and walked. A list is never indexed, so
-`runs.0` finds nothing. `where` understands the same dotted paths: `where: "health.sleep >= 80"`.
+**Nested properties.** `field: health.sleep` reads `sleep` under a `health:` map, and `where`
+takes the same dotted paths. A literal key with a dot in it wins first. A list is never indexed.
 
-`where` takes several conditions that must all hold, either as a list,
-`where: [year = 2026, "rating >= 4"]`, or joined by `and` in one string,
-`where: "year = 2026 and rating >= 4"`. `and` is read in any case, and only as a whole word
-outside quotes, so `status = "waiting and ready"` stays one condition. `or` is not
-supported: it warns and the filter is ignored. The same goes for one condition that
-cannot be read among good ones: the whole filter is dropped with a warning quoting it, and
-the numbers are drawn unfiltered rather than narrowed by only part of what you asked.
+**A note's date** is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday`
+counts, `2026-03-021` does not), unless `date_field` names a date property instead.
 
-Add `period: week`, `month` or `year` and the card counts only the current calendar one, ending
-today; a rolling count of days works too, `period: 30d`. A note's date is its name, as long as
-it starts with `YYYY-MM-DD` (`2026-03-02 Monday` and `2026-03-02_standup` both count,
-`2026-03-021` does not), unless `date_field` names a frontmatter date property instead, in
-which case the name is not consulted at all. `streak`, `current_streak`, `latest` and `trend`
-resolve a note's date the same way, `date_field` included, whether or not `period` is even set,
-and two or more notes landing on the same day always count as that one day, not two. Notes
-without a date are left out before counting, so an empty week is not an error: `agg: count`
-reads the honest `0`, and a field aggregate like `sum` shows a dash by its usual rule above.
-`streak` (and `current_streak`) with a `field:` follows that same rule, a dash over an empty
-window included; without one it counts every selected note's own date instead, and reads a
-plain `0` there, the same as `count`. Only a selection where not one note has a date at all is
-worth a warning, "no note fell in this window" and "nobody here has a date" being different
-problems. `trend` keeps its own trailing window regardless of `period`.
+**`period`**: `week`, `month`, `year` or a rolling `30d`, ending today. The week starts on Monday
+or Sunday as your language has it. Notes without a date are left out.
 
-Add `compare: true` next to `period` and the card also shows the delta against the same stretch
-of the previous period, to date: a Thursday this week compares against Monday to Thursday last
-week, not the whole of last week. `better: up` colours a rise green and a fall red; `better:
-down` reverses that for a number where less is better, and with neither set the delta stays a
-neutral colour. When either window has no notes in it at all, the card shows its number alone
-rather than a made-up delta; `streak` and `current_streak` cannot be compared this way and
-refuse `compare` outright, the same way `trend` refuses `count`.
+**`compare: true`** next to `period` shows the delta against the same stretch of the previous
+period to date: on a Thursday, Monday to Thursday last week. `better: up` colours a rise green,
+`better: down` the reverse. With an empty window on either side, the card shows its number alone.
 
-Add `at_least` and/or `at_most` next to `agg: streak` or `agg: current_streak` and a run is no
-longer just "has a value": a day counts only once its notes' `field` values, summed for that
-day, satisfy the bound, `at_least: 5000` for a steps streak or `at_most: 5` for a
-smoke-free-enough one. Both together make a range. Either needs `field:` and is ignored
-otherwise, and if `at_least` ends up above `at_most` no day can ever qualify, so the streak
-reads a plain `0` rather than refusing to draw. Add `days: weekdays` and Saturday and Sunday
-stop counting either way, whatever they hold: they neither break the run nor extend it, so a
-Friday followed by a Monday is a run of two, not one.
+**The honest dash.** With nothing to count, `sum` or `avg` shows a dash, not a zero. `count` over
+an empty selection reads `0`. A `field` no selected note carries shows a dash and a warning naming
+it. A field that holds text, like `running: "10 km · 51min"`, warns too; count those notes with
+`where: "running contains km"` and `agg: count`.
 
-`skip_field` does the same for a day off you actually took: point it at a checkbox or text
-property like `vacation` or `sick`, and a day any note marks with it, `vacation: true` or
-`sick: flu`, neither breaks the streak nor extends it, whatever `field` holds that day.
-`skip_field: vacation` combines with `days: weekdays`, so a day is transparent when it is a
-weekend, a vacation day, or both.
+**`trend`** scales between its own lowest and highest value, so sleep scores of 70 to 80 do not
+flatten into a line. A day with no note is left out, two notes on one day are summed, and a diary
+that stopped months ago draws nothing. `trend` keeps its own window regardless of `period`.
 
-`streak` is the best run on record. `agg: current_streak` is the run going on now, counted back
-from today by exactly the same rules: the same filled days, thresholds, `days: weekdays` and
-`skip_field`. Today never breaks it: a day with no note yet, or one not meeting the threshold
-yet (under `at_least`, or already over `at_most`), leaves the run counted up to yesterday, and
-only a missed yesterday or earlier day resets it to `0`. It counts within the card's selection,
-so `period: month` stops it at the first of the month. Notes dated after today are ignored.
-
-````markdown
-```stats
-items:
-  - { label: Best streak, source: Diary, field: gym, agg: streak }
-  - { label: Days in a row, source: Diary, field: gym, agg: current_streak }
-```
-````
+</details>
 
 ### `progress`: how far along
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/progress-dark.png">
+  <img alt="Three progress bars, one of them past its goal and coloured green"
+       src="docs/screens/progress-light.png">
+</picture>
 
 ````markdown
 ```progress
@@ -310,34 +490,26 @@ items:
 ```
 ````
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/progress-dark.png">
-  <img alt="Three progress bars, one of them past its goal and coloured green"
-       src="docs/screens/progress-light.png">
-</picture>
+Beating a goal shows as it is: 110% stays 110%, and only the bar stops at full. A goal can be a
+duration too: `goal: 8h`.
 
-Beating a goal shows as it is. 110% stays 110%, and only the bar stops at full.
+<details>
+<summary>More on <code>progress</code></summary>
 
-`period` and `date_field` work the same way they do on `stats`, narrowing what the goal is
-measured against rather than the whole selection, and feeding `streak`, `current_streak` and
-`latest` too. "Books this year" above reads a `finished` property on each book instead of the
-note name, since a book is rarely named as a date. `at_least`, `at_most`, `days: weekdays` and
-`skip_field` work the same way on a `streak` or `current_streak` bar as they do on a stats
-card, above.
+Every selection and counting key from `stats` works here the same way: `source`, `tag`, `where`,
+`period`, `date_field`, and `at_least`, `at_most`, `days` and `skip_field` on a `streak` or
+`current_streak` bar. "Books this year" reads a `finished` property, since a book is rarely named
+as a date. `columns: 2` (1 to 4) lays bars out side by side; without it each bar is its own row.
 
-Without `columns` every bar is its own row, as above; add it to lay bars out side by side
-instead, the same key `tiles`, `stats` and `countdown` take, 1 to 4 here.
-
-````markdown
-```progress
-columns: 2
-items:
-  - { label: Days logged this year, source: Diary, agg: count, goal: 365, icon: 📔 }
-  - { label: Steps, source: Diary, field: steps, agg: sum, goal: 3000000, unit: steps }
-```
-````
+</details>
 
 ### `countdown`: what is coming
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/countdown-dark.png">
+  <img alt="Three cards counting the days to a race, a holiday and a review"
+       src="docs/screens/countdown-light.png">
+</picture>
 
 ````markdown
 ```countdown
@@ -349,17 +521,15 @@ items:
 ```
 ````
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/countdown-dark.png">
-  <img alt="Three cards counting the days to a race, a holiday and a review"
-       src="docs/screens/countdown-light.png">
-</picture>
-
-A date that has passed keeps its card and counts up instead of down.
+A date that has passed keeps its card and counts up instead.
 
 ### `heatmap`: the year
 
-A cell per day, coloured by a number from frontmatter.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/heatmap-dark.png">
+  <img alt="A year of days coloured by sleep score, with a legend"
+       src="docs/screens/heatmap-light.png">
+</picture>
 
 ````markdown
 ```heatmap
@@ -371,49 +541,13 @@ title: Sleep, last twelve months
 ```
 ````
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/heatmap-dark.png">
-  <img alt="A year of days coloured by sleep score, with a legend"
-       src="docs/screens/heatmap-light.png">
-</picture>
+A cell per day, coloured by a number or a checkbox. Click a cell to open that day's note. On a
+phone, the first tap shows the value under the grid and the second opens the note.
 
-A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 Monday` counts,
-`2026-01-051` does not), unless `date_field` names a frontmatter date property instead. That is
-how the block knows which cell it belongs to. Two or more notes landing on the same day paint
-one cell, and a ticked or numeric contributor always outweighs a `false` one on the same day.
-`per_day` says how the day's values combine: `sum` (the default) suits steps or pages split
-across two notes, `avg` suits a score logged more than once a day, and `max` keeps the best
-reading. Clicking a cell opens that day's note; with more than one contributing, it opens the
-first by path. A cell's tooltip shows the day in your own language's date format, the value,
-and the note behind it: its name when only one contributed, or how many when several did. On a
-phone, where there is no hover to read it from, the first tap on a cell shows that same text on
-a line under the grid and rings the cell; a second tap on it opens the note, and tapping another
-cell moves the line and the ring instead. The week starts where your language starts it: Monday
-here, Sunday in the US, Canada and Japan.
+<details>
+<summary>Layers, ranges, days off and colour scales</summary>
 
-`field` can also be a checkbox property: a ticked day counts as 1 and paints its cell.
-That is the whole of [the habit tracker](#a-habit-tracker-from-daily-note-checkboxes). A
-`field` nothing carries, or one that holds text rather than a number or a checkbox, is an
-error that says which, rather than an empty grid that looks like a note-taking gap. A
-numeric `0` is still a value and paints its cell like any other; an unticked checkbox
-stays empty, and so does a day whose own value is not a number, even when the field is
-fine everywhere else. Without `bands`, each grid shades itself by its own minimum and
-maximum: a year with a narrow spread and a year with a wide one each get their own scale,
-never one stretched to cover both. A checkbox field, or a grid where every painted value
-comes out the same, still paints one flat colour instead; set `bands` to pin the scale
-yourself. Years come
-from the data, newest first, but never one later than today: a note dated in the future
-counts nowhere in the grid. Today's own cell gets a ring, on the current year's grid or a
-`range` grid, whether or not it has data yet; the ring never changes the cell's own colour
-or its hatch, only outlines it.
-
-Logging mood in the morning and evening as two separate properties instead of one note a day?
-`field` also takes a list: `field: [mood_am, mood_pm]` with `per_day: avg` collapses both into
-one cell showing the day's average, the same as it would across two separate notes. A property
-listed twice by mistake is only counted once.
-
-Tracking more than one activity on the same grid, each in its own colour? `layers` replaces
-`field` with a list of them, one entry per activity:
+**Several activities, one grid.** `layers` replaces `field`, one colour each:
 
 ````markdown
 ```heatmap
@@ -421,198 +555,146 @@ source: Diary
 layers:
   - { field: gym, color: blue }
   - { field: run, color: green, label: Running }
-per_day: sum
 ```
 ````
 
-A layer without its own `color` gets the next free one from the palette. When a day has more
-than one layer painted, the first layer in the list colours the cell and its value is what
-`bands` reads; the tooltip still lists every layer that has a value that day, so a gym-and-run
-day reads "gym 1, Running 5" rather than hiding the second number. The legend gains a row per
-layer, and, with `bands` also set, keeps its usual row too. Averaging different fields together
-would not mean anything, so with `layers` the caption drops it and just counts the days some
-layer painted.
+The first painted layer colours a cell; the tooltip lists every layer with a value that day.
 
-Vacation or sick, and do not want a gap in the grid to look like a day you simply skipped?
-`skip_field: vacation` hatches that day's cell instead: any note landing on it with
-`vacation: true` (or any value other than `false`, blank or `0`) gets a diagonal overlay, on
-top of its usual colour if it has one, or on its own over an otherwise empty cell. It works
-the same way with `layers`, and does not change the caption's count: a special day with
-nothing painted is still not one of the "days" the caption counts.
+**Two properties, one number.** `field: [mood_am, mood_pm]` with `per_day: avg` shows the day's
+average. `per_day` is `sum` (default), `avg` or `max`, and also combines two notes on one day.
 
-By default the heatmap draws a grid per calendar year that has data, never later than today.
-`range: 365d` draws one grid instead, a rolling year that crosses 1 January without splitting
-into two:
+**A rolling window.** Without `range`, you get a grid per calendar year that has data. `range: 365d`
+draws one grid across 1 January; it also takes `week`, `month`, `year` or `90d`.
 
-````markdown
-```heatmap
-source: Diary
-field: sleep_score
-color: purple
-range: 365d
-```
-````
+**Days off.** `skip_field: vacation` hatches a day marked `vacation: true` (anything but `false`,
+blank or `0`), so a holiday does not read as a skipped day.
 
-`range` takes the same window `stats`' `period` does: `week`, `month`, `year` (1 January of
-the current year to today) or a rolling count of days like `90d`. Whichever one it is, a day
-outside that window is neither drawn nor counted, and the caption's count and average cover
-only the days inside it. Everything else works the same on a range grid: bands, `layers`,
-`skip_field` and its legend row, tooltips and links. A window that spans more than one year
-names the year on its first month and on every January.
+**Colour scale.** `bands: [90, 80, 70]` sets thresholds from the top down, durations included
+(`bands: [8h, 7h, 6h]`). Without `bands`, each grid shades itself between its own lowest and
+highest value. A checkbox field, or a grid where every value is equal, paints one flat colour.
 
-## It keeps up with the vault
+**Details.** A numeric `0` paints its cell; an unticked checkbox stays empty. A `field` nothing
+carries, or one that holds text, is an error that says which. Today's cell gets a ring. The
+tooltip shows the date in your language's format, the value, and the note behind it. The week
+starts where your language starts it: Monday here, Sunday in the US, Canada and Japan. Notes dated
+in the future are not drawn.
 
-Add a note, edit a number, delete something, and every block on the page redraws. No
-reopening, no command to run.
+</details>
+
+## Built to be left open
+
+**It keeps up with the vault.** Add a note, edit a number, and every block on the page redraws.
+Right after startup Obsidian lists files before it has read their frontmatter; Dashy redraws once
+it has, so a half-read vault never sticks. At **New day starts at**, the page moves to the new day
+by itself.
 
 ![Every block on the page redrawing as notes are added to the vault](docs/screens/dashboard-wide.gif)
 
-Obsidian lists your files well before it has read their frontmatter. Without this, a
-dashboard opened right after startup would show the numbers of a half-read vault and never
-correct them.
-
-## It keeps up with your theme
+**It follows your theme.** No colour is hard-coded. Every surface mixes from your theme's
+variables and your accent colour, light or dark.
 
 ![The dashboard re-colouring as the Obsidian theme changes](docs/screens/theme-follow.gif)
 
-## When the config is wrong
+**It tells you when the config is wrong,** in the note, next to the block: a typo gets "did you
+mean", a key borrowed from another block gets its name here (`layers` in a chart points at
+`series`), a broken YAML line gets its line number, and a filter it could not read says the
+numbers below are unfiltered.
 
-A block that cannot draw tells you why, in the note, next to the thing that failed.
-
-<img alt="Diagnostics inside a note: an unknown key with a suggestion, a missing required field, an unknown aggregate, and a where clause holding two conditions"
+<img alt="Diagnostics inside a note: an unknown key with a suggestion, a missing required field, an unknown aggregate, a filter using `or`, and a key borrowed from another block"
      src="docs/screens/diagnostics-dark.png">
 
-Unknown keys suggest the key you probably meant. A broken YAML line reports its line
-number. A filter that could not be read says that the numbers below it are unfiltered,
-instead of showing you the wrong ones as if they were right.
-
 ## Your AI agent can write these blocks
-
-Two buttons in the settings, and both write only when you press them.
 
 <img alt="Dashy settings: periodic note folders, and install buttons for the agent skill and AGENTS.md"
      src="docs/screens/settings-dark.png">
 
-- **Skill file in this vault** writes `.claude/skills/dashy/SKILL.md`, which Claude Code
-  reads on its own.
-- **AGENTS.md in the vault root** writes the same reference where Cursor, Codex and the
-  rest look for it. Only the fenced section belongs to Dashy. Anything else in that file
-  stays as it was.
+Two buttons in the settings, and both write only when you press them:
 
-After that you can just ask:
+- **Skill file in this vault** writes `.claude/skills/dashy/SKILL.md`, which Claude Code reads on its own.
+- **AGENTS.md in the vault root** writes the same reference where Cursor, Codex and the rest look
+  for it. Dashy owns only its fenced section; the rest of the file stays as it was.
 
-> Make me a dashboard for my training log: a heatmap of distance, cards for weekly volume
-> and longest run, and a countdown to the marathon in May.
+Then ask:
 
-Both files come from [`src/blocks/schema.json`](src/blocks/schema.json), the same file the
-plugin validates against, so the reference an agent reads cannot drift from what the code
-accepts. You can read it yourself in [`docs/SKILL.preview.md`](docs/SKILL.preview.md).
+> Make me a dashboard for my training log: weekly distance as bars with a 40 km goal, cards for
+> this week's volume and my current streak, and a countdown to the marathon in May.
+
+Both files are built from [`src/blocks/schema.json`](src/blocks/schema.json), the file the plugin
+validates against, so the agent's reference matches what the code accepts. Read it yourself in
+[`docs/SKILL.preview.md`](docs/SKILL.preview.md).
 
 ## Questions
 
 <details>
+<summary>Do I need Dataview?</summary>
+
+No. Dashy reads frontmatter from Obsidian's own metadata cache. Nothing else to install.
+
+</details>
+
+<details>
+<summary>Does it work on a phone?</summary>
+
+Yes. It is not a desktop-only plugin. On a phone, a tap on a heatmap cell or a chart bar shows
+its value, and a second tap opens the note. A chart gets shorter on a narrow screen.
+
+</details>
+
+<details>
+<summary>What does it not do?</summary>
+
+Pie, radar or scatter charts, stacked bars, a second y axis ([Obsidian Charts](https://github.com/phibr0/obsidian-charts)),
+tables and queries (Bases, Dataview), kanban, tasks. It reads frontmatter only, not inline
+`key:: value` fields. `where` joins conditions with `and`, not `or`. These are decisions: tell us
+what you tried to build and could not, and that is the fastest way to change one.
+
+</details>
+
+<details>
 <summary>Does a time zone shift my dates?</summary>
 
-No. A note's date is its name or its `date_field`, text that no time zone changes. "Today"
-and every `period` window are built from your local calendar day, never from
-`toISOString()`, which would turn local midnight into the previous day everywhere east of
-UTC. At 23:50 in Tokyo the dashboard still counts that day as today.
+No. A note's date is its name or its `date_field`, text that no time zone changes. "Today" and
+every `period` window come from your local calendar day, never from `toISOString()`, which turns
+local midnight into the previous day east of UTC. At 23:50 in Tokyo, the dashboard still counts
+that day as today.
 
 </details>
 
 <details>
 <summary>Does a name like <code>2026-01-05 Monday</code> count as a dated note?</summary>
 
-Yes. A note's date is its name whenever it starts with `YYYY-MM-DD` and the character right
-after it, if there is one, is not a digit, so a weekday, an underscore or a parenthetical
-all still match. Only an eleventh digit right after the day, or a day not padded to two
-digits, breaks it.
-
-</details>
-
-<details>
-<summary>Do I need Dataview installed?</summary>
-
-No. Dashy reads frontmatter straight from Obsidian's own metadata cache. There is nothing
-else to install.
+Yes. A name counts when it starts with `YYYY-MM-DD` and the next character, if any, is not a
+digit, so a weekday, an underscore or a parenthetical all match. Other formats need a
+`date_field` property.
 
 </details>
 
 <details>
 <summary>Do blocks update by themselves?</summary>
 
-Yes. Every block redraws when the vault changes: a note created, deleted, renamed, or its
-frontmatter edited. Dashy also redraws once the effective day rolls over, at **New day
-starts at** in the settings, so a dashboard left open past that hour does not keep showing
-yesterday's date and yesterday's `period` windows until something else happens to it.
+Yes. Every block redraws when a note is created, deleted, renamed, or its frontmatter edited, and
+once more when the day rolls over at **New day starts at**.
 
 </details>
 
 <details>
-<summary>How is a streak counted?</summary>
+<summary>Which languages does it speak?</summary>
 
-`streak` is the longest run of consecutive days on record, not the run still going; for that
-one use `current_streak`, which counts back from today and lets today go unfilled without
-breaking the run (see [`stats`](#stats-the-numbers) above). An
-unticked checkbox breaks it the same way a day with no note does, so a 17-day streak from
-last spring stays 17 even if this week has yet to start one. A day where the note exists
-but never mentions the field breaks it too, for the same reason: there is nothing to say
-the day counts. A numeric `0` is different from an unticked checkbox: it is still a value,
-so it keeps a streak going, the way "0 steps" logged is data and "no note today" is not.
-Two notes for the same day, however they got their date, count as one day, never a break.
-`at_least` and `at_most` replace "has a value" with a bound on it: a day counts only once
-the day's values, summed if more than one note landed on it, reach `at_least` and/or stay
-under `at_most`. `days: weekdays` is a separate, independent setting: it removes Saturday
-and Sunday from the picture entirely, so they neither break a run nor extend it, whether or
-not a threshold is also set, and it works just as well on a plain fieldless streak.
-`skip_field` is a third, independent one: point it at a property like `vacation` or `sick`,
-and a day any note marks with anything other than `false`, blank or `0` is removed from the
-picture the same way a weekend under `days: weekdays` is, whatever it holds and whether or
-not it also has a value. The two combine: a day is skipped when it is a weekend, marked, or
-both.
+English, Russian, German, French and Spanish, following your Obsidian interface, or picked in the
+settings: a vault of German notes can get a German dashboard without running Obsidian in German.
+Dates, month names and the first day of the week come from the date library Obsidian ships.
+
+The German, French and Spanish catalogues were written by the author, who speaks none of the
+three well enough to be sure. Corrections are cheap: copy [`src/i18n/en.ts`](src/i18n/en.ts),
+translate the values, register the file. A partial translation is valid; anything missing falls
+back to English.
 
 </details>
 
-<details>
-<summary>How does the heatmap choose colours without `bands`?</summary>
+## Bugs and ideas
 
-Each grid shades itself by its own minimum and maximum: the day with the lowest value
-gets the lightest fill, the day with the highest gets full strength, and a multi-year
-heatmap fits every calendar year separately, so a narrow year and a wide year never end
-up on the same scale. Set `bands` (thresholds from the top down, like `[90, 80, 70]`) to
-pin the scale yourself instead. Two situations still fall back to one flat colour, the
-same as ever: a checkbox field, since a ticked day is always exactly 1 and there is
-nothing to shade by, and a grid where every painted value happens to be equal, since
-there is no spread to fit a scale to. A numeric `0` counts as a value and is painted like
-any other; an unticked checkbox stays empty, and so does a day whose value is not a
-number. With `layers` mixing a checkbox and a numeric activity on the same grid, only the
-numeric one is fitted; a ticked checkbox day always paints at full strength, never scored
-against a scale that was never really about it.
-
-</details>
-
-## If something is wrong, or missing
-
-The settings tab has a row for each: a bug report and a feature request both open GitHub
-with your plugin and Obsidian versions already filled in, so nobody has to ask for them.
-
-The blocks are deliberately few. `where` joins conditions with `and` only, there is no chart block, and
-the list stops at six. Those are decisions rather than omissions, and the fastest way to
-change one is to say what you tried to build and could not.
-
-## Languages
-
-The plugin speaks the language of your Obsidian interface. English, Russian, German,
-French and Spanish ship today. Settings has a dropdown if you want another one: a vault
-whose notes are German does not have to run Obsidian in German to get a German dashboard.
-Anything missing from a translation falls back to English rather than showing you a key.
-
-The German, French and Spanish catalogues were written by the author, who speaks none of
-the three well enough to be sure of them. Corrections are welcome and cheap: copy
-[`src/i18n/en.ts`](src/i18n/en.ts), translate the values, register the file. No TypeScript
-needed, and a partial translation is a valid one. Dates, month names and the first day of
-the week come from the date library Obsidian ships, set to the same language as the blocks,
-so they are right in every language it supports.
+The settings tab has a row for each. A bug report or a feature request opens GitHub with your
+plugin and Obsidian versions already filled in.
 
 ## Development
 
@@ -632,11 +714,9 @@ npm run build      # main.js + styles.css
 | `npm run build:skill` | rebuilds the agent reference from the schema |
 | `npm run scorecard:check` | mirrors the community-plugin review scanner |
 
-`VAULT_PLUGIN="/path/to/vault/.obsidian/plugins/dashsidian" npm run dev:vault` builds
-straight into a test vault and watches for changes.
-
-Logic lives in `src/core/`, which imports neither Obsidian nor the DOM and is tested
-without mocks. `src/blocks/` only draws. The design notes are in
+`VAULT_PLUGIN="/path/to/vault/.obsidian/plugins/dashsidian" npm run dev:vault` builds straight
+into a test vault and watches for changes. Logic lives in `src/core/`, which imports neither
+Obsidian nor the DOM and is tested without mocks; `src/blocks/` only draws. Design notes:
 [`docs/SPEC.md`](docs/SPEC.md).
 
 ## License

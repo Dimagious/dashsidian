@@ -57,6 +57,13 @@ function blockSection(name, b) {
     const parts = [`### \`${name}\``, "", b.summary, ""];
     if (b.root) parts.push("**Block root**", "", fields(b.root), "");
     if (b.item) parts.push("**List item**", "", fields(b.item), "");
+    // Keys an agent carries over from a neighbouring block (`layers` from the
+    // heatmap in a chart): the parser names the right key when it sees one,
+    // and so does the reference, before the agent writes it.
+    if (b.hints) {
+        parts.push("**Keys from other blocks and what they are here**", "",
+            ...Object.entries(b.hints).map(([from, to]) => `- \`${from}\` is \`${to}\` here`), "");
+    }
     parts.push("**Example**", "", "````markdown", "```" + name, b.example, "```", "````", "");
     if (b.notes) parts.push(...b.notes.map((n) => `- ${n}`), "");
     return parts.join("\n");
@@ -96,10 +103,11 @@ name: dashy
 description: >-
   Build a dashboard inside an Obsidian note with Dashy blocks: a grid of
   navigation tiles, number cards computed from frontmatter, a day row linking
-  to the daily, weekly and monthly notes, and a year heatmap. Use it when asked
-  for a dashboard, a home page, a tile grid, cards with counters or averages, a
-  link to today's note, a day calendar, a heatmap, a habit tracker or a visual
-  entry point into the vault.
+  to the daily, weekly and monthly notes, a year heatmap, and a line or bar
+  chart of a number per day, week or month. Use it when asked for a
+  dashboard, a home page, a tile grid, cards with counters or averages, a
+  link to today's note, a day calendar, a heatmap, a habit tracker, a chart
+  or graph of a number over time, or a visual entry point into the vault.
 version: ${schema.version}
 ---
 

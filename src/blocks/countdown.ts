@@ -28,7 +28,7 @@ export function renderCountdown(ctx: BlockContext, source: string, el: HTMLEleme
     // No vault data is read here: only the config and today's date.
 
     clearBlock(el);
-    const { value, diagnostics } = parseConfig(source, { root: KNOWN_ROOT, item: KNOWN_ITEM });
+    const { value, diagnostics } = parseConfig(source, { root: KNOWN_ROOT, item: KNOWN_ITEM, bareItem: true });
     const diags: Diagnostic[] = [...diagnostics];
     const items = asItems(value);
 

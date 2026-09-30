@@ -10,6 +10,7 @@ import { dateKey, weekdayRow } from "./calendar";
 import { isStreakAgg, type Agg } from "./aggregate";
 import { resolveNoteDate } from "./note-date";
 import { formatValue, roundedValue } from "./stat";
+import { formatDuration, roundedDuration } from "./duration";
 import { describeValue, type Diagnostic } from "../shared/parse";
 import { t, tPlural } from "../i18n";
 
@@ -343,10 +344,14 @@ const MINUS_SIGN = "−";
  * raw difference is not exactly zero — the same "-0.0 reads as a
  * measurement" trap `formatValue` already avoids for the value itself.
  */
-export function formatDelta(current: number, previous: number, precision?: number): DeltaFormat {
-    const delta = roundedValue(current, precision) - roundedValue(previous, precision);
-    const magnitude = formatValue(Math.abs(delta), precision);
-    if (magnitude === formatValue(0, precision)) return { arrow: "=", text: magnitude, direction: "flat" };
+export function formatDelta(current: number, previous: number, precision?: number, duration = false): DeltaFormat {
+    // A duration card (core/duration.ts) rounds and prints its own way,
+    // ignoring `precision`: `+32m`, not `+32`.
+    const round = (v: number): number => (duration ? roundedDuration(v) : roundedValue(v, precision));
+    const format = (v: number): string => (duration ? formatDuration(v) : formatValue(v, precision));
+    const delta = round(current) - round(previous);
+    const magnitude = format(Math.abs(delta));
+    if (magnitude === format(0)) return { arrow: "=", text: magnitude, direction: "flat" };
     const direction: DeltaDirection = delta > 0 ? "up" : "down";
     const sign = direction === "up" ? "+" : MINUS_SIGN;
     return { arrow: direction === "up" ? "▲" : "▼", text: `${sign}${magnitude}`, direction };

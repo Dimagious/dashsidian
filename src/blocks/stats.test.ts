@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderStats } from "./stats";
 import { mockContext, diary, recentDiary, host, texts, nodes, diagnostics } from "../test/vault";
 import { DEFAULT_SETTINGS } from "../types";
+import { setLocale } from "../i18n";
 
 // 10 days, sleep_score 70..79, steps 1000..1900, two of them tagged.
 const ctx = mockContext({
@@ -204,6 +205,27 @@ describe("stats — the trend beside the number", () => {
     it("a selection with no dated notes draws no bars", () => {
         const el = card("items:\n  - { label: Books, source: Books, field: rating, agg: avg, trend: 30d }");
         expect(nodes(el, ".dashy-stat-bar")).toHaveLength(0);
+    });
+});
+
+describe("stats — a synonym applies only where its key exists (B-125)", () => {
+    it("`target` in a card without goal is reported as target, not goal", () => {
+        const el = card("items:\n  - { label: Days, source: Diary, agg: count, target: 40 }");
+        expect(diagnostics(el, "warning")).toEqual(['⚠️ stats: Unknown key "target", ignored.']);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
+    });
+
+    it("`folder` still means source inside an items list", () => {
+        const el = card("items:\n  - { label: Days, folder: Diary, agg: count }");
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
+    });
+
+    it("a single card written without items keeps its synonyms", () => {
+        const el = card("title: Days\nfolder: Diary\naggregate: count");
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(texts(el, ".dashy-stat-label")).toEqual(["Days"]);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
     });
 });
 
@@ -1285,5 +1307,114 @@ describe("stats — current_streak, end to end (B-118)", () => {
         renderStats(gym, "items:\n  - { label: Now, source: Diary, field: nope, agg: current_streak }", el);
         expect(diagnostics(el, "warning")[0]).toContain("nope");
         expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
+    });
+});
+
+// B-121: `sleep: 5h 58min` is a duration, counted in minutes and shown as one.
+describe("stats — durations", () => {
+    // Thursday. In English the week starts on Sunday: this week is 20..24
+    // September, the same days last week 13..17.
+    const TODAY = new Date(2026, 8, 24, 12);
+    const nights: Record<string, string> = {
+        "2026-09-13": "6h", "2026-09-14": "6h 30m", "2026-09-15": "7h", "2026-09-16": "6h", "2026-09-17": "6h 55m",
+        "2026-09-20": "7h 30m", "2026-09-21": "6:45", "2026-09-22": "8h", "2026-09-23": "5h 58min", "2026-09-24": "7h 12m",
+    };
+    // This week: 450 + 405 + 480 + 358 + 432 = 2125 minutes, avg 425 (7h 5m).
+    // Last week: 360 + 390 + 420 + 360 + 415 = 1945 minutes, avg 389 (6h 29m).
+    const sleepCtx = mockContext({
+        notes: [
+            ...Object.entries(nights).map(([date, sleep]) => ({ path: `Diary/${date}.md`, frontmatter: { sleep, steps: 5000 } })),
+            { path: "Mixed/2026-09-20.md", frontmatter: { sleep: "7h" } },
+            { path: "Mixed/2026-09-21.md", frontmatter: { sleep: 400 } },
+        ],
+    });
+
+    const render = (config: string): HTMLElement => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(sleepCtx, config, el);
+        return el;
+    };
+
+    afterEach(() => {
+        vi.useRealTimers();
+        setLocale("en");
+    });
+
+    it("sum, avg, min, max and latest read as durations; count and streak stay counts", () => {
+        const el = render(`items:
+  - { label: Sum, source: Diary, field: sleep, agg: sum, period: week }
+  - { label: Avg, source: Diary, field: sleep, agg: avg, period: week }
+  - { label: Min, source: Diary, field: sleep, agg: min, period: week }
+  - { label: Max, source: Diary, field: sleep, agg: max, period: week }
+  - { label: Latest, source: Diary, field: sleep, agg: latest }
+  - { label: Nights, source: Diary, field: sleep, agg: count }
+  - { label: Best streak, source: Diary, field: sleep, agg: streak, at_least: 6h }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["35h 25m", "7h 5m", "5h 58m", "8h", "7h 12m", "10", "5"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("current_streak takes a duration threshold and stays a count of days", () => {
+        // Today, the 24th, has 7h 12m; the 23rd, 5h 58m, is under 7h and ends
+        // the run at 1. Above 5h 30m every night from the 20th qualifies: 5.
+        const el = render(`items:
+  - { label: Now 7h, source: Diary, field: sleep, agg: current_streak, at_least: 7h }
+  - { label: Now 5h 30m, source: Diary, field: sleep, agg: current_streak, at_least: "5:30" }
+  - { label: Plain minutes, source: Diary, field: sleep, agg: current_streak, at_least: 420 }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["1", "5", "1"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("current_streak over a mixed field without a threshold does not warn: it only counts days", () => {
+        const el = render("items:\n  - { label: Now, source: Mixed, field: sleep, agg: current_streak }");
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("precision has no effect on a duration", () => {
+        const el = render("items:\n  - { label: Avg, source: Diary, field: sleep, agg: avg, period: week, precision: 3 }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["7h 5m"]);
+    });
+
+    it("compare: the delta and its tooltip read as durations too", () => {
+        const el = render(
+            "items:\n  - { label: Sleep, source: Diary, field: sleep, agg: avg, period: week, compare: true, better: up }");
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +36m"]);
+        expect(nodes(el, ".dashy-stat-delta")[0]?.getAttribute("title")).toBe("vs the same days last week: 6h 29m");
+    });
+
+    it("a unit on a duration card is dropped with a warning", () => {
+        const el = render("items:\n  - { label: Sleep, source: Diary, field: sleep, agg: avg, period: week, unit: hrs }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["7h 5m"]);
+        expect(texts(el, ".dashy-stat-unit")).toEqual([]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: "Sleep": `unit: hrs` is ignored. "sleep" holds durations, which already carry their own units.',
+        ]);
+    });
+
+    it("a mixed field counts minutes, shows a plain number, and names a note of each kind", () => {
+        const el = render("items:\n  - { label: Sleep, source: Mixed, field: sleep, agg: sum }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["820"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: "Sleep": "sleep" mixes durations ("Mixed/2026-09-20.md") and plain numbers ("Mixed/2026-09-21.md"). '
+            + "All of them are counted as minutes and shown as a plain number.",
+        ]);
+    });
+
+    it("a duration threshold on a field of plain numbers warns and still counts as minutes", () => {
+        // Every day has 5000 steps, far above 6h = 360: the 5-day run 13..17.
+        const el = render("items:\n  - { label: Steps, source: Diary, field: steps, agg: streak, at_least: 6h }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["5"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: "Steps": `at_least: 6h` is a duration, but "steps" holds plain numbers. It is applied as minutes.',
+        ]);
+    });
+
+    it("in Russian, the units come from the catalog", () => {
+        setLocale("ru");
+        const el = render(
+            "items:\n  - { label: Sleep, source: Diary, field: sleep, agg: avg, period: week, compare: true }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["7\u00A0ч 5\u00A0мин"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +36\u00A0мин"]);
     });
 });

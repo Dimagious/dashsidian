@@ -1,9 +1,9 @@
 import type { NoteRecord } from "../core/source";
 import type { BlockContext } from "./context";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
-import { aggregate, classifyField } from "../core/aggregate";
+import { aggregate, classifyField, classifyValues } from "../core/aggregate";
 import { readDateField } from "../core/note-date";
-import { formatValue } from "../core/stat";
+import { formatReading, showsDuration, durationDiagnostics } from "../core/stat";
 import { readProgress, percentOf, barWidth, type ProgressSpec } from "../core/progress";
 import { readPeriod, filterByPeriod, dateFieldHasEffect } from "../core/period";
 import { firstDayOfWeek } from "../adapters/datetime";
@@ -31,7 +31,7 @@ interface Bar {
 
 export function renderProgress(ctx: BlockContext, source: string, el: HTMLElement): void {
     clearBlock(el);
-    const { value, diagnostics } = parseConfig(source, { root: KNOWN_ROOT, item: KNOWN_ITEM });
+    const { value, diagnostics } = parseConfig(source, { root: KNOWN_ROOT, item: KNOWN_ITEM, bareItem: true });
     const diags: Diagnostic[] = [...diagnostics];
     const items = asItems(value);
 
@@ -85,6 +85,12 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
             }
         }
 
+        // Durations (B-121), judged over the whole selection like the check
+        // above: the value and the goal share one format.
+        const kinds = spec?.field ? classifyValues(selected, [spec.field]) : { kind: "none" as const };
+        const duration = spec ? showsDuration(spec.agg, kinds.kind) : false;
+        if (spec) diags.push(...durationDiagnostics(spec, kinds, label ? `"${label}"` : t("stats.unlabeledCard")));
+
         // Steers `period`'s window below and, inside `aggregate`, `streak`,
         // `current_streak` and `latest` too — whether or not `period` is even set.
         const dateField = readDateField(item);
@@ -116,7 +122,7 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
             diags.push({ level: "warning", message: t("period.dateFieldUnused", { card: cardLabel }) });
         }
 
-        bars.push(toBar(counted, spec, label, item, today, dateField));
+        bars.push(toBar(counted, spec, label, item, today, duration, dateField));
     }
 
     // Diagnostics before the bars: an error must be seen before an empty track.
@@ -159,6 +165,7 @@ function toBar(
     label: string,
     item: Record<string, unknown>,
     today: Date,
+    duration: boolean,
     dateField?: string,
 ): Bar {
     const bar: Bar = {
@@ -184,10 +191,11 @@ function toBar(
         today,
     });
 
-    bar.value = formatValue(current, spec.precision);
-    bar.goal = formatValue(spec.goal, spec.precision);
+    bar.value = formatReading(current, spec.precision, duration);
+    bar.goal = formatReading(spec.goal, spec.precision, duration);
     bar.percent = percentOf(current, spec.goal);
     bar.width = barWidth(bar.percent);
-    if (spec.unit) bar.unit = spec.unit;
+    // A duration already carries its units (`durationDiagnostics` warned).
+    if (spec.unit && !duration) bar.unit = spec.unit;
     return bar;
 }

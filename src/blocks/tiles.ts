@@ -33,7 +33,7 @@ interface Tile {
 
 export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement): void {
     clearBlock(el);
-    const { value, diagnostics } = parseConfig(source, { root: KNOWN_ROOT, item: KNOWN_ITEM });
+    const { value, diagnostics } = parseConfig(source, { root: KNOWN_ROOT, item: KNOWN_ITEM, bareItem: true });
     const diags: Diagnostic[] = [...diagnostics];
     const items = asItems(value);
 

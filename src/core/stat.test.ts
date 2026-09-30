@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { readStat, formatValue, valueLengthClass } from "./stat";
+import {
+    readStat, formatValue, valueLengthClass, showsDuration, formatReading, durationDiagnostics,
+} from "./stat";
 
 describe("readStat — happy path", () => {
     it("with no agg it counts notes", () => {
@@ -80,7 +82,7 @@ describe("readStat — current_streak (B-118)", () => {
             { agg: "current_streak", field: "steps", at_least: "many", days: "weekends" }, "Current streak");
         expect(spec).toEqual({ agg: "current_streak", field: "steps" });
         expect(diagnostics.map((d) => d.message)).toEqual([
-            '"Current streak": `at_least` expects a number, got "many". Ignored.',
+            '"Current streak": `at_least` expects a number or a duration like `7h 30m`, got "many". Ignored.',
             '"Current streak": `days` expects `all` or `weekdays`, got "weekends". Using `all`.',
         ]);
     });
@@ -352,5 +354,107 @@ describe("valueLengthClass", () => {
     it("nine digits or more are very long", () => {
         expect(valueLengthClass(formatValue(123456789))).toBe("is-very-long"); // "123 456 789"
         expect(valueLengthClass(formatValue(1234567890))).toBe("is-very-long");
+    });
+});
+
+// B-121: durations on a card.
+describe("readStat — duration thresholds", () => {
+    it("at_least and at_most take a duration string, as minutes, and remember it was one", () => {
+        const { spec, diagnostics } = readStat(
+            { agg: "streak", field: "sleep", at_least: "7h", at_most: "9:30" }, "Sleep streak");
+        expect(diagnostics).toEqual([]);
+        expect(spec).toMatchObject({
+            atLeast: 420,
+            atMost: 570,
+            durationThresholds: [{ key: "at_least", value: "7h" }, { key: "at_most", value: "9:30" }],
+        });
+    });
+
+    it("a plain number stays plain and records nothing", () => {
+        const { spec } = readStat({ agg: "streak", field: "sleep", at_least: 420 }, "Sleep streak");
+        expect(spec?.atLeast).toBe(420);
+        expect(spec?.durationThresholds).toBeUndefined();
+    });
+
+    it("text that is not a duration warns that a number or a duration is expected, and is dropped", () => {
+        const { spec, diagnostics } = readStat({ agg: "streak", field: "sleep", at_least: "seven hours" }, "S");
+        expect(spec?.atLeast).toBeUndefined();
+        expect(diagnostics.map((d) => d.message)).toEqual(['"S": `at_least` expects a number or a duration like `7h 30m`, got "seven hours". Ignored.']);
+    });
+
+    it("two duration thresholds the wrong way round still warn as impossible", () => {
+        const { diagnostics } = readStat({ agg: "streak", field: "sleep", at_least: "9h", at_most: "7h" }, "S");
+        expect(diagnostics.map((d) => d.message)).toContain(
+            '"S": `at_least` is above `at_most`, so no day can satisfy both. The streak is 0.');
+    });
+});
+
+describe("showsDuration", () => {
+    it("only a duration field, and only for an aggregate that keeps its unit", () => {
+        for (const agg of ["sum", "avg", "min", "max", "latest"] as const) expect(showsDuration(agg, "duration")).toBe(true);
+        expect(showsDuration("count", "duration")).toBe(false);
+        expect(showsDuration("streak", "duration")).toBe(false);
+        expect(showsDuration("avg", "mixed")).toBe(false);
+        expect(showsDuration("avg", "plain")).toBe(false);
+        expect(showsDuration("avg", "none")).toBe(false);
+    });
+});
+
+describe("formatReading", () => {
+    it("a duration ignores precision; a plain number keeps it", () => {
+        expect(formatReading(358.4, 2, true)).toBe("5h 58m");
+        expect(formatReading(358.4, 2, false)).toBe("358.40");
+        expect(formatReading(null, 2, true)).toBe("—");
+    });
+});
+
+describe("durationDiagnostics", () => {
+    const card = '"Sleep"';
+
+    it("a mixed field names the field and one note of each kind", () => {
+        const out = durationDiagnostics({ agg: "avg", field: "sleep" },
+            { kind: "mixed", durationNote: "Diary/a.md", plainNote: "Diary/b.md" }, card);
+        expect(out).toEqual([{
+            level: "warning",
+            message: '"Sleep": "sleep" mixes durations ("Diary/a.md") and plain numbers ("Diary/b.md"). '
+                + "All of them are counted as minutes and shown as a plain number.",
+        }]);
+    });
+
+    it("a mixed field on a count, or a streak with no threshold, says nothing: the count is the same", () => {
+        const mixed = { kind: "mixed" as const, durationNote: "Diary/a.md", plainNote: "Diary/b.md" };
+        expect(durationDiagnostics({ agg: "count", field: "sleep" }, mixed, card)).toEqual([]);
+        expect(durationDiagnostics({ agg: "streak", field: "sleep" }, mixed, card)).toEqual([]);
+        // With a threshold the mix decides which days qualify, so it still warns.
+        expect(durationDiagnostics({ agg: "streak", field: "sleep", atLeast: 420 }, mixed, card)).toHaveLength(1);
+    });
+
+    it("a unit on a duration card is ignored with a warning; on a count card it is not", () => {
+        const spec = { agg: "avg" as const, field: "sleep", unit: "hrs" };
+        expect(durationDiagnostics(spec, { kind: "duration" }, card).map((d) => d.message)).toEqual([
+            '"Sleep": `unit: hrs` is ignored. "sleep" holds durations, which already carry their own units.',
+        ]);
+        expect(durationDiagnostics({ ...spec, agg: "count" }, { kind: "duration" }, card)).toEqual([]);
+    });
+
+    it("a duration threshold against plain numbers warns, still applied as minutes", () => {
+        const spec = { agg: "streak" as const, field: "steps", durationThresholds: [{ key: "at_least", value: "7h" }] };
+        expect(durationDiagnostics(spec, { kind: "plain" }, card).map((d) => d.message)).toEqual([
+            '"Sleep": `at_least: 7h` is a duration, but "steps" holds plain numbers. It is applied as minutes.',
+        ]);
+        // Against durations, or a field with nothing usable yet, there is nothing to say.
+        expect(durationDiagnostics(spec, { kind: "duration" }, card)).toEqual([]);
+        expect(durationDiagnostics(spec, { kind: "none" }, card)).toEqual([]);
+    });
+
+    it("a duration goal on count or streak warns that it counts, not measures time", () => {
+        const goal = [{ key: "goal", value: "8h" }];
+        expect(durationDiagnostics({ agg: "streak", field: "sleep", durationThresholds: goal }, { kind: "duration" }, card)
+            .map((d) => d.message)).toEqual([
+            '"Sleep": `goal: 8h` is a duration, but `agg: streak` counts days or notes, not time. It is applied as minutes.',
+        ]);
+        expect(durationDiagnostics({ agg: "count", durationThresholds: goal }, { kind: "none" }, card)).toHaveLength(1);
+        expect(durationDiagnostics({ agg: "sum", field: "sleep", durationThresholds: goal }, { kind: "duration" }, card))
+            .toEqual([]);
     });
 });

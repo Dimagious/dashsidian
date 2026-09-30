@@ -10,7 +10,7 @@ describe("canonicalize — block context", () => {
     });
 
     it("the same key outside the canonical list is still a synonym", () => {
-        expect(canonicalize({ title: "Tile" }, { root: ["columns", "items"], item: ["label"] }))
+        expect(canonicalize({ title: "Tile" }, { root: ["columns", "items"], item: ["label"], bareItem: true }))
             .toEqual({ label: "Tile" });
     });
 
@@ -23,7 +23,7 @@ describe("canonicalize — block context", () => {
     });
 
     it("a bare array is read as list items", () => {
-        expect(canonicalize([{ title: "A" }], { root: ["title"], item: [] }))
+        expect(canonicalize([{ title: "A" }], { root: ["title"], item: ["label"] }))
             .toEqual([{ label: "A" }]);
     });
 
@@ -35,6 +35,90 @@ describe("canonicalize — block context", () => {
     it("parseConfig passes the context through", () => {
         expect(parseConfig("title: My sleep\nfield: x", { root: ["title", "field"] }).value)
             .toEqual({ title: "My sleep", field: "x" });
+    });
+});
+
+describe("canonicalize — a synonym needs its target in scope (B-125)", () => {
+    const TODAY = Object.keys(schema.blocks.today.root);
+    const STATS = { root: Object.keys(schema.blocks.stats.root), item: Object.keys(schema.blocks.stats.item) };
+    const HEATMAP = { root: Object.keys(schema.blocks.heatmap.root), item: Object.keys(schema.blocks.heatmap.item) };
+
+    it("a synonym whose target the block does not have stays as written", () => {
+        expect(canonicalize({ folder: "Diary", daily: true }, { root: TODAY }))
+            .toEqual({ folder: "Diary", daily: true });
+    });
+
+    it("the warning then names the key the author wrote", () => {
+        const value = canonicalize({ folder: "Diary" }, { root: TODAY });
+        const d = unknownKeys(value as Record<string, unknown>, TODAY);
+        expect(d.map((x) => x.message)).toEqual(['Unknown key "folder", ignored.']);
+    });
+
+    it("target stays target in a block without goal", () => {
+        const out = canonicalize({ items: [{ label: "A", target: 5 }] }, { ...STATS, bareItem: true });
+        expect(out).toEqual({ items: [{ label: "A", target: 5 }] });
+    });
+
+    it("a synonym still applies where its target exists", () => {
+        const out = canonicalize({ items: [{ folder: "Diary", title: "Sleep", aggregate: "avg" }] }, STATS);
+        expect(out).toEqual({ items: [{ source: "Diary", label: "Sleep", agg: "avg" }] });
+    });
+
+    it("a root-level synonym applies at the root when the root has the target", () => {
+        expect(canonicalize({ folder: "Diary", colour: "green", title: "Sleep" }, HEATMAP))
+            .toEqual({ source: "Diary", color: "green", title: "Sleep" });
+    });
+
+    it("a root-level item synonym does not leak into a block root that lacks it", () => {
+        // `name` means `label`, which heatmap has only on a layer.
+        expect(canonicalize({ name: "Sleep" }, HEATMAP)).toEqual({ name: "Sleep" });
+    });
+
+    it("a bare single item is canonicalized against the item set", () => {
+        expect(canonicalize({ folder: "Diary", title: "Sleep" }, { ...STATS, bareItem: true }))
+            .toEqual({ source: "Diary", label: "Sleep" });
+    });
+
+    it("with an items list, the root is not a bare item and keeps its own set", () => {
+        expect(canonicalize({ title: "X", items: [] }, { ...STATS, bareItem: true }))
+            .toEqual({ title: "X", items: [] });
+    });
+
+    it("bareItem without any key set is still the legacy rename", () => {
+        expect(canonicalize({ folder: "Diary" }, { bareItem: true })).toEqual({ source: "Diary" });
+    });
+
+    it("heatmap bands entries and layers take the item set, so their synonyms keep working", () => {
+        const out = canonicalize(
+            { bands: [{ min: 80, title: "Good" }], layers: [{ prop: "gym", colour: "red", name: "Gym" }] },
+            HEATMAP,
+        );
+        expect(out).toEqual({
+            bands: [{ min: 80, label: "Good" }],
+            layers: [{ field: "gym", color: "red", label: "Gym" }],
+        });
+    });
+
+    it("a nested map inherits its parent's set", () => {
+        expect(canonicalize({ daily: { folder: "Diary" } }, { root: TODAY }))
+            .toEqual({ daily: { folder: "Diary" } });
+        expect(canonicalize({ items: [{ sub: { title: "x" } }] }, STATS))
+            .toEqual({ items: [{ sub: { label: "x" } }] });
+    });
+
+    it("a level whose set is left out renames as before", () => {
+        // `today` passes only `root`, so a list inside it has no item set.
+        expect(canonicalize({ daily: [{ folder: "Diary" }] }, { root: TODAY }))
+            .toEqual({ daily: [{ source: "Diary" }] });
+    });
+
+    it("an explicitly empty set renames nothing", () => {
+        expect(canonicalize({ folder: "Diary" }, { root: [] })).toEqual({ folder: "Diary" });
+    });
+
+    it("with no context at all, every synonym is renamed as before, nested ones too", () => {
+        expect(canonicalize({ folder: "A", target: 3, items: [{ name: "B", prop: "x" }], sub: { colour: "red" } }))
+            .toEqual({ source: "A", goal: 3, items: [{ label: "B", field: "x" }], sub: { color: "red" } });
     });
 });
 
@@ -96,6 +180,29 @@ describe("unknownKeys", () => {
     it("invents no suggestion for a completely foreign key", () => {
         const d = unknownKeys({ somethingEntirelyElse: 1 }, ["label"]);
         expect(d[0]?.message).toContain("ignored");
+    });
+});
+
+describe("unknownKeys with a block's hints (ADR 0005)", () => {
+    const hints = { layers: "series", period: "range" };
+
+    it("a key from a neighbouring block names what it is called here", () => {
+        expect(unknownKeys({ layers: [], period: "week" }, ["series", "range"], hints).map((d) => d.message)).toEqual([
+            "Unknown key \"layers\". In this block it is called \"series\".",
+            "Unknown key \"period\". In this block it is called \"range\".",
+        ]);
+    });
+
+    it("a hint wins over the edit-distance guess, and the guess still works for the rest", () => {
+        expect(unknownKeys({ serie: 1 }, ["series"], { serie: "range" })[0]?.message)
+            .toBe("Unknown key \"serie\". In this block it is called \"range\".");
+        expect(unknownKeys({ serie: 1 }, ["series"], hints)[0]?.message)
+            .toBe("Unknown key \"serie\". Did you mean \"series\"?");
+    });
+
+    it("a known key is never hinted, and an inherited property is not a hint", () => {
+        expect(unknownKeys({ layers: [] }, ["layers"], hints)).toEqual([]);
+        expect(unknownKeys({ toString: 1 }, ["field"], hints)[0]?.message).toBe("Unknown key \"toString\", ignored.");
     });
 });
 
@@ -207,3 +314,25 @@ describe("describeValue", () => {
         expect(describeValue(loop)).toBe("[unreadable]");
     });
 });
+
+describe("prototype-named keys (B-125)", () => {
+    const own = (entries: [string, unknown][]): Record<string, unknown> => {
+        const o: Record<string, unknown> = {};
+        for (const [k, v] of entries) Object.defineProperty(o, k, { value: v, enumerable: true, writable: true, configurable: true });
+        return o;
+    };
+
+    it("`__proto__` stays an own key and does not leak its fields into the block", () => {
+        const input = own([["__proto__", { label: "Polluted" }], ["agg", "count"]]);
+        const out = canonicalize(input, { root: ["columns", "items"], item: ["label", "agg"], bareItem: true }) as Record<string, unknown>;
+        expect(Object.keys(out)).toEqual(["__proto__", "agg"]);
+        expect(Object.getPrototypeOf(out)).toBe(Object.prototype);
+        expect((out as { label?: unknown }).label).toBeUndefined();
+    });
+
+    it("`constructor` is left as written, with or without a context", () => {
+        expect(Object.keys(canonicalize({ constructor: 1 }) as object)).toEqual(["constructor"]);
+        expect(Object.keys(canonicalize({ constructor: 1 }, { root: ["title"] }) as object)).toEqual(["constructor"]);
+    });
+});
+
