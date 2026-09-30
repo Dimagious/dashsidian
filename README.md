@@ -238,6 +238,14 @@ allows one and some vaults already have `health.sleep: 82` written flat; only wh
 exact key is absent does the path get split and walked. A list is never indexed, so
 `runs.0` finds nothing. `where` understands the same dotted paths: `where: "health.sleep >= 80"`.
 
+`where` takes several conditions that must all hold, either as a list,
+`where: [year = 2026, "rating >= 4"]`, or joined by `and` in one string,
+`where: "year = 2026 and rating >= 4"`. `and` is read in any case, and only as a whole word
+outside quotes, so `status = "waiting and ready"` stays one condition. `or` is not
+supported: it warns and the filter is ignored. The same goes for one condition that
+cannot be read among good ones: the whole filter is dropped with a warning quoting it, and
+the numbers are drawn unfiltered rather than narrowed by only part of what you asked.
+
 Add `period: week`, `month` or `year` and the card counts only the current calendar one, ending
 today; a rolling count of days works too, `period: 30d`. A note's date is its name, as long as
 it starts with `YYYY-MM-DD` (`2026-03-02 Monday` and `2026-03-02_standup` both count,
@@ -588,7 +596,7 @@ against a scale that was never really about it.
 The settings tab has a row for each: a bug report and a feature request both open GitHub
 with your plugin and Obsidian versions already filled in, so nobody has to ask for them.
 
-The blocks are deliberately few. `where` takes one condition, there is no chart block, and
+The blocks are deliberately few. `where` joins conditions with `and` only, there is no chart block, and
 the list stops at six. Those are decisions rather than omissions, and the fastest way to
 change one is to say what you tried to build and could not.
 
