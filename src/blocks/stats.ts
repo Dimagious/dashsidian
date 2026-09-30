@@ -1,9 +1,11 @@
 import type { BlockContext } from "./context";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
-import { aggregate, series, classifyField } from "../core/aggregate";
+import { aggregate, series, classifyField, classifyValues } from "../core/aggregate";
 import { readDateField } from "../core/note-date";
 import { sparkBars } from "../core/sparkline";
-import { readStat, formatValue, valueLengthClass, GROUP_SEPARATOR } from "../core/stat";
+import {
+    readStat, formatReading, showsDuration, durationDiagnostics, valueLengthClass, GROUP_SEPARATOR,
+} from "../core/stat";
 import {
     readPeriod,
     readCompare,
@@ -108,6 +110,13 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
             }
         }
 
+        // Durations (B-121): judged over the whole selection, before `period`
+        // narrows it, the same way as above, so the card, its delta and the
+        // previous window's tooltip all share one format.
+        const kinds = spec?.field ? classifyValues(selected, [spec.field]) : { kind: "none" as const };
+        const duration = spec ? showsDuration(spec.agg, kinds.kind) : false;
+        if (spec) diags.push(...durationDiagnostics(spec, kinds, label ? `"${label}"` : t("stats.unlabeledCard")));
+
         // `date_field` steers every reader of a note's date on this card:
         // `period`'s window below, and `streak`/`latest`/`trend` inside
         // `aggregate`/`series`, whether or not `period` is even set.
@@ -165,13 +174,14 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
 
         const card: Card = {
             label: label || spec?.field || "",
-            text: formatValue(current, spec?.precision),
+            text: formatReading(current, spec?.precision, duration),
             trend: spec?.trend && spec.field
                 ? sparkBars(series(selected, spec.field, spec.trend, today, dateField))
                 : [],
         };
         if (typeof item.icon === "string") card.icon = item.icon;
-        if (spec?.unit) card.unit = spec.unit;
+        // A duration already carries its units (`durationDiagnostics` warned).
+        if (spec?.unit && !duration) card.unit = spec.unit;
         if (typeof item.sub === "string") card.sub = item.sub;
 
         // Compared to the same stretch of the previous period, on the same
@@ -188,12 +198,12 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
                 ? aggregate(previousFiltered.notes, { agg: spec.agg, field: spec.field, dateField })
                 : null;
             if (previous !== null) {
-                const format = formatDelta(current, previous, spec.precision);
+                const format = formatDelta(current, previous, spec.precision, duration);
                 card.delta = {
                     arrow: format.arrow,
                     text: format.text,
                     tone: deltaTone(format.direction, compareSpec.better),
-                    title: compareCaption(periodSpec.period, formatValue(previous, spec.precision)),
+                    title: compareCaption(periodSpec.period, formatReading(previous, spec.precision, duration)),
                 };
             }
         }

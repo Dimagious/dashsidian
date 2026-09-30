@@ -5,6 +5,7 @@ import { renderProgress } from "./progress";
 import { renderToday } from "./today";
 import { renderCountdown } from "./countdown";
 import { renderHeatmap } from "./heatmap";
+import { renderChart } from "./chart";
 import { mockContext, diary, host, nodes } from "../test/vault";
 
 /**
@@ -22,6 +23,7 @@ const cases: [string, (el: HTMLElement) => void, string][] = [
     ["today", (el) => renderToday(ctx, "daily: true", el), ".dashy-today-chip"],
     ["countdown", (el) => renderCountdown(ctx, "items:\n  - { label: A, date: 2099-01-01 }", el), ".dashy-countdown-card"],
     ["heatmap", (el) => renderHeatmap(ctx, "source: Diary\nfield: v", el), ".dashy-hm-grid"],
+    ["chart", (el) => renderChart(ctx, "source: Diary\nfield: v", el), ".dashy-chart-svg"],
 ];
 
 describe("rendering twice into the same element", () => {

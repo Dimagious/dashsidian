@@ -98,3 +98,37 @@ describe("barWidth", () => {
         expect(barWidth(null)).toBe(0);
     });
 });
+
+// B-121: a goal written as a duration.
+describe("readProgress — duration goals", () => {
+    it("goal: 8h is 480 minutes, remembered as written", () => {
+        const { spec, diagnostics } = readProgress({ agg: "avg", field: "sleep", goal: "8h" }, "Sleep");
+        expect(diagnostics).toEqual([]);
+        expect(spec).toEqual({
+            agg: "avg", field: "sleep", goal: 480, durationThresholds: [{ key: "goal", value: "8h" }],
+        });
+    });
+
+    it("the clock form works too", () => {
+        expect(readProgress({ agg: "avg", field: "sleep", goal: "7:30" }, "Sleep").spec?.goal).toBe(450);
+    });
+
+    it("a numeric string goal stays a plain number, not a duration", () => {
+        const { spec } = readProgress({ agg: "sum", field: "km", goal: "200" }, "Run");
+        expect(spec?.goal).toBe(200);
+        expect(spec?.durationThresholds).toBeUndefined();
+    });
+
+    it("text that is neither says a number or a duration is expected", () => {
+        const { spec, diagnostics } = readProgress({ agg: "avg", field: "sleep", goal: "eight hours" }, "Sleep");
+        expect(spec).toBeNull();
+        expect(diagnostics.map((d) => d.message)).toEqual(['"Sleep": `goal:` needs a number or a duration like `7h 30m`. There is nothing to measure against.']);
+    });
+
+    it("a zero duration goal is not positive", () => {
+        const { spec, diagnostics } = readProgress({ agg: "avg", field: "sleep", goal: "0h" }, "Sleep");
+        expect(spec).toBeNull();
+        // Printed as written, not as the minutes it became.
+        expect(diagnostics[0]?.message).toBe('"Sleep": a goal of 0h leaves nothing to fill. It must be above zero.');
+    });
+});

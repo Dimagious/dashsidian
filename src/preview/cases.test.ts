@@ -61,6 +61,29 @@ describe("preview cases", () => {
         expect(withDates(countdown.source)).toContain(String(new Date().getFullYear()));
     });
 
+    it("the duration cases draw durations, not dashes or raw minutes (B-121)", () => {
+        const stats = CASES.findIndex((c) => c.title.startsWith("stats — длительности"));
+        const progress = CASES.findIndex((c) => c.title.startsWith("progress — длительность"));
+        const values = Array.from(render(stats).querySelectorAll(".dashy-stat-value"), (n) => n.textContent ?? "");
+        // The average and the monthly sum read as durations; the streak counts nights.
+        expect(values[0]).toMatch(/^\d+h( \d+m)?$/);
+        expect(values[1]).toMatch(/^\d+h( \d+m)?$/);
+        expect(values[2]).toMatch(/^\d+$/);
+        const bar = render(progress).querySelector(".dashy-progress-value")?.textContent ?? "";
+        expect(bar).toMatch(/^\d+h( \d+m)? \/ 8h \d+%$/);
+    });
+
+    it("the chart cases draw lines, bars, a partial week, durations and an empty window (ADR 0005)", () => {
+        const html = CASES.map((c, i) => (c.block === "chart" ? render(i).innerHTML : "")).join("");
+        expect(html).toContain("dashy-chart-line");
+        expect(html).toContain("dashy-chart-bar is-partial");
+        expect(html).toContain("dashy-chart-empty");
+        expect(html).toContain("dashy-chart-legend");
+        const durations = CASES.findIndex((c) => c.title.startsWith("chart — длительности"));
+        const labels = Array.from(render(durations).querySelectorAll(".dashy-chart-leg"), (n) => n.textContent ?? "");
+        expect(labels).toEqual(["goal 7h"]);
+    });
+
     it("the fake vault has gaps, so a heatmap is not a solid wall", () => {
         const notes = fakeVault().filter((n) => n.folder === "Diary");
         expect(notes.length).toBeLessThan(120);

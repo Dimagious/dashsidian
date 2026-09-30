@@ -202,7 +202,7 @@ describe("combineLayers — which layer colours a day", () => {
         ];
         const combined = combineLayers(perLayer, ["gym", "run", "sleep"]);
         const day = combined.get("2026-01-01") as LayeredMark;
-        expect(day.parts).toEqual([{ label: "gym", value: 1 }, { label: "sleep", value: 7 }]);
+        expect(day.parts).toEqual([{ label: "gym", value: 1, layer: 0 }, { label: "sleep", value: 7, layer: 2 }]);
     });
 
     it("notes: the union across layers, not just the winning one's own list", () => {
@@ -245,8 +245,8 @@ describe("combineLayers — which layer colours a day", () => {
         // (5 + 7) / 2 = 6 for mood; steps has a single contributor either way.
         expect(combined.get("2026-01-01")).toMatchObject({ value: 6, layer: 0 });
         expect(combined.get("2026-01-01")?.parts).toEqual([
-            { label: "mood", value: 6 },
-            { label: "steps", value: 4000 },
+            { label: "mood", value: 6, layer: 0 },
+            { label: "steps", value: 4000, layer: 1 },
         ]);
     });
 });

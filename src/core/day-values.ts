@@ -12,7 +12,8 @@
  */
 
 import type { NoteRecord } from "./source";
-import { numberAt, isFalseMark, isBooleanMark, classifyField } from "./aggregate";
+import { numberAt, isFalseMark, isBooleanMark, classifyField, type FieldValueKind } from "./aggregate";
+import { durationThresholdIn } from "./bands";
 import { resolveNoteDate } from "./note-date";
 import { describeValue, type Diagnostic } from "../shared/parse";
 import { t } from "../i18n";
@@ -214,4 +215,28 @@ export function readPerDay(value: Record<string, unknown>): PerDayOutcome {
  */
 export function unusedFields(notes: readonly NoteRecord[], fields: readonly string[]): string[] {
     return fields.filter((f) => classifyField(notes, f) !== "ok");
+}
+
+/**
+ * What a heatmap says about durations (B-121), once its field(s) are known
+ * to carry data: a field mixing durations and plain numbers, naming one note
+ * of each, and a `bands` threshold written as a duration against a field of
+ * plain numbers. Both are still drawn, as minutes; neither stays silent.
+ * `field` is the display form, several names joined with ", ".
+ */
+export function heatmapDurationDiagnostics(kind: FieldValueKind, field: string, bands: unknown): Diagnostic[] {
+    const out: Diagnostic[] = [];
+    if (kind.kind === "mixed") {
+        out.push({
+            level: "warning",
+            message: t("heatmap.durationMixed", {
+                field, durationNote: kind.durationNote ?? "", plainNote: kind.plainNote ?? "",
+            }),
+        });
+    }
+    const written = durationThresholdIn(bands);
+    if (written !== undefined && kind.kind === "plain") {
+        out.push({ level: "warning", message: t("heatmap.durationThresholdOnPlain", { value: written, field }) });
+    }
+    return out;
 }

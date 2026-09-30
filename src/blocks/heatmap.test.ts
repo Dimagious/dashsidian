@@ -6,6 +6,7 @@ import { mockContext, diary, host, texts, nodes, diagnostics } from "../test/vau
 import { DEFAULT_SETTINGS } from "../types";
 import { setDateLocale, formatDayMedium } from "../adapters/datetime";
 import { parseDateKey } from "../core/calendar";
+import { setLocale } from "../i18n";
 
 /**
  * The same locale-medium rendering a cell's tooltip itself uses (B-092), so
@@ -2444,5 +2445,145 @@ describe("heatmap — mobile: tap to read, tap again to open (B-092)", () => {
         expect(cell2025.classList.contains("is-selected")).toBe(false);
         expect(cell2026.classList.contains("is-selected")).toBe(true);
         expect(nodes(el, ".dashy-hm-status")[0]?.textContent).toBe(cell2026.getAttribute("title"));
+    });
+});
+
+// B-121: a heatmap over durations: tooltips, the caption's average and the
+// legend all read as `7h 30m`, the values themselves counted in minutes.
+describe("heatmap — durations", () => {
+    const TODAY = new Date(2026, 8, 24, 12);
+    const nights: Record<string, string> = {
+        "2026-09-13": "6h", "2026-09-14": "6h 30m", "2026-09-15": "7h", "2026-09-16": "6h", "2026-09-17": "6h 55m",
+        "2026-09-20": "7h 30m", "2026-09-21": "6:45", "2026-09-22": "8h", "2026-09-23": "5h 58min", "2026-09-24": "7h 12m",
+    };
+    // 1945 + 2125 = 4070 minutes over 10 days: an average of 407, 6h 47m.
+    const sleepCtx = mockContext({
+        notes: [
+            ...Object.entries(nights).map(([date, sleep]) => ({
+                path: `Diary/${date}.md`, frontmatter: { sleep, steps: 5000, gym: date.endsWith("0") },
+            })),
+            { path: "Mixed/2026-09-20.md", frontmatter: { sleep: "7h" } },
+            { path: "Mixed/2026-09-21.md", frontmatter: { sleep: 400 } },
+        ],
+    });
+
+    const render = (config: string): HTMLElement => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderHeatmap(sleepCtx, config, el);
+        return el;
+    };
+    const titleOf = (el: HTMLElement, date: string): string | null | undefined =>
+        nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium(date)))?.getAttribute("title");
+
+    afterEach(() => {
+        vi.useRealTimers();
+        setLocale("en");
+    });
+
+    it("a cell's tooltip and the caption's average read as durations", () => {
+        const el = render("source: Diary\nfield: sleep");
+        expect(titleOf(el, "2026-09-23")).toBe(`${medium("2026-09-23")}: sleep 5h 58m (2026-09-23)`);
+        expect(texts(el, ".dashy-hm-title")).toEqual(["2026, sleep: average 6h 47m, 10 of 267 days"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("the auto-fitted legend reads in hours and minutes", () => {
+        const el = render("source: Diary\nfield: sleep");
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["7h 30m+", "6h 59m–7h 29m", "6h 29m–6h 58m", "5h 58m–6h 28m"]);
+    });
+
+    it("explicit bands take durations, and a plain number there means minutes", () => {
+        expect(texts(render("source: Diary\nfield: sleep\nbands: [8h, 7h, 6h]"), ".dashy-hm-leg"))
+            .toEqual(["8h+", "7h–7h 59m", "6h–6h 59m"]);
+        expect(texts(render("source: Diary\nfield: sleep\nbands: [480, 420]"), ".dashy-hm-leg"))
+            .toEqual(["8h+", "7h–7h 59m"]);
+    });
+
+    it("a band decides by minutes: 8h paints at full strength, 5h 58m in the bottom band", () => {
+        const el = render("source: Diary\nfield: sleep\nbands: [8h, 7h, 6h]");
+        const alpha = (date: string): string => {
+            const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium(date)));
+            return cell?.style.backgroundColor ?? "";
+        };
+        expect(alpha("2026-09-22")).not.toContain("0.46");
+        expect(alpha("2026-09-23")).toContain("0.46");
+    });
+
+    it("a mixed field is counted in minutes, shown plain, and warned about", () => {
+        const el = render("source: Mixed\nfield: sleep");
+        expect(titleOf(el, "2026-09-20")).toBe(`${medium("2026-09-20")}: sleep 420 (2026-09-20)`);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ heatmap: "sleep" mixes durations ("Mixed/2026-09-20.md") and plain numbers ("Mixed/2026-09-21.md"). '
+            + "All of them are counted as minutes and shown as plain numbers.",
+        ]);
+    });
+
+    it("a duration band threshold on a plain field warns", () => {
+        const el = render("source: Diary\nfield: steps\nbands: [2h, 1h]");
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["120+", "60–119"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ heatmap: `bands` threshold "2h" is a duration, but "steps" holds plain numbers. It is applied as minutes.',
+        ]);
+    });
+
+    it("layers: each layer's tooltip part in its own kind; a checkbox layer keeps the legend plain", () => {
+        const el = render(
+            "source: Diary\nlayers:\n  - { field: gym, label: Gym }\n  - { field: sleep, label: Sleep }");
+        expect(titleOf(el, "2026-09-20")).toBe(`${medium("2026-09-20")}: Gym 1, Sleep 7h 30m (2026-09-20)`);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("layers of durations only: the legend reads as durations", () => {
+        const el = render("source: Diary\nlayers:\n  - { field: sleep, label: Sleep }\nbands: [8h, 7h]");
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["Sleep", "8h+", "7h–7h 59m"]);
+    });
+
+    it("layers: a mix within one layer warns naming that layer's field; a duration band on plain layers warns", () => {
+        const mixed = render("source: Mixed\nlayers:\n  - { field: sleep }");
+        expect(diagnostics(mixed, "warning")[0]).toContain('"sleep" mixes durations');
+        const plain = render("source: Diary\nlayers:\n  - { field: steps }\n  - { field: gym }\nbands: [2h]");
+        expect(diagnostics(plain, "warning")).toEqual([
+            '⚠️ heatmap: `bands` threshold "2h" is a duration, but "steps, gym" holds plain numbers. It is applied as minutes.',
+        ]);
+    });
+
+    it("explicit duration bands: a night of 7h 59m 40s reads 8h and paints the top band", () => {
+        const notes = [
+            { path: "Diary/2026-09-20.md", frontmatter: { sleep: "7:59:40" } },
+            { path: "Diary/2026-09-21.md", frontmatter: { sleep: "7h" } },
+        ];
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderHeatmap(mockContext({ notes }), "source: Diary\nfield: sleep\nbands: [8h, 7h]", el);
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium("2026-09-20")));
+        expect(cell?.getAttribute("title")).toBe(`${medium("2026-09-20")}: sleep 8h (2026-09-20)`);
+        // The top band paints at full alpha: no alpha component in the colour.
+        expect(cell?.style.backgroundColor).toMatch(/^rgb\(/);
+    });
+
+    it("layers of different kinds: duration bands still read as durations when a layer holds them", () => {
+        const el = render(
+            "source: Diary\nlayers:\n  - { field: gym, label: Gym }\n  - { field: sleep, label: Sleep }\nbands: [8h, 7h]");
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["Gym", "Sleep", "8h+", "7h–7h 59m"]);
+    });
+
+    it("the text-field error mentions durations as an accepted value", () => {
+        const notes = [{ path: "Diary/2026-09-20.md", frontmatter: { sleep: "slept badly" } }];
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderHeatmap(mockContext({ notes }), "source: Diary\nfield: sleep", el);
+        expect(diagnostics(el, "error")[0]).toContain("not a number, a duration like `7h 30m` or a checkbox");
+    });
+
+    it("in Russian, the tooltip and the caption use the catalog's units", () => {
+        setLocale("ru");
+        const el = render("source: Diary\nfield: sleep\nbands: [8h, 7h]");
+        expect(titleOf(el, "2026-09-23")).toContain("sleep 5\u00A0ч 58\u00A0мин");
+        expect(texts(el, ".dashy-hm-title")[0]).toContain("6\u00A0ч 47\u00A0мин");
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["8\u00A0ч+", "7\u00A0ч–7\u00A0ч 59\u00A0мин"]);
     });
 });
