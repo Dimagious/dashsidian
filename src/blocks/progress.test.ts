@@ -35,6 +35,12 @@ describe("progress — the bar says what the number says", () => {
         expect(diagnostics(el, "warning")).toHaveLength(0);
     });
 
+    it("a single bar written without items still reads target as goal (B-125)", () => {
+        const el = bars("label: Days\nfolder: Diary\nagg: count\ntarget: 40");
+        expect(texts(el, ".dashy-progress-percent")).toEqual(["25%"]);
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+    });
+
     it("icon and sub are drawn when given", () => {
         const el = bars("items:\n  - { label: Days, source: Diary, agg: count, goal: 40, icon: 📔, sub: this year }");
         expect(texts(el, ".dashy-progress-icon")).toEqual(["📔"]);

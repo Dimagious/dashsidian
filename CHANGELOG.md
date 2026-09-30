@@ -16,6 +16,12 @@ removed public export.
   takes either `field` or `layers`, never both, yet the schema marked `field`
   required, so an agent or a schema-driven validator rejected a correct
   block with `layers`. The skill now says exactly one of the two.
+- **An unknown-key warning names the key you wrote.** A key synonym was
+  applied even in a block that has no such key, so `folder:` in `today`
+  was reported as `Unknown key "source"`, and `target:` in `stats` as
+  `Unknown key "goal"`. A synonym now applies only where its key exists
+  (`folder` still means `source` in `stats`, `target` still means `goal`
+  in `progress`), and the warning quotes your own spelling otherwise.
 
 ## [1.4.0] - 2026-09-29
 

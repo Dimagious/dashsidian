@@ -326,6 +326,24 @@ describe("heatmap — the caption", () => {
         expect(texts(el, ".dashy-hm-title")).toEqual(["My sleep (2026)", "My sleep (2025)"]);
     });
 
+    it("an item-only synonym at the root is reported as written (B-125)", () => {
+        // `name` means `label`, which heatmap has only on a layer.
+        const el = map("source: Diary\nfield: sleep_score\nname: My sleep");
+        expect(diagnostics(el, "warning")).toEqual(['⚠️ heatmap: Unknown key "name", ignored.']);
+    });
+
+    it("root synonyms whose key heatmap has still apply", () => {
+        const el = map("folder: Diary\nproperty: sleep_score\ntitle: My sleep");
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(texts(el, ".dashy-hm-title")).toEqual(["My sleep"]);
+    });
+
+    it("a band's label written as title still labels the legend", () => {
+        const el = map("source: Diary\nfield: sleep_score\nbands: [{ min: 75, title: Good }, { min: 70, name: Fair }]");
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["Good", "Fair"]);
+    });
+
     it("one year leaves the custom title alone", () => {
         const el = map("source: Diary\nfield: sleep_score\ntitle: My sleep");
         expect(texts(el, ".dashy-hm-title")).toEqual(["My sleep"]);
