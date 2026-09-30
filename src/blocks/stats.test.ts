@@ -207,6 +207,27 @@ describe("stats — the trend beside the number", () => {
     });
 });
 
+describe("stats — a synonym applies only where its key exists (B-125)", () => {
+    it("`target` in a card without goal is reported as target, not goal", () => {
+        const el = card("items:\n  - { label: Days, source: Diary, agg: count, target: 40 }");
+        expect(diagnostics(el, "warning")).toEqual(['⚠️ stats: Unknown key "target", ignored.']);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
+    });
+
+    it("`folder` still means source inside an items list", () => {
+        const el = card("items:\n  - { label: Days, folder: Diary, agg: count }");
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
+    });
+
+    it("a single card written without items keeps its synonyms", () => {
+        const el = card("title: Days\nfolder: Diary\naggregate: count");
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(texts(el, ".dashy-stat-label")).toEqual(["Days"]);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
+    });
+});
+
 describe("stats — nothing to count is not zero", () => {
     it("an empty selection shows a dash, marked as empty", () => {
         const el = card("items:\n  - { label: Nowhere, source: 99-Empty, field: steps, agg: sum }");

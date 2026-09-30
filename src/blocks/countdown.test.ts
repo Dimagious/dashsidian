@@ -123,6 +123,12 @@ describe("countdown — edges", () => {
         expect(nodes(el, ".dashy-countdown-card")).toHaveLength(0);
     });
 
+    it("a single date written without items still reads name as its label (B-125)", () => {
+        const el = cards(`name: Trip\ndate: ${shifted(3)}`);
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(texts(el, ".dashy-countdown-label")).toEqual(["Trip"]);
+    });
+
     it("an unknown key warns with a suggestion", () => {
         const el = cards(`items:\n  - { label: A, dat: ${shifted(1)} }`);
         expect(diagnostics(el, "warning")[0]).toContain("date");

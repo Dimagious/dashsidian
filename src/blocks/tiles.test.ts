@@ -125,6 +125,13 @@ describe("tiles — edges", () => {
         expect(diagnostics(el, "warning")[0]).toContain("columns");
     });
 
+    it("a single tile written without items still reads title as its label (B-125)", () => {
+        const el = host();
+        renderTiles(ctx, "title: Inbox\npath: 00-Inbox", el);
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(texts(el, ".dashy-tile-label")).toEqual(["Inbox"]);
+    });
+
     it("an unknown key warns with a suggestion but the tile is still drawn", () => {
         const el = host();
         renderTiles(ctx, "items:\n  - { lable: Inbox, path: 00-Inbox }", el);

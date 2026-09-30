@@ -75,29 +75,59 @@ export interface KeyContext {
     root?: readonly string[];
     /** canonical keys of a list item */
     item?: readonly string[];
+    /**
+     * The block reads a root map without an `items:` list as a single item
+     * (`asItems`), so such a root is canonicalized against the item keys too:
+     * `folder:` in a one-card `stats` block still means `source`.
+     */
+    bareItem?: boolean;
 }
 
 /**
  * Rewrites object keys to their canonical names, recursively.
  *
- * With no context it behaves as it used to — renaming anything found in the
- * synonym table.
+ * With a key set for the current level, a synonym is applied only when its
+ * canonical key belongs to that set. Otherwise the key stays as written, so
+ * the unknown-key warning names what the author wrote, not a key they never
+ * saw: `folder:` in `today` is reported as `folder`, not as `source`.
+ *
+ * A level with no key set (no context at all, or `item` left out) behaves as
+ * it used to, renaming anything found in the synonym table.
  */
 export function canonicalize(input: unknown, context: KeyContext = {}): unknown {
-    return walk(input, context.root ?? [], context);
+    return walk(input, rootKeys(input, context), context);
 }
 
-function walk(input: unknown, keep: readonly string[], context: KeyContext): unknown {
-    if (Array.isArray(input)) return input.map((v) => walk(v, context.item ?? [], context));
+function rootKeys(input: unknown, context: KeyContext): readonly string[] | undefined {
+    if (!context.bareItem || !isRecord(input) || Array.isArray(input.items)) return context.root;
+    if (context.root === undefined && context.item === undefined) return undefined;
+    return [...(context.root ?? []), ...(context.item ?? [])];
+}
+
+function walk(input: unknown, keep: readonly string[] | undefined, context: KeyContext): unknown {
+    if (Array.isArray(input)) return input.map((v) => walk(v, context.item, context));
     if (input === null || typeof input !== "object") return input;
 
     const out: Record<string, unknown> = {};
     for (const [rawKey, value] of Object.entries(input as Record<string, unknown>)) {
-        const key = keep.includes(rawKey) ? rawKey : KEY_ALIASES[rawKey] ?? rawKey;
+        const key = canonicalKey(rawKey, keep);
         // past `items:` the list elements begin — they have their own key set
-        out[key] = walk(value, key === "items" ? context.item ?? [] : keep, context);
+        const walked = walk(value, key === "items" ? context.item : keep, context);
+        // Defined, not assigned: `out["__proto__"] = …` would swap the object's
+        // prototype, the key would vanish from the unknown-key check and its
+        // fields would quietly read through as if they were the block's own.
+        Object.defineProperty(out, key, { value: walked, enumerable: true, writable: true, configurable: true });
     }
     return out;
+}
+
+function canonicalKey(rawKey: string, known: readonly string[] | undefined): string {
+    // Own entries only: `constructor` or `__proto__` would otherwise find
+    // Object.prototype's members and turn a function into a key.
+    const target = Object.prototype.hasOwnProperty.call(KEY_ALIASES, rawKey) ? KEY_ALIASES[rawKey] : undefined;
+    if (known === undefined) return target ?? rawKey;
+    if (target === undefined || known.includes(rawKey) || !known.includes(target)) return rawKey;
+    return target;
 }
 
 /**
