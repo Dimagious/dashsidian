@@ -39,6 +39,28 @@ describe("stats — the numbers are the real ones", () => {
             .toEqual(["1"]);
     });
 
+    it("a `where` list keeps only the notes meeting every condition", () => {
+        // sleep_score >= 75 keeps days 5..9, steps < 1800 keeps days 0..7: days 5, 6, 7.
+        const el = card(`items:
+  - { label: Count, source: Diary, where: [sleep_score >= 75, "steps < 1800"], agg: count }
+  - { label: Steps, source: Diary, where: [sleep_score >= 75, "steps < 1800"], field: steps, agg: sum }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["3", "4800"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("`and` in a `where` string narrows the same way", () => {
+        const el = card('items:\n  - { label: Count, source: Diary, where: "sleep_score >= 75 AND steps < 1800", agg: count }');
+        expect(texts(el, ".dashy-stat-value")).toEqual(["3"]);
+    });
+
+    it("one bad condition in a `where` list drops the filter and warns, naming it", () => {
+        const el = card('items:\n  - { label: Count, source: Diary, where: [sleep_score >= 75, "steps <"], agg: count }');
+        const warnings = diagnostics(el, "warning");
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0]).toContain("`steps <` in `where` could not be read");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
+    });
+
     it("a tag narrows it too", () => {
         expect(texts(card("items:\n  - { label: Read, tag: read, agg: count }"), ".dashy-stat-value"))
             .toEqual(["2"]);
@@ -385,8 +407,8 @@ describe("stats — edges", () => {
     });
 
     it("a where nobody can read warns instead of quietly showing a zero", () => {
-        const el = card('items:\n  - { label: Filtered, source: Diary, where: "year = 2026 and rating >= 5", agg: count }');
-        expect(diagnostics(el, "warning")[0]).toContain("only one is supported");
+        const el = card('items:\n  - { label: Filtered, source: Diary, where: "year = 2026 or rating >= 5", agg: count }');
+        expect(diagnostics(el, "warning")[0]).toContain("uses `or`, which is not supported");
         // Unfiltered rather than an unexplained zero, and the warning says so.
         expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
     });

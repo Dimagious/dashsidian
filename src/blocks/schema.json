@@ -35,8 +35,8 @@
           "doc": "tag, with or without the hash; narrows `badge: count`"
         },
         "where": {
-          "type": "string",
-          "doc": "a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; the field name may be a dotted path into a nested property, like `health.sleep > 70`; `and`/`or` are not supported; narrows `badge: count`"
+          "type": "string|list",
+          "doc": "a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, \"rating >= 4\"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or`. One unreadable condition drops the whole filter with a warning, and the count is drawn unfiltered. Narrows `badge: count`"
         },
         "period": {
           "type": "string|number",
@@ -109,8 +109,8 @@
           "doc": "tag, with or without the hash"
         },
         "where": {
-          "type": "string",
-          "doc": "a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; the field name may be a dotted path into a nested property, like `health.sleep > 70`; `and`/`or` are not supported"
+          "type": "string|list",
+          "doc": "a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, \"rating >= 4\"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or`. One unreadable condition drops the whole filter with a warning, and the numbers are drawn unfiltered"
         },
         "period": {
           "type": "string|number",
@@ -240,8 +240,8 @@
           "doc": "tag, with or without the hash"
         },
         "where": {
-          "type": "string",
-          "doc": "a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; the field name may be a dotted path into a nested property, like `health.sleep > 70`; `and`/`or` are not supported"
+          "type": "string|list",
+          "doc": "a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, \"rating >= 4\"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or`. One unreadable condition drops the whole filter with a warning, and the numbers are drawn unfiltered"
         },
         "period": {
           "type": "string|number",
@@ -407,8 +407,8 @@
           "doc": "tag, with or without the hash"
         },
         "where": {
-          "type": "string",
-          "doc": "a single condition like `year = 2026`, `rating >= 4`, `tags contains books`; the field name may be a dotted path into a nested property, like `health.sleep > 70`; `and`/`or` are not supported"
+          "type": "string|list",
+          "doc": "a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, \"rating >= 4\"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or`. One unreadable condition drops the whole filter with a warning, and the grid is drawn unfiltered"
         },
         "field": {
           "type": "string|list",

@@ -22,7 +22,13 @@ export const de: Catalog = {
     "where.unreadable":
         "`where: {where}` konnte nicht gelesen werden und wurde ignoriert. Die Zahlen unten sind ungefiltert. Erwartet wird etwas wie `year = 2026`, `rating >= 4` oder `tags contains books`.",
     "where.conjunction":
-        "`where: {where}` enthält mehr als eine Bedingung, unterstützt wird nur eine. Der Filter wurde ignoriert. Grenze mit `source` oder `tag` ein, oder setze den Wert in Anführungszeichen, wenn das Wort dazugehört.",
+        "`where: {where}` verwendet `or`, das wird nicht unterstützt. Der Filter wurde ignoriert, die Zahlen unten sind ungefiltert. Damit alle Bedingungen gelten, verbinde sie mit `and` oder schreibe sie als Liste, etwa `[year = 2026, rating >= 4]`; setze den Wert in Anführungszeichen, wenn das Wort dazugehört.",
+    "where.badCondition":
+        "`{condition}` in `where` konnte nicht gelesen werden, deshalb wurde der ganze Filter ignoriert. Die Zahlen unten sind ungefiltert. Eine Bedingung sieht aus wie `year = 2026`, `rating >= 4` oder `tags contains books`.",
+    "where.badItem":
+        "`where` enthält `{value}`, das ist keine Bedingung, deshalb wurde der ganze Filter ignoriert. Die Zahlen unten sind ungefiltert. Jeder Eintrag ist eine Bedingung wie `year = 2026`.",
+    "where.emptyList":
+        "`where` ist eine leere Liste, der Filter wurde ignoriert und die Zahlen unten sind ungefiltert. Liste Bedingungen auf, etwa `[year = 2026, rating >= 4]`, oder entferne den Schlüssel.",
 
     "tiles.empty": "Keine Kacheln zu zeichnen. Erwartet wird `items:` oder eine Liste.",
     "tiles.dateFieldUnused": "{card}: `date_field` hat ohne `period` keine Wirkung.",

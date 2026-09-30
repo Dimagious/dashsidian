@@ -44,6 +44,7 @@ items:
   - { label: Подряд, source: Diary, field: sleep_score, agg: streak, unit: дн. }
   - { label: Последние шаги, source: Diary, field: steps, agg: latest, sub: самая поздняя }
   - { label: Хорошие ночи, source: Diary, where: "sleep_score >= 90", agg: count }
+  - { label: Сон и шаги, source: Diary, where: [sleep_score >= 85, "steps > 10000"], agg: count }
   - { label: Нет данных, source: Nowhere, field: steps, agg: max }`,
     },
     {
@@ -52,7 +53,7 @@ items:
         source: `items:
   - { label: Опечатка, source: Diary, field: steps, agg: avgg }
   - { label: Без поля, source: Diary, agg: avg }
-  - { label: Два условия, source: Diary, where: "year = 2026 and rating >= 4", agg: count }`,
+  - { label: Через or, source: Diary, where: "year = 2026 or rating >= 4", agg: count }`,
     },
     {
         block: "stats",

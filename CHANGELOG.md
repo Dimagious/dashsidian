@@ -10,6 +10,20 @@ removed public export.
 
 ## [Unreleased]
 
+### Added
+
+- **`where` takes more than one condition.** Every condition must hold, and
+  they can be written as a list, `where: [year = 2026, "rating >= 4"]`, or
+  joined by `and` in one string, `where: "year = 2026 and rating >= 4"`; a
+  list item may hold `and` too. `and` counts in any case, as a whole word
+  outside quotes, so `status = "waiting and ready"` is still one condition.
+  This works on `tiles`, `stats`, `progress` and `heatmap`, wherever `where`
+  already did. `or` is still not supported: it warns, now saying that `and`
+  and a list are, and the block draws unfiltered. One unreadable condition,
+  an empty list, or a list item that is not a condition drops the whole
+  filter with a warning, never just the bad part; the warning quotes the
+  bad condition or item.
+
 ### Fixed
 
 - **The agent skill no longer calls `heatmap.field` required.** A heatmap

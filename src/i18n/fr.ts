@@ -22,7 +22,13 @@ export const fr: Catalog = {
     "where.unreadable":
         "`where: {where}` n'a pas pu être lu et a été ignoré. Les chiffres ci-dessous ne sont pas filtrés. Attendu : quelque chose comme `year = 2026`, `rating >= 4` ou `tags contains books`.",
     "where.conjunction":
-        "`where: {where}` contient plus d'une condition, et une seule est prise en charge. Le filtre a été ignoré. Restreignez avec `source` ou `tag`, ou mettez la valeur entre guillemets si le mot en fait partie.",
+        "`where: {where}` utilise `or`, qui n'est pas pris en charge. Le filtre a été ignoré et les chiffres ci-dessous ne sont pas filtrés. Pour exiger toutes les conditions, reliez-les par `and` ou écrivez-les en liste, par exemple `[year = 2026, rating >= 4]` ; mettez la valeur entre guillemets si le mot en fait partie.",
+    "where.badCondition":
+        "`{condition}` dans `where` n'a pas pu être lu, donc tout le filtre a été ignoré. Les chiffres ci-dessous ne sont pas filtrés. Une condition ressemble à `year = 2026`, `rating >= 4` ou `tags contains books`.",
+    "where.badItem":
+        "`where` contient `{value}`, qui n'est pas une condition, donc tout le filtre a été ignoré. Les chiffres ci-dessous ne sont pas filtrés. Chaque élément est une condition comme `year = 2026`.",
+    "where.emptyList":
+        "`where` est une liste vide, le filtre a donc été ignoré et les chiffres ci-dessous ne sont pas filtrés. Listez des conditions, par exemple `[year = 2026, rating >= 4]`, ou retirez la clé.",
 
     "tiles.empty": "Aucune tuile à dessiner. Attendu : `items:` ou une liste.",
     "tiles.dateFieldUnused": "{card} : `date_field` n'a aucun effet sans `period`.",
