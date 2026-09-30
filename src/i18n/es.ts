@@ -51,7 +51,7 @@ export const es: Catalog = {
     "stats.badPrecision":
         "{card}: `precision` espera un entero de 0 a {max}, recibido «{value}». Se redondea como por defecto.",
     "stats.streakKeysIgnored":
-        "{card}: `at_least`, `at_most`, `days` y `skip_field` solo se aplican a `agg: streak`, ignorado.",
+        "{card}: `at_least`, `at_most`, `days` y `skip_field` solo se aplican a `agg: streak` y `agg: current_streak`, ignorado.",
     "stats.streakThresholdNeedsField":
         "{card}: `at_least` y `at_most` necesitan un `field:` para sumar. Ignorado.",
     "stats.streakThresholdInvalid": "{card}: `{key}` espera un número, recibido «{value}». Ignorado.",
@@ -73,12 +73,12 @@ export const es: Catalog = {
         "{card}: ninguna de las notas seleccionadas tiene un nombre que empiece con una fecha como YYYY-MM-DD. Añade `date_field:` si la fecha está en una propiedad.",
     "period.noDatedNotesField": "{card}: ninguna de las notas seleccionadas tiene fecha en «{field}».",
     "period.dateFieldUnused":
-        "{card}: `date_field` no tiene efecto aquí. Solo dirige `period`, `streak`, `latest` y `trend`.",
+        "{card}: `date_field` no tiene efecto aquí. Solo dirige `period`, `streak`, `current_streak`, `latest` y `trend`.",
 
     "compare.notBoolean": "{card}: `compare` espera true o false, recibido «{value}». Comparación omitida.",
     "compare.needsPeriod": "{card}: `compare` necesita `period`. No hay nada con qué comparar.",
     "compare.streakUnsupported":
-        "{card}: `compare` no funciona con `streak`. Una racha no tiene un valor propio del período anterior con el que comparar.",
+        "{card}: `compare` no funciona con `streak` ni `current_streak`. Una racha no tiene un valor propio del período anterior con el que comparar.",
     "compare.betterUnused": "{card}: `better` no tiene efecto sin `compare: true`.",
     "compare.badBetter": "{card}: `better` espera `up` o `down`, recibido «{value}». La diferencia queda neutra.",
     "compare.vsWeek": "respecto a los mismos días de la semana pasada: {value}",

@@ -12,6 +12,17 @@ removed public export.
 
 ### Added
 
+- **`agg: current_streak`, the run going on now, on `stats` and `progress`.**
+  `streak` stays the longest run on record; `current_streak` counts back from
+  today by the same rules: the same filled days, `at_least`/`at_most`,
+  `days: weekdays` and `skip_field`, which all apply to it too. Today never
+  breaks it: a day with no note yet, or one not meeting the threshold yet
+  (under `at_least`, or already over `at_most`), leaves the run counted up to
+  yesterday, and only a missed yesterday or earlier day
+  resets it to `0`. "Today" follows the **New day starts at** setting, notes
+  dated after it are ignored, and the run is counted within the card's
+  selection, so `period: month` stops it at the first of the month. Like
+  `streak`, it refuses `compare`, and a `field` no note carries shows a dash.
 - **`where` takes more than one condition.** Every condition must hold, and
   they can be written as a list, `where: [year = 2026, "rating >= 4"]`, or
   joined by `and` in one string, `where: "year = 2026 and rating >= 4"`; a

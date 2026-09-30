@@ -49,7 +49,7 @@ export const ru: Catalog = {
     "stats.badPrecision":
         "{card}: `precision` ожидает целое от 0 до {max}, получено «{value}». Округляю по умолчанию.",
     "stats.streakKeysIgnored":
-        "{card}: `at_least`, `at_most`, `days` и `skip_field` действуют только при `agg: streak`, пропущено.",
+        "{card}: `at_least`, `at_most`, `days` и `skip_field` действуют только при `agg: streak` и `agg: current_streak`, пропущено.",
     "stats.streakThresholdNeedsField":
         "{card}: `at_least` и `at_most` нужны вместе с `field:`, иначе нечего суммировать. Пропущено.",
     "stats.streakThresholdInvalid": "{card}: `{key}` ожидает число, получено «{value}». Пропущено.",
@@ -71,12 +71,12 @@ export const ru: Catalog = {
         "{card}: ни у одной выбранной заметки нет имени, начинающегося с даты вида YYYY-MM-DD. Добавьте `date_field:`, если дата лежит в свойстве.",
     "period.noDatedNotesField": "{card}: ни у одной выбранной заметки нет даты в «{field}».",
     "period.dateFieldUnused":
-        "{card}: `date_field` здесь ни на что не влияет. Он управляет только `period`, `streak`, `latest` и `trend`.",
+        "{card}: `date_field` здесь ни на что не влияет. Он управляет только `period`, `streak`, `current_streak`, `latest` и `trend`.",
 
     "compare.notBoolean": "{card}: `compare` ожидает true или false, получено «{value}». Сравнение пропущено.",
     "compare.needsPeriod": "{card}: `compare` работает только вместе с `period`. Сравнивать не с чем.",
     "compare.streakUnsupported":
-        "{card}: `compare` не работает со `streak`. У серии нет отдельного значения за предыдущий период для сравнения.",
+        "{card}: `compare` не работает со `streak` и `current_streak`. У серии нет отдельного значения за предыдущий период для сравнения.",
     "compare.betterUnused": "{card}: `better` не действует без `compare: true`.",
     "compare.badBetter": "{card}: `better` ожидает `up` или `down`, получено «{value}». Разница остаётся нейтральной.",
     "compare.vsWeek": "относительно тех же дней прошлой недели: {value}",

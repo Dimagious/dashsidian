@@ -11,11 +11,22 @@ import schema from "../blocks/schema.json";
  * fact again.
  */
 describe("the generated skill corrects what agents got wrong", () => {
-    it("streak is the longest run on record, not the run currently in progress (B-105)", () => {
+    it("streak is the longest run on record, current_streak the run going on now (B-105, B-118)", () => {
         expect(SKILL_MARKDOWN).toContain("`streak` counts the longest run of consecutive days");
-        expect(SKILL_MARKDOWN).toContain("There is no current-streak aggregate");
-        expect(SKILL_MARKDOWN).toContain('label the card "Best streak" or "Longest streak"');
+        expect(SKILL_MARKDOWN).not.toContain("There is no current-streak aggregate");
+        expect(SKILL_MARKDOWN).toContain('`streak` is the best run on record: label the card "Best streak" or "Longest streak"');
         expect(SKILL_MARKDOWN).toContain('label the bar "Best streak" or "Longest streak"');
+        expect(SKILL_MARKDOWN).toContain("`current_streak` is the run going on now");
+        expect(SKILL_MARKDOWN).toContain("`current_streak` counts the run going on now");
+        expect(SKILL_MARKDOWN).toContain("count sum avg min max latest streak current_streak");
+    });
+
+    it("current_streak states its today grace and its period cap, on both blocks (B-118)", () => {
+        const grace = "a day not filled yet leaves the run counted up to yesterday, and only a gap on yesterday or earlier";
+        const cap = "so `period: month` stops it at the first of the month";
+        // stats and progress each carry their own note.
+        expect(SKILL_MARKDOWN.split(grace).length - 1).toBe(2);
+        expect(SKILL_MARKDOWN.split(cap).length - 1).toBe(2);
     });
 
     it("a week starts on the first day of the interface language, the plugin's own if picked (B-107)", () => {
@@ -72,7 +83,8 @@ describe("the generated skill corrects what agents got wrong", () => {
         // One body feeds both files today; this fails if the generator ever
         // stops sharing it and the facts land in only one of them.
         for (const phrase of [
-            "There is no current-streak aggregate",
+            "`current_streak` is the run going on now",
+            "a day not filled yet leaves the run counted up to yesterday",
             "Dashy's own when one is picked in its settings",
             "holding text rather than a number",
             "`count` over nothing reads a plain `0`",

@@ -159,6 +159,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
                 atMost: spec.atMost,
                 days: spec.days,
                 skipField: spec.skipField,
+                today,
             })
             : null;
 

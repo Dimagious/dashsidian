@@ -67,10 +67,11 @@ field: gym
        src="docs/screens/habits-light.png">
 </picture>
 
-`sum` counts the days you went. `streak` finds your longest run, and an unticked day breaks
-it the way a missing note does. `period: week` narrows a card to the current week, starting
-on Monday or Sunday as your language has it, and `compare: true` sets it against the same
-days of last week, green when you went more often. The heatmap paints the ticked days.
+`sum` counts the days you went. `streak` finds your longest run, and an unticked day breaks it
+the way a missing note does; `current_streak` counts the run still going today instead.
+`period: week` narrows a card to the current week, starting on Monday or Sunday as your
+language has it, and `compare: true` sets it against the same days of last week, green when you
+went more often. The heatmap paints the ticked days.
 
 You write this once. `period` counts from today, so "this week" is always this week and a
 `period: year` card starts over on 1 January without an edit. If you log a day's habit after
@@ -215,11 +216,11 @@ items:
        src="docs/screens/stats-light.png">
 </picture>
 
-`agg` is one of `count`, `sum`, `avg`, `min`, `max`, `latest`, `streak`. Add `trend: 30d`
-and the card sketches the last thirty days beside the number, scaled between its own
-smallest and largest value. Sleep scores of 70 to 80 plotted from zero are a flat line that
-says nothing. A day with no note is left out rather than drawn as a zero, two notes landing
-on the same day are summed into that one day's bar, and a diary that stopped months ago draws
+`agg` is one of `count`, `sum`, `avg`, `min`, `max`, `latest`, `streak`, `current_streak`. Add
+`trend: 30d` and the card sketches the last thirty days beside the number, scaled between its
+own smallest and largest value. Sleep scores of 70 to 80 plotted from zero are a flat line that
+says nothing. A day with no note is left out rather than drawn as a zero, two notes landing on
+the same day are summed into that one day's bar, and a diary that stopped months ago draws
 nothing at all, which is the honest answer.
 
 With nothing to count, a field aggregate like `sum` or `avg` shows a dash rather than a
@@ -245,43 +246,58 @@ supported: it warns and the filter is ignored. The same goes for one condition t
 cannot be read among good ones: the whole filter is dropped with a warning quoting it, and
 the numbers are drawn unfiltered rather than narrowed by only part of what you asked.
 
-Add `period: week`, `month` or `year` and the card counts only the current calendar one,
-ending today; a rolling count of days works too, `period: 30d`. A note's date is its name, as
-long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` and `2026-03-02_standup` both count,
+Add `period: week`, `month` or `year` and the card counts only the current calendar one, ending
+today; a rolling count of days works too, `period: 30d`. A note's date is its name, as long as
+it starts with `YYYY-MM-DD` (`2026-03-02 Monday` and `2026-03-02_standup` both count,
 `2026-03-021` does not), unless `date_field` names a frontmatter date property instead, in
-which case the name is not consulted at all. `streak`, `latest` and `trend` resolve a note's
-date the same way, `date_field` included, whether or not `period` is even set, and two or
-more notes landing on the same day always count as that one day, not two. Notes without a
-date are left out before counting, so an empty week is not an error: `agg: count` reads the
-honest `0`, and a field aggregate like `sum` shows a dash by its usual rule above. `streak`
-with a `field:` follows that same rule, a dash over an empty window included; without one it
-counts every selected note's own date instead, and reads a plain `0` there, the same as
-`count`. Only a selection where not one note has a date at all is worth a warning, "no note
-fell in this window" and "nobody here has a date" being different problems. `trend` keeps its
-own trailing window regardless of `period`.
+which case the name is not consulted at all. `streak`, `current_streak`, `latest` and `trend`
+resolve a note's date the same way, `date_field` included, whether or not `period` is even set,
+and two or more notes landing on the same day always count as that one day, not two. Notes
+without a date are left out before counting, so an empty week is not an error: `agg: count`
+reads the honest `0`, and a field aggregate like `sum` shows a dash by its usual rule above.
+`streak` (and `current_streak`) with a `field:` follows that same rule, a dash over an empty
+window included; without one it counts every selected note's own date instead, and reads a
+plain `0` there, the same as `count`. Only a selection where not one note has a date at all is
+worth a warning, "no note fell in this window" and "nobody here has a date" being different
+problems. `trend` keeps its own trailing window regardless of `period`.
 
-Add `compare: true` next to `period` and the card also shows the delta against the same
-stretch of the previous period, to date: a Thursday this week compares against Monday to
-Thursday last week, not the whole of last week. `better: up` colours a rise green and a fall
-red; `better: down` reverses that for a number where less is better, and with neither set the
-delta stays a neutral colour. When either window has no notes in it at all, the card shows
-its number alone rather than a made-up delta; `streak` cannot be compared this way and
-refuses `compare` outright, the same way `trend` refuses `count`.
+Add `compare: true` next to `period` and the card also shows the delta against the same stretch
+of the previous period, to date: a Thursday this week compares against Monday to Thursday last
+week, not the whole of last week. `better: up` colours a rise green and a fall red; `better:
+down` reverses that for a number where less is better, and with neither set the delta stays a
+neutral colour. When either window has no notes in it at all, the card shows its number alone
+rather than a made-up delta; `streak` and `current_streak` cannot be compared this way and
+refuse `compare` outright, the same way `trend` refuses `count`.
 
-Add `at_least` and/or `at_most` next to `agg: streak` and a run is no longer just "has a
-value": a day counts only once its notes' `field` values, summed for that day, satisfy the
-bound, `at_least: 5000` for a steps streak or `at_most: 5` for a smoke-free-enough one.
-Both together make a range. Either needs `field:` and is ignored otherwise, and if
-`at_least` ends up above `at_most` no day can ever qualify, so the streak reads a plain `0`
-rather than refusing to draw. Add `days: weekdays` and Saturday and Sunday stop counting
-either way, whatever they hold: they neither break the run nor extend it, so a Friday
-followed by a Monday is a run of two, not one.
+Add `at_least` and/or `at_most` next to `agg: streak` or `agg: current_streak` and a run is no
+longer just "has a value": a day counts only once its notes' `field` values, summed for that
+day, satisfy the bound, `at_least: 5000` for a steps streak or `at_most: 5` for a
+smoke-free-enough one. Both together make a range. Either needs `field:` and is ignored
+otherwise, and if `at_least` ends up above `at_most` no day can ever qualify, so the streak
+reads a plain `0` rather than refusing to draw. Add `days: weekdays` and Saturday and Sunday
+stop counting either way, whatever they hold: they neither break the run nor extend it, so a
+Friday followed by a Monday is a run of two, not one.
 
 `skip_field` does the same for a day off you actually took: point it at a checkbox or text
 property like `vacation` or `sick`, and a day any note marks with it, `vacation: true` or
 `sick: flu`, neither breaks the streak nor extends it, whatever `field` holds that day.
 `skip_field: vacation` combines with `days: weekdays`, so a day is transparent when it is a
 weekend, a vacation day, or both.
+
+`streak` is the best run on record. `agg: current_streak` is the run going on now, counted back
+from today by exactly the same rules: the same filled days, thresholds, `days: weekdays` and
+`skip_field`. Today never breaks it: a day with no note yet, or one not meeting the threshold
+yet (under `at_least`, or already over `at_most`), leaves the run counted up to yesterday, and
+only a missed yesterday or earlier day resets it to `0`. It counts within the card's selection,
+so `period: month` stops it at the first of the month. Notes dated after today are ignored.
+
+````markdown
+```stats
+items:
+  - { label: Best streak, source: Diary, field: gym, agg: streak }
+  - { label: Days in a row, source: Diary, field: gym, agg: current_streak }
+```
+````
 
 ### `progress`: how far along
 
@@ -303,10 +319,11 @@ items:
 Beating a goal shows as it is. 110% stays 110%, and only the bar stops at full.
 
 `period` and `date_field` work the same way they do on `stats`, narrowing what the goal is
-measured against rather than the whole selection, and feeding `streak` and `latest` too.
-"Books this year" above reads a `finished` property on each book instead of the note name,
-since a book is rarely named as a date. `at_least`, `at_most`, `days: weekdays` and
-`skip_field` work the same way on a `streak` bar as they do on a stats card, above.
+measured against rather than the whole selection, and feeding `streak`, `current_streak` and
+`latest` too. "Books this year" above reads a `finished` property on each book instead of the
+note name, since a book is rarely named as a date. `at_least`, `at_most`, `days: weekdays` and
+`skip_field` work the same way on a `streak` or `current_streak` bar as they do on a stats
+card, above.
 
 Without `columns` every bar is its own row, as above; add it to lay bars out side by side
 instead, the same key `tiles`, `stats` and `countdown` take, 1 to 4 here.
@@ -534,7 +551,9 @@ yesterday's date and yesterday's `period` windows until something else happens t
 <details>
 <summary>How is a streak counted?</summary>
 
-`streak` is the longest run of consecutive days on record, not the run still going. An
+`streak` is the longest run of consecutive days on record, not the run still going; for that
+one use `current_streak`, which counts back from today and lets today go unfilled without
+breaking the run (see [`stats`](#stats-the-numbers) above). An
 unticked checkbox breaks it the same way a day with no note does, so a 17-day streak from
 last spring stays 17 even if this week has yet to start one. A day where the note exists
 but never mentions the field breaks it too, for the same reason: there is nothing to say
