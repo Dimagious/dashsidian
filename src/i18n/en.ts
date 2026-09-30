@@ -24,7 +24,13 @@ export const en = {
     "where.unreadable":
         "`where: {where}` could not be read and was ignored. The numbers below are unfiltered. Expected something like `year = 2026`, `rating >= 4` or `tags contains books`.",
     "where.conjunction":
-        "`where: {where}` holds more than one condition, and only one is supported. The filter was ignored. Narrow with `source` or `tag`, or quote the value if the word is part of it.",
+        "`where: {where}` uses `or`, which is not supported. The filter was ignored and the numbers below are unfiltered. To require every condition, join them with `and` or list them, like `[year = 2026, rating >= 4]`; quote the value if the word is part of it.",
+    "where.badCondition":
+        "`{condition}` in `where` could not be read, so the whole filter was ignored. The numbers below are unfiltered. Each condition looks like `year = 2026`, `rating >= 4` or `tags contains books`.",
+    "where.badItem":
+        "`where` lists `{value}`, which is not a condition, so the whole filter was ignored. The numbers below are unfiltered. Each item is one condition like `year = 2026`.",
+    "where.emptyList":
+        "`where` is an empty list, so the filter was ignored and the numbers below are unfiltered. List conditions like `[year = 2026, rating >= 4]`, or remove the key.",
 
     "tiles.empty": "No tiles to draw. Expected `items:` or a list.",
     "tiles.dateFieldUnused": "{card}: `date_field` has no effect without `period`.",
