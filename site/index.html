@@ -544,6 +544,7 @@ footer.note-foot a { color: var(--muted); }
       <li><a href="#dashy"><svg width="14" height="14"><use href="#i-file"/></svg>Dashy<span class="ext">.md</span></a></li>
       <li><a href="#install"><svg width="14" height="14"><use href="#i-file"/></svg>Install<span class="ext">.md</span></a></li>
       <li><a href="#habits"><svg width="14" height="14"><use href="#i-file"/></svg>Habit tracker<span class="ext">.md</span></a></li>
+      <li><a href="#sleep"><svg width="14" height="14"><use href="#i-file"/></svg>Sleep log<span class="ext">.md</span></a></li>
       <li>
         <div class="folder" data-folder><svg><use href="#i-chev"/></svg>Blocks</div>
         <ul>
@@ -553,6 +554,7 @@ footer.note-foot a { color: var(--muted); }
           <li><a href="#progress"><svg width="14" height="14"><use href="#i-file"/></svg><code>progress</code></a></li>
           <li><a href="#countdown"><svg width="14" height="14"><use href="#i-file"/></svg><code>countdown</code></a></li>
           <li><a href="#heatmap"><svg width="14" height="14"><use href="#i-file"/></svg><code>heatmap</code></a></li>
+          <li><a href="#chart"><svg width="14" height="14"><use href="#i-file"/></svg><code>chart</code></a></li>
         </ul>
       </li>
       <li>
@@ -637,7 +639,7 @@ monthly: true
           <a href="#progress"><code>progress</code><span>Bars towards a goal</span></a>
           <a href="#countdown"><code>countdown</code><span>Days until a date</span></a>
           <a href="#heatmap"><code>heatmap</code><span>A year of days, coloured by a number</span></a>
-          <a href="https://github.com/Dimagious/dashsidian#chart-a-number-over-time"><code>chart</code><span>Lines or bars of a number over days, weeks or months</span></a>
+          <a href="#chart"><code>chart</code><span>Lines or bars of a number over days, weeks or months</span></a>
         </div>
 
         <div class="callout accent">
@@ -710,10 +712,80 @@ title: Gym
           </figure>
         </div>
 
-        <p><code>sum</code> counts the ticked days. <code>streak</code> finds the longest run on record, not a run in progress, and an unticked day breaks it the way a missing note does. <code>period: week</code> narrows a card to the current week, which starts on Monday or Sunday as your language has it. <code>compare: true</code> sets it against the same days of last week, and with <code>better: up</code> a rise shows green. The heatmap paints the ticked days.</p>
+        <p><code>sum</code> counts the ticked days. <code>streak</code> finds the longest run on record, and an unticked day breaks it the way a missing note does; the run you are on now is <a href="#current-streak"><code>current_streak</code></a>. <code>period: week</code> narrows a card to the current week, which starts on Monday or Sunday as your language has it. <code>compare: true</code> sets it against the same days of last week, and with <code>better: up</code> a rise shows green. The heatmap paints the ticked days.</p>
         <div class="callout tip">
           <div class="callout-title"><svg><use href="#i-flame"/></svg>Written once</div>
           <p><code>period</code> counts from today. "This week" is always this week, and a <code>period: year</code> card starts over on 1 January without an edit.</p>
+        </div>
+
+        <h3 id="current-streak">The streak you are on right now</h3>
+        <div class="pair">
+          <div class="codeblock" data-code>
+            <div class="bar"><span>Habits.md</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+columns: 2
+items:
+  - { label: Days in a row, source: Diary, field: meditate, agg: current_streak, unit: days, icon: 🔥 }
+  - { label: Best streak, source: Diary, field: meditate, agg: streak, unit: days }
+```</code></pre>
+          </div>
+          <div>
+            <div class="renders">renders as</div>
+            <figure class="shot plain">
+              <picture>
+                <source data-dark srcset="img/streak-dark.png" media="(prefers-color-scheme: dark)">
+                <img src="img/streak-light.png" width="700" height="129" loading="lazy" alt="Two cards: 12 days in a row, and a best streak of 31 days">
+              </picture>
+            </figure>
+          </div>
+        </div>
+        <p><code>streak</code> is the best run on record; <code>current_streak</code> is the run going on now, counted back from today by the same rules. Today never breaks it: a day with no note yet leaves the run counted up to yesterday, and only a missed yesterday resets it.</p>
+        <p>Streaks bend to real life. <code>at_least: 5000</code> counts a day only once the steps get there. <code>days: weekdays</code> lets Friday and Monday join into one run. <code>skip_field: vacation</code> makes a holiday neither break a streak nor extend it.</p>
+      </section>
+
+      <!-- ============ Sleep log.md ============ -->
+      <section class="file" id="sleep" data-title="Sleep log" data-path="Sleep log">
+        <div class="crumb">Sleep log.md</div>
+        <h2>Sleep in hours and minutes</h2>
+        <p>Your watch writes <code>sleep: 7h 38min</code>. Dashy reads it as a number and shows it back as <code>7h 38m</code>: averages, goals, deltas, heatmap colours and chart axes.</p>
+        <div class="pair">
+          <div class="codeblock" data-code>
+            <div class="bar"><span>Sleep.md</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+columns: 3
+items:
+  - { label: Sleep this week, source: Diary, field: sleep, agg: avg, period: week, compare: true, better: up }
+  - { label: Shortest night, source: Diary, field: sleep, agg: min, period: month }
+  - { label: 7h+ nights in a row, source: Diary, field: sleep, agg: current_streak, at_least: 7h }
+```
+
+```chart
+source: Diary
+field: sleep
+agg: avg
+goal: 8h
+```
+
+```heatmap
+source: Diary
+field: sleep
+color: purple
+bands: [8h, 7h, 6h]
+range: 182d
+```</code></pre>
+          </div>
+          <figure class="shot">
+            <picture>
+              <source data-dark srcset="img/sleep-dark.png" media="(prefers-color-scheme: dark)">
+              <img src="img/sleep-light.png" width="700" height="582" loading="lazy" alt="A sleep page: this week's average against last week, the shortest night and a run of 7h+ nights, a 30-day line of nightly sleep with an 8 hour goal, and 182 days of nights as a heatmap">
+            </picture>
+          </figure>
+        </div>
+        <p><code>stats</code>, <code>progress</code>, <code>heatmap</code> and <code>chart</code> read a duration as minutes: <code>H:MM</code> or <code>H:MM:SS</code> (<code>7:30</code>, <code>0:51:20</code>), or <code>h</code>, <code>m</code> or <code>min</code>, <code>s</code> or <code>sec</code>, largest first (<code>5h 58min</code>, <code>1h30m</code>, <code>90 min</code>, <code>1.5h</code>). When every value of the field is a duration, the result reads as one: <code>7h 30m</code> on a card, <code>7h 5m / 8h</code> on a bar, <code>▲ +36m</code> on a delta. There are no days: a week of sleep reads <code>49h 35m</code>. <code>count</code> and <code>streak</code> still count notes and days.</p>
+        <p><code>goal</code>, <code>at_least</code>, <code>at_most</code> and <code>bands</code> take the same formats. A plain number there means minutes, so <code>goal: 480</code> equals <code>goal: 8h</code>.</p>
+        <div class="callout warn">
+          <div class="callout-title"><svg><use href="#i-alert"/></svg>A duration, not a clock time</div>
+          <p><code>H:MM</code> is always a duration, never a time of day: <code>bedtime: 23:40</code> counts as 23 hours 40 minutes. A value with anything else in it (<code>running: "10 km · 51min"</code>) stays text, and so do localized units and ISO <code>PT1H30M</code>.</p>
         </div>
       </section>
 
@@ -789,7 +861,7 @@ items:
       <section class="file" id="stats" data-title="stats" data-path="Blocks / stats">
         <div class="crumb">Blocks/stats.md</div>
         <h2><code class="h-code">stats</code>: the numbers</h2>
-        <p>One card per number, counted over the notes you select by <code>source</code>, <code>tag</code> or a single <code>where</code> condition. <code>agg</code> is one of <code>count</code>, <code>sum</code>, <code>avg</code>, <code>min</code>, <code>max</code>, <code>latest</code>, <code>streak</code>. <code>trend: 30d</code> draws the last thirty days next to the number, scaled between their own lowest and highest value.</p>
+        <p>One card per number, counted over the notes you select by <code>source</code>, <code>tag</code> or <code>where</code>. <code>agg</code> is one of <code>count</code>, <code>sum</code>, <code>avg</code>, <code>min</code>, <code>max</code>, <code>latest</code>, <code>streak</code>, <code>current_streak</code>. <code>trend: 30d</code> draws the last thirty days next to the number, scaled between their own lowest and highest value.</p>
         <div class="pair">
           <div class="codeblock" data-code>
             <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
@@ -816,7 +888,8 @@ items:
             </figure>
           </div>
         </div>
-        <p><code>period: week</code>, <code>month</code> or <code>year</code> narrows a card to the current calendar one, ending today; <code>period: 30d</code> is a rolling count of days instead. A note's date is its name, as long as it starts with <code>YYYY-MM-DD</code> (<code>2026-03-02 Monday</code> and <code>2026-03-02_standup</code> both count), unless <code>date_field</code> names a frontmatter date property instead. <code>streak</code>, <code>latest</code> and <code>trend</code> resolve a note's date the same way, whether or not <code>period</code> is even set, and two or more notes landing on the same day always count as that one day, not two.</p>
+        <p><code>period: week</code>, <code>month</code> or <code>year</code> narrows a card to the current calendar one, ending today; <code>period: 30d</code> is a rolling count of days instead. A note's date is its name, as long as it starts with <code>YYYY-MM-DD</code> (<code>2026-03-02 Monday</code> and <code>2026-03-02_standup</code> both count), unless <code>date_field</code> names a frontmatter date property instead. <code>streak</code>, <code>current_streak</code>, <code>latest</code> and <code>trend</code> resolve a note's date the same way, whether or not <code>period</code> is even set, and two or more notes landing on the same day always count as that one day, not two.</p>
+        <p><code>where</code> is a condition on frontmatter: <code>where: "rating &gt;= 4"</code>, <code>where: "tags contains books"</code>. Several conditions must all hold, as a list, <code>where: [year = 2026, "rating &gt;= 4"]</code>, or joined by <code>and</code>, <code>where: "year = 2026 and rating &gt;= 4"</code>. <code>or</code> is not supported: it warns and the filter is ignored.</p>
         <div class="callout quote">
           <div class="callout-title"><svg><use href="#i-quote"/></svg>A dash, not a zero</div>
           <p>With nothing to count, a field aggregate like <code>sum</code> or <code>avg</code> shows a dash: "no notes at all" and "the sum is zero" are different answers. <code>count</code> has no such gap; an empty selection reads a plain <code>0</code>, the same as everywhere else it counts notes. The dash also covers a <code>field</code> that no selected note actually carries, or one that holds text instead of a number: the card names which, rather than a zero that hides a typo.</p>
@@ -908,6 +981,61 @@ title: Sleep, last twelve months
         <p class="muted" style="font-size:14.5px">A checkbox property works as <code>field</code> too: a ticked day paints its cell. That is the whole <a href="#habits">habit tracker</a>.</p>
       </section>
 
+      <!-- ============ Blocks/chart.md ============ -->
+      <section class="file" id="chart" data-title="chart" data-path="Blocks / chart">
+        <div class="crumb">Blocks/chart.md</div>
+        <h2><code class="h-code">chart</code>: a number over time</h2>
+        <p>Your notes already hold one number per day. <code>bucket: week</code> adds them up by week, the week starting where your language starts it; <code>day</code> is the default and <code>month</code> starts on the 1st. <code>range</code> sets the window, ending today: <code>week</code>, <code>month</code>, <code>year</code> or a count of days like <code>90d</code>, by default 30 days for <code>day</code>, 182 for <code>week</code>, 365 for <code>month</code>. The week or month you are in is drawn lighter and its tooltip says "so far". A week with no runs is a gap, never a fake zero. <code>goal</code> draws a dashed line with its value, and the y axis always stretches to show it.</p>
+        <div class="pair">
+          <div class="codeblock" data-code>
+            <div class="bar"><span>chart</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```chart
+source: Diary
+field: run_km
+type: bar
+bucket: week
+unit: km
+goal: 30
+```</code></pre>
+          </div>
+          <div>
+            <div class="renders">renders as</div>
+            <figure class="shot plain">
+              <picture>
+                <source data-dark srcset="img/chart-weekly-dark.png" media="(prefers-color-scheme: dark)">
+                <img src="img/chart-weekly-light.png" width="700" height="223" loading="lazy" alt="Weekly bars of running distance over half a year, a dashed goal line at 30 km, the current week drawn lighter">
+              </picture>
+            </figure>
+          </div>
+        </div>
+        <p>Two lines, <code>source</code> and <code>field</code>, are enough for the last 30 days as a line. Put up to four properties on one chart with <code>series</code>: side by side, never stacked, on one y axis.</p>
+        <div class="pair">
+          <div class="codeblock" data-code>
+            <div class="bar"><span>chart</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```chart
+source: Diary
+type: bar
+bucket: week
+series:
+  - { field: run_time, label: Run }
+  - { field: bike_time, label: Bike, color: orange }
+  - { field: swim_time, label: Swim, color: cyan }
+```</code></pre>
+          </div>
+          <div>
+            <div class="renders">renders as</div>
+            <figure class="shot plain">
+              <picture>
+                <source data-dark srcset="img/chart-series-dark.png" media="(prefers-color-scheme: dark)">
+                <img src="img/chart-series-light.png" width="700" height="223" loading="lazy" alt="Grouped weekly bars for run, bike and swim time, the y axis labelled in hours">
+              </picture>
+            </figure>
+          </div>
+        </div>
+        <p><code>agg</code> turns a bucket into one number: <code>sum</code> by default, or <code>avg</code>, <code>min</code>, <code>max</code>, <code>count</code>. It is one step over every value on every note dated in the bucket, so a week's <code>avg</code> is the same number a <code>stats</code> card with <code>agg: avg, period: week</code> shows. Hover a bar for its value and the note behind it; click a day to open that note. On a phone, the first tap shows the value and a second tap opens the note.</p>
+        <div class="keys"><code>source</code><code>tag</code><code>where</code><code>date_field</code><code>field</code><code>series</code><code>agg</code><code>bucket</code><code>range</code><code>type</code><code>goal</code><code>unit</code><code>precision</code><code>label</code><code>color</code><code>link</code><code>title</code></div>
+      </section>
+
       <!-- ============ Behaviour/Live redraw.md ============ -->
       <section class="file" id="live" data-title="Live redraw" data-path="Behaviour / Live redraw">
         <div class="crumb">Behaviour/Live redraw.md</div>
@@ -930,7 +1058,7 @@ title: Sleep, last twelve months
       <section class="file" id="errors" data-title="Config errors" data-path="Behaviour / Config errors">
         <div class="crumb">Behaviour/Config errors.md</div>
         <h2>When the config is wrong, the block says so</h2>
-        <p>A block that cannot draw explains why, in the note, next to what failed. An unknown key suggests the one you probably meant. A broken YAML line reports its line number. A filter that could not be read says the numbers below it are unfiltered. A field nobody wrote and a field that holds text instead of a number get different messages, not one generic "no data": the heatmap and the stats cards both say which.</p>
+        <p>A block that cannot draw explains why, in the note, next to what failed. An unknown key suggests the one you probably meant. A broken YAML line reports its line number. A key borrowed from another block names what it is called here: <code>layers</code> in a chart points at <code>series</code>. A filter that could not be read says the numbers below it are unfiltered. A field nobody wrote and a field that holds text instead of a number get different messages, not one generic "no data": the heatmap and the stats cards both say which.</p>
         <div class="pair">
           <div class="codeblock" data-code>
             <div class="bar"><span>A config with a mistake.md</span><button class="copy" type="button">Copy</button></div>
@@ -942,11 +1070,17 @@ feild: sleep_score
 ```stats
 items:
   - { label: Average sleep, source: Diary, agg: avgg, field: sleep_score }
-  - { label: Great nights, source: Diary, where: "sleep_score >= 90 and steps > 10000", agg: count }
+  - { label: Great nights, source: Diary, where: "sleep_score >= 90 or steps > 10000", agg: count }
+```
+
+```chart
+source: Diary
+field: sleep_score
+layers: [sleep_score]
 ```</code></pre>
           </div>
           <figure class="shot">
-            <img src="img/diagnostics-dark.png" width="700" height="331" loading="lazy" alt="Messages inside the note: an unknown key with a suggestion, a missing field, an unknown aggregate with the list of valid ones, and a where clause with two conditions">
+            <img src="img/diagnostics-dark.png" width="700" height="608" loading="lazy" alt="Messages inside the note: an unknown key with a suggestion, a missing field, an unknown aggregate with the list of valid ones, a where clause using or, and a chart key borrowed from another block">
             <figcaption>What that note shows, dark theme.</figcaption>
           </figure>
         </div>
@@ -966,7 +1100,7 @@ items:
             <p>Both are generated from <code>schema.json</code>, the file the plugin validates against, so the reference an agent reads matches what the plugin accepts.</p>
             <div class="callout quote">
               <div class="callout-title"><svg><use href="#i-quote"/></svg>Then you can ask</div>
-              <p>Make me a dashboard for my training log: a heatmap of distance, cards for weekly volume and longest run, and a countdown to the marathon in May.</p>
+              <p>Make me a dashboard for my training log: weekly distance as bars with a 40 km goal, cards for this week's volume and my current streak, and a countdown to the marathon in May.</p>
             </div>
           </div>
           <figure class="shot">
