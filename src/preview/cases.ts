@@ -64,6 +64,16 @@ items:
   - { label: Порог 8000 шагов по будням, source: Diary, field: steps, agg: streak, at_least: 8000, days: weekdays, unit: дн. }`,
     },
     {
+        block: "stats",
+        title: "stats — лучшая серия и текущая (current_streak)",
+        source: `columns: 4
+items:
+  - { label: Лучшая серия, source: Diary, field: sleep_score, agg: streak }
+  - { label: Дней подряд, source: Diary, field: sleep_score, agg: current_streak }
+  - { label: Подряд 8000 шагов, source: Diary, field: steps, agg: current_streak, at_least: 8000 }
+  - { label: Подряд в этом месяце, source: Diary, field: steps, agg: current_streak, at_least: 8000, period: month }`,
+    },
+    {
         block: "progress",
         title: "progress — обычная, выполненная, перевыполненная, сломанная",
         source: `columns: 2

@@ -335,12 +335,53 @@ describe("currentStreak", () => {
         expect(currentStreak(dates, "2026-09-22")).toBe(3);
     });
 
-    it("a missing today breaks the run", () => {
-        expect(currentStreak(["2026-09-20", "2026-09-21"], "2026-09-22")).toBe(0);
+    it("a missing today does not break the run: it is counted from yesterday (B-118)", () => {
+        expect(currentStreak(["2026-09-20", "2026-09-21"], "2026-09-22")).toBe(2);
+    });
+
+    it("a gap on yesterday breaks it: 0 with today empty, 1 with today filled", () => {
+        expect(currentStreak(["2026-09-19", "2026-09-20"], "2026-09-22")).toBe(0);
+        expect(currentStreak(["2026-09-19", "2026-09-20", "2026-09-22"], "2026-09-22")).toBe(1);
     });
 
     it("counts across a month boundary", () => {
         expect(currentStreak(["2026-08-31", "2026-09-01"], "2026-09-01")).toBe(2);
+    });
+
+    it("an empty set is 0", () => {
+        expect(currentStreak([], "2026-09-22")).toBe(0);
+    });
+
+    it("duplicate keys are one day", () => {
+        expect(currentStreak(["2026-09-21", "2026-09-21", "2026-09-22"], "2026-09-22")).toBe(2);
+    });
+
+    it("days after today are ignored, even the one right after it", () => {
+        expect(currentStreak(["2026-09-21", "2026-09-22", "2026-09-23"], "2026-09-22")).toBe(2);
+        expect(currentStreak(["2026-09-23", "2026-09-24"], "2026-09-22")).toBe(0);
+    });
+
+    it("a transparent weekend bridges the run, on Monday before it is filled", () => {
+        // 2026-09-21 is a Monday; the run Wed..Fri the week before is still alive.
+        const dates = ["2026-09-16", "2026-09-17", "2026-09-18"];
+        expect(currentStreak(dates, "2026-09-21", { transparent: isWeekend })).toBe(3);
+        expect(currentStreak([...dates, "2026-09-21"], "2026-09-21", { transparent: isWeekend })).toBe(4);
+        // Without it the weekend is a plain gap.
+        expect(currentStreak(dates, "2026-09-21")).toBe(0);
+    });
+
+    it("a transparent today and yesterday: on Sunday the run ending Friday is alive", () => {
+        expect(currentStreak(["2026-09-17", "2026-09-18"], "2026-09-20", { transparent: isWeekend })).toBe(2);
+    });
+
+    it("a note on a transparent day is not counted", () => {
+        const dates = ["2026-09-18", "2026-09-19", "2026-09-20", "2026-09-21"];
+        expect(currentStreak(dates, "2026-09-21", { transparent: isWeekend })).toBe(2);
+    });
+
+    it("stops at the earliest filled day even when every day before it is transparent", () => {
+        expect(currentStreak(["2026-09-21", "2026-09-22"], "2026-09-22", { transparent: (d) => d < "2026-09-21" }))
+            .toBe(2);
     });
 });
 

@@ -498,3 +498,28 @@ describe("progress — streak threshold and weekdays, end to end (B-101)", () =>
         expect(texts(el, ".dashy-progress-value")[0]).toContain("10 / 5");
     });
 });
+
+describe("progress — current_streak, end to end (B-118)", () => {
+    afterEach(() => vi.useRealTimers());
+
+    it("measures the run going on now against the goal, today counted once filled", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 8, 22, 12));
+        const steps = mockContext({
+            notes: [
+                { path: "Diary/2026-09-19.md", frontmatter: { steps: 3000 } },
+                { path: "Diary/2026-09-20.md", frontmatter: { steps: 6000 } },
+                { path: "Diary/2026-09-21.md", frontmatter: { steps: 7000 } },
+                { path: "Diary/2026-09-22.md", frontmatter: { steps: 5000 } },
+            ],
+        });
+        const el = host();
+        renderProgress(
+            steps,
+            "items:\n  - { label: Current streak, source: Diary, field: steps, agg: current_streak, at_least: 5000, goal: 10 }",
+            el,
+        );
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-progress-value")[0]).toBe("3 / 10 30%");
+    });
+});

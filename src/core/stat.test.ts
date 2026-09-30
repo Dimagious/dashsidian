@@ -56,6 +56,50 @@ describe("readStat — happy path", () => {
     });
 });
 
+describe("readStat — current_streak (B-118)", () => {
+    it("needs no field, like count and streak", () => {
+        const { spec, diagnostics } = readStat({ agg: "current_streak" }, "Days in a row");
+        expect(spec).toEqual({ agg: "current_streak" });
+        expect(diagnostics).toEqual([]);
+    });
+
+    it("takes field, at_least, at_most, days and skip_field without a warning", () => {
+        const { spec, diagnostics } = readStat({
+            agg: "current_streak", field: "steps", at_least: 5000, at_most: 20000,
+            days: "weekdays", skip_field: "vacation",
+        }, "Current streak");
+        expect(spec).toEqual({
+            agg: "current_streak", field: "steps", atLeast: 5000, atMost: 20000,
+            days: "weekdays", skipField: "vacation",
+        });
+        expect(diagnostics).toEqual([]);
+    });
+
+    it("validates its streak keys the same way streak does", () => {
+        const { spec, diagnostics } = readStat(
+            { agg: "current_streak", field: "steps", at_least: "many", days: "weekends" }, "Current streak");
+        expect(spec).toEqual({ agg: "current_streak", field: "steps" });
+        expect(diagnostics.map((d) => d.message)).toEqual([
+            '"Current streak": `at_least` expects a number, got "many". Ignored.',
+            '"Current streak": `days` expects `all` or `weekdays`, got "weekends". Using `all`.',
+        ]);
+    });
+
+    it("the streak-only keys on another aggregate still warn, naming both run aggregates", () => {
+        const { spec, diagnostics } = readStat({ agg: "sum", field: "steps", at_least: 5000 }, "Steps");
+        expect(spec).toEqual({ agg: "sum", field: "steps" });
+        expect(diagnostics.map((d) => d.message)).toEqual([
+            '"Steps": `at_least`, `at_most`, `days` and `skip_field` only apply to `agg: streak` and `agg: current_streak`, ignored.',
+        ]);
+    });
+
+    it("a misspelt current-streak is guessed and the list of aggregates names it", () => {
+        const { spec, diagnostics } = readStat({ agg: "current-streak" }, "Now");
+        expect(spec).toBeNull();
+        expect(diagnostics[0]?.message).toContain("current_streak");
+    });
+});
+
 describe("readStat — streak threshold and weekdays diagnostics (B-101)", () => {
     it("at_least/at_most/days on a non-streak card warn and are ignored", () => {
         const { spec, diagnostics } = readStat(

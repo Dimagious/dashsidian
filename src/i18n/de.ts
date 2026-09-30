@@ -45,7 +45,7 @@ export const de: Catalog = {
     "stats.badPrecision":
         "{card}: `precision` erwartet eine ganze Zahl von 0 bis {max}, bekommen „{value}“. Es wird wie voreingestellt gerundet.",
     "stats.streakKeysIgnored":
-        "{card}: `at_least`, `at_most`, `days` und `skip_field` gelten nur für `agg: streak`, ignoriert.",
+        "{card}: `at_least`, `at_most`, `days` und `skip_field` gelten nur für `agg: streak` und `agg: current_streak`, ignoriert.",
     "stats.streakThresholdNeedsField":
         "{card}: `at_least` und `at_most` brauchen ein `field:`, sonst gibt es nichts zu summieren. Ignoriert.",
     "stats.streakThresholdInvalid": "{card}: `{key}` erwartet eine Zahl, bekommen „{value}“. Ignoriert.",
@@ -67,12 +67,12 @@ export const de: Catalog = {
         "{card}: keine der ausgewählten Notizen hat einen Namen, der mit einem Datum wie YYYY-MM-DD beginnt. Ergänze `date_field:`, wenn das Datum in einer Eigenschaft steckt.",
     "period.noDatedNotesField": "{card}: keine der ausgewählten Notizen hat ein Datum in „{field}“.",
     "period.dateFieldUnused":
-        "{card}: `date_field` hat hier keine Wirkung. Es steuert nur `period`, `streak`, `latest` und `trend`.",
+        "{card}: `date_field` hat hier keine Wirkung. Es steuert nur `period`, `streak`, `current_streak`, `latest` und `trend`.",
 
     "compare.notBoolean": "{card}: `compare` erwartet true oder false, bekommen „{value}“. Vergleich übersprungen.",
     "compare.needsPeriod": "{card}: `compare` braucht `period`. Es gibt nichts zum Vergleichen.",
     "compare.streakUnsupported":
-        "{card}: `compare` funktioniert nicht mit `streak`. Eine Serie hat keinen eigenen Wert der vorherigen Periode zum Vergleichen.",
+        "{card}: `compare` funktioniert nicht mit `streak` oder `current_streak`. Eine Serie hat keinen eigenen Wert der vorherigen Periode zum Vergleichen.",
     "compare.betterUnused": "{card}: `better` hat ohne `compare: true` keine Wirkung.",
     "compare.badBetter": "{card}: `better` erwartet `up` oder `down`, bekommen „{value}“. Die Differenz bleibt neutral.",
     "compare.vsWeek": "im Vergleich zu denselben Tagen letzte Woche: {value}",

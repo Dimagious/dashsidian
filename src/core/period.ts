@@ -7,7 +7,7 @@
 
 import type { NoteRecord } from "./source";
 import { dateKey, weekdayRow } from "./calendar";
-import type { Agg } from "./aggregate";
+import { isStreakAgg, type Agg } from "./aggregate";
 import { resolveNoteDate } from "./note-date";
 import { formatValue, roundedValue } from "./stat";
 import { describeValue, type Diagnostic } from "../shared/parse";
@@ -221,8 +221,8 @@ export function readPeriod(item: Record<string, unknown>, label: string, dateFie
 
 /**
  * Whether `date_field` does anything for this card or bar. It steers four
- * consumers that resolve a note's date: `period`'s window, `streak`,
- * `latest` and `trend`. Anything else — `count`, `sum`, `avg`, `min`, `max`
+ * consumers that resolve a note's date: `period`'s window, `streak` (and
+ * `current_streak`), `latest` and `trend`. Anything else — `count`, `sum`, `avg`, `min`, `max`
  * with no `period` and no `trend` — never looks at a note's date at all, so
  * `date_field` next to one of those is a no-op worth a warning. `hasTrend`
  * is left `undefined` by `progress`, which has no `trend`.
@@ -236,7 +236,7 @@ export function readPeriod(item: Record<string, unknown>, label: string, dateFie
  * have worked fine once the real problem was fixed.
  */
 export function dateFieldHasEffect(hasPeriod: boolean, agg?: Agg, hasTrend?: boolean): boolean {
-    return hasPeriod || agg === "streak" || agg === "latest" || Boolean(hasTrend);
+    return hasPeriod || (agg !== undefined && isStreakAgg(agg)) || agg === "latest" || Boolean(hasTrend);
 }
 
 export type BetterDirection = "up" | "down";
@@ -259,9 +259,10 @@ export interface CompareOutcome {
  * "this week" against nothing is not a comparison — so `hasPeriod` is the
  * caller's already-parsed `readPeriod` outcome. A `period` that failed to
  * parse reports its own warning and is not also blamed here. `agg` is the
- * card's own aggregate, when it parsed: `streak` is refused, the same way
- * `trend` refuses `count` — a streak has no value of its own for the
- * previous period to sit next to.
+ * card's own aggregate, when it parsed: `streak` and `current_streak` are
+ * refused, the same way `trend` refuses `count` — a streak has no value of
+ * its own for the previous period to sit next to, and a current streak in a
+ * window that has already ended is always cut off before today.
  */
 export function readCompare(
     item: Record<string, unknown>,
@@ -301,7 +302,7 @@ export function readCompare(
         return { spec: null, diagnostics };
     }
 
-    if (agg === "streak") {
+    if (agg !== undefined && isStreakAgg(agg)) {
         diagnostics.push({ level: "warning", message: t("compare.streakUnsupported", { card }) });
         return { spec: null, diagnostics };
     }

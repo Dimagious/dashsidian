@@ -10,6 +10,20 @@ removed public export.
 
 ## [Unreleased]
 
+### Added
+
+- **`agg: current_streak`, the run going on now, on `stats` and `progress`.**
+  `streak` stays the longest run on record; `current_streak` counts back from
+  today by the same rules: the same filled days, `at_least`/`at_most`,
+  `days: weekdays` and `skip_field`, which all apply to it too. Today never
+  breaks it: a day with no note yet, or one not meeting the threshold yet
+  (under `at_least`, or already over `at_most`), leaves the run counted up to
+  yesterday, and only a missed yesterday or earlier day
+  resets it to `0`. "Today" follows the **New day starts at** setting, notes
+  dated after it are ignored, and the run is counted within the card's
+  selection, so `period: month` stops it at the first of the month. Like
+  `streak`, it refuses `compare`, and a `field` no note carries shows a dash.
+
 ### Fixed
 
 - **The agent skill no longer calls `heatmap.field` required.** A heatmap
