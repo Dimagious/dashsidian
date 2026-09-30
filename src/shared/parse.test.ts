@@ -99,6 +99,29 @@ describe("unknownKeys", () => {
     });
 });
 
+describe("unknownKeys with a block's hints (ADR 0005)", () => {
+    const hints = { layers: "series", period: "range" };
+
+    it("a key from a neighbouring block names what it is called here", () => {
+        expect(unknownKeys({ layers: [], period: "week" }, ["series", "range"], hints).map((d) => d.message)).toEqual([
+            "Unknown key \"layers\". In this block it is called \"series\".",
+            "Unknown key \"period\". In this block it is called \"range\".",
+        ]);
+    });
+
+    it("a hint wins over the edit-distance guess, and the guess still works for the rest", () => {
+        expect(unknownKeys({ serie: 1 }, ["series"], { serie: "range" })[0]?.message)
+            .toBe("Unknown key \"serie\". In this block it is called \"range\".");
+        expect(unknownKeys({ serie: 1 }, ["series"], hints)[0]?.message)
+            .toBe("Unknown key \"serie\". Did you mean \"series\"?");
+    });
+
+    it("a known key is never hinted, and an inherited property is not a hint", () => {
+        expect(unknownKeys({ layers: [] }, ["layers"], hints)).toEqual([]);
+        expect(unknownKeys({ toString: 1 }, ["field"], hints)[0]?.message).toBe("Unknown key \"toString\", ignored.");
+    });
+});
+
 describe("nearest", () => {
     it("finds a close one", () => expect(nearest("feild", ["field", "label"])).toBe("field"));
     it("does not reach for a distant one", () => expect(nearest("zzzzzz", ["field"])).toBeNull());

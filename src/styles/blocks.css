@@ -345,7 +345,46 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
   );
 }
 
+/* chart (ADR 0005) */
+/* `min-width: 0` so a flex or grid parent cannot push the chart wider than
+   the note (the B-069 lesson): the plot compresses, it never scrolls. */
+.dashy-chart { margin: 8px 0 26px; max-width: 100%; min-width: 0; }
+.dashy-chart-title { font-weight: 600; margin-bottom: 10px; }
+.dashy-chart-plot { position: relative; width: 100%; height: var(--dashy-chart-height); }
+.dashy-chart-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.dashy-chart-grid { stroke: var(--dashy-chart-grid); stroke-width: 1; }
+.dashy-chart-axis { stroke: var(--dashy-chart-grid); stroke-width: 1; }
+.dashy-chart-label { fill: var(--dashy-chart-text); font-size: 11px; }
+.dashy-chart-goal { stroke: var(--dashy-chart-goal); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.dashy-chart-goal-label { fill: var(--dashy-chart-goal); font-size: 11px; }
+.dashy-chart-line { stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.dashy-chart-bar.is-partial { fill-opacity: var(--dashy-chart-partial); }
+/* A hollow point for the still-running bucket: the page's own background
+   inside, the series colour (set inline) as the ring. */
+.dashy-chart-point.is-partial { fill: var(--background-primary); stroke-width: 2; }
+/* One invisible column per bucket over the plot: the tooltip, the link to
+   a day's note, and the phone's tap target all live here, not in the SVG. */
+.dashy-chart-hits { position: absolute; inset: 0; }
+.dashy-chart-hit { position: absolute; display: block; }
+.dashy-chart-hit:hover { background: var(--background-modifier-hover); }
+a.dashy-chart-hit { cursor: pointer; text-decoration: none; color: inherit; }
+.dashy-chart-hit.is-selected { background: var(--background-modifier-hover); box-shadow: inset 0 -2px 0 var(--dashy-hm-selected); }
+.dashy-chart-empty {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 0.8em; color: var(--text-faint); pointer-events: none;
+}
+.dashy-chart-legend {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+  margin-top: 10px; font-size: 0.75em; color: var(--text-muted);
+}
+.dashy-chart-leg { display: flex; align-items: center; gap: 5px; }
+.dashy-chart-swatch { width: var(--dashy-cell); height: var(--dashy-cell); border-radius: 2px; }
+/* The goal's own swatch: the same dash the line is drawn with. */
+.dashy-chart-swatch.is-goal { height: 0; border-radius: 0; border-top: 2px dashed var(--dashy-chart-goal); }
+.dashy-chart-status { margin-top: 6px; font-size: 0.75em; color: var(--text-muted); }
+
 @media (max-width: 768px) {
+  body { --dashy-chart-height: 120px; }
   .dashy-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashy-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashy-countdown { grid-template-columns: repeat(2, minmax(0, 1fr)); }

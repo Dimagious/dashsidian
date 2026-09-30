@@ -111,3 +111,31 @@ export function monthYearShort(date: Date): string {
 export function formatDayMedium(date: Date): string {
     return formatDate(date, "ll");
 }
+
+/**
+ * A short day and month, "27 Sep" in English, "27 сент." in Russian: a
+ * `chart`'s x labels for `day` and `week` buckets (ADR 0005), where the
+ * year would only eat width the axis does not have.
+ */
+export function formatDayShort(date: Date): string {
+    return formatDate(date, "D MMM");
+}
+
+/**
+ * `formatDayShort` with the year, "27 Sep 2026": a `chart` x label where the
+ * window crosses 1 January, on the first label and the first of each new
+ * year, so "5 Oct ... 27 Sep" does not leave the reader guessing which years.
+ */
+export function formatDayShortYear(date: Date): string {
+    return formatDate(date, "D MMM YYYY");
+}
+
+/**
+ * The medium date with its weekday in front, "Sun Sep 27, 2026" or close
+ * to it, as the locale writes it: a `chart` week's tooltip ("Week of ...",
+ * ADR 0005), so the locale's first day of the week is visible the moment a
+ * reader hovers, rather than assumed.
+ */
+export function formatDayWithWeekday(date: Date): string {
+    return formatDate(date, "ddd ll");
+}

@@ -32,6 +32,28 @@ removed public export.
   not on `count` or a `streak` without a threshold, where the mix changes
   nothing shown), and are still counted in minutes. The first-run example never picks a
   duration field.
+- **A `chart` block: a number over time.** A line or bars of one property
+  per day, week or month, in a window ending today: `source` and `field`
+  are the whole config for the last 30 days. `bucket: week` starts on the
+  interface language's first day, `month` on the 1st; `range` takes the
+  heatmap's window and defaults to `30d`, `182d` or `365d` by bucket, its
+  start moved back to a whole bucket. `agg` (`sum`, `avg`, `min`, `max`,
+  `count`) collapses a bucket over every value in it, so a week's `avg`
+  matches a `stats` card's; an empty bucket is a gap, not a zero. The
+  still-running last bucket is drawn lighter or hollow and its tooltip says
+  "so far". `series` puts up to four properties side by side, each with its
+  own `agg`, label and colour, never stacked; a list in the root `field` is
+  an error pointing at `series`. `goal` draws a dashed line the axis always
+  shows, `type: bar` starts at zero, a day opens its note on click, and a
+  phone reads a bucket on the first tap. Durations read as durations in the
+  tooltip, and on the axis and the goal once every series holds them. The
+  height is the `--dashy-chart-height` CSS variable, not a key. Over 400
+  buckets are cut to the latest 400 and a single bucket warns. Pie, stacked
+  and dual-axis charts stay with Obsidian Charts. Schema 1.7.0.
+- **A key borrowed from a neighbouring block says what it is called here.**
+  `layers`, `per_day`, `period` or `trend` in a chart warn with `series`,
+  `agg` or `range`, instead of an unknown key with no guess. The table
+  lives in the schema, and the agent skill prints it under the block.
 
 ### Fixed
 

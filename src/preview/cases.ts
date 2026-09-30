@@ -169,4 +169,74 @@ field: steps
 color: green
 range: month`,
     },
+    {
+        block: "chart",
+        title: "chart — линия по дням, всё по умолчанию, пропуски",
+        source: `source: Diary
+field: sleep_score`,
+    },
+    {
+        block: "chart",
+        title: "chart — столбцы по неделям, цель, частичная неделя",
+        source: `source: Diary
+field: steps
+type: bar
+bucket: week
+unit: шагов
+goal: 60000
+title: Шаги за неделю`,
+    },
+    {
+        block: "chart",
+        title: "chart — несколько серий, легенда",
+        source: `source: Diary
+bucket: week
+series:
+  - { field: sleep_score, agg: max, label: Лучшая ночь }
+  - { field: sleep_score, agg: avg, label: В среднем, color: purple }
+  - { field: sleep_score, agg: min, label: Худшая ночь, color: gray }`,
+    },
+    {
+        block: "chart",
+        title: "chart — месяцы за год, данные только за последние",
+        source: `source: Diary
+field: sleep_score
+agg: avg
+bucket: month
+type: bar`,
+    },
+    {
+        block: "chart",
+        title: "chart — длительности (sleep_duration), цель 7h",
+        source: `source: Diary
+field: sleep_duration
+agg: avg
+bucket: week
+goal: 7h`,
+    },
+    {
+        block: "chart",
+        title: "chart — пустое окно, не ошибка",
+        source: `source: Diary
+field: sleep_score
+where: "sleep_score >= 90"
+range: 7d`,
+    },
+    {
+        block: "chart",
+        title: "chart — список в field, ошибка",
+        source: `source: Diary
+field: [sleep_score, steps]`,
+    },
+    {
+        block: "chart",
+        title: "chart — ключи соседей, битая цель, одна корзина",
+        source: `source: Diary
+field: steps
+per_day: avg
+layers: []
+goal: много
+bucket: month
+range: week`,
+    },
 ];

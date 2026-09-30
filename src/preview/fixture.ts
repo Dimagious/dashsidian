@@ -17,6 +17,7 @@ import { renderProgress } from "../blocks/progress";
 import { renderToday } from "../blocks/today";
 import { renderCountdown } from "../blocks/countdown";
 import { renderHeatmap } from "../blocks/heatmap";
+import { renderChart } from "../blocks/chart";
 
 export type Draw = (ctx: BlockContext, source: string, el: HTMLElement) => void;
 
@@ -27,6 +28,7 @@ export const BLOCKS: Record<string, Draw> = {
     today: renderToday,
     countdown: renderCountdown,
     heatmap: renderHeatmap,
+    chart: renderChart,
 };
 
 export const dayKey = (d: Date): string =>

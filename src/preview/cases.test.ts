@@ -73,6 +73,17 @@ describe("preview cases", () => {
         expect(bar).toMatch(/^\d+h( \d+m)? \/ 8h \d+%$/);
     });
 
+    it("the chart cases draw lines, bars, a partial week, durations and an empty window (ADR 0005)", () => {
+        const html = CASES.map((c, i) => (c.block === "chart" ? render(i).innerHTML : "")).join("");
+        expect(html).toContain("dashy-chart-line");
+        expect(html).toContain("dashy-chart-bar is-partial");
+        expect(html).toContain("dashy-chart-empty");
+        expect(html).toContain("dashy-chart-legend");
+        const durations = CASES.findIndex((c) => c.title.startsWith("chart — длительности"));
+        const labels = Array.from(render(durations).querySelectorAll(".dashy-chart-leg"), (n) => n.textContent ?? "");
+        expect(labels).toEqual(["goal 7h"]);
+    });
+
     it("the fake vault has gaps, so a heatmap is not a solid wall", () => {
         const notes = fakeVault().filter((n) => n.folder === "Diary");
         expect(notes.length).toBeLessThan(120);

@@ -55,7 +55,8 @@ export function noteDurationThreshold(spec: StatSpec, key: string, raw: unknown)
 /** Aggregates that need no field: they count notes, not numbers inside them. */
 const FIELDLESS: readonly Agg[] = ["count", "streak"];
 
-const MAX_PRECISION = 6;
+/** The most decimals `precision` accepts, on a card and on a chart alike. */
+export const MAX_PRECISION = 6;
 
 export interface StatOutcome {
     /** null — nothing to count, the card will show a dash */

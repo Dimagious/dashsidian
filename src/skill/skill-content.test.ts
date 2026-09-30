@@ -21,8 +21,8 @@ describe("the generated skill corrects what agents got wrong", () => {
     it("a week starts on the first day of the interface language, the plugin's own if picked (B-107)", () => {
         const phrase = "A week starts on the first day of the interface language, Dashy's own when one "
             + "is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages";
-        // stats, progress and tiles each document `period` separately.
-        expect(SKILL_MARKDOWN.split(phrase).length - 1).toBe(3);
+        // stats, progress and tiles each document `period` separately, chart its `bucket`.
+        expect(SKILL_MARKDOWN.split(phrase).length - 1).toBe(4);
     });
 
     it("a text field is not a number, and names the where + count workaround (B-106)", () => {
@@ -66,6 +66,24 @@ describe("the generated skill corrects what agents got wrong", () => {
                 expect(line, `${name} example: ${line}`).not.toContain("unit: d.");
             }
         }
+    });
+
+    it("chart: the facts ADR 0005 says an agent gets wrong", () => {
+        const chart = schema.blocks.chart as { root: Record<string, { required?: boolean }>; hints: Record<string, string> };
+        // `field` is optional at the root: `series` or `agg: count` replace it.
+        expect(chart.root.field.required).toBeUndefined();
+        expect(SKILL_MARKDOWN).toContain("A list in the block's own `field` is an error rather than a guess");
+        expect(SKILL_MARKDOWN).toContain("A bucket with no data is a gap in the line and no bar, never a zero");
+        expect(SKILL_MARKDOWN).toContain("`avg` is over values, not days");
+        expect(SKILL_MARKDOWN).toContain("`sum` of a checkbox counts the ticked days");
+        expect(SKILL_MARKDOWN).toContain("a second y axis");
+        // The neighbours' keys are printed with what they are called here.
+        for (const [from, to] of Object.entries(chart.hints)) {
+            expect(SKILL_MARKDOWN).toContain(`- \`${from}\` is \`${to}\` here`);
+        }
+        // Charts are no longer on the "does not do" list; pie charts are.
+        expect(SKILL_MARKDOWN).not.toContain("Dashy does not draw charts");
+        expect(SKILL_MARKDOWN).toContain("- **pie** —");
     });
 
     it("AGENTS.md carries every one of these facts too, not only SKILL.md", () => {

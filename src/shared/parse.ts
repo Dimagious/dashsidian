@@ -162,14 +162,28 @@ export function isRecord(v: unknown): v is Record<string, unknown> {
     return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-/** A warning about keys we do not know — with a suggestion. */
+/**
+ * A warning about keys we do not know — with a suggestion.
+ *
+ * `hints` is a block's own table of keys that belong to a neighbouring
+ * block and what the same idea is called here (`layers` is `series` in a
+ * chart, ADR 0005). Consulted before the edit-distance guess: none of those
+ * words is anywhere near the right key, so the guess alone leaves the author
+ * guessing. Data from `schema.json`, never a list kept in a block.
+ */
 export function unknownKeys(
     obj: Record<string, unknown>,
     known: readonly string[],
+    hints: Readonly<Record<string, string>> = {},
 ): Diagnostic[] {
     const out: Diagnostic[] = [];
     for (const key of Object.keys(obj)) {
         if (known.includes(key)) continue;
+        const hint = Object.prototype.hasOwnProperty.call(hints, key) ? hints[key] : undefined;
+        if (hint !== undefined) {
+            out.push({ level: "warning", message: t("parse.unknownKeyHint", { key, hint }) });
+            continue;
+        }
         const guess = nearest(key, known);
         out.push({
             level: "warning",

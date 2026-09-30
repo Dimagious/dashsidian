@@ -2,7 +2,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/banner-dark.svg">
-  <img alt="Dashy: a dashboard inside an Obsidian note, built from six markdown blocks (dashsidian)"
+  <img alt="Dashy: a dashboard inside an Obsidian note, built from seven markdown blocks (dashsidian)"
        src="docs/banner-light.svg">
 </picture>
 
@@ -12,7 +12,7 @@
 
 [Install](#install) · [Habit tracker](#a-habit-tracker-from-daily-note-checkboxes) · [Blocks](#the-blocks) · [Questions](#questions) · [Website](https://dimagious.github.io/dashsidian/)
 
-Build a dashboard inside an Obsidian note from six markdown blocks. The config is YAML,
+Build a dashboard inside an Obsidian note from seven markdown blocks. The config is YAML,
 a few lines of it. **No JavaScript, and no Dataview.** The same blocks turn the checkboxes
 in your daily notes into [a habit tracker](#a-habit-tracker-from-daily-note-checkboxes).
 
@@ -40,6 +40,7 @@ monthly: true
 | [A reading log, a goal for the year](#progress-how-far-along) | `progress` |
 | [A home page with tiles that count a selection, not a whole folder](#tiles-navigation) | `tiles` |
 | [Countdowns to a race, a holiday, a review](#countdown-what-is-coming) | `countdown` |
+| [Kilometres per week, sleep over the last month](#chart-a-number-over-time) | `chart` |
 
 ## A habit tracker from daily note checkboxes
 
@@ -92,9 +93,9 @@ consequences of that, worth knowing before you install anything:
 - **It tells you when the config is wrong.** A block that cannot draw says so, in the note,
   with the line number and a guess at what you meant.
 
-What it does not do: charts (that is
-[Obsidian Charts](https://github.com/phibr0/obsidian-charts)), tables and queries (Bases,
-Dataview), kanban, tasks. Each of the six blocks has one job.
+What it does not do: pie, radar or scatter charts, or any chart that is not a number over
+time (that is [Obsidian Charts](https://github.com/phibr0/obsidian-charts)), tables and
+queries (Bases, Dataview), kanban, tasks. Each of the seven blocks has one job.
 
 ## Install
 
@@ -435,10 +436,85 @@ only the days inside it. Everything else works the same on a range grid: bands, 
 `skip_field` and its legend row, tooltips and links. A window that spans more than one year
 names the year on its first month and on every January.
 
+### `chart`: a number over time
+
+A line or bars of one number per day, week or month, in a window ending today.
+
+````markdown
+```chart
+source: Diary
+field: sleep_score
+```
+````
+
+That is the whole config for a line of the last 30 days, one point a day. `bucket: week` or
+`bucket: month` groups the days first, and `agg` says how a bucket's values become its one
+number: `sum` (the default), `avg`, `min`, `max`, or `count`, which needs no `field` and counts
+the dated notes in the bucket. `type: bar` draws bars instead of a line.
+
+````markdown
+```chart
+source: Diary
+type: bar
+bucket: week
+unit: km
+goal: 40
+series:
+  - { field: run_km, label: Run }
+  - { field: bike_km, label: Bike, color: orange }
+  - { field: swim_km, label: Swim, color: cyan }
+```
+````
+
+`series` puts up to four properties on one chart, each in its own colour: lines side by side,
+or bars grouped within their bucket, never stacked, all on one y axis. An entry takes the same
+keys a heatmap layer does, `field`, `label` and `color`, plus its own `agg`, and its `field`
+may be a list that folds several properties into that one series. A series without a colour
+gets the next free one from the palette, and the legend under the chart names each. The
+block's own `field` takes a single property: `field: [gym, run]` is an error that points at
+`series`, rather than one summed line where you expected two.
+
+A week starts where your language starts it, the same day `period: week` and the heatmap use,
+and a week's tooltip names it: "Week of Sun Sep 27, 2026". A month starts on the 1st. `range`
+takes the heatmap's window, `week`, `month`, `year` or a count of days like `90d`, and
+defaults to 30 days for `day`, 182 for `week` and 365 for `month`. The window's start moves
+back to the start of its bucket, so the first week is always a whole one. The last bucket is
+usually still running, this week or this month: it is drawn lighter, or as a hollow point on a
+line, and its tooltip ends with "so far". More than 400 buckets are cut to the most recent 400,
+and a window of a single bucket is drawn but warned about, since one bar has no trend.
+
+A bucket's values are every value the field holds on every note dated in it, so two notes on
+one day both count, and a week's `avg` is the same number a `stats` card with `agg: avg,
+period: week` shows next to it. `sum` of a checkbox is the number of ticked days. A bucket with
+no data is a gap in the line and has no bar: a missing day is not a day of zero. An unticked
+checkbox is a real 0, and so is `count` over an empty bucket. A field nothing carries, one that
+holds text, or one that only appears on notes without a date is an error that says which; a
+window with nothing in it yet draws its axes and says so instead.
+
+Bars always start at zero and hang below it for negative values; a line runs from its data's
+own lowest value to its highest, rounded out to at most three labelled gridlines. `goal` draws
+a dashed line with its value, and the y axis always stretches to show it. `unit` goes after the
+value in a tooltip, on the goal and on the top axis label only, and `precision` sets the
+decimals of all three. Hover a
+bucket for its date, its value and the note behind it; clicking a day opens that note (the first
+by path when there are several), while a week or a month has no single note to open. On a phone
+the first tap writes the tooltip under the chart and a second tap on a day opens it.
+
+There is no `height` key. The chart is 160 pixels tall, 120 on a narrow screen, and a CSS
+snippet can change that for every chart at once:
+
+```css
+body { --dashy-chart-height: 240px; }
+```
+
+The chart stops at a number over time. Pie, radar and scatter charts, stacked bars, running
+totals, a second y axis, smoothing, zoom and axis settings are not in it, on purpose: steps and
+sleep on one chart are two chart blocks.
+
 ### Durations: `sleep: 5h 58min`
 
-A sleep tracker or a watch export often writes a length of time as text. `stats`, `progress`
-and `heatmap` read these as numbers of minutes:
+A sleep tracker or a watch export often writes a length of time as text. `stats`, `progress`,
+`heatmap` and `chart` read these as numbers of minutes:
 
 - `H:MM` or `H:MM:SS`: `7:30`, `25:10`, `0:51:20`
 - hours, minutes and seconds with `h`, `m` or `min`, `s` or `sec`, largest first and each
@@ -450,8 +526,9 @@ always a duration, never a time of day: `bedtime: 23:40` counts as 23 hours 40 m
 
 When every value a field holds across the selection is a duration, the result reads as one:
 `sum`, `avg`, `min`, `max` and `latest` on a card, the value and the goal on a bar
-(`7h 5m / 8h`), a `compare` delta (`▲ +36m`), and a heatmap's tooltips, caption average and
-legend. Hours are left out under an hour (`45m`), minutes when there are none (`8h`), and
+(`7h 5m / 8h`), a `compare` delta (`▲ +36m`), a heatmap's tooltips, caption average and
+legend, and a chart's tooltips, y axis and goal (the axis and the goal only once every series
+on it holds durations). Hours are left out under an hour (`45m`), minutes when there are none (`8h`), and
 seconds show only under an hour (`51m 20s`); there are no days, so a week of sleep reads
 `49h 35m`. `count` and `streak` still count notes and days. `precision` has no effect on a
 duration, and a `unit` is dropped with a warning, since the value already carries its units.
@@ -463,7 +540,7 @@ items:
 ```
 ````
 
-`goal`, `at_least`, `at_most` and heatmap `bands` take the same formats: `goal: 8h`,
+`goal` (on a bar or a chart), `at_least`, `at_most` and heatmap `bands` take the same formats: `goal: 8h`,
 `at_least: 7h`, `bands: [8h, 7h, 6h]` or `{min: 7h}`. A plain number there means minutes, so
 `goal: 480` is the same goal. A duration written against a field of plain numbers still
 counts as minutes, with a warning that the field is not a duration, and so does a duration
@@ -494,7 +571,8 @@ A block that cannot draw tells you why, in the note, next to the thing that fail
 <img alt="Diagnostics inside a note: an unknown key with a suggestion, a missing required field, an unknown aggregate, and a where clause holding two conditions"
      src="docs/screens/diagnostics-dark.png">
 
-Unknown keys suggest the key you probably meant. A broken YAML line reports its line
+Unknown keys suggest the key you probably meant, and a key borrowed from another block says
+what it is called here: `layers` in a chart points at `series`. A broken YAML line reports its line
 number. A filter that could not be read says that the numbers below it are unfiltered,
 instead of showing you the wrong ones as if they were right.
 
@@ -606,9 +684,9 @@ against a scale that was never really about it.
 The settings tab has a row for each: a bug report and a feature request both open GitHub
 with your plugin and Obsidian versions already filled in, so nobody has to ask for them.
 
-The blocks are deliberately few. `where` takes one condition, there is no chart block, and
-the list stops at six. Those are decisions rather than omissions, and the fastest way to
-change one is to say what you tried to build and could not.
+The blocks are deliberately few. `where` takes one condition, the chart draws a number over
+time and nothing else, and the list stops at seven. Those are decisions rather than
+omissions, and the fastest way to change one is to say what you tried to build and could not.
 
 ## Languages
 
