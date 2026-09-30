@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderProgress } from "./progress";
 import { mockContext, diary, host, texts, nodes, diagnostics } from "../test/vault";
+import { setLocale } from "../i18n";
 
 const ctx = mockContext({
     notes: diary("Diary", "2026-01-01", 10, (i) => ({ km: i + 1 })),
@@ -496,5 +497,81 @@ describe("progress — streak threshold and weekdays, end to end (B-101)", () =>
         expect(diagnostics(el, "warning")[0]).toContain("field");
         // Without the (ignored) threshold, every diary day counts.
         expect(texts(el, ".dashy-progress-value")[0]).toContain("10 / 5");
+    });
+});
+
+// B-121: a progress bar over durations, with a goal written as one.
+describe("progress — durations", () => {
+    // Thursday. In English the week starts on Sunday: this week is 20..24
+    // September, the same days last week 13..17.
+    const TODAY = new Date(2026, 8, 24, 12);
+    const nights: Record<string, string> = {
+        "2026-09-13": "6h", "2026-09-14": "6h 30m", "2026-09-15": "7h", "2026-09-16": "6h", "2026-09-17": "6h 55m",
+        "2026-09-20": "7h 30m", "2026-09-21": "6:45", "2026-09-22": "8h", "2026-09-23": "5h 58min", "2026-09-24": "7h 12m",
+    };
+    // This week: 450 + 405 + 480 + 358 + 432 = 2125 minutes, avg 425 (7h 5m).
+    // Last week: 360 + 390 + 420 + 360 + 415 = 1945 minutes, avg 389 (6h 29m).
+    const sleepCtx = mockContext({
+        notes: [
+            ...Object.entries(nights).map(([date, sleep]) => ({ path: `Diary/${date}.md`, frontmatter: { sleep, steps: 5000 } })),
+            { path: "Mixed/2026-09-20.md", frontmatter: { sleep: "7h" } },
+            { path: "Mixed/2026-09-21.md", frontmatter: { sleep: 400 } },
+        ],
+    });
+
+    const render = (config: string): HTMLElement => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderProgress(sleepCtx, config, el);
+        return el;
+    };
+
+    afterEach(() => {
+        vi.useRealTimers();
+        setLocale("en");
+    });
+
+    it("goal: 8h against an average of 7h 5m: both read as durations, 425 of 480 minutes is 89%", () => {
+        const el = render("items:\n  - { label: Sleep, source: Diary, field: sleep, agg: avg, period: week, goal: 8h }");
+        expect(texts(el, ".dashy-progress-value")).toEqual(["7h 5m / 8h 89%"]);
+        expect(nodes(el, ".dashy-progress-fill")[0]?.style.width).toBe("89%");
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("a plain goal on a duration field means minutes and reads as a duration", () => {
+        const el = render("items:\n  - { label: Sleep, source: Diary, field: sleep, agg: sum, period: week, goal: 2400 }");
+        expect(texts(el, ".dashy-progress-value")).toEqual(["35h 25m / 40h 89%"]);
+    });
+
+    it("a unit is dropped with a warning", () => {
+        const el = render(
+            "items:\n  - { label: Sleep, source: Diary, field: sleep, agg: avg, period: week, goal: 8h, unit: h }");
+        expect(texts(el, ".dashy-progress-value")).toEqual(["7h 5m / 8h 89%"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ progress: "Sleep": `unit: h` is ignored. "sleep" holds durations, which already carry their own units.',
+        ]);
+    });
+
+    it("a duration goal on a streak warns: the streak counts days, not time", () => {
+        const el = render("items:\n  - { label: Nights, source: Diary, field: sleep, agg: streak, goal: 8h }");
+        expect(texts(el, ".dashy-progress-value")).toEqual(["5 / 480 1%"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ progress: "Nights": `goal: 8h` is a duration, but `agg: streak` counts days or notes, not time. It is applied as minutes.',
+        ]);
+    });
+
+    it("a duration goal against plain numbers warns", () => {
+        const el = render("items:\n  - { label: Steps, source: Diary, field: steps, agg: latest, goal: 1h 40m }");
+        expect(texts(el, ".dashy-progress-value")).toEqual(["5000 / 100 5000%"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ progress: "Steps": `goal: 1h 40m` is a duration, but "steps" holds plain numbers. It is applied as minutes.',
+        ]);
+    });
+
+    it("in Russian", () => {
+        setLocale("ru");
+        const el = render("items:\n  - { label: Sleep, source: Diary, field: sleep, agg: avg, period: week, goal: 8h }");
+        expect(texts(el, ".dashy-progress-value")).toEqual(["7\u00A0ч 5\u00A0мин / 8\u00A0ч 89%"]);
     });
 });

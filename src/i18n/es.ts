@@ -18,6 +18,10 @@ export const es: Catalog = {
     "bands.hasData": "con datos",
     "bands.from": "desde {min}",
 
+    "duration.hours": "{value}\u00A0h",
+    "duration.minutes": "{value}\u00A0min",
+    "duration.seconds": "{value}\u00A0s",
+
     "where.noSuchFolder": "No hay nada bajo `{folder}`. Los números de abajo no cuentan nada. Apunta `source` a una carpeta tuya.",
     "where.unreadable":
         "`where: {where}` no se pudo leer y se ignoró. Los números de abajo están sin filtrar. Se espera algo como `year = 2026`, `rating >= 4` o `tags contains books`.",
@@ -41,22 +45,26 @@ export const es: Catalog = {
     "stats.fieldMissing":
         "{card}: ninguna nota de la selección tiene «{field}». Revisa el nombre y `source`.",
     "stats.fieldNotNumeric":
-        "{card}: «{field}» contiene texto u otro valor que no es un número ni una casilla. Usa `where: \"{field} contains ...\"` con `agg: count` para contarlo.",
+        "{card}: «{field}» contiene texto u otro valor que no es un número, una duración como `7h 30m` ni una casilla. Usa `where: \"{field} contains ...\"` con `agg: count` para contarlo.",
     "stats.badPrecision":
         "{card}: `precision` espera un entero de 0 a {max}, recibido «{value}». Se redondea como por defecto.",
     "stats.streakKeysIgnored":
         "{card}: `at_least`, `at_most`, `days` y `skip_field` solo se aplican a `agg: streak`, ignorado.",
     "stats.streakThresholdNeedsField":
         "{card}: `at_least` y `at_most` necesitan un `field:` para sumar. Ignorado.",
-    "stats.streakThresholdInvalid": "{card}: `{key}` espera un número, recibido «{value}». Ignorado.",
+    "stats.streakThresholdInvalid": "{card}: `{key}` espera un número o una duración como `7h 30m`, recibido «{value}». Ignorado.",
     "stats.streakThresholdImpossible":
         "{card}: `at_least` es mayor que `at_most`, ningún día puede cumplir ambos. La racha es 0.",
     "stats.streakDaysInvalid": "{card}: `days` espera `all` o `weekdays`, recibido «{value}». Usando `all`.",
     "stats.skipFieldInvalid": "{card}: `skip_field` espera un nombre de propiedad, recibido «{value}». Ignorado.",
+    "stats.durationMixed": "{card}: «{field}» mezcla duraciones («{durationNote}») y números simples («{plainNote}»). Todo se cuenta en minutos y se muestra como un número simple.",
+    "stats.durationUnitIgnored": "{card}: `unit: {unit}` se ignora. «{field}» contiene duraciones, que ya llevan sus propias unidades.",
+    "stats.durationThresholdOnPlain": "{card}: `{key}: {value}` es una duración, pero «{field}» contiene números simples. Se aplica en minutos.",
 
     "progress.empty": "No hay barras que dibujar. Se espera `items:` o una lista.",
-    "progress.goalRequired": "{card}: `goal:` necesita un número. No hay nada con lo que medir.",
+    "progress.goalRequired": "{card}: `goal:` necesita un número o una duración como `7h 30m`. No hay nada con lo que medir.",
     "progress.goalNotPositive": "{card}: un objetivo de {goal} no deja nada que llenar. Tiene que ser mayor que cero.",
+    "progress.goalDurationOnCount": "{card}: `goal: {value}` es una duración, pero `agg: {agg}` cuenta días o notas, no tiempo. El objetivo se aplica en minutos.",
 
     "stats.trendNeedsField": "{card}: `trend` necesita un `field:` que trazar. Contar notas no tiene forma.",
     "stats.trendInvalid": "{card}: `trend` espera un número de días como 30d, recibido «{value}».",
@@ -107,18 +115,18 @@ export const es: Catalog = {
     "heatmap.expectFields": "Se espera un conjunto de campos, por ejemplo `source:` y `field:`.",
     "heatmap.fieldRequired": "No se indicó `field`. No hay número con el que colorear.",
     "heatmap.noData":
-        "No hay notas con una fecha reconocible y un número o una casilla en «{field}». Revisa `source`, o `date_field` si la fecha está en una propiedad.",
+        "No hay notas con una fecha reconocible y un número, una duración como `7h 30m` o una casilla en «{field}». Revisa `source`, o `date_field` si la fecha está en una propiedad.",
     "heatmap.fieldMissing":
         "Ninguna nota de la selección tiene «{field}». Revisa el nombre y `source`.",
     "heatmap.fieldNotNumeric":
-        "«{field}» contiene texto u otro valor que no es un número ni una casilla. Usa `where: \"{field} contains ...\"` con `agg: count` en una tarjeta stats para contarlo.",
+        "«{field}» contiene texto u otro valor que no es un número, una duración como `7h 30m` ni una casilla. Usa `where: \"{field} contains ...\"` con `agg: count` en una tarjeta stats para contarlo.",
     "heatmap.fieldInvalid": "`field` espera un nombre de propiedad o una lista de ellos, se obtuvo «{value}».",
     "heatmap.fieldListEmpty": "`field` es una lista vacía. Añade al menos un nombre de propiedad.",
     "heatmap.fieldListInvalid": "Los elementos de la lista `field` deben ser nombres de propiedad simples, se obtuvo «{value}».",
     "heatmap.perDayInvalid": "`per_day` espera sum, avg o max, se obtuvo «{value}». Se usará sum.",
     "heatmap.skipFieldInvalid": "`skip_field` espera un nombre de propiedad, se obtuvo «{value}». Ignorado.",
     "heatmap.fieldUnused":
-        "«{field}» nunca aportó un valor aquí. Revisa el nombre, o que realmente contenga un número o una casilla.",
+        "«{field}» nunca aportó un valor aquí. Revisa el nombre, o que realmente contenga un número, una duración como `7h 30m` o una casilla.",
     "heatmap.layersAndField":
         "`layers` y `field` están definidos a la vez. Usa uno u otro: `layers` para varios colores, `field` para uno solo.",
     "heatmap.layersColorIgnored": "`color` se ignora: cada entrada de `layers` tiene su propio color.",
@@ -147,6 +155,8 @@ export const es: Catalog = {
     "heatmap.cellEmptySkipped": "{date}: día libre",
     "heatmap.cellToday": "{cell}, hoy",
     "heatmap.legendSkipped": "Día libre",
+    "heatmap.durationMixed": "«{field}» mezcla duraciones («{durationNote}») y números simples («{plainNote}»). Todo se cuenta en minutos y se muestra en números simples.",
+    "heatmap.durationThresholdOnPlain": "El umbral de `bands` «{value}» es una duración, pero «{field}» contiene números simples. Se aplica en minutos.",
 
     "insert.name": "Insertar bloque",
     "insert.placeholder": "¿Qué bloque?",

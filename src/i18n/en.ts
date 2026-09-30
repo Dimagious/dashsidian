@@ -20,6 +20,10 @@ export const en = {
     "bands.hasData": "has data",
     "bands.from": "from {min}",
 
+    "duration.hours": "{value}h",
+    "duration.minutes": "{value}m",
+    "duration.seconds": "{value}s",
+
     "where.noSuchFolder": "Nothing is filed under `{folder}`. The numbers below count nothing. Point `source` at a folder of your own.",
     "where.unreadable":
         "`where: {where}` could not be read and was ignored. The numbers below are unfiltered. Expected something like `year = 2026`, `rating >= 4` or `tags contains books`.",
@@ -43,22 +47,26 @@ export const en = {
     "stats.fieldMissing":
         "{card}: no note in the selection has \"{field}\". Check the name and `source`.",
     "stats.fieldNotNumeric":
-        "{card}: \"{field}\" holds text or another value that is not a number or a checkbox. Use `where: \"{field} contains ...\"` with `agg: count` to count it instead.",
+        "{card}: \"{field}\" holds text or another value that is not a number, a duration like `7h 30m` or a checkbox. Use `where: \"{field} contains ...\"` with `agg: count` to count it instead.",
     "stats.badPrecision":
         "{card}: `precision` expects a whole number from 0 to {max}, got \"{value}\". Rounding the default way.",
     "stats.streakKeysIgnored":
         "{card}: `at_least`, `at_most`, `days` and `skip_field` only apply to `agg: streak`, ignored.",
     "stats.streakThresholdNeedsField":
         "{card}: `at_least` and `at_most` need a `field:` to sum against. Ignored.",
-    "stats.streakThresholdInvalid": "{card}: `{key}` expects a number, got \"{value}\". Ignored.",
+    "stats.streakThresholdInvalid": "{card}: `{key}` expects a number or a duration like `7h 30m`, got \"{value}\". Ignored.",
     "stats.streakThresholdImpossible":
         "{card}: `at_least` is above `at_most`, so no day can satisfy both. The streak is 0.",
     "stats.streakDaysInvalid": "{card}: `days` expects `all` or `weekdays`, got \"{value}\". Using `all`.",
     "stats.skipFieldInvalid": "{card}: `skip_field` expects a property name, got \"{value}\". Ignored.",
+    "stats.durationMixed": "{card}: \"{field}\" mixes durations (\"{durationNote}\") and plain numbers (\"{plainNote}\"). All of them are counted as minutes and shown as a plain number.",
+    "stats.durationUnitIgnored": "{card}: `unit: {unit}` is ignored. \"{field}\" holds durations, which already carry their own units.",
+    "stats.durationThresholdOnPlain": "{card}: `{key}: {value}` is a duration, but \"{field}\" holds plain numbers. It is applied as minutes.",
 
     "progress.empty": "No bars to draw. Expected `items:` or a list.",
-    "progress.goalRequired": "{card}: `goal:` needs a number. There is nothing to measure against.",
+    "progress.goalRequired": "{card}: `goal:` needs a number or a duration like `7h 30m`. There is nothing to measure against.",
     "progress.goalNotPositive": "{card}: a goal of {goal} leaves nothing to fill. It must be above zero.",
+    "progress.goalDurationOnCount": "{card}: `goal: {value}` is a duration, but `agg: {agg}` counts days or notes, not time. It is applied as minutes.",
 
     "stats.trendNeedsField": "{card}: `trend` needs a `field:` to plot. Counting notes has no shape.",
     "stats.trendInvalid": "{card}: `trend` expects a number of days such as 30d, got \"{value}\".",
@@ -113,18 +121,18 @@ export const en = {
     "heatmap.expectFields": "Expected a set of fields, for example `source:` and `field:`.",
     "heatmap.fieldRequired": "No `field` given. There is no number to colour by.",
     "heatmap.noData":
-        "No notes with a resolvable date and a number or a checkbox in \"{field}\". Check `source`, or `date_field` if the date lives in a property.",
+        "No notes with a resolvable date and a number, a duration like `7h 30m` or a checkbox in \"{field}\". Check `source`, or `date_field` if the date lives in a property.",
     "heatmap.fieldMissing":
         "No note in the selection has \"{field}\". Check the name and `source`.",
     "heatmap.fieldNotNumeric":
-        "\"{field}\" holds text or another value that is not a number or a checkbox. Use `where: \"{field} contains ...\"` with `agg: count` in a stats card to count it instead.",
+        "\"{field}\" holds text or another value that is not a number, a duration like `7h 30m` or a checkbox. Use `where: \"{field} contains ...\"` with `agg: count` in a stats card to count it instead.",
     "heatmap.fieldInvalid": "`field` expects a property name or a list of them, got \"{value}\".",
     "heatmap.fieldListEmpty": "`field` is an empty list. Add at least one property name.",
     "heatmap.fieldListInvalid": "`field` list items must be plain property names, got \"{value}\".",
     "heatmap.perDayInvalid": "`per_day` expects sum, avg or max, got \"{value}\". Using sum.",
     "heatmap.skipFieldInvalid": "`skip_field` expects a property name, got \"{value}\". Ignored.",
     "heatmap.fieldUnused":
-        "\"{field}\" never contributed a value here. Check the name, or that it actually holds a number or checkbox.",
+        "\"{field}\" never contributed a value here. Check the name, or that it actually holds a number, a duration like `7h 30m` or a checkbox.",
     "heatmap.layersAndField": "`layers` and `field` are both set. Use one or the other: `layers` for several colours, `field` for one.",
     "heatmap.layersColorIgnored": "`color` is ignored: each entry in `layers` carries its own colour instead.",
     "heatmap.layersInvalid": "`layers` expects a list of maps, got \"{value}\".",
@@ -157,6 +165,8 @@ export const en = {
     "heatmap.cellEmptySkipped": "{date}: day off",
     "heatmap.cellToday": "{cell}, today",
     "heatmap.legendSkipped": "Day off",
+    "heatmap.durationMixed": "\"{field}\" mixes durations (\"{durationNote}\") and plain numbers (\"{plainNote}\"). All of them are counted as minutes and shown as plain numbers.",
+    "heatmap.durationThresholdOnPlain": "`bands` threshold \"{value}\" is a duration, but \"{field}\" holds plain numbers. It is applied as minutes.",
 
     "insert.name": "Insert block",
     "insert.placeholder": "Which block?",

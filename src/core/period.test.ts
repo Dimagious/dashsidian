@@ -556,3 +556,22 @@ describe("compareCaption", () => {
         expect(compareCaption({ kind: "days", days: 3 }, "2")).toBe("vs the 3 days before: 2");
     });
 });
+
+// B-121: a duration card's delta reads in the same units as the card.
+describe("formatDelta — durations", () => {
+    it("a rise in minutes: +32m, not +32", () => {
+        expect(formatDelta(390, 358, undefined, true)).toEqual({ arrow: "▲", text: "+32m", direction: "up" });
+    });
+
+    it("a fall past an hour: hours and minutes with a real minus sign", () => {
+        expect(formatDelta(358, 450, undefined, true)).toEqual({ arrow: "▼", text: "−1h 32m", direction: "down" });
+    });
+
+    it("precision has no effect: seconds still show under an hour", () => {
+        expect(formatDelta(51 + 20 / 60, 50, 0, true).text).toBe("+1m 20s");
+    });
+
+    it("computed from the values as displayed: two averages that both read 7h 12m are flat", () => {
+        expect(formatDelta(432.4, 431.6, undefined, true)).toEqual({ arrow: "=", text: "0m", direction: "flat" });
+    });
+});

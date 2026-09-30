@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { readBands, bandFor, autoBands } from "./bands";
+import { readBands, bandFor, autoBands, durationThresholdIn } from "./bands";
+import { formatDuration } from "./duration";
 
 describe("readBands — short form", () => {
     it("the top band is open above, the rest are capped by the previous one", () => {
@@ -284,5 +285,109 @@ describe("autoBands — a scale fitted to the grid's own values", () => {
                 { min: 4, alpha: 0.72, label: "4–5" },
             ]);
         });
+    });
+});
+
+// B-121: bands over a field of durations, in minutes.
+describe("readBands — durations", () => {
+    it("duration thresholds are minutes; with the duration format the labels read as durations", () => {
+        const bands = readBands(["8h", "7h", "6:30"], true);
+        // Each band starts half a minute under its label, where the label's own rounding starts.
+        expect(bands.map((b) => b.min)).toEqual([479.5, 419.5, 389.5]);
+        expect(bands.map((b) => b.label)).toEqual(["8h+", "7h–7h 59m", "6h 30m–6h 59m"]);
+    });
+
+    it("a plain number means minutes, drawn as a duration on a duration field", () => {
+        expect(readBands([480, 420], true).map((b) => b.label)).toEqual(["8h+", "7h–7h 59m"]);
+    });
+
+    it("numbers and duration strings mix in one list", () => {
+        expect(readBands(["8h", 420]).map((b) => b.min)).toEqual([480, 420]);
+    });
+
+    it("without the duration format, labels stay plain numbers of minutes", () => {
+        expect(readBands(["8h", "7h"]).map((b) => b.label)).toEqual(["480+", "420–479"]);
+    });
+
+    it("the full form takes a duration min, and its default label uses the format", () => {
+        const bands = readBands([{ min: "7h" }, { min: "6h", label: "short" }], true);
+        expect(bands.map((b) => [b.min, b.label])).toEqual([[419.5, "from 7h"], [359.5, "short"]]);
+    });
+
+    it("the full form without the format keeps what was written in its label", () => {
+        expect(readBands([{ min: "7h" }])[0]?.label).toBe("from 420");
+    });
+
+    it("text that is not a duration is still not a threshold", () => {
+        expect(readBands([{ min: "lots" }])[0]).toMatchObject({ min: Number.NEGATIVE_INFINITY, label: "from lots" });
+    });
+});
+
+describe("durationThresholdIn", () => {
+    it("finds the first duration string in either shape, as written", () => {
+        expect(durationThresholdIn([90, "7h", "6h"])).toBe("7h");
+        expect(durationThresholdIn([{ min: 90 }, { min: "7:30" }])).toBe("7:30");
+    });
+
+    it("none among plain numbers, text or a non-list", () => {
+        expect(durationThresholdIn([90, 80])).toBeUndefined();
+        expect(durationThresholdIn(["lots"])).toBeUndefined();
+        expect(durationThresholdIn(undefined)).toBeUndefined();
+        expect(durationThresholdIn("7h")).toBeUndefined();
+    });
+});
+
+describe("autoBands — durations", () => {
+    it("fits whole minutes and labels in hours and minutes", () => {
+        // 5h 58m .. 8h: span 122 minutes, cut in quarters.
+        const bands = autoBands([358, 420, 450, 480], false, true);
+        expect(bands?.map((b) => b.label)).toEqual(["7h 30m+", "6h 59m–7h 29m", "6h 29m–6h 58m", "5h 58m–6h 28m"]);
+    });
+
+    it("a band's min sits half a minute under its label, so a cell lands where its tooltip reads", () => {
+        const bands = autoBands([358, 420, 450, 480], false, true) ?? [];
+        // 7h 29m 40s reads "7h 30m" in its tooltip, and belongs in "7h 30m+".
+        expect(formatDuration(449 + 40 / 60)).toBe("7h 30m");
+        expect(bandFor(bands, 449 + 40 / 60)?.label).toBe("7h 30m+");
+        expect(bandFor(bands, 449 + 20 / 60)?.label).toBe("6h 59m–7h 29m");
+    });
+
+    it("fits seconds when every value is under an hour", () => {
+        // 5k runs: 25m 10s .. 26m 40s.
+        const bands = autoBands([25 + 10 / 60, 25 + 40 / 60, 26 + 10 / 60, 26 + 40 / 60], false, true);
+        expect(bands?.map((b) => b.label)).toEqual(["26m 18s+", "25m 55s–26m 17s", "25m 33s–25m 54s", "25m 10s–25m 32s"]);
+    });
+
+    it("a narrow spread of whole minutes gives each value its own band", () => {
+        expect(autoBands([420, 421, 422], false, true)?.map((b) => b.label)).toEqual(["7h 2m+", "7h 1m", "7h"]);
+    });
+
+    it("every value the same, nothing, or a checkbox field: no scale", () => {
+        expect(autoBands([420, 420], false, true)).toBeNull();
+        expect(autoBands([], false, true)).toBeNull();
+        expect(autoBands([1, 1], true, true)).toBeNull();
+    });
+});
+
+describe("readBands — durations start where their label's rounding does", () => {
+    it("a night of 7h 59m 40s reads 8h and paints the 8h+ band", () => {
+        const bands = readBands(["8h", "7h"], true);
+        expect(formatDuration(479 + 40 / 60)).toBe("8h");
+        expect(bandFor(bands, 479 + 40 / 60)?.label).toBe("8h+");
+        expect(bandFor(bands, 479 + 20 / 60)?.label).toBe("7h–7h 59m");
+    });
+
+    it("under an hour the grain is a second: 44m 59.6s reads 45m and belongs in 45m+", () => {
+        const bands = readBands(["45m", "30m"], true);
+        expect(bandFor(bands, 44 + 59.6 / 60)?.label).toBe("45m+");
+        expect(bandFor(bands, 44 + 59.4 / 60)?.label).toBe("30m–44m");
+    });
+
+    it("exactly one hour takes 59m 59.6s, which reads 1h", () => {
+        expect(bandFor(readBands(["1h", "30m"], true), 59 + 59.6 / 60)?.label).toBe("1h+");
+    });
+
+    it("without duration mode a threshold is compared exactly, as before", () => {
+        expect(readBands(["8h", "7h"]).map((b) => b.min)).toEqual([480, 420]);
     });
 });

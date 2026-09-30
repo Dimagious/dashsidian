@@ -16,6 +16,10 @@ export const ru: Catalog = {
     "bands.hasData": "есть данные",
     "bands.from": "от {min}",
 
+    "duration.hours": "{value}\u00A0ч",
+    "duration.minutes": "{value}\u00A0мин",
+    "duration.seconds": "{value}\u00A0с",
+
     "where.noSuchFolder": "Под `{folder}` ничего нет. Числа ниже посчитаны по пустоте. Укажите в `source` свою папку.",
     "where.unreadable":
         "`where: {where}` не разобрать, условие пропущено. Числа ниже без фильтра. Ожидается что-то вроде `year = 2026`, `rating >= 4` или `tags contains книги`.",
@@ -39,22 +43,26 @@ export const ru: Catalog = {
     "stats.fieldMissing":
         "{card}: ни у одной заметки в выборке нет «{field}». Проверьте имя и `source`.",
     "stats.fieldNotNumeric":
-        "{card}: «{field}» хранит текст или другое значение, а не число или чекбокс. Чтобы посчитать такие заметки, используйте `where: \"{field} contains ...\"` с `agg: count`.",
+        "{card}: «{field}» хранит текст или другое значение, а не число, длительность вроде `7h 30m` или чекбокс. Чтобы посчитать такие заметки, используйте `where: \"{field} contains ...\"` с `agg: count`.",
     "stats.badPrecision":
         "{card}: `precision` ожидает целое от 0 до {max}, получено «{value}». Округляю по умолчанию.",
     "stats.streakKeysIgnored":
         "{card}: `at_least`, `at_most`, `days` и `skip_field` действуют только при `agg: streak`, пропущено.",
     "stats.streakThresholdNeedsField":
         "{card}: `at_least` и `at_most` нужны вместе с `field:`, иначе нечего суммировать. Пропущено.",
-    "stats.streakThresholdInvalid": "{card}: `{key}` ожидает число, получено «{value}». Пропущено.",
+    "stats.streakThresholdInvalid": "{card}: `{key}` ожидает число или длительность вроде `7h 30m`, получено «{value}». Пропущено.",
     "stats.streakThresholdImpossible":
         "{card}: `at_least` больше `at_most`, ни один день не подойдёт под оба условия. Серия равна 0.",
     "stats.streakDaysInvalid": "{card}: `days` ожидает `all` или `weekdays`, получено «{value}». Использую `all`.",
     "stats.skipFieldInvalid": "{card}: `skip_field` ожидает имя свойства, получено «{value}». Пропущено.",
+    "stats.durationMixed": "{card}: в «{field}» смешаны длительности («{durationNote}») и простые числа («{plainNote}»). Всё посчитано в минутах и показано простым числом.",
+    "stats.durationUnitIgnored": "{card}: `unit: {unit}` пропущен. В «{field}» длительности, у них уже есть свои единицы.",
+    "stats.durationThresholdOnPlain": "{card}: `{key}: {value}` задан как длительность, но в «{field}» простые числа. Порог применён в минутах.",
 
     "progress.empty": "Список полос пуст. Ожидается `items:` или массив.",
-    "progress.goalRequired": "{card}: `goal:` ожидает число. Иначе не к чему стремиться.",
+    "progress.goalRequired": "{card}: `goal:` ожидает число или длительность вроде `7h 30m`. Иначе не к чему стремиться.",
     "progress.goalNotPositive": "{card}: цель {goal} нечем заполнять. Она должна быть больше нуля.",
+    "progress.goalDurationOnCount": "{card}: `goal: {value}` задан как длительность, но `agg: {agg}` считает дни или заметки, а не время. Цель применена в минутах.",
 
     "stats.trendNeedsField": "{card}: `trend` нужно `field:`. У счёта заметок нет формы.",
     "stats.trendInvalid": "{card}: `trend` ожидает число дней, например 30d, получено «{value}».",
@@ -105,18 +113,18 @@ export const ru: Catalog = {
     "heatmap.expectFields": "Ожидается набор полей, например `source:` и `field:`.",
     "heatmap.fieldRequired": "Не задано `field`. Какое число из frontmatter красить.",
     "heatmap.noData":
-        "Нет заметок с определяемой датой и числом или чекбоксом в поле «{field}». Проверь `source`, или `date_field`, если дата лежит в свойстве.",
+        "Нет заметок с определяемой датой и числом, длительностью вроде `7h 30m` или чекбоксом в поле «{field}». Проверь `source`, или `date_field`, если дата лежит в свойстве.",
     "heatmap.fieldMissing":
         "Ни у одной заметки в выборке нет «{field}». Проверьте имя и `source`.",
     "heatmap.fieldNotNumeric":
-        "«{field}» хранит текст или другое значение, а не число или чекбокс. Чтобы посчитать такие заметки, используйте `where: \"{field} contains ...\"` с `agg: count` в карточке stats.",
+        "«{field}» хранит текст или другое значение, а не число, длительность вроде `7h 30m` или чекбокс. Чтобы посчитать такие заметки, используйте `where: \"{field} contains ...\"` с `agg: count` в карточке stats.",
     "heatmap.fieldInvalid": "`field` ожидает имя свойства или их список, получено «{value}».",
     "heatmap.fieldListEmpty": "Список `field` пуст. Добавьте хотя бы одно имя свойства.",
     "heatmap.fieldListInvalid": "Элементы списка `field` должны быть простыми именами свойств, получено «{value}».",
     "heatmap.perDayInvalid": "`per_day` принимает sum, avg или max, получено «{value}». Используется sum.",
     "heatmap.skipFieldInvalid": "`skip_field` ожидает имя свойства, получено «{value}». Пропущено.",
     "heatmap.fieldUnused":
-        "«{field}» ни разу не дало значения в этой выборке. Проверьте имя, или что там действительно число либо чекбокс.",
+        "«{field}» ни разу не дало значения в этой выборке. Проверьте имя, или что там действительно число, длительность вроде `7h 30m` либо чекбокс.",
     "heatmap.layersAndField":
         "Заданы сразу `layers` и `field`. Используйте что-то одно: `layers` для нескольких цветов, `field` для одного.",
     "heatmap.layersColorIgnored": "`color` игнорируется: у каждого элемента `layers` свой собственный цвет.",
@@ -145,6 +153,8 @@ export const ru: Catalog = {
     "heatmap.cellEmptySkipped": "{date}: выходной",
     "heatmap.cellToday": "{cell}, сегодня",
     "heatmap.legendSkipped": "Выходной",
+    "heatmap.durationMixed": "В «{field}» смешаны длительности («{durationNote}») и простые числа («{plainNote}»). Всё посчитано в минутах и показано простыми числами.",
+    "heatmap.durationThresholdOnPlain": "Порог `bands` «{value}» задан как длительность, но в «{field}» простые числа. Он применён в минутах.",
 
     "insert.name": "Вставить блок",
     "insert.placeholder": "Какой блок?",

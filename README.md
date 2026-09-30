@@ -435,6 +435,43 @@ only the days inside it. Everything else works the same on a range grid: bands, 
 `skip_field` and its legend row, tooltips and links. A window that spans more than one year
 names the year on its first month and on every January.
 
+### Durations: `sleep: 5h 58min`
+
+A sleep tracker or a watch export often writes a length of time as text. `stats`, `progress`
+and `heatmap` read these as numbers of minutes:
+
+- `H:MM` or `H:MM:SS`: `7:30`, `25:10`, `0:51:20`
+- hours, minutes and seconds with `h`, `m` or `min`, `s` or `sec`, largest first and each
+  at most once, spaces optional: `5h 58min`, `1h30m`, `45m`, `90 min`, `1.5h`, `30s`
+
+The whole value has to be the duration, so `running: "10 km · 51min"` is still text.
+Localized units (`ч`, `мин`), ISO `PT1H30M` and negative durations are not read. `H:MM` is
+always a duration, never a time of day: `bedtime: 23:40` counts as 23 hours 40 minutes.
+
+When every value a field holds across the selection is a duration, the result reads as one:
+`sum`, `avg`, `min`, `max` and `latest` on a card, the value and the goal on a bar
+(`7h 5m / 8h`), a `compare` delta (`▲ +36m`), and a heatmap's tooltips, caption average and
+legend. Hours are left out under an hour (`45m`), minutes when there are none (`8h`), and
+seconds show only under an hour (`51m 20s`); there are no days, so a week of sleep reads
+`49h 35m`. `count` and `streak` still count notes and days. `precision` has no effect on a
+duration, and a `unit` is dropped with a warning, since the value already carries its units.
+
+````markdown
+```progress
+items:
+  - { label: Sleep this week, source: Diary, field: sleep, agg: avg, period: week, goal: 8h }
+```
+````
+
+`goal`, `at_least`, `at_most` and heatmap `bands` take the same formats: `goal: 8h`,
+`at_least: 7h`, `bands: [8h, 7h, 6h]` or `{min: 7h}`. A plain number there means minutes, so
+`goal: 480` is the same goal. A duration written against a field of plain numbers still
+counts as minutes, with a warning that the field is not a duration, and so does a duration
+`goal` on `count` or `streak`, which count notes and days. A field where some notes
+hold a duration and others a plain number counts both as minutes, shows a plain number, and
+warns naming one note of each kind; `count`, and `streak` without a threshold, skip that
+warning, since the mix changes nothing they show.
+
 ## It keeps up with the vault
 
 Add a note, edit a number, delete something, and every block on the page redraws. No

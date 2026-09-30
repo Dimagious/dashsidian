@@ -18,6 +18,10 @@ export const fr: Catalog = {
     "bands.hasData": "avec données",
     "bands.from": "à partir de {min}",
 
+    "duration.hours": "{value}\u00A0h",
+    "duration.minutes": "{value}\u00A0min",
+    "duration.seconds": "{value}\u00A0s",
+
     "where.noSuchFolder": "Rien n'est classé sous `{folder}`. Les chiffres ci-dessous ne comptent rien. Pointez `source` vers un dossier à vous.",
     "where.unreadable":
         "`where: {where}` n'a pas pu être lu et a été ignoré. Les chiffres ci-dessous ne sont pas filtrés. Attendu : quelque chose comme `year = 2026`, `rating >= 4` ou `tags contains books`.",
@@ -41,22 +45,26 @@ export const fr: Catalog = {
     "stats.fieldMissing":
         "{card} : aucune note de la sélection n'a « {field} ». Vérifiez le nom et `source`.",
     "stats.fieldNotNumeric":
-        "{card} : « {field} » contient du texte ou une autre valeur qui n'est pas un nombre ni une case à cocher. Utilisez `where: \"{field} contains ...\"` avec `agg: count` pour le compter.",
+        "{card} : « {field} » contient du texte ou une autre valeur qui n'est ni un nombre, ni une durée comme `7h 30m`, ni une case à cocher. Utilisez `where: \"{field} contains ...\"` avec `agg: count` pour le compter.",
     "stats.badPrecision":
         "{card} : `precision` attend un entier de 0 à {max}, reçu « {value} ». Arrondi par défaut.",
     "stats.streakKeysIgnored":
         "{card} : `at_least`, `at_most`, `days` et `skip_field` ne s'appliquent qu'à `agg: streak`, ignoré.",
     "stats.streakThresholdNeedsField":
         "{card} : `at_least` et `at_most` ont besoin d'un `field:` pour faire la somme. Ignoré.",
-    "stats.streakThresholdInvalid": "{card} : `{key}` attend un nombre, reçu « {value} ». Ignoré.",
+    "stats.streakThresholdInvalid": "{card} : `{key}` attend un nombre ou une durée comme `7h 30m`, reçu « {value} ». Ignoré.",
     "stats.streakThresholdImpossible":
         "{card} : `at_least` dépasse `at_most`, aucun jour ne peut satisfaire les deux. La série est 0.",
     "stats.streakDaysInvalid": "{card} : `days` attend `all` ou `weekdays`, reçu « {value} ». Utilise `all`.",
     "stats.skipFieldInvalid": "{card} : `skip_field` attend un nom de propriété, reçu « {value} ». Ignoré.",
+    "stats.durationMixed": "{card} : « {field} » mélange des durées (« {durationNote} ») et des nombres simples (« {plainNote} »). Tout est compté en minutes et affiché comme un nombre simple.",
+    "stats.durationUnitIgnored": "{card} : `unit: {unit}` est ignoré. « {field} » contient des durées, qui portent déjà leurs unités.",
+    "stats.durationThresholdOnPlain": "{card} : `{key}: {value}` est une durée, mais « {field} » contient des nombres simples. La valeur est appliquée en minutes.",
 
     "progress.empty": "Aucune barre à dessiner. Attendu : `items:` ou une liste.",
-    "progress.goalRequired": "{card} : `goal:` a besoin d'un nombre. Il n'y a rien à mesurer.",
+    "progress.goalRequired": "{card} : `goal:` a besoin d'un nombre ou d'une durée comme `7h 30m`. Il n'y a rien à mesurer.",
     "progress.goalNotPositive": "{card} : un objectif de {goal} ne laisse rien à remplir. Il doit être supérieur à zéro.",
+    "progress.goalDurationOnCount": "{card} : `goal: {value}` est une durée, mais `agg: {agg}` compte des jours ou des notes, pas du temps. L'objectif est appliqué en minutes.",
 
     "stats.trendNeedsField": "{card} : `trend` a besoin d'un `field:` à tracer. Compter des notes n'a pas de forme.",
     "stats.trendInvalid": "{card} : `trend` attend un nombre de jours comme 30d, reçu « {value} ».",
@@ -107,18 +115,18 @@ export const fr: Catalog = {
     "heatmap.expectFields": "Attendu : un ensemble de champs, par exemple `source:` et `field:`.",
     "heatmap.fieldRequired": "Aucun `field` donné. Il n'y a pas de nombre pour colorer.",
     "heatmap.noData":
-        "Aucune note avec une date reconnaissable et un nombre ou une case à cocher dans « {field} ». Vérifiez `source`, ou `date_field` si la date se trouve dans une propriété.",
+        "Aucune note avec une date reconnaissable et un nombre, une durée comme `7h 30m` ou une case à cocher dans « {field} ». Vérifiez `source`, ou `date_field` si la date se trouve dans une propriété.",
     "heatmap.fieldMissing":
         "Aucune note de la sélection n'a « {field} ». Vérifiez le nom et `source`.",
     "heatmap.fieldNotNumeric":
-        "« {field} » contient du texte ou une autre valeur qui n'est pas un nombre ni une case à cocher. Utilisez `where: \"{field} contains ...\"` avec `agg: count` dans une carte stats pour le compter.",
+        "« {field} » contient du texte ou une autre valeur qui n'est ni un nombre, ni une durée comme `7h 30m`, ni une case à cocher. Utilisez `where: \"{field} contains ...\"` avec `agg: count` dans une carte stats pour le compter.",
     "heatmap.fieldInvalid": "`field` attend un nom de propriété ou une liste de ceux-ci, reçu « {value} ».",
     "heatmap.fieldListEmpty": "`field` est une liste vide. Ajoutez au moins un nom de propriété.",
     "heatmap.fieldListInvalid": "Les éléments de la liste `field` doivent être de simples noms de propriétés, reçu « {value} ».",
     "heatmap.perDayInvalid": "`per_day` attend sum, avg ou max, reçu « {value} ». Utilisation de sum.",
     "heatmap.skipFieldInvalid": "`skip_field` attend un nom de propriété, reçu « {value} ». Ignoré.",
     "heatmap.fieldUnused":
-        "« {field} » n'a jamais fourni de valeur ici. Vérifiez le nom, ou qu'il contient bien un nombre ou une case à cocher.",
+        "« {field} » n'a jamais fourni de valeur ici. Vérifiez le nom, ou qu'il contient bien un nombre, une durée comme `7h 30m` ou une case à cocher.",
     "heatmap.layersAndField":
         "`layers` et `field` sont tous les deux définis. Utilisez l'un ou l'autre : `layers` pour plusieurs couleurs, `field` pour une seule.",
     "heatmap.layersColorIgnored": "`color` est ignoré : chaque entrée de `layers` a sa propre couleur.",
@@ -147,6 +155,8 @@ export const fr: Catalog = {
     "heatmap.cellEmptySkipped": "{date}: jour de congé",
     "heatmap.cellToday": "{cell}, aujourd'hui",
     "heatmap.legendSkipped": "Jour de congé",
+    "heatmap.durationMixed": "« {field} » mélange des durées (« {durationNote} ») et des nombres simples (« {plainNote} »). Tout est compté en minutes et affiché en nombres simples.",
+    "heatmap.durationThresholdOnPlain": "Le seuil `bands` « {value} » est une durée, mais « {field} » contient des nombres simples. Il est appliqué en minutes.",
 
     "insert.name": "Insérer un bloc",
     "insert.placeholder": "Quel bloc ?",

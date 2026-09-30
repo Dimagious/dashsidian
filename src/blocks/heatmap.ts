@@ -2,8 +2,11 @@ import type { BlockContext } from "./context";
 import { weekdayNamesShort, monthNamesShort, monthYearShort, firstDayOfWeek, formatDayMedium } from "../adapters/datetime";
 import { isMobile } from "../adapters/platform";
 import { selectNotes, readSource, unmatchedSource, type NoteRecord } from "../core/source";
-import { classifyField } from "../core/aggregate";
-import { readFields, readPerDay, dayValues, unusedFields, type DayNote } from "../core/day-values";
+import { classifyField, classifyValues } from "../core/aggregate";
+import {
+    readFields, readPerDay, dayValues, unusedFields, heatmapDurationDiagnostics, type DayNote,
+} from "../core/day-values";
+import { formatDuration } from "../core/duration";
 import { readLayers, combineLayers, type Layer } from "../core/layers";
 import { readDateField } from "../core/note-date";
 import { specialDays } from "../core/special-days";
@@ -14,7 +17,7 @@ import {
 } from "../core/calendar";
 import { parsePeriod, periodWindow, type Period } from "../core/period";
 import { toRgb, rgba, DEFAULT_COLOR, PALETTE, type Rgb } from "../core/palette";
-import { readBands, bandFor, autoBands, type Band } from "../core/bands";
+import { readBands, bandFor, autoBands, durationThresholdIn, type Band } from "../core/bands";
 import { scrollEdges, resolveScrollRestore, isEndClamp, type ScrollSnapshot } from "../core/scroll";
 import { parseConfig, isRecord, unknownKeys, describeValue, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
@@ -161,11 +164,6 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     const fieldLabel = fields.join(", ");
 
     const color = toRgb(value.color);
-    // `undefined` — never `readBands(undefined)`'s own flat default — is
-    // what tells `drawYears`/`drawRangeGrid` a scale is theirs to fit per
-    // grid (B-116, `resolveGridBands`); written explicitly, it always wins
-    // outright and the same bands cover every grid this block draws.
-    const explicitBands = value.bands !== undefined ? readBands(value.bands) : undefined;
     const linkable = value.link !== false;
     const dateField = readDateField(value);
     const skipField = readSkipField(value, diags);
@@ -174,6 +172,16 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     diags.push(...perDayDiags);
 
     const notes = selectConfiguredNotes(ctx, value, diags);
+    // B-121: every value the field(s) hold across the selection being a
+    // duration string is what turns tooltips, the caption's average and the
+    // legend into `7h 30m`; a mix of both is counted in minutes and warned.
+    const kinds = classifyValues(notes, fields);
+    const duration = kinds.kind === "duration";
+    // `undefined` — never `readBands(undefined)`'s own flat default — is
+    // what tells `drawYears`/`drawRangeGrid` a scale is theirs to fit per
+    // grid (B-116, `resolveGridBands`); written explicitly, it always wins
+    // outright and the same bands cover every grid this block draws.
+    const explicitBands = value.bands !== undefined ? readBands(value.bands, duration) : undefined;
 
     // One entry per day any of `fields` resolved on at all — see
     // `core/day-values.ts` for how a day's contributors (two notes, two
@@ -216,12 +224,13 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
             diags.push({ level: "warning", message: t("heatmap.fieldUnused", { field }) });
         }
     }
+    diags.push(...heatmapDurationDiagnostics(kinds, fieldLabel, value.bands));
 
     renderDiagnostics(el, "heatmap", diags);
 
     const firstDay = firstDayOfWeek();
     return drawHeatmap(el, ctx, marks, {
-        color, explicitBands, field: fieldLabel, linkable, title: value.title, firstDay, special,
+        color, explicitBands, field: fieldLabel, linkable, title: value.title, firstDay, special, duration,
     }, restoreByKey, range);
 }
 
@@ -298,14 +307,6 @@ function renderLayeredHeatmap(
         return;
     }
 
-    // `undefined` here, same as the plain `field` path, means each grid
-    // fits its own scale to the winning layer's own values (B-116,
-    // `resolveGridBands`); the bands legend row only earns its place next
-    // to the layers row once there is an actual scale to show, fitted or
-    // written (`resolveGridBands` again) — `readBands([])`'s own "has data"
-    // default would otherwise sit there saying nothing a layer's own
-    // colour did not already say.
-    const explicitBands = value.bands !== undefined ? readBands(value.bands) : undefined;
     const linkable = value.link !== false;
     const dateField = readDateField(value);
     const skipField = readSkipField(value, diags);
@@ -314,6 +315,27 @@ function renderLayeredHeatmap(
     diags.push(...perDayDiags);
 
     const notes = selectConfiguredNotes(ctx, value, diags);
+
+    // B-121: each layer decides its own tooltip part; the shared scale and
+    // its legend read as durations only once every layer with data holds
+    // durations, since `bands` scores whichever layer wins a cell.
+    const layerKinds = layers.map((layer) => classifyValues(notes, layer.fields));
+    const layerDurations = layerKinds.map((k) => k.kind === "duration");
+    const duration = layerDurations.some(Boolean)
+        && layerKinds.every((k) => k.kind === "duration" || k.kind === "none");
+    // `undefined` here, same as the plain `field` path, means each grid
+    // fits its own scale to the winning layer's own values (B-116,
+    // `resolveGridBands`); the bands legend row only earns its place next
+    // to the layers row once there is an actual scale to show, fitted or
+    // written (`resolveGridBands` again) — `readBands([])`'s own "has data"
+    // default would otherwise sit there saying nothing a layer's own
+    // colour did not already say.
+    // Written bands read as durations too once they are written that way and
+    // some layer holds durations: a checkbox layer beside a sleep layer
+    // should not turn `bands: [8h, 7h]` back into `480+`.
+    const bandsAsDurations = duration
+        || (durationThresholdIn(value.bands) !== undefined && layerDurations.some(Boolean));
+    const explicitBands = value.bands !== undefined ? readBands(value.bands, bandsAsDurations) : undefined;
 
     const perLayerMarks = layers.map((layer) => dayValues(notes, layer.fields, perDay, dateField));
     const marks = combineLayers(perLayerMarks, layers.map((l) => l.label));
@@ -349,6 +371,17 @@ function renderLayeredHeatmap(
             diags.push({ level: "warning", message: t("heatmap.fieldUnused", { field }) });
         }
     }
+    // A mix within one layer is that layer's own problem; two layers of
+    // different kinds are not a mix at all, only different fields. A
+    // duration threshold is worth a warning once no layer holds durations.
+    layers.forEach((layer, i) => {
+        const kind = layerKinds[i];
+        if (kind) diags.push(...heatmapDurationDiagnostics(kind, layer.fieldLabel, undefined));
+    });
+    const allKinds = classifyValues(notes, layers.flatMap((l) => l.fields));
+    if (allKinds.kind === "plain") {
+        diags.push(...heatmapDurationDiagnostics(allKinds, layers.map((l) => l.fieldLabel).join(", "), value.bands));
+    }
 
     renderDiagnostics(el, "heatmap", diags);
 
@@ -368,6 +401,8 @@ function renderLayeredHeatmap(
         title: value.title,
         firstDay,
         special,
+        duration,
+        layerDurations,
     }, restoreByKey, range);
 }
 
@@ -432,7 +467,7 @@ interface CaptionStats {
 function captionStats(
     dayKeys: readonly string[],
     marks: ReadonlyMap<string, Paintable>,
-    opts: Pick<DrawOptions, "layers">,
+    opts: Pick<DrawOptions, "layers" | "duration">,
 ): CaptionStats {
     const dayMarks = dayKeys
         .map((k) => marks.get(k))
@@ -444,9 +479,8 @@ function captionStats(
     // only the painted days used to read "average 1" for an all-boolean field
     // no matter how many days were actually unticked, which is not the rate
     // anyone reading a habit tracker would call "average".
-    const average = formatValue(
-        dayMarks.length ? dayMarks.reduce((s, m) => s + m.value, 0) / dayMarks.length : 0,
-    );
+    const mean = dayMarks.length ? dayMarks.reduce((s, m) => s + m.value, 0) / dayMarks.length : 0;
+    const average = opts.duration ? formatDuration(mean) : formatValue(mean);
 
     // Every painted day of an all-boolean field can only ever be 1: "average 1"
     // states the obvious rather than informing, so the caption drops it.
@@ -497,6 +531,7 @@ function resolveGridBands(
     marks: ReadonlyMap<string, Paintable>,
     explicit: Band[] | undefined,
     layered: boolean,
+    duration: boolean,
 ): GridBands {
     if (explicit) return { bands: explicit, showLegend: true };
 
@@ -507,7 +542,7 @@ function resolveGridBands(
     const values = numeric.map((m) => m.value);
     const allBool = numeric.length === 0;
 
-    const fitted = autoBands(values, allBool);
+    const fitted = autoBands(values, allBool, duration);
     if (fitted) return { bands: fitted, showLegend: true };
 
     return { bands: readBands(undefined), showLegend: !layered };
@@ -556,7 +591,7 @@ function drawYears(
         // B-116: this year's own scale, fitted to only the values it
         // itself paints — a second year with a narrower or wider spread
         // gets its own bands, not whatever the first year happened to fit.
-        const { bands, showLegend } = resolveGridBands(dayKeys, marks, opts.explicitBands, !!opts.layers);
+        const { bands, showLegend } = resolveGridBands(dayKeys, marks, opts.explicitBands, !!opts.layers, opts.duration);
 
         const observer = drawGrid(el, {
             key: String(year), dayKeys, offset: layout.offset, columns: layout.columns, months: layout.months,
@@ -617,7 +652,7 @@ function drawRangeGrid(
 
     // B-116: the one grid this draws gets its own scale, fitted only to
     // what it itself paints — the same rule a per-year grid follows.
-    const { bands, showLegend } = resolveGridBands(dayKeys, marks, opts.explicitBands, !!opts.layers);
+    const { bands, showLegend } = resolveGridBands(dayKeys, marks, opts.explicitBands, !!opts.layers, opts.duration);
 
     const observer = drawGrid(el, {
         key: RANGE_GRID_KEY, dayKeys, offset: layout.offset, columns: layout.columns, months: layout.months,
@@ -648,7 +683,7 @@ interface Paintable {
     painted: boolean;
     isBool?: boolean;
     layer?: number;
-    parts?: readonly { label: string; value: number }[];
+    parts?: readonly { label: string; value: number; layer: number }[];
     /** every note that contributed here (B-092) — always at least one on any mark this shape describes */
     notes: readonly DayNote[];
 }
@@ -680,6 +715,10 @@ interface DrawOptions {
     showBandsLegend: boolean;
     /** already the display form: one field name, several joined with ", ", or every layer's own label joined the same way */
     field: string;
+    /** B-121: values are durations in minutes, shown `7h 30m` in tooltips, the caption's average and the legend */
+    duration: boolean;
+    /** B-121, `layers` mode only: per layer, whether its tooltip part reads as a duration */
+    layerDurations?: readonly boolean[];
     linkable: boolean;
     title: unknown;
     /** days (B-095) any note in the selection marked special; hatched regardless of `layers` or of which one painted */
@@ -740,6 +779,15 @@ function noteSuffix(notes: readonly DayNote[]): string | undefined {
     if (notes.length === 1) return notes[0]?.name;
     if (notes.length > 1) return tPlural("heatmap.notesCount", notes.length);
     return undefined;
+}
+
+/**
+ * A cell's value for its tooltip: a duration as `7h 30m` (B-121), a plain
+ * number through `roundedValue` as before, without `formatValue`'s digit
+ * grouping, whose narrow no-break space has no business in a `title`.
+ */
+function cellValue(value: number, duration: boolean): string | number {
+    return duration ? formatDuration(value) : roundedValue(value);
 }
 
 /**
@@ -892,10 +940,12 @@ function drawGrid(
                     // them is bare punctuation, the same list separator
                     // `fieldLabel`/`fields.join(", ")` already uses above.
                     parts: paintable.parts
-                        .map((p) => t("heatmap.cellPart", { label: p.label, value: roundedValue(p.value) }))
+                        .map((p) => t("heatmap.cellPart", {
+                            label: p.label, value: cellValue(p.value, opts.layerDurations?.[p.layer] ?? false),
+                        }))
                         .join(", "),
                 })
-                : t("heatmap.cell", { date: dateLabel, field: opts.field, value: roundedValue(paintable.value) });
+                : t("heatmap.cell", { date: dateLabel, field: opts.field, value: cellValue(paintable.value, opts.duration) });
             // B-092: which note(s) this day's value came from — its name
             // when there was exactly one, "N notes" when several. Folded
             // into `baseTooltip` itself, before the day-off/today wrapping

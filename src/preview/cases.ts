@@ -75,6 +75,21 @@ items:
   - { label: Без цели, source: Diary, agg: count }`,
     },
     {
+        block: "stats",
+        title: "stats — длительности (sleep_duration: 7h 12min)",
+        source: `columns: 3
+items:
+  - { label: Средний сон, source: Diary, field: sleep_duration, agg: avg, period: week, compare: true, better: up }
+  - { label: Сон за месяц, source: Diary, field: sleep_duration, agg: sum, period: month }
+  - { label: Ночей от 7 часов, source: Diary, field: sleep_duration, agg: streak, at_least: 7h }`,
+    },
+    {
+        block: "progress",
+        title: "progress — длительность к цели 8h",
+        source: `items:
+  - { label: Сон за неделю, source: Diary, field: sleep_duration, agg: avg, period: week, goal: 8h }`,
+    },
+    {
         block: "today",
         title: "today — день, неделя, месяц",
         source: `daily: true

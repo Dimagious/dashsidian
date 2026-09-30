@@ -59,6 +59,14 @@ export function fakeVault(): NoteRecord[] {
             continue;
         }
         const wave = Math.sin(back / 9);
+        // A night's sleep as a watch export writes it (B-121): mostly
+        // `7h 12min`, every fifth night the clock form `7:12`.
+        const sleepMinutes = Math.round(420 + wave * 55);
+        const hours = Math.floor(sleepMinutes / 60);
+        const minutes = sleepMinutes % 60;
+        const sleepDuration = back % 5 === 0
+            ? `${hours}:${String(minutes).padStart(2, "0")}`
+            : `${hours}h ${minutes}min`;
         notes.push({
             path: `Diary/${dayKey(date)}.md`,
             name: dayKey(date),
@@ -67,6 +75,7 @@ export function fakeVault(): NoteRecord[] {
             frontmatter: {
                 sleep_score: Math.round(78 + wave * 14),
                 steps: Math.round(9000 + wave * 4500),
+                sleep_duration: sleepDuration,
                 // A second day off (back === 8), painted like any other day,
                 // so the same `skip_field` case also shows the hatch over a
                 // cell that keeps its own colour.

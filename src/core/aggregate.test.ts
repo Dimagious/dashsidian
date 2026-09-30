@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { aggregate, numberAt, isFalseMark, isBooleanMark, classifyField, series, isAgg } from "./aggregate";
+import {
+    aggregate, numberAt, isFalseMark, isBooleanMark, classifyField, classifyValues, series, isAgg,
+} from "./aggregate";
 import type { NoteRecord } from "./source";
 
 const day = (name: string, fm: Record<string, unknown>): NoteRecord => ({
@@ -740,5 +742,102 @@ describe("isAgg", () => {
     it("recognises its own", () => {
         expect(isAgg("avg")).toBe(true);
         expect(isAgg("median")).toBe(false);
+    });
+});
+
+// B-121: `sleep_duration: 5h 58min` is a length of time, not text.
+describe("numberAt — duration strings read as minutes", () => {
+    it("a unit form and a clock form both become minutes", () => {
+        expect(numberAt(day("x", { v: "5h 58min" }), "v")).toBe(358);
+        expect(numberAt(day("x", { v: "7:30" }), "v")).toBe(450);
+        expect(numberAt(day("x", { v: "0:51:20" }), "v")).toBeCloseTo(51 + 20 / 60, 10);
+    });
+
+    it("a numeric string stays the plain number it always was", () => {
+        expect(numberAt(day("x", { v: "90" }), "v")).toBe(90);
+    });
+
+    it("a YAML number is taken as it is: an unquoted 7:30 the parser already made 450 stays 450", () => {
+        expect(numberAt(day("x", { v: 450 }), "v")).toBe(450);
+    });
+
+    it("text around a duration is still text", () => {
+        expect(numberAt(day("x", { v: "10 km · 51min" }), "v")).toBeNull();
+        expect(numberAt(day("x", { v: "5 ч 58 мин" }), "v")).toBeNull();
+    });
+
+    it("a field of durations is usable, not text, for classifyField", () => {
+        expect(classifyField([day("x", { v: "5h 58min" })], "v")).toBe("ok");
+    });
+});
+
+describe("classifyValues", () => {
+    const sleep = [
+        day("2026-09-19", { sleep: "7h 10m" }),
+        day("2026-09-20", { sleep: "6:40" }),
+        day("2026-09-21", { note: "no sleep logged" }),
+    ];
+
+    it("every usable value a duration string: duration, naming the first note by path", () => {
+        expect(classifyValues(sleep, ["sleep"])).toEqual({ kind: "duration", durationNote: "Diary/2026-09-19.md" });
+    });
+
+    it("plain numbers and checkboxes: plain", () => {
+        expect(classifyValues(days, ["sleep_score"])).toEqual({ kind: "plain", plainNote: "Diary/2026-09-19.md" });
+        expect(classifyValues([day("a", { gym: true })], ["gym"]).kind).toBe("plain");
+    });
+
+    it("both kinds: mixed, with one note of each picked by path whatever the input order", () => {
+        const notes = [
+            day("2026-09-22", { sleep: 400 }),
+            day("2026-09-21", { sleep: "7h" }),
+            day("2026-09-20", { sleep: 420 }),
+            day("2026-09-19", { sleep: "6h 50m" }),
+        ];
+        expect(classifyValues(notes, ["sleep"])).toEqual({
+            kind: "mixed", durationNote: "Diary/2026-09-19.md", plainNote: "Diary/2026-09-20.md",
+        });
+    });
+
+    it("nothing usable, text only or no notes: none", () => {
+        expect(classifyValues([day("a", { sleep: "badly" })], ["sleep"])).toEqual({ kind: "none" });
+        expect(classifyValues([], ["sleep"])).toEqual({ kind: "none" });
+    });
+
+    it("looks across every field in the list", () => {
+        const notes = [day("a", { am: "20m", pm: 15 })];
+        expect(classifyValues(notes, ["am"]).kind).toBe("duration");
+        expect(classifyValues(notes, ["am", "pm"]).kind).toBe("mixed");
+    });
+});
+
+describe("aggregate over durations, in minutes", () => {
+    const nights = [
+        day("2026-09-19", { sleep: "5h 58min" }),
+        day("2026-09-20", { sleep: "7:30" }),
+        day("2026-09-21", { sleep: "8h" }),
+        day("2026-09-22", { sleep: "6h 45m" }),
+    ];
+
+    it("sum, avg, min, max and latest", () => {
+        expect(aggregate(nights, { agg: "sum", field: "sleep" })).toBe(358 + 450 + 480 + 405);
+        expect(aggregate(nights, { agg: "avg", field: "sleep" })).toBe((358 + 450 + 480 + 405) / 4);
+        expect(aggregate(nights, { agg: "min", field: "sleep" })).toBe(358);
+        expect(aggregate(nights, { agg: "max", field: "sleep" })).toBe(480);
+        expect(aggregate(nights, { agg: "latest", field: "sleep" })).toBe(405);
+    });
+
+    it("a streak of nights with at least 7h (420 minutes): the two in a row", () => {
+        expect(aggregate(nights, { agg: "streak", field: "sleep", atLeast: 420 })).toBe(2);
+    });
+
+    it("a mixed field counts both kinds as minutes", () => {
+        const mixed = [day("2026-09-19", { sleep: "7h" }), day("2026-09-20", { sleep: 60 })];
+        expect(aggregate(mixed, { agg: "sum", field: "sleep" })).toBe(480);
+    });
+
+    it("series sums a day's durations too", () => {
+        const today = new Date(2026, 8, 22);
+        expect(series(nights, "sleep", 3, today)).toEqual([450, 480, 405]);
     });
 });

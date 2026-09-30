@@ -1,5 +1,6 @@
 import { isRecord, describeValue } from "../shared/parse";
 import { roundedValue } from "./stat";
+import { readThreshold, formatDuration, durationFloor } from "./duration";
 import { t } from "../i18n";
 
 /** A colouring band: everything >= min gets its own alpha. */
@@ -27,28 +28,55 @@ function alphaFor(i: number): number {
  * its label: "60–79" is more honest than "60+", because values under 60 do
  * land in it but the label does not claim otherwise.
  */
-export function readBands(raw: unknown): Band[] {
+export function readBands(raw: unknown, duration = false): Band[] {
     if (!Array.isArray(raw) || raw.length === 0) {
         return [{ min: Number.NEGATIVE_INFINITY, alpha: 1, label: t("bands.hasData") }];
     }
 
-    if (raw.every((v) => typeof v === "number")) {
-        const nums = [...raw].sort((a, b) => b - a);
+    // A threshold is a number or a duration string (`8h`, `7:30`), read as
+    // minutes (core/duration.ts). With `duration`, labels read as durations,
+    // so a plain `420` on a sleep field still reads `7h` in the legend, and
+    // each band starts where its label's rounding does (`durationFloor`),
+    // the same way the fitted scale does.
+    const format = duration ? formatDuration : String;
+    const floor = (min: number): number => (duration ? durationFloor(min) : min);
+    const thresholds = raw.map((v) => readThreshold(v)?.value ?? null);
+    if (thresholds.every((v): v is number => v !== null)) {
+        const nums = [...thresholds].sort((a, b) => b - a);
         return nums.map((min, i) => ({
-            min,
+            min: floor(min),
             alpha: alphaFor(i),
-            label: i === 0 ? `${min}+` : `${min}–${(nums[i - 1] ?? min) - 1}`,
+            label: i === 0 ? `${format(min)}+` : `${format(min)}–${format((nums[i - 1] ?? min) - 1)}`,
         }));
     }
 
     return raw
         .filter(isRecord)
-        .map((b, i) => ({
-            min: typeof b.min === "number" ? b.min : Number.NEGATIVE_INFINITY,
-            alpha: typeof b.alpha === "number" ? b.alpha : alphaFor(i),
-            label: typeof b.label === "string" ? b.label : t("bands.from", { min: describeValue(b.min ?? "") }),
-        }))
+        .map((b, i) => {
+            const min = readThreshold(b.min)?.value;
+            return {
+                min: min !== undefined ? floor(min) : Number.NEGATIVE_INFINITY,
+                alpha: typeof b.alpha === "number" ? b.alpha : alphaFor(i),
+                label: typeof b.label === "string"
+                    ? b.label
+                    : t("bands.from", { min: min !== undefined ? format(min) : describeValue(b.min ?? "") }),
+            };
+        })
         .sort((a, b) => b.min - a.min);
+}
+
+/**
+ * The first `bands` threshold written as a duration string, in either shape
+ * (`[8h, 7h]` or `[{min: 7h}]`), as written; undefined when there is none.
+ * Lets the heatmap warn when such a threshold meets a field of plain numbers.
+ */
+export function durationThresholdIn(raw: unknown): string | undefined {
+    if (!Array.isArray(raw)) return undefined;
+    for (const entry of raw) {
+        const value: unknown = isRecord(entry) ? entry.min : entry;
+        if (typeof value === "string" && readThreshold(value)) return value;
+    }
+    return undefined;
 }
 
 /**
@@ -80,22 +108,43 @@ export function bandFor(bands: readonly Band[], value: number): Band | undefined
  * the narrow-integer-spread branch, or two quarter-cuts a hair apart), and
  * a label like "2–2" says nothing "2" does not already say on its own.
  */
-function boundaryLabel(lo: number, aboveLo: number | undefined, p: number): string {
-    if (aboveLo === undefined) return `${lo}+`;
+function boundaryLabel(lo: number, aboveLo: number | undefined, p: number, format: (value: number) => string): string {
+    if (aboveLo === undefined) return `${format(lo)}+`;
     const unit = 10 ** -p;
     const hi = roundedValue(aboveLo - unit, p);
-    return hi <= lo ? `${lo}` : `${lo}–${hi}`;
+    return hi <= lo ? format(lo) : `${format(lo)}–${format(hi)}`;
 }
 
+/**
+ * How a fitted scale's numbers relate to the cells it colours. The plain
+ * case fits the values as they are. A duration scale fits whole grains
+ * (minutes, or seconds when every value is under an hour), so `grain` turns
+ * a fitted number back into minutes and `format` draws it (B-121).
+ */
+interface Scale {
+    grain: number;
+    /** draws a threshold already converted back to the cells' own unit */
+    format: (value: number) => string;
+    /** the threshold a cell is compared with, in the cells' own unit */
+    minFor: (threshold: number) => number;
+}
+
+const PLAIN_SCALE: Scale = { grain: 1, format: String, minFor: (threshold) => threshold };
+
 /** `thresholds`, descending, turned into bands: `alphaFor` down from the top, `boundaryLabel` for each one against the threshold above it. */
-function bandsFromThresholds(thresholds: readonly number[], precision: number): Band[] {
+function bandsFromThresholds(thresholds: readonly number[], precision: number, scale: Scale = PLAIN_SCALE): Band[] {
     return thresholds.map((threshold, i) => {
         const lo = roundedValue(threshold, precision);
         const above = thresholds[i - 1];
         return {
-            min: threshold,
+            min: scale.minFor(threshold),
             alpha: alphaFor(i),
-            label: boundaryLabel(lo, above === undefined ? undefined : roundedValue(above, precision), precision),
+            label: boundaryLabel(
+                lo,
+                above === undefined ? undefined : roundedValue(above, precision),
+                precision,
+                (v) => scale.format(v * scale.grain),
+            ),
         };
     });
 }
@@ -190,9 +239,35 @@ function fitGeneralThresholds(min: number, max: number, values: readonly number[
  * asking `fitGeneralThresholds` for a scale, but without the quarter-cut
  * detour a range this narrow gets no value from.
  */
-export function autoBands(values: readonly number[], allBool: boolean): Band[] | null {
+export function autoBands(values: readonly number[], allBool: boolean, duration = false): Band[] | null {
     if (allBool) return null;
+    if (duration) return autoDurationBands(values);
+    return fitBands(values, PLAIN_SCALE);
+}
 
+/**
+ * `autoBands` for a field of durations (B-121), values in minutes. Fitted
+ * over whole grains, the grain a label can actually show: seconds when every
+ * value is under an hour (`51m 20s`), minutes otherwise (`7h 18m`). Every
+ * grain value is a whole number, so the plain fitting below only ever takes
+ * its integer paths and a label never needs a decimal a duration cannot say.
+ *
+ * A band's `min` sits just under its label (`durationFloor`), so a cell
+ * lands in the band its own tooltip reads as: a night of 7h 17m 40s shows
+ * `7h 18m`, and belongs in `7h 18m+`, not the band below.
+ */
+function autoDurationBands(values: readonly number[]): Band[] | null {
+    const finite = values.filter((v) => Number.isFinite(v));
+    const grain = finite.length > 0 && finite.every((v) => v < 60) ? 1 / 60 : 1;
+    return fitBands(finite.map((v) => Math.round(v / grain)), {
+        grain,
+        format: formatDuration,
+        minFor: (threshold) => durationFloor(threshold * grain),
+    });
+}
+
+/** The fitting itself, over values already in `scale`'s own grain. */
+function fitBands(values: readonly number[], scale: Scale): Band[] | null {
     const finite = values.filter((v) => Number.isFinite(v));
     if (finite.length === 0) return null;
 
@@ -205,9 +280,9 @@ export function autoBands(values: readonly number[], allBool: boolean): Band[] |
 
     if (allIntegers && span < 4) {
         const thresholds = Array.from(new Set(finite)).sort((a, b) => b - a).slice(0, DEFAULT_ALPHAS.length);
-        return bandsFromThresholds(thresholds, 0);
+        return bandsFromThresholds(thresholds, 0, scale);
     }
 
     const fitted = fitGeneralThresholds(min, max, finite);
-    return fitted ? bandsFromThresholds(fitted.thresholds, fitted.precision) : null;
+    return fitted ? bandsFromThresholds(fitted.thresholds, fitted.precision, scale) : null;
 }

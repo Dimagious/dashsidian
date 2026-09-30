@@ -47,6 +47,19 @@ describe("profileVault", () => {
         expect(profileVault(notes).field).toBe("sleep_score");
     });
 
+    // B-121: a duration string reads as minutes everywhere else now, but the
+    // examples carry plain thresholds (`bands: [90, 80, 60]`, `goal: 200,
+    // unit: km`), which would be minutes and a unit warning over it.
+    it("a duration property is passed over for a real number, even when it is the most common", () => {
+        const notes = [
+            note("Diary", "a", { sleep_duration: "7h 10m", sleep_score: 82 }),
+            note("Diary", "b", { sleep_duration: "6:40" }),
+            note("Diary", "c", { sleep_duration: "8h", sleep_score: 90 }),
+        ];
+        expect(profileVault(notes).field).toBe("sleep_score");
+        expect(profileVault([note("Diary", "a", { sleep_duration: "7h" })]).field).toBeNull();
+    });
+
     it("a vault with only a checkbox property has no field to suggest", () => {
         const notes = [
             note("Diary", "a", { gym: true }),

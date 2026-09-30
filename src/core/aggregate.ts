@@ -7,6 +7,7 @@ import { longestStreak, isWeekend, dateKey } from "./calendar";
 import { resolveNoteDate } from "./note-date";
 import { readField, hasField } from "./field";
 import { specialDays } from "./special-days";
+import { parseDuration } from "./duration";
 
 export const AGGS = ["count", "sum", "avg", "min", "max", "latest", "streak"] as const;
 export type Agg = (typeof AGGS)[number];
@@ -28,18 +29,38 @@ export function isStreakDays(v: unknown): v is StreakDays {
  * null. A YAML boolean counts too — `true` as 1, `false` as 0 — so an
  * Obsidian checkbox property doubles as a habit-tracker field. Only a real
  * boolean qualifies: the strings `"true"`/`"false"` a user might type by hand
- * stay non-numeric, unchanged.
+ * stay non-numeric, unchanged. A duration string (`5h 58min`, `7:30`) reads
+ * as its length in minutes, see core/duration.ts.
  *
  * `field` may be a dotted path into a nested frontmatter object (`health.sleep`);
  * see core/field.ts for the resolution rule.
  */
 export function numberAt(note: NoteRecord, field: string): number | null {
-    const raw = readField(note.frontmatter, field);
-    if (typeof raw === "boolean") return raw ? 1 : 0;
-    if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
+    return readNumber(readField(note.frontmatter, field))?.value ?? null;
+}
+
+/** A raw frontmatter value as a number, and whether it got there as a duration string. */
+interface ReadNumber {
+    value: number;
+    duration: boolean;
+}
+
+/**
+ * The one rule behind `numberAt` and `classifyValues`. A numeric string wins
+ * over a duration reading: `"90"` stays the plain number 90, and only text
+ * `Number()` cannot read gets a second chance as a duration (core/duration.ts),
+ * so `5h 58min` becomes 358 minutes. A YAML number is taken as it is.
+ * Obsidian hands an unquoted `7:30` over as text (checked in a live vault),
+ * so it reads as a duration without quotes.
+ */
+function readNumber(raw: unknown): ReadNumber | null {
+    if (typeof raw === "boolean") return { value: raw ? 1 : 0, duration: false };
+    if (typeof raw === "number") return Number.isFinite(raw) ? { value: raw, duration: false } : null;
     if (typeof raw === "string" && raw.trim() !== "") {
         const n = Number(raw);
-        return Number.isFinite(n) ? n : null;
+        if (Number.isFinite(n)) return { value: n, duration: false };
+        const minutes = parseDuration(raw);
+        return minutes === null ? null : { value: minutes, duration: true };
     }
     return null;
 }
@@ -57,6 +78,11 @@ export function isFalseMark(note: NoteRecord, field: string): boolean {
 /** True when the field holds a genuine YAML boolean rather than a number or a numeric string. */
 export function isBooleanMark(note: NoteRecord, field: string): boolean {
     return typeof readField(note.frontmatter, field) === "boolean";
+}
+
+/** True when the field holds a duration string (`5h 58min`) rather than a number, a numeric string or a checkbox. */
+export function isDurationMark(note: NoteRecord, field: string): boolean {
+    return readNumber(readField(note.frontmatter, field))?.duration ?? false;
 }
 
 export type FieldStatus = "missing" | "not-numeric" | "ok";
@@ -86,6 +112,53 @@ export function classifyField(notes: readonly NoteRecord[], field: string): Fiel
         if (numberAt(n, field) !== null) return "ok";
     }
     return present ? "not-numeric" : "missing";
+}
+
+/**
+ * What kind of numbers a field holds across a selection: `duration` when
+ * every usable value is a duration string, `plain` when none is, `mixed` when
+ * both turn up, `none` when nothing usable does. A checkbox counts as plain.
+ */
+export type ValueKind = "none" | "plain" | "duration" | "mixed";
+
+export interface FieldValueKind {
+    kind: ValueKind;
+    /** the first note by path holding a duration string, once any does */
+    durationNote?: string;
+    /** the first note by path holding a plain number or a checkbox, once any does */
+    plainNote?: string;
+}
+
+/**
+ * Classifies every usable value `fields` resolve to across `notes`. Decides
+ * whether a card's number is shown as a duration (`5h 58m`) or as a plain
+ * number, and names one note of each kind when a field mixes them, so the
+ * warning points at something the reader can open. Notes are picked by path,
+ * not by the order the vault handed them in, so the example never changes
+ * between two redraws of the same vault.
+ */
+export function classifyValues(notes: readonly NoteRecord[], fields: readonly string[]): FieldValueKind {
+    let durationNote: string | undefined;
+    let plainNote: string | undefined;
+    for (const n of notes) {
+        for (const field of fields) {
+            const read = readNumber(readField(n.frontmatter, field));
+            if (!read) continue;
+            if (read.duration) {
+                if (durationNote === undefined || n.path < durationNote) durationNote = n.path;
+            } else if (plainNote === undefined || n.path < plainNote) {
+                plainNote = n.path;
+            }
+        }
+    }
+    const out: FieldValueKind = {
+        kind: durationNote !== undefined
+            ? (plainNote !== undefined ? "mixed" : "duration")
+            : (plainNote !== undefined ? "plain" : "none"),
+    };
+    if (durationNote !== undefined) out.durationNote = durationNote;
+    if (plainNote !== undefined) out.plainNote = plainNote;
+    return out;
 }
 
 export interface AggregateSpec {

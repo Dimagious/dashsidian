@@ -10,6 +10,29 @@ removed public export.
 
 ## [Unreleased]
 
+### Added
+
+- **Durations count as numbers.** `sleep: 5h 58min`, `7:30` or `0:51:20`
+  used to read as text, so a card over them showed a dash. `stats`,
+  `progress` and `heatmap` now read them as minutes: `H:MM` and `H:MM:SS`,
+  or `h`, `m`/`min`, `s`/`sec`, largest first, each at most once, spaces
+  optional (`1h30m`, `45m`, `90 min`, `1.5h`). The whole value must be the
+  duration, so `10 km · 51min` stays text; localized units, ISO `PT1H30M`
+  and negatives are not read, and `H:MM` is always a duration, not a time
+  of day. When every value of the field in the selection is a duration,
+  `sum`, `avg`, `min`, `max` and `latest`, a bar's value and goal, a
+  `compare` delta, and a heatmap's tooltips, caption average and legend
+  read as `5h 58m`, `45m`, `8h` or `51m 20s`; `count` and `streak` still
+  count. `precision` has no effect there, and a `unit` is dropped with a
+  warning. `goal`, `at_least`, `at_most` and `bands` take the same formats
+  (`goal: 8h`, `bands: [8h, 7h]` or `{min: 7h}`); a plain number there
+  means minutes. A duration threshold against a field of plain numbers, a
+  duration goal on `count` or `streak`, and a field mixing durations with
+  plain numbers each warn (the last one naming a note of each kind, and
+  not on `count` or a `streak` without a threshold, where the mix changes
+  nothing shown), and are still counted in minutes. The first-run example never picks a
+  duration field.
+
 ### Fixed
 
 - **The agent skill no longer calls `heatmap.field` required.** A heatmap

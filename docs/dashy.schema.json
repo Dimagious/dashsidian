@@ -130,7 +130,7 @@
         },
         "field": {
           "type": "string",
-          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0), dotted for a nested one like `health.sleep`; required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: \"field contains ...\"` and `agg: count`",
+          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0), dotted for a nested one like `health.sleep`; required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: \"field contains ...\"` and `agg: count`. A duration string like `5h 58min`, `1h30m`, `45m`, `90 min` or `7:30` counts as minutes, and `sum`, `avg`, `min`, `max` or `latest` over a field of durations shows `5h 58m`; `H:MM` is always a duration, never a time of day. A field mixing durations and plain numbers counts both as minutes, shows a plain number and warns naming a note of each kind",
           "aliases": [
             "property",
             "prop"
@@ -145,12 +145,12 @@
           ]
         },
         "at_least": {
-          "type": "number",
-          "doc": "with `agg: streak` only: a day counts only once its notes' `field` values, summed for that day, reach this, like `at_least: 5000` steps; combine with `at_most` for a range. Needs `field`; ignored on any other aggregate"
+          "type": "number|string",
+          "doc": "with `agg: streak` only: a day counts only once its notes' `field` values, summed for that day, reach this, like `at_least: 5000` steps; combine with `at_most` for a range. Needs `field`; ignored on any other aggregate. Takes a duration like `7h` or `7:30` too, read as minutes; a plain number against a field of durations means minutes"
         },
         "at_most": {
-          "type": "number",
-          "doc": "with `agg: streak` only: a day counts only while its notes' `field` values, summed for that day, stay at or under this, like `at_most: 5` cigarettes; combine with `at_least` for a range. Needs `field`; ignored on any other aggregate"
+          "type": "number|string",
+          "doc": "with `agg: streak` only: a day counts only while its notes' `field` values, summed for that day, stay at or under this, like `at_most: 5` cigarettes; combine with `at_least` for a range. Needs `field`; ignored on any other aggregate. Takes a duration like `7h` or `7:30` too, read as minutes; a plain number against a field of durations means minutes"
         },
         "days": {
           "type": "string",
@@ -163,11 +163,11 @@
         },
         "unit": {
           "type": "string",
-          "doc": "a suffix after the number: km, %, d."
+          "doc": "a suffix after the number: km, %, d. Ignored, with a warning, on a value shown as a duration, which carries its own units."
         },
         "precision": {
           "type": "number",
-          "doc": "decimal places, 0 to 6; by default a whole number stays whole and a fraction gets one decimal"
+          "doc": "decimal places, 0 to 6; by default a whole number stays whole and a fraction gets one decimal; no effect on a value shown as a duration"
         },
         "trend": {
           "type": "string|number",
@@ -220,9 +220,9 @@
           ]
         },
         "goal": {
-          "type": "number",
+          "type": "number|string",
           "required": true,
-          "doc": "the target to fill towards; must be above zero",
+          "doc": "the target to fill towards; must be above zero; a duration like `8h` or `7:30` works too, read as minutes, and a plain number against a field of durations means minutes",
           "aliases": [
             "target"
           ]
@@ -253,7 +253,7 @@
         },
         "field": {
           "type": "string",
-          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0), dotted for a nested one like `health.sleep`; required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: \"field contains ...\"` and `agg: count`",
+          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0), dotted for a nested one like `health.sleep`; required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: \"field contains ...\"` and `agg: count`. A duration string like `5h 58min`, `1h30m`, `45m`, `90 min` or `7:30` counts as minutes, and `sum`, `avg`, `min`, `max` or `latest` over a field of durations shows `5h 58m`; `H:MM` is always a duration, never a time of day. A field mixing durations and plain numbers counts both as minutes, shows a plain number and warns naming a note of each kind",
           "aliases": [
             "property",
             "prop"
@@ -268,12 +268,12 @@
           ]
         },
         "at_least": {
-          "type": "number",
-          "doc": "with `agg: streak` only: a day counts only once its notes' `field` values, summed for that day, reach this, like `at_least: 5000` steps; combine with `at_most` for a range. Needs `field`; ignored on any other aggregate"
+          "type": "number|string",
+          "doc": "with `agg: streak` only: a day counts only once its notes' `field` values, summed for that day, reach this, like `at_least: 5000` steps; combine with `at_most` for a range. Needs `field`; ignored on any other aggregate. Takes a duration like `7h` or `7:30` too, read as minutes; a plain number against a field of durations means minutes"
         },
         "at_most": {
-          "type": "number",
-          "doc": "with `agg: streak` only: a day counts only while its notes' `field` values, summed for that day, stay at or under this, like `at_most: 5` cigarettes; combine with `at_least` for a range. Needs `field`; ignored on any other aggregate"
+          "type": "number|string",
+          "doc": "with `agg: streak` only: a day counts only while its notes' `field` values, summed for that day, stay at or under this, like `at_most: 5` cigarettes; combine with `at_least` for a range. Needs `field`; ignored on any other aggregate. Takes a duration like `7h` or `7:30` too, read as minutes; a plain number against a field of durations means minutes"
         },
         "days": {
           "type": "string",
@@ -286,11 +286,11 @@
         },
         "unit": {
           "type": "string",
-          "doc": "a suffix after the numbers: km, %, d."
+          "doc": "a suffix after the numbers: km, %, d. Ignored, with a warning, on a value shown as a duration, which carries its own units."
         },
         "precision": {
           "type": "number",
-          "doc": "decimal places, 0 to 6; by default a whole number stays whole and a fraction gets one decimal"
+          "doc": "decimal places, 0 to 6; by default a whole number stays whole and a fraction gets one decimal; no effect on a value shown as a duration"
         },
         "icon": {
           "type": "string",
@@ -412,7 +412,7 @@
         },
         "field": {
           "type": "string|list",
-          "doc": "required unless `layers` is set, and not allowed together with it: exactly one of the two. A numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty; dotted for a nested one like `health.sleep`. Also takes a list, like `[mood_am, mood_pm]`, to collapse several properties from the same note into one day with `per_day`. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: \"field contains ...\"` and `agg: count`",
+          "doc": "required unless `layers` is set, and not allowed together with it: exactly one of the two. A numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty; dotted for a nested one like `health.sleep`. Also takes a list, like `[mood_am, mood_pm]`, to collapse several properties from the same note into one day with `per_day`. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: \"field contains ...\"` and `agg: count`. A duration string like `5h 58min` or `7:30` counts as minutes, and tooltips, the caption's average and the legend then read `5h 58m`; `H:MM` is always a duration, never a time of day. A field mixing durations and plain numbers counts both as minutes, shows plain numbers and warns",
           "aliases": [
             "property",
             "prop"
@@ -445,7 +445,7 @@
         },
         "bands": {
           "type": "list",
-          "doc": "thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band. Without `bands`, each grid (a calendar year, or the one `range` window) shades itself by its own minimum and maximum: a checkbox field or a grid where every painted value is the same still paints one flat colour instead"
+          "doc": "thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band. Without `bands`, each grid (a calendar year, or the one `range` window) shades itself by its own minimum and maximum: a checkbox field or a grid where every painted value is the same still paints one flat colour instead. A threshold may be a duration, `[8h, 7h]` or `{min: 7h}`, read as minutes; a plain number against a field of durations means minutes, and the legend reads as durations"
         },
         "link": {
           "type": "boolean",
@@ -465,7 +465,7 @@
         "field": {
           "type": "string|list",
           "required": true,
-          "doc": "this layer's own numeric frontmatter property, or a checkbox; dotted for a nested one, or a list to collapse several properties into this layer's day. Same shapes as the block's own `field`",
+          "doc": "this layer's own numeric frontmatter property, or a checkbox; dotted for a nested one, or a list to collapse several properties into this layer's day. Same shapes as the block's own `field`, durations included",
           "aliases": [
             "property",
             "prop"
