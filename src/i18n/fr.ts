@@ -45,7 +45,7 @@ export const fr: Catalog = {
     "stats.badPrecision":
         "{card} : `precision` attend un entier de 0 à {max}, reçu « {value} ». Arrondi par défaut.",
     "stats.streakKeysIgnored":
-        "{card} : `at_least`, `at_most`, `days` et `skip_field` ne s'appliquent qu'à `agg: streak`, ignoré.",
+        "{card} : `at_least`, `at_most`, `days` et `skip_field` ne s'appliquent qu'à `agg: streak` et `agg: current_streak`, ignoré.",
     "stats.streakThresholdNeedsField":
         "{card} : `at_least` et `at_most` ont besoin d'un `field:` pour faire la somme. Ignoré.",
     "stats.streakThresholdInvalid": "{card} : `{key}` attend un nombre, reçu « {value} ». Ignoré.",
@@ -67,12 +67,12 @@ export const fr: Catalog = {
         "{card} : aucune des notes sélectionnées n'a un nom commençant par une date du type YYYY-MM-DD. Ajoutez `date_field:` si la date se trouve dans une propriété.",
     "period.noDatedNotesField": "{card} : aucune des notes sélectionnées n'a de date dans « {field} ».",
     "period.dateFieldUnused":
-        "{card} : `date_field` n'a aucun effet ici. Il ne pilote que `period`, `streak`, `latest` et `trend`.",
+        "{card} : `date_field` n'a aucun effet ici. Il ne pilote que `period`, `streak`, `current_streak`, `latest` et `trend`.",
 
     "compare.notBoolean": "{card} : `compare` attend true ou false, reçu « {value} ». Comparaison ignorée.",
     "compare.needsPeriod": "{card} : `compare` a besoin de `period`. Il n'y a rien avec quoi comparer.",
     "compare.streakUnsupported":
-        "{card} : `compare` ne fonctionne pas avec `streak`. Une série n'a pas de valeur propre à la période précédente à comparer.",
+        "{card} : `compare` ne fonctionne pas avec `streak` ni `current_streak`. Une série n'a pas de valeur propre à la période précédente à comparer.",
     "compare.betterUnused": "{card} : `better` n'a aucun effet sans `compare: true`.",
     "compare.badBetter": "{card} : `better` attend `up` ou `down`, reçu « {value} ». L'écart reste neutre.",
     "compare.vsWeek": "par rapport aux mêmes jours la semaine dernière : {value}",

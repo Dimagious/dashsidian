@@ -288,6 +288,7 @@ describe("dateFieldHasEffect", () => {
 
     it("streak and latest are effective even with no period", () => {
         expect(dateFieldHasEffect(false, "streak")).toBe(true);
+        expect(dateFieldHasEffect(false, "current_streak")).toBe(true);
         expect(dateFieldHasEffect(false, "latest")).toBe(true);
     });
 
@@ -532,6 +533,15 @@ describe("readCompare", () => {
         expect(diagnostics[0]?.level).toBe("warning");
         expect(diagnostics[0]?.message).toContain("Streak");
         expect(diagnostics[0]?.message).toContain("streak");
+    });
+
+    it("current_streak is refused the same way (B-118)", () => {
+        const { spec, diagnostics } = readCompare({ compare: true }, "Now", true, "current_streak");
+        expect(spec).toBeNull();
+        expect(diagnostics.map((d) => d.message)).toEqual([
+            '"Now": `compare` does not work with `streak` or `current_streak`. '
+                + "There is no separate value from the previous period to compare a streak against.",
+        ]);
     });
 
     it("every other aggregate, including latest, is left alone", () => {

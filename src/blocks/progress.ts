@@ -85,8 +85,8 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
             }
         }
 
-        // Steers `period`'s window below and, inside `aggregate`, `streak`
-        // and `latest` too — whether or not `period` is even set.
+        // Steers `period`'s window below and, inside `aggregate`, `streak`,
+        // `current_streak` and `latest` too — whether or not `period` is even set.
         const dateField = readDateField(item);
 
         const { spec: periodSpec, diagnostics: periodDiags } = readPeriod(item, label, dateField);
@@ -116,7 +116,7 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
             diags.push({ level: "warning", message: t("period.dateFieldUnused", { card: cardLabel }) });
         }
 
-        bars.push(toBar(counted, spec, label, item, dateField));
+        bars.push(toBar(counted, spec, label, item, today, dateField));
     }
 
     // Diagnostics before the bars: an error must be seen before an empty track.
@@ -158,6 +158,7 @@ function toBar(
     spec: ProgressSpec | null,
     label: string,
     item: Record<string, unknown>,
+    today: Date,
     dateField?: string,
 ): Bar {
     const bar: Bar = {
@@ -180,6 +181,7 @@ function toBar(
         atMost: spec.atMost,
         days: spec.days,
         skipField: spec.skipField,
+        today,
     });
 
     bar.value = formatValue(current, spec.precision);

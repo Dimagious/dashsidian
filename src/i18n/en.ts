@@ -47,7 +47,7 @@ export const en = {
     "stats.badPrecision":
         "{card}: `precision` expects a whole number from 0 to {max}, got \"{value}\". Rounding the default way.",
     "stats.streakKeysIgnored":
-        "{card}: `at_least`, `at_most`, `days` and `skip_field` only apply to `agg: streak`, ignored.",
+        "{card}: `at_least`, `at_most`, `days` and `skip_field` only apply to `agg: streak` and `agg: current_streak`, ignored.",
     "stats.streakThresholdNeedsField":
         "{card}: `at_least` and `at_most` need a `field:` to sum against. Ignored.",
     "stats.streakThresholdInvalid": "{card}: `{key}` expects a number, got \"{value}\". Ignored.",
@@ -69,12 +69,12 @@ export const en = {
         "{card}: none of the selected notes has a name starting with a date like YYYY-MM-DD. Add `date_field:` if the date lives in a property instead.",
     "period.noDatedNotesField": "{card}: none of the selected notes has a date in \"{field}\".",
     "period.dateFieldUnused":
-        "{card}: `date_field` has no effect here. It only steers `period`, `streak`, `latest` and `trend`.",
+        "{card}: `date_field` has no effect here. It only steers `period`, `streak`, `current_streak`, `latest` and `trend`.",
 
     "compare.notBoolean": "{card}: `compare` expects true or false, got \"{value}\". Comparison skipped.",
     "compare.needsPeriod": "{card}: `compare` needs `period` set. There is nothing to compare against.",
     "compare.streakUnsupported":
-        "{card}: `compare` does not work with `streak`. There is no separate value from the previous period to compare a streak against.",
+        "{card}: `compare` does not work with `streak` or `current_streak`. There is no separate value from the previous period to compare a streak against.",
     "compare.betterUnused": "{card}: `better` has no effect without `compare: true`.",
     "compare.badBetter": "{card}: `better` expects `up` or `down`, got \"{value}\". The delta stays neutral.",
     "compare.vsWeek": "vs the same days last week: {value}",

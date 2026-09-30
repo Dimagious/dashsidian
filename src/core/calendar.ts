@@ -289,18 +289,35 @@ export function isWeekend(day: string): boolean {
 }
 
 /**
- * The length of the run that reaches `today` inclusive.
- * If today is not in the set the run counts as broken, and the answer is 0.
+ * The length of the run still going on `today`: consecutive days counted
+ * backwards from today. Takes an arbitrary set of keys, like `longestStreak`.
+ *
+ * Today never breaks the run. When today is in the set it counts; when it is
+ * not (nothing logged yet, or not enough yet) the run is counted from
+ * yesterday backwards instead, so a morning dashboard does not read 0 before
+ * the day is over. Only a gap on yesterday or earlier breaks it.
+ *
+ * `transparent` works exactly as in `longestStreak`: a day it accepts is
+ * skipped, neither counted nor breaking the run, and that includes today and
+ * yesterday themselves (a Monday under `days: weekdays` still sees a run that
+ * ended on Friday). Days after `today` are ignored.
  */
-export function currentStreak(dates: readonly string[], today: string): number {
-    const set = new Set(dates);
-    if (!set.has(today)) return 0;
-    let run = 0;
+export function currentStreak(dates: readonly string[], today: string, options: StreakOptions = {}): number {
+    const transparent = options.transparent ?? (() => false);
+    const filled = new Set(dates.filter((d) => d <= today && !transparent(d)));
+    if (!filled.size) return 0;
+    // No filled day lies before this one, so walking past it cannot add to
+    // the run: the stop that keeps an all-transparent stretch from looping.
+    let earliest = today;
+    for (const d of filled) if (d < earliest) earliest = d;
     const cursor = new Date(`${today}T00:00:00`);
+    if (!filled.has(today)) cursor.setDate(cursor.getDate() - 1);
+    let run = 0;
     for (;;) {
         const key = dateKey(cursor);
-        if (!set.has(key)) break;
-        run++;
+        if (key < earliest) break;
+        if (filled.has(key)) run++;
+        else if (!transparent(key)) break;
         cursor.setDate(cursor.getDate() - 1);
     }
     return run;

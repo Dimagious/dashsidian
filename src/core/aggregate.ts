@@ -3,16 +3,26 @@
  */
 
 import type { NoteRecord } from "./source";
-import { longestStreak, isWeekend, dateKey } from "./calendar";
+import { longestStreak, currentStreak, isWeekend, dateKey } from "./calendar";
 import { resolveNoteDate } from "./note-date";
 import { readField, hasField } from "./field";
 import { specialDays } from "./special-days";
 
-export const AGGS = ["count", "sum", "avg", "min", "max", "latest", "streak"] as const;
+export const AGGS = ["count", "sum", "avg", "min", "max", "latest", "streak", "current_streak"] as const;
 export type Agg = (typeof AGGS)[number];
 
 export function isAgg(v: unknown): v is Agg {
     return typeof v === "string" && (AGGS as readonly string[]).includes(v);
+}
+
+/**
+ * The two run aggregates: `streak`, the longest run on record, and
+ * `current_streak`, the run still going today. They share every rule about
+ * which day is filled, and the streak-only keys (`at_least`, `at_most`,
+ * `days`, `skip_field`) apply to both.
+ */
+export function isStreakAgg(agg: Agg): boolean {
+    return agg === "streak" || agg === "current_streak";
 }
 
 /** `agg: streak`'s own `days:` key: which calendar days are even eligible to count. */
@@ -90,26 +100,33 @@ export function classifyField(notes: readonly NoteRecord[], field: string): Fiel
 
 export interface AggregateSpec {
     agg: Agg;
-    /** required for everything but count and streak */
+    /** required for everything but count, streak and current_streak */
     field?: string;
     /** a date frontmatter property to resolve a note's date from, instead of its name */
     dateField?: string;
     /**
-     * `agg: streak` only: an inclusive lower bound on a day's value, `field`'s
+     * `agg: current_streak` only: the day the run has to reach, the caller's
+     * `ctx.today()` (already shifted by the day-start hour). Required for
+     * `current_streak`: a caller that forgets it is a bug, and it throws
+     * rather than drawing a dash nobody would trace back to it.
+     */
+    today?: Date;
+    /**
+     * `agg: streak`/`current_streak` only: an inclusive lower bound on a day's value, `field`'s
      * numbers summed for that day (two notes on the same day add up, same as
      * the heatmap's default `per_day: sum`). Requires `field`; ignored otherwise.
      */
     atLeast?: number;
-    /** `agg: streak` only: an inclusive upper bound on the same summed day value. */
+    /** `agg: streak`/`current_streak` only: an inclusive upper bound on the same summed day value. */
     atMost?: number;
     /**
-     * `agg: streak` only: `"weekdays"` makes Saturday and Sunday transparent —
+     * `agg: streak`/`current_streak` only: `"weekdays"` makes Saturday and Sunday transparent —
      * they neither break the run nor add to it, whatever they hold. Unset or
      * `"all"` counts every day, unchanged from before this key existed.
      */
     days?: StreakDays;
     /**
-     * `agg: streak` only: a frontmatter property (core/special-days.ts) that
+     * `agg: streak`/`current_streak` only: a frontmatter property (core/special-days.ts) that
      * marks a day special — vacation, sick, any day that should bridge a run
      * rather than break it. Combines with `days: "weekdays"`: a day is
      * transparent when it is a weekend, special, or both.
@@ -123,6 +140,9 @@ export interface AggregateSpec {
  * no field is given); a day is resolved the same way `core/period.ts` resolves
  * one (`dateField` when set, otherwise a name starting with `YYYY-MM-DD`), and
  * two or more notes landing on the same day count as that one day.
+ * `current_streak` picks the same filled days and counts the run that
+ * reaches `spec.today` instead, with today's grace (`core/calendar.ts`'s
+ * `currentStreak`): an unfilled today counts the run from yesterday.
  * The rest aggregate the numbers held in the field.
  *
  * With `atLeast`/`atMost` set (both need `field`), a day counts only when
@@ -140,7 +160,7 @@ export interface AggregateSpec {
 export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): number | null {
     if (spec.agg === "count") return notes.length;
 
-    if (spec.agg === "streak") {
+    if (isStreakAgg(spec.agg)) {
         // A field asked for that no note here carries usably (missing,
         // present only as text, or simply no notes at all) is not a streak
         // of zero: zero is what the days themselves would say once the
@@ -182,7 +202,10 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
         const transparent = weekdaysOnly || special
             ? (day: string) => (weekdaysOnly && isWeekend(day)) || (special?.has(day) ?? false)
             : undefined;
-        return longestStreak(dates, transparent ? { transparent } : {});
+        const options = transparent ? { transparent } : {};
+        if (spec.agg === "streak") return longestStreak(dates, options);
+        if (!spec.today) throw new Error("aggregate: `current_streak` needs `today`");
+        return currentStreak(dates, dateKey(spec.today), options);
     }
 
     if (!spec.field) return null;

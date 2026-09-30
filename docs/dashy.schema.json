@@ -118,11 +118,11 @@
         },
         "date_field": {
           "type": "string",
-          "doc": "a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`. Feeds `period`'s window and the `streak`, `latest` and `trend` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period`"
+          "doc": "a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`. Feeds `period`'s window and the `streak`, `current_streak`, `latest` and `trend` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period`"
         },
         "compare": {
           "type": "boolean",
-          "doc": "show the delta against the same stretch of the previous period, to date: this week compares against the same weekdays last week, not the whole of last week. Only with `period` set, and not with `agg: streak`"
+          "doc": "show the delta against the same stretch of the previous period, to date: this week compares against the same weekdays last week, not the whole of last week. Only with `period` set, and not with `agg: streak` or `current_streak`"
         },
         "better": {
           "type": "string",
@@ -130,7 +130,7 @@
         },
         "field": {
           "type": "string",
-          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0), dotted for a nested one like `health.sleep`; required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: \"field contains ...\"` and `agg: count`",
+          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0), dotted for a nested one like `health.sleep`; required for everything but count, streak and current_streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: \"field contains ...\"` and `agg: count`",
           "aliases": [
             "property",
             "prop"
@@ -139,27 +139,27 @@
         "agg": {
           "type": "string",
           "default": "count",
-          "doc": "count sum avg min max latest streak",
+          "doc": "count sum avg min max latest streak current_streak",
           "aliases": [
             "aggregate"
           ]
         },
         "at_least": {
           "type": "number",
-          "doc": "with `agg: streak` only: a day counts only once its notes' `field` values, summed for that day, reach this, like `at_least: 5000` steps; combine with `at_most` for a range. Needs `field`; ignored on any other aggregate"
+          "doc": "with `agg: streak` or `current_streak` only: a day counts only once its notes' `field` values, summed for that day, reach this, like `at_least: 5000` steps; combine with `at_most` for a range. Needs `field`; ignored on any other aggregate"
         },
         "at_most": {
           "type": "number",
-          "doc": "with `agg: streak` only: a day counts only while its notes' `field` values, summed for that day, stay at or under this, like `at_most: 5` cigarettes; combine with `at_least` for a range. Needs `field`; ignored on any other aggregate"
+          "doc": "with `agg: streak` or `current_streak` only: a day counts only while its notes' `field` values, summed for that day, stay at or under this, like `at_most: 5` cigarettes; combine with `at_least` for a range. Needs `field`; ignored on any other aggregate"
         },
         "days": {
           "type": "string",
           "default": "all",
-          "doc": "with `agg: streak` only: `weekdays` makes Saturday and Sunday transparent, so they neither break the run nor add to it, whatever they hold; `all`, the default, counts every day. Ignored on any other aggregate"
+          "doc": "with `agg: streak` or `current_streak` only: `weekdays` makes Saturday and Sunday transparent, so they neither break the run nor add to it, whatever they hold; `all`, the default, counts every day. Ignored on any other aggregate"
         },
         "skip_field": {
           "type": "string",
-          "doc": "with `agg: streak` only: a property marking a day special, like `vacation: true` or `sick: flu`; a day is special once any note landing on it sets the property to anything other than `false`, a blank string, `0` or absent. A special day neither breaks the run nor adds to it, whatever `field` holds, the same way `days: weekdays` treats a weekend, and the two combine. Ignored on any other aggregate"
+          "doc": "with `agg: streak` or `current_streak` only: a property marking a day special, like `vacation: true` or `sick: flu`; a day is special once any note landing on it sets the property to anything other than `false`, a blank string, `0` or absent. A special day neither breaks the run nor adds to it, whatever `field` holds, the same way `days: weekdays` treats a weekend, and the two combine. Ignored on any other aggregate"
         },
         "unit": {
           "type": "string",
@@ -187,12 +187,12 @@
       },
       "example": "columns: 3\nitems:\n  - { label: Notes, source: 01-Areas, agg: count }\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }\n  - { label: Best streak, source: Diary, field: sleep_score, agg: streak }\n  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }",
       "notes": [
-        "`streak` counts the longest run of consecutive days and `latest` takes the value from the newest note, a tie on the same date broken by path. Both resolve a note's date the same way `period` does, below, and two or more notes landing on the same day count as one day. With a `field:` set, `streak` is a field aggregate like `sum` or `avg`: nothing to count shows a dash, even over an empty selection. Without a `field:` it counts every selected note's own date instead, and reads a plain `0` when there is nothing, the same as `count`. There is no current-streak aggregate, only this record: label the card \"Best streak\" or \"Longest streak\", not \"days in a row\".",
-        "`count` over nothing reads a plain `0`, the number of notes found; every other aggregate, and `streak` with a `field` set, shows a dash instead: \"no data\" and \"zero\" are different answers.",
+        "`streak` counts the longest run of consecutive days and `latest` takes the value from the newest note, a tie on the same date broken by path. Both resolve a note's date the same way `period` does, below, and two or more notes landing on the same day count as one day. With a `field:` set, `streak` is a field aggregate like `sum` or `avg`: nothing to count shows a dash, even over an empty selection. Without a `field:` it counts every selected note's own date instead, and reads a plain `0` when there is nothing, the same as `count`. `streak` is the best run on record: label the card \"Best streak\" or \"Longest streak\". `current_streak` is the run going on now, counted back from today by the same rules: label the card \"Current streak\" or \"Days in a row\". Today never breaks it: a day not filled yet leaves the run counted up to yesterday, and only a gap on yesterday or earlier resets it to `0`. It counts within the selection after `period`, `where`, `tag` and `source`, so `period: month` stops it at the first of the month.",
+        "`count` over nothing reads a plain `0`, the number of notes found; every other aggregate, and `streak` or `current_streak` with a `field` set, shows a dash instead: \"no data\" and \"zero\" are different answers.",
         "`trend` sketches the days of a trailing window ending today, scaled between the smallest and largest value in that window rather than from zero. A day without a note is left out, not drawn as a zero, and two or more notes on the same day are summed into that one day's bar.",
         "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting.",
-        "`compare` needs a note in both windows; when either the current or the previous stretch has none at all, the card shows its number alone with no delta. `streak` has no value of its own to compare and refuses `compare` outright, the way `trend` refuses `count`.",
-        "`at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. `skip_field` does the same for a day any note marks special, `vacation: true` or `sick: flu` for example, and combines with `days: weekdays`. All three keys apply to `agg: streak` only and are ignored on every other aggregate."
+        "`compare` needs a note in both windows; when either the current or the previous stretch has none at all, the card shows its number alone with no delta. `streak` and `current_streak` have no value of their own to compare and refuse `compare` outright, the way `trend` refuses `count`.",
+        "`at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak` and `current_streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. `skip_field` does the same for a day any note marks special, `vacation: true` or `sick: flu` for example, and combines with `days: weekdays`. All three keys apply to `agg: streak` and `agg: current_streak` only and are ignored on every other aggregate."
       ]
     },
     "progress": {
@@ -249,11 +249,11 @@
         },
         "date_field": {
           "type": "string",
-          "doc": "a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`. Feeds `period`'s window and the `streak` and `latest` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period`"
+          "doc": "a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`. Feeds `period`'s window and the `streak`, `current_streak` and `latest` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period`"
         },
         "field": {
           "type": "string",
-          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0), dotted for a nested one like `health.sleep`; required for everything but count and streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: \"field contains ...\"` and `agg: count`",
+          "doc": "numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0), dotted for a nested one like `health.sleep`; required for everything but count, streak and current_streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: \"field contains ...\"` and `agg: count`",
           "aliases": [
             "property",
             "prop"
@@ -262,27 +262,27 @@
         "agg": {
           "type": "string",
           "default": "count",
-          "doc": "count sum avg min max latest streak",
+          "doc": "count sum avg min max latest streak current_streak",
           "aliases": [
             "aggregate"
           ]
         },
         "at_least": {
           "type": "number",
-          "doc": "with `agg: streak` only: a day counts only once its notes' `field` values, summed for that day, reach this, like `at_least: 5000` steps; combine with `at_most` for a range. Needs `field`; ignored on any other aggregate"
+          "doc": "with `agg: streak` or `current_streak` only: a day counts only once its notes' `field` values, summed for that day, reach this, like `at_least: 5000` steps; combine with `at_most` for a range. Needs `field`; ignored on any other aggregate"
         },
         "at_most": {
           "type": "number",
-          "doc": "with `agg: streak` only: a day counts only while its notes' `field` values, summed for that day, stay at or under this, like `at_most: 5` cigarettes; combine with `at_least` for a range. Needs `field`; ignored on any other aggregate"
+          "doc": "with `agg: streak` or `current_streak` only: a day counts only while its notes' `field` values, summed for that day, stay at or under this, like `at_most: 5` cigarettes; combine with `at_least` for a range. Needs `field`; ignored on any other aggregate"
         },
         "days": {
           "type": "string",
           "default": "all",
-          "doc": "with `agg: streak` only: `weekdays` makes Saturday and Sunday transparent, so they neither break the run nor add to it, whatever they hold; `all`, the default, counts every day. Ignored on any other aggregate"
+          "doc": "with `agg: streak` or `current_streak` only: `weekdays` makes Saturday and Sunday transparent, so they neither break the run nor add to it, whatever they hold; `all`, the default, counts every day. Ignored on any other aggregate"
         },
         "skip_field": {
           "type": "string",
-          "doc": "with `agg: streak` only: a property marking a day special, like `vacation: true` or `sick: flu`; a day is special once any note landing on it sets the property to anything other than `false`, a blank string, `0` or absent. A special day neither breaks the run nor adds to it, whatever `field` holds, the same way `days: weekdays` treats a weekend, and the two combine. Ignored on any other aggregate"
+          "doc": "with `agg: streak` or `current_streak` only: a property marking a day special, like `vacation: true` or `sick: flu`; a day is special once any note landing on it sets the property to anything other than `false`, a blank string, `0` or absent. A special day neither breaks the run nor adds to it, whatever `field` holds, the same way `days: weekdays` treats a weekend, and the two combine. Ignored on any other aggregate"
         },
         "unit": {
           "type": "string",
@@ -307,10 +307,10 @@
       "example": "items:\n  - { label: Days logged this year, source: Diary, agg: count, period: year, goal: 365 }\n  - { label: Running volume, source: Diary, field: distance_km, agg: sum, goal: 200, unit: km }",
       "notes": [
         "Going past the goal is shown as it is, 125% stays 125%; only the bar itself stops at full.",
-        "`count` over nothing reads a plain `0` and an empty bar; every other aggregate, and `streak` with a `field` set, shows a dash instead: \"no data\" and \"zero\" are different answers.",
-        "`streak` counts the longest run of consecutive days on record, not the run still going today; label the bar \"Best streak\" or \"Longest streak\".",
+        "`count` over nothing reads a plain `0` and an empty bar; every other aggregate, and `streak` or `current_streak` with a `field` set, shows a dash instead: \"no data\" and \"zero\" are different answers.",
+        "`streak` counts the longest run of consecutive days on record; label the bar \"Best streak\" or \"Longest streak\". `current_streak` counts the run going on now, label it \"Current streak\" or \"Days in a row\": today never breaks it, a day not filled yet leaves the run counted up to yesterday, and only a gap on yesterday or earlier resets it. It counts within the selection after `period`, `where`, `tag` and `source`, so `period: month` stops it at the first of the month.",
         "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting.",
-        "`at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. `skip_field` does the same for a day any note marks special, `vacation: true` or `sick: flu` for example, and combines with `days: weekdays`. All three keys apply to `agg: streak` only and are ignored on every other aggregate."
+        "`at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak` and `current_streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. `skip_field` does the same for a day any note marks special, `vacation: true` or `sick: flu` for example, and combines with `days: weekdays`. All three keys apply to `agg: streak` and `agg: current_streak` only and are ignored on every other aggregate."
       ]
     },
     "today": {

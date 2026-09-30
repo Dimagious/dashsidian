@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderStats } from "./stats";
 import { mockContext, diary, recentDiary, host, texts, nodes, diagnostics } from "../test/vault";
+import { DEFAULT_SETTINGS } from "../types";
 
 // 10 days, sleep_score 70..79, steps 1000..1900, two of them tagged.
 const ctx = mockContext({
@@ -1183,5 +1184,84 @@ describe("stats — streak threshold and weekdays, end to end (B-101)", () => {
         expect(diagnostics(el, "warning")[0]).toContain("all");
         // Falls back to counting every day: same as the plain streak card above.
         expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
+    });
+});
+
+describe("stats — current_streak, end to end (B-118)", () => {
+    afterEach(() => vi.useRealTimers());
+
+    // 2026-09-22 is a Tuesday. 1..4 September is an older, longer run.
+    const gym = mockContext({
+        notes: [
+            ...diary("Diary", "2026-09-01", 4, () => ({ gym: true })),
+            { path: "Diary/2026-09-20.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-21.md", frontmatter: { gym: true } },
+        ],
+    });
+    const config = `items:
+  - { label: Best streak, source: Diary, field: gym, agg: streak }
+  - { label: Days in a row, source: Diary, field: gym, agg: current_streak }`;
+
+    it("draws the run going on now next to the best one, with today not logged yet", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 8, 22, 12));
+        const el = host();
+        renderStats(gym, config, el);
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["4", "2"]);
+    });
+
+    it("a missed yesterday resets it to 0, while the best run stays", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 8, 23, 12));
+        const el = host();
+        renderStats(gym, config, el);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["4", "0"]);
+    });
+
+    it("today follows the day-start hour: at 02:00 with a 04:00 start it is still yesterday", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 8, 22, 2));
+        const late = mockContext({
+            notes: [
+                { path: "Diary/2026-09-20.md", frontmatter: { gym: true } },
+                { path: "Diary/2026-09-21.md", frontmatter: { gym: true } },
+                // Not yet today at 02:00 under a 04:00 start: ignored.
+                { path: "Diary/2026-09-22.md", frontmatter: { gym: true } },
+            ],
+        }, { ...DEFAULT_SETTINGS, startDayHour: 4 });
+        const el = host();
+        renderStats(late, "items:\n  - { label: Now, source: Diary, field: gym, agg: current_streak }", el);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["2"]);
+    });
+
+    it("`period: month` stops it at the first of the month", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 9, 2, 12));
+        const across = mockContext({ notes: diary("Diary", "2026-09-28", 5, () => ({ gym: true })) });
+        const el = host();
+        renderStats(across, `items:
+  - { label: Now, source: Diary, field: gym, agg: current_streak }
+  - { label: This month, source: Diary, field: gym, agg: current_streak, period: month }`, el);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["5", "2"]);
+    });
+
+    it("refuses compare like streak does, and still draws its number", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 8, 22, 12));
+        const el = host();
+        renderStats(gym, "items:\n  - { label: Now, source: Diary, field: gym, agg: current_streak, period: week, compare: true }", el);
+        expect(diagnostics(el, "warning")[0]).toContain("current_streak");
+        expect(nodes(el, ".dashy-stat-delta")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["2"]);
+    });
+
+    it("a field nothing carries is a dash with a warning, not 0", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 8, 22, 12));
+        const el = host();
+        renderStats(gym, "items:\n  - { label: Now, source: Diary, field: nope, agg: current_streak }", el);
+        expect(diagnostics(el, "warning")[0]).toContain("nope");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
     });
 });

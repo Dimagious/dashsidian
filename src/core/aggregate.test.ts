@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { aggregate, numberAt, isFalseMark, isBooleanMark, classifyField, series, isAgg } from "./aggregate";
+import { aggregate, numberAt, isFalseMark, isBooleanMark, classifyField, series, isAgg, isStreakAgg } from "./aggregate";
+import { filterByPeriod } from "./period";
 import type { NoteRecord } from "./source";
 
 const day = (name: string, fm: Record<string, unknown>): NoteRecord => ({
@@ -739,6 +740,147 @@ describe("series", () => {
 describe("isAgg", () => {
     it("recognises its own", () => {
         expect(isAgg("avg")).toBe(true);
+        expect(isAgg("current_streak")).toBe(true);
         expect(isAgg("median")).toBe(false);
+    });
+});
+
+describe("isStreakAgg", () => {
+    it("is true for the two run aggregates only", () => {
+        expect(isStreakAgg("streak")).toBe(true);
+        expect(isStreakAgg("current_streak")).toBe(true);
+        expect(isStreakAgg("count")).toBe(false);
+        expect(isStreakAgg("sum")).toBe(false);
+    });
+});
+
+describe("aggregate: current_streak (B-118)", () => {
+    // A Tuesday. 2026-09-21 is the Monday before it, 2026-09-19/20 the weekend.
+    const TODAY = new Date(2026, 8, 22);
+    const ticked = (...names: string[]): NoteRecord[] => names.map((n) => day(n, { v: 1 }));
+    const current = (notes: readonly NoteRecord[], extra: Partial<Parameters<typeof aggregate>[1]> = {}) =>
+        aggregate(notes, { agg: "current_streak", field: "v", today: TODAY, ...extra });
+
+    it("counts the run that includes today", () => {
+        expect(current(ticked("2026-09-20", "2026-09-21", "2026-09-22"))).toBe(3);
+    });
+
+    it("is the run going on now, not the longest one on record", () => {
+        const notes = ticked("2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04", "2026-09-21", "2026-09-22");
+        expect(current(notes)).toBe(2);
+        expect(aggregate(notes, { agg: "streak", field: "v" })).toBe(4);
+    });
+
+    it("today not filled yet counts the run from yesterday", () => {
+        expect(current(ticked("2026-09-19", "2026-09-20", "2026-09-21"))).toBe(3);
+    });
+
+    it("a gap on yesterday is 0 while today is empty, and 1 once today is filled", () => {
+        expect(current(ticked("2026-09-19", "2026-09-20"))).toBe(0);
+        expect(current(ticked("2026-09-19", "2026-09-20", "2026-09-22"))).toBe(1);
+    });
+
+    it("today below `at_least` is still grace: the run up to yesterday stands", () => {
+        const notes = [
+            day("2026-09-20", { steps: 6000 }),
+            day("2026-09-21", { steps: 7000 }),
+            day("2026-09-22", { steps: 100 }),
+        ];
+        expect(current(notes, { field: "steps", atLeast: 5000 })).toBe(2);
+    });
+
+    it("a threshold day is the sum of its notes, so two halves make a day", () => {
+        const notes = [
+            day("2026-09-20", { steps: 6000 }),
+            noteAt("Diary/2026-09-21 morning.md", "2026-09-21 morning", { steps: 3000 }),
+            noteAt("Diary/2026-09-21 evening.md", "2026-09-21 evening", { steps: 3000 }),
+            day("2026-09-22", { steps: 5000 }),
+        ];
+        expect(current(notes, { field: "steps", atLeast: 5000 })).toBe(3);
+        // One half alone is not enough, and yesterday breaks the run.
+        expect(current(notes.filter((n) => n.name !== "2026-09-21 evening"), { field: "steps", atLeast: 5000 }))
+            .toBe(1);
+    });
+
+    it("`at_most` above today's value counts today, below it leaves today to grace", () => {
+        const notes = [day("2026-09-21", { cigs: 2 }), day("2026-09-22", { cigs: 9 })];
+        expect(current(notes, { field: "cigs", atMost: 5 })).toBe(1);
+        expect(current(notes, { field: "cigs", atMost: 10 })).toBe(2);
+    });
+
+    it("days: weekdays keeps a run ending Friday alive on an unfilled Monday", () => {
+        const monday = new Date(2026, 8, 21);
+        const notes = ticked("2026-09-16", "2026-09-17", "2026-09-18");
+        expect(current(notes, { days: "weekdays", today: monday })).toBe(3);
+        expect(current([...notes, ...ticked("2026-09-21")], { days: "weekdays", today: monday })).toBe(4);
+        // Without it the weekend is two missing days.
+        expect(current(notes, { today: monday })).toBe(0);
+    });
+
+    it("a skip_field day inside the run bridges it without counting", () => {
+        const notes = [
+            ...ticked("2026-09-17", "2026-09-19", "2026-09-20", "2026-09-21"),
+            day("2026-09-18", { vacation: true }),
+        ];
+        expect(current(notes, { skipField: "vacation" })).toBe(4);
+        expect(current(notes)).toBe(3);
+    });
+
+    it("a skip_field day on yesterday keeps the run alive while today is empty", () => {
+        const notes = [...ticked("2026-09-19", "2026-09-20"), day("2026-09-21", { vacation: true })];
+        expect(current(notes, { skipField: "vacation" })).toBe(2);
+        expect(current(notes)).toBe(0);
+    });
+
+    it("several notes on one day are one day", () => {
+        const notes = [
+            noteAt("Personal/2026-09-21.md", "2026-09-21", { v: 1 }),
+            noteAt("Work/2026-09-21.md", "2026-09-21", { v: 1 }),
+            day("2026-09-22", { v: 1 }),
+        ];
+        expect(current(notes)).toBe(2);
+    });
+
+    it("a note dated after today is ignored", () => {
+        expect(current(ticked("2026-09-21", "2026-09-22", "2026-09-23"))).toBe(2);
+        expect(current(ticked("2026-09-23", "2026-09-24"))).toBe(0);
+    });
+
+    it("an unticked checkbox breaks the run like a missing day", () => {
+        const notes = [day("2026-09-20", { v: true }), day("2026-09-21", { v: false })];
+        expect(current(notes)).toBe(0);
+        expect(current([...notes, day("2026-09-22", { v: true })])).toBe(1);
+    });
+
+    it("a field no note carries, or only as text, is a dash, not 0", () => {
+        expect(current(ticked("2026-09-21", "2026-09-22"), { field: "nope" })).toBeNull();
+        expect(current([day("2026-09-22", { v: "ten km" })])).toBeNull();
+        expect(current([])).toBeNull();
+    });
+
+    it("with no field every selected note counts, and nothing selected is an honest 0", () => {
+        const notes = [day("2026-09-21", {}), day("2026-09-22", {})];
+        expect(aggregate(notes, { agg: "current_streak", today: TODAY })).toBe(2);
+        expect(aggregate([], { agg: "current_streak", today: TODAY })).toBe(0);
+    });
+
+    it("date_field decides the day, as it does for streak", () => {
+        const notes = [
+            noteAt("Books/a.md", "a", { finished: "2026-09-21" }),
+            noteAt("Books/b.md", "b", { finished: "2026-09-22T10:30" }),
+        ];
+        expect(aggregate(notes, { agg: "current_streak", dateField: "finished", today: TODAY })).toBe(2);
+    });
+
+    it("`period: month` caps the run at the first of the month", () => {
+        const notes = ticked("2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02");
+        const today = new Date(2026, 9, 2);
+        expect(current(notes, { today })).toBe(5);
+        const month = filterByPeriod(notes, { kind: "month" }, today, 1).notes;
+        expect(current(month, { today })).toBe(2);
+    });
+
+    it("without a today to measure against it throws: a missing today is a caller bug", () => {
+        expect(() => aggregate(ticked("2026-09-22"), { agg: "current_streak", field: "v" })).toThrow(/needs `today`/);
     });
 });

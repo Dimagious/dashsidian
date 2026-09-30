@@ -7,14 +7,14 @@
  * see core/bands.ts.
  */
 
-import { AGGS, isAgg, isStreakDays, type Agg, type StreakDays } from "./aggregate";
+import { AGGS, isAgg, isStreakAgg, isStreakDays, type Agg, type StreakDays } from "./aggregate";
 import { readTrendDays } from "./sparkline";
 import { nearest, describeValue, type Diagnostic } from "../shared/parse";
 import { t } from "../i18n";
 
 export interface StatSpec {
     agg: Agg;
-    /** required for everything but count and streak */
+    /** required for everything but count, streak and current_streak */
     field?: string;
     /** a suffix after the number: km, %, d. */
     unit?: string;
@@ -22,18 +22,18 @@ export interface StatSpec {
     precision?: number;
     /** how many days of history to sketch beside the number */
     trend?: number;
-    /** `agg: streak` only: inclusive lower bound on a day's summed field value */
+    /** `agg: streak`/`current_streak` only: inclusive lower bound on a day's summed field value */
     atLeast?: number;
-    /** `agg: streak` only: inclusive upper bound on a day's summed field value */
+    /** `agg: streak`/`current_streak` only: inclusive upper bound on a day's summed field value */
     atMost?: number;
-    /** `agg: streak` only: unset/`"all"` counts every day, `"weekdays"` skips Saturday and Sunday */
+    /** `agg: streak`/`current_streak` only: unset/`"all"` counts every day, `"weekdays"` skips Saturday and Sunday */
     days?: StreakDays;
-    /** `agg: streak` only: a property marking a day special (vacation, sick); see core/special-days.ts */
+    /** `agg: streak`/`current_streak` only: a property marking a day special (vacation, sick); see core/special-days.ts */
     skipField?: string;
 }
 
 /** Aggregates that need no field: they count notes, not numbers inside them. */
-const FIELDLESS: readonly Agg[] = ["count", "streak"];
+const FIELDLESS: readonly Agg[] = ["count", "streak", "current_streak"];
 
 const MAX_PRECISION = 6;
 
@@ -71,7 +71,7 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
     // Checked against the raw agg, ahead of everything else below, so it
     // fires whatever else is also wrong with the card (a missing `field`
     // included) rather than only when the rest of the card parses cleanly.
-    if (rawAgg !== "streak" && (item.at_least !== undefined || item.at_most !== undefined
+    if (!isStreakAgg(rawAgg) && (item.at_least !== undefined || item.at_most !== undefined
         || item.days !== undefined || item.skip_field !== undefined)) {
         diagnostics.push({ level: "warning", message: t("stats.streakKeysIgnored", { card }) });
     }
@@ -117,7 +117,7 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
         }
     }
 
-    if (rawAgg === "streak") {
+    if (isStreakAgg(rawAgg)) {
         if (item.at_least !== undefined || item.at_most !== undefined) {
             if (!field) {
                 diagnostics.push({ level: "warning", message: t("stats.streakThresholdNeedsField", { card }) });
