@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weekly chart in Obsidian, a Tracker alternative · Dashy</title>
+<meta name="description" content="Sum a number from your daily notes by week and draw it as bars, with a goal line, in Obsidian. A Tracker alternative without JavaScript: weeks you skipped stay empty, the current week is marked. YAML you can copy.">
+<link rel="canonical" href="https://dimagious.github.io/dashsidian/guides/weekly-chart-tracker-alternative/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%238b6cef'/%3E%3Crect x='7' y='7.5' width='11' height='3' rx='1.5' fill='%23fff'/%3E%3Crect x='7' y='13' width='8.5' height='7' rx='2' fill='%23fff' fill-opacity='.55'/%3E%3Crect x='16.5' y='13' width='8.5' height='7' rx='2' fill='%23fff'/%3E%3Crect x='7' y='22.5' width='18' height='3' rx='1.5' fill='%23fff' fill-opacity='.35'/%3E%3Crect x='7' y='22.5' width='12' height='3' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Dashy">
+<meta property="og:url" content="https://dimagious.github.io/dashsidian/guides/weekly-chart-tracker-alternative/">
+<meta property="og:title" content="A weekly chart in Obsidian without Tracker">
+<meta property="og:description" content="A number from daily notes, summed by week, as bars with a goal line. Six lines of YAML.">
+<meta property="og:image" content="https://dimagious.github.io/dashsidian/img/chart-weekly-light.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="../../assets/site.css">
+<link rel="stylesheet" href="../../assets/guides.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"HowTo","name":"A weekly chart in Obsidian without Tracker","step":[
+{"@type":"HowToStep","name":"Put the number in a property"},
+{"@type":"HowToStep","name":"Add it up by week"},
+{"@type":"HowToStep","name":"Several numbers side by side"}]}
+</script>
+</head>
+<body>
+<!--shell:top tab="Weekly chart without Tracker"-->
+
+    <main class="note guide" id="note">
+      <article class="file" style="padding-top:34px">
+        <div class="crumb">Guides/Weekly chart without Tracker.md</div>
+        <h1 class="inline-title">A weekly chart in Obsidian without Tracker</h1>
+
+        <div class="props" aria-label="Properties">
+          <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
+          <div class="prop"><div class="k"><svg><use href="#i-tag"/></svg>blocks</div><div class="v"><span class="pill">chart</span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>reads</div><div class="v">number properties in daily notes</div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>needs dataview</div><div class="v"><span class="check off" aria-label="no"></span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
+        </div>
+
+        <p class="lede">You log a number in each daily note and want the weekly total as bars, with a line for your goal. Tracker draws a bar per day and has no way to add a week up. Dashy's <code>chart</code> block does it in six lines.</p>
+
+        <div class="callout warn">
+          <div class="callout-title"><svg><use href="#i-alert"/></svg>Obsidian Charts turned on? Write <code>dashy-chart</code></div>
+          <p>Obsidian Charts also uses the <code>chart</code> code block. When Charts is on, Dashy leaves <code>chart</code> to it, so your Charts blocks keep working. Name the blocks below <code>dashy-chart</code> instead of <code>chart</code>: same keys, always Dashy.</p>
+        </div>
+
+        <figure class="shot">
+          <picture>
+            <source data-dark srcset="../../img/chart-weekly-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="../../img/chart-weekly-light.png" width="700" height="223" alt="Weekly bars of running distance over half a year, a dashed goal line at 30 km, the current week drawn lighter">
+          </picture>
+          <figcaption>What you have at the end of step 2. Two weeks with no runs are a gap, not a zero. From a demo vault.</figcaption>
+        </figure>
+
+        <nav class="toc" aria-label="On this page">
+          <b>ON THIS PAGE</b>
+          <ol>
+            <li><a href="#daily-note">Put the number in a property</a></li>
+            <li><a href="#weekly">Add it up by week</a></li>
+            <li><a href="#series">Several numbers side by side</a></li>
+            <li><a href="#full">The whole note</a></li>
+            <li><a href="#other-ways">With Tracker or dataviewjs</a></li>
+            <li><a href="#variations">Variations</a></li>
+            <li><a href="#errors">If a block shows an error</a></li>
+            <li><a href="#related">Related guides</a></li>
+          </ol>
+        </nav>
+
+        <!-- ============ 1 ============ -->
+        <h2 class="step" id="daily-note" data-short="Put the number in a property"><span class="n">1</span>Put the number in a property</h2>
+        <p>Dashy reads frontmatter only: the Properties at the top of a note. One number property per thing you measure.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Diary/2026-09-14.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">---
+run_km: 8.5
+---
+
+## 2026-09-14</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>2026-09-14</code><span>The note's name is its date. That is how a value lands in its week.</span></li>
+          <li><code>run_km: 8.5</code><span>A plain number. A day with no run leaves the property out.</span></li>
+        </ul>
+        <p>Coming from Tracker, your numbers may live in the text of the note, as a tag or a Dataview inline field. Dashy does not read either. Move each one into a property, by hand or with find and replace:</p>
+        <div class="two">
+          <div class="codeblock other" data-code>
+            <div class="bar"><span>Before: in the text</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">Easy run by the river. #run:8.5
+
+run_km:: 8.5</code></pre>
+          </div>
+          <div class="codeblock" data-code>
+            <div class="bar"><span>After: a property</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">---
+run_km: 8.5
+---
+
+Easy run by the river.</code></pre>
+          </div>
+        </div>
+
+        <!-- ============ 2 ============ -->
+        <h2 class="step" id="weekly" data-short="Add it up by week"><span class="n">2</span>Add it up by week</h2>
+        <p>Make a note for the chart, say <code>Running.md</code>, and paste this block. It draws the picture above.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Running.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```chart
+source: Diary
+field: run_km
+type: bar
+bucket: week
+unit: km
+goal: 30
+```</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>bucket: week</code><span>Adds up every value in a week. The week starts on Monday or Sunday, as your language has it.</span></li>
+          <li><code>type: bar</code><span>Bars. Leave it out for a line.</span></li>
+          <li><code>goal: 30</code><span>A dashed line at 30, with its value. The axis always stretches to show it.</span></li>
+          <li>Range<span>By default the last 182 days for weeks. <code>range: 90d</code> or <code>range: year</code> to change it.</span></li>
+        </ul>
+        <p>The week you are in is drawn lighter, and its tooltip says "so far". A week with no runs is a gap, never a zero. Hover a bar for its total.</p>
+
+        <!-- ============ 3 ============ -->
+        <h2 class="step" id="series" data-short="Several numbers side by side"><span class="n">3</span>Several numbers side by side</h2>
+        <p>Up to four properties on one chart with <code>series</code>, each its own bar. Times work as they are written: <code>51min</code>, <code>1h 12m</code>, <code>0:48:30</code>.</p>
+        <div class="pair">
+          <div class="codeblock" data-code>
+            <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Running.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```chart
+source: Diary
+type: bar
+bucket: week
+series:
+  - { field: run_time, label: Run }
+  - { field: bike_time, label: Bike, color: orange }
+  - { field: swim_time, label: Swim, color: cyan }
+```</code></pre>
+          </div>
+          <div>
+            <div class="renders">renders as</div>
+            <figure class="shot plain">
+              <picture>
+                <source data-dark srcset="../../img/chart-series-dark.png" media="(prefers-color-scheme: dark)">
+                <img src="../../img/chart-series-light.png" width="700" height="223" loading="lazy" alt="Grouped weekly bars for run, bike and swim time, the y axis labelled in hours">
+              </picture>
+            </figure>
+          </div>
+        </div>
+        <p>Bars stand side by side, never stacked, on one axis. For two numbers on different scales, steps and sleep for example, use two chart blocks.</p>
+
+        <!-- ============ full ============ -->
+        <h2 id="full" data-short="The whole note">The whole note</h2>
+        <p>Both charts in one piece, ready to paste into an empty note.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Running.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```chart
+source: Diary
+field: run_km
+type: bar
+bucket: week
+unit: km
+goal: 30
+```
+
+```chart
+source: Diary
+type: bar
+bucket: week
+series:
+  - { field: run_time, label: Run }
+  - { field: bike_time, label: Bike, color: orange }
+  - { field: swim_time, label: Swim, color: cyan }
+```</code></pre>
+        </div>
+
+        <!-- ============ other ways ============ -->
+        <h2 id="other-ways" data-short="With Tracker or dataviewjs">The same chart with Tracker or dataviewjs</h2>
+        <p>Both read the same <code>run_km</code> property.</p>
+
+        <div class="vs" data-tabs>
+          <div class="seg" role="tablist" aria-label="Other ways to build it">
+            <button type="button" role="tab" id="tab-tracker" aria-controls="panel-tracker" aria-selected="true">tracker</button>
+            <button type="button" role="tab" id="tab-dvjs" aria-controls="panel-dvjs" aria-selected="false">dataviewjs</button>
+          </div>
+
+          <div class="vs-panel" id="panel-tracker" role="tabpanel" aria-labelledby="tab-tracker">
+            <div class="codeblock other" data-code>
+              <div class="bar"><span>With the Tracker plugin</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```tracker
+searchType: frontmatter
+searchTarget: run_km
+folder: Diary
+startDate: -6M
+endDate: 0d
+bar:
+    title: Running
+    yAxisLabel: Distance
+    yAxisUnit: km
+```</code></pre>
+            </div>
+            <ul>
+              <li>One bar per day. Tracker has no setting to add up a week; that is an <a href="https://github.com/pyrochlore/obsidian-tracker/issues/518">open request</a>.</li>
+              <li>Tracker's docs list no goal line for bar or line charts.</li>
+              <li>Tracker also reads tags (<code>searchType: tag</code>), inline fields (<code>searchType: dvField</code>) and text. If you keep it for that, keep it.</li>
+            </ul>
+          </div>
+
+          <div class="vs-panel" id="panel-dvjs" role="tabpanel" aria-labelledby="tab-dvjs">
+            <div class="codeblock other" data-code>
+              <div class="bar"><span>With Dataview and Obsidian Charts</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">```dataviewjs
+const weeks = {};
+for (const p of dv.pages('"Diary"').where(p => p.run_km && p.file.day)) {
+  const key = p.file.day.startOf("week").toFormat("yyyy-MM-dd");
+  weeks[key] = (weeks[key] ?? 0) + p.run_km;
+}
+const labels = Object.keys(weeks).sort().slice(-26);
+window.renderChart({
+  type: "bar",
+  data: { labels, datasets: [{ label: "Run, km", data: labels.map(k => weeks[k]) }] },
+}, this.container);
+```</code></pre>
+            </div>
+            <ul>
+              <li>Two plugins: Dataview with <b>Enable JavaScript queries</b> on, and Obsidian Charts for <code>renderChart</code>.</li>
+              <li>A week with no runs has no key in <code>weeks</code>, so it drops off the axis instead of showing as a gap.</li>
+            </ul>
+            <figure class="shot" style="margin-top:14px">
+              <picture>
+                <source data-dark srcset="../../img/compare-dark.png" media="(prefers-color-scheme: dark)">
+                <img src="../../img/compare-light.png" width="700" height="744" loading="lazy" alt="The same weekly running chart twice: the dataviewjs and Obsidian Charts version with rotated ISO week labels and the no-run weeks missing from its axis, and the Dashy chart with the empty weeks as a gap and a dashed 30 km goal line">
+              </picture>
+              <figcaption>This script on top, the Dashy block from step 2 below. Same notes.</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="cmp">
+            <thead><tr><th></th><th class="us">Dashy</th><th>Tracker</th><th>dataviewjs</th></tr></thead>
+            <tbody>
+              <tr><td>Weekly totals</td><td data-h="Dashy" class="us"><span><code>bucket: week</code></span></td><td data-h="Tracker"><span>No, a bar per day</span></td><td data-h="dataviewjs"><span>Group in code</span></td></tr>
+              <tr><td>A week with no data</td><td data-h="Dashy" class="us"><span>A gap</span></td><td data-h="Tracker"><span>Days with no note have no bar</span></td><td data-h="dataviewjs"><span>Drops off the axis</span></td></tr>
+              <tr><td>Goal line</td><td data-h="Dashy" class="us"><span><code>goal</code></span></td><td data-h="Tracker"><span>Not in the docs</span></td><td data-h="dataviewjs"><span>Write it</span></td></tr>
+              <tr><td>Reads tags and inline fields</td><td data-h="Dashy" class="us"><span>No, properties only</span></td><td data-h="Tracker"><span>Yes</span></td><td data-h="dataviewjs"><span>Inline fields, yes</span></td></tr>
+              <tr><td>What you install</td><td data-h="Dashy" class="us"><span>Dashy</span></td><td data-h="Tracker"><span>Tracker</span></td><td data-h="dataviewjs"><span>Dataview and Obsidian Charts</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ============ variations ============ -->
+        <h2 id="variations" data-short="Variations">Variations</h2>
+        <div class="vars">
+          <div class="var">
+            <h3>By month, this year</h3>
+            <p>A bar per calendar month, from 1 January to today.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>chart</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```chart
+source: Diary
+field: run_km
+type: bar
+bucket: month
+range: year
+unit: km
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>A weekly average</h3>
+            <p>Sleep is not a total. <code>agg: avg</code> takes the week's average instead of its sum.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>chart</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```chart
+source: Diary
+field: sleep
+agg: avg
+bucket: week
+goal: 8h
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>Habit days per week</h3>
+            <p>A checkbox sums to the number of ticked days in each week.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>chart</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```chart
+source: Diary
+field: gym
+type: bar
+bucket: week
+goal: 3
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>Notes per week</h3>
+            <p><code>agg: count</code> needs no property: it counts the dated notes in each week.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>chart</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```chart
+source: Diary
+agg: count
+type: bar
+bucket: week
+```</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ errors ============ -->
+        <h2 id="errors" data-short="If a block shows an error">If a block shows an error</h2>
+        <p>A Dashy chart that cannot draw says why, inside the note. The usual three:</p>
+        <ul>
+          <li><b>An error from Obsidian Charts, not from Dashy.</b> With Charts on, a <code>chart</code> block is Charts'. Write <code>dashy-chart</code>.</li>
+          <li><b>None of the selected notes has a name starting with a date like YYYY-MM-DD.</b> Rename the daily notes, or add <code>date_field: date</code> if the date is a property.</li>
+          <li><b>"run_km" holds text or another value that is not a number.</b> Something like <code>run_km: 8.5 km</code>. Keep the number alone and put the unit in <code>unit: km</code>.</li>
+        </ul>
+
+        <!-- ============ related ============ -->
+        <h2 id="related" data-short="Related guides">Related guides</h2>
+        <div class="cards small">
+          <a class="card" href="../habit-tracker-without-dataview/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/habits-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/habits-light.png" width="700" height="369" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A habit tracker without Dataview</span><p class="card-promise">Counts, streaks and a year of days from daily note checkboxes.</p></div>
+          </a>
+          <a class="card" href="../heatmap-two-activities/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/heatmap-layers-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/heatmap-layers-light.png" width="700" height="195" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">Two activities on one heatmap</span><p class="card-promise">Each in its own colour, on one year of days.</p></div>
+          </a>
+          <a class="card" href="../streak-weekdays/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/streak-weekdays-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/streak-weekdays-light.png" width="700" height="346" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A streak that skips weekends</span><p class="card-promise">Friday joins up with Monday. Holidays do not end the run.</p></div>
+          </a>
+        </div>
+
+        <div class="next">
+          <p>Dashy is in Obsidian's community plugins. Search for <b>Dashy</b>, install, enable, then paste the note above.</p>
+          <div class="actions">
+            <a class="btn primary" href="../../#install"><svg><use href="#i-plug"/></svg>Install Dashy</a>
+            <a class="btn" href="../../#chart">Every chart key</a>
+          </div>
+        </div>
+
+        <footer class="note-foot">
+          <span>MIT © Dmitriy Yurkin</span>
+          <a href="../../guides/">All guides</a>
+          <a href="https://github.com/Dimagious/dashsidian">GitHub</a>
+          <a href="https://community.obsidian.md/plugins/dashsidian">Plugin listing</a>
+          <a href="https://github.com/Dimagious/dashsidian/issues">Something wrong on this page?</a>
+        </footer>
+      </article>
+    </main>
+<!--shell:bottom-->

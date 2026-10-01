@@ -62,6 +62,7 @@
             <li><a href="#other-ways">With Tracker or dataviewjs</a></li>
             <li><a href="#variations">Variations</a></li>
             <li><a href="#errors">If a block shows an error</a></li>
+            <li><a href="#related">Related guides</a></li>
           </ol>
         </nav>
 
@@ -263,7 +264,7 @@ dv.paragraph(`Longest streak: ${best} days`);
         <div class="vars">
           <div class="var">
             <h3>Two habits on one grid</h3>
-            <p>Each habit in its own colour. A day with both shows the first one listed.</p>
+            <p>Each habit in its own colour. A day with both shows the first one listed. <a href="../heatmap-two-activities/">Guide</a>.</p>
             <div class="codeblock" data-code>
               <div class="bar"><span>heatmap</span><button class="copy" type="button">Copy</button></div>
 <pre><code class="yaml-fenced">```heatmap
@@ -280,7 +281,7 @@ layers:
           </div>
           <div class="var">
             <h3>Weekends off</h3>
-            <p>Saturday and Sunday neither break the run nor add to it. Friday and Monday join up.</p>
+            <p>Saturday and Sunday neither break the run nor add to it. Friday and Monday join up. <a href="../streak-weekdays/">Guide</a>.</p>
             <div class="codeblock" data-code>
               <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
 <pre><code class="yaml-fenced">```stats
@@ -333,6 +334,23 @@ items:
           <li><b>The field holds text.</b> <code>gym: done</code> is text, not a checkbox. Set the property type to Checkbox.</li>
           <li><b>No note has a date.</b> A card with <code>period</code> says so when no note is named <code>YYYY-MM-DD</code>. If the date is a property, add <code>date_field: date</code>.</li>
         </ul>
+
+        <!-- ============ related ============ -->
+        <h2 id="related" data-short="Related guides">Related guides</h2>
+        <div class="cards small">
+          <a class="card" href="../streak-weekdays/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/streak-weekdays-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/streak-weekdays-light.png" width="700" height="346" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A streak that skips weekends</span><p class="card-promise">Friday joins up with Monday. Holidays do not end the run.</p></div>
+          </a>
+          <a class="card" href="../heatmap-two-activities/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/heatmap-layers-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/heatmap-layers-light.png" width="700" height="195" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">Two activities on one heatmap</span><p class="card-promise">Each in its own colour, on one year of days.</p></div>
+          </a>
+          <a class="card" href="../weekly-chart-tracker-alternative/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/chart-weekly-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/chart-weekly-light.png" width="700" height="223" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A weekly chart without Tracker</span><p class="card-promise">A number summed by week, with a goal line.</p></div>
+          </a>
+        </div>
 
         <div class="next">
           <p>Dashy is in Obsidian's community plugins. Search for <b>Dashy</b>, install, enable, then paste the note above.</p>

@@ -550,6 +550,9 @@ footer.note-foot a { color: var(--muted); }
         <ul>
           <li><a href="guides/"><svg width="14" height="14"><use href="#i-file"/></svg>All guides<span class="ext">.md</span></a></li>
           <li><a href="guides/habit-tracker-without-dataview/"><svg width="14" height="14"><use href="#i-file"/></svg>Habits, no Dataview<span class="ext">.md</span></a></li>
+          <li><a href="guides/streak-weekdays/"><svg width="14" height="14"><use href="#i-file"/></svg>Weekday streaks<span class="ext">.md</span></a></li>
+          <li><a href="guides/heatmap-two-activities/"><svg width="14" height="14"><use href="#i-file"/></svg>Two on one heatmap<span class="ext">.md</span></a></li>
+          <li><a href="guides/weekly-chart-tracker-alternative/"><svg width="14" height="14"><use href="#i-file"/></svg>Weekly chart<span class="ext">.md</span></a></li>
         </ul>
       </li>
       <li>
@@ -747,7 +750,7 @@ items:
           </div>
         </div>
         <p><code>streak</code> is the best run on record; <code>current_streak</code> is the run going on now, counted back from today by the same rules. Today never breaks it: a day with no note yet leaves the run counted up to yesterday, and only a missed yesterday resets it.</p>
-        <p>Streaks bend to real life. <code>at_least: 5000</code> counts a day only once the steps get there. <code>days: weekdays</code> lets Friday and Monday join into one run. <code>skip_field: vacation</code> makes a holiday neither break a streak nor extend it.</p>
+        <p>Streaks bend to real life. <code>at_least: 5000</code> counts a day only once the steps get there. <code>days: weekdays</code> lets Friday and Monday join into one run. <code>skip_field: vacation</code> makes a holiday neither break a streak nor extend it. Step by step: <a href="guides/streak-weekdays/">a streak that skips weekends</a>.</p>
         <p><a href="guides/habit-tracker-without-dataview/">Step by step: a habit tracker without Dataview</a>, from the daily note to the year grid, next to the same tracker in Tracker and dataviewjs.</p>
       </section>
 
@@ -986,7 +989,7 @@ title: Sleep, last twelve months
           </div>
         </div>
         <p>Two or more notes landing on the same day paint one cell: their values sum, and a ticked or numeric note always outweighs a <code>false</code> one on the same day. A field nothing carries, or one that holds text rather than a number or a checkbox, is an error that says which, rather than an empty grid that looks like a note-taking gap.</p>
-        <p class="muted" style="font-size:14.5px">A checkbox property works as <code>field</code> too: a ticked day paints its cell. That is the whole <a href="#habits">habit tracker</a>.</p>
+        <p class="muted" style="font-size:14.5px">A checkbox property works as <code>field</code> too: a ticked day paints its cell. That is the whole <a href="#habits">habit tracker</a>. Two habits on one grid, each in its own colour: <a href="guides/heatmap-two-activities/">the <code>layers</code> guide</a>.</p>
       </section>
 
       <!-- ============ Blocks/chart.md ============ -->
@@ -1016,7 +1019,7 @@ goal: 30
             </figure>
           </div>
         </div>
-        <p>Two lines, <code>source</code> and <code>field</code>, are enough for the last 30 days as a line. Put up to four properties on one chart with <code>series</code>: side by side, never stacked, on one y axis.</p>
+        <p>Two lines, <code>source</code> and <code>field</code>, are enough for the last 30 days as a line. Put up to four properties on one chart with <code>series</code>: side by side, never stacked, on one y axis. Coming from Tracker: <a href="guides/weekly-chart-tracker-alternative/">a weekly chart, step by step</a>.</p>
         <div class="pair">
           <div class="codeblock" data-code>
             <div class="bar"><span>chart</span><button class="copy" type="button">Copy</button></div>

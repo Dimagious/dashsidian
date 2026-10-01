@@ -99,6 +99,33 @@ function meditated(back) {
 }
 
 /**
+ * Properties for the site guides, added rather than edited so no existing
+ * picture moves.
+ *
+ * `read`: a second checkbox for the two-activities heatmap. Tuesday, Thursday
+ * and Sunday all year, plus Fridays in the last ten weeks, where it lands on
+ * gym's standing Friday: those days paint orange, the first layer, which is
+ * the point the guide makes. Gym's two-week push also covers reading days.
+ *
+ * `deep_work`: a workday habit for the weekend-skipping streak. Weekends
+ * carry no property at all. Kept every workday in the last two weeks and in
+ * the best run (125..155 back, the same unbroken stretch `meditate` uses),
+ * otherwise missed now and then. `vacation: true` marks one holiday week,
+ * 15..21 back, which has notes (no missed-note day falls in it), so
+ * `skip_field` bridges it and the current run reaches past it.
+ */
+function guideHabits(back, weekday) {
+    const lines = [`read: ${weekday === 0 || weekday === 2 || weekday === 4 || (weekday === 5 && back < 70)}`];
+    const vacation = back >= 15 && back <= 21;
+    if (vacation) lines.push("vacation: true");
+    if (weekday !== 0 && weekday !== 6) {
+        const kept = back <= 14 || (back >= 125 && back <= 155);
+        lines.push(`deep_work: ${vacation ? false : kept ? true : back % 9 !== 4}`);
+    }
+    return lines;
+}
+
+/**
  * The README's "From `dataviewjs` to Dashy" picture: the same weekly chart as
  * a Dataview script drawn by Obsidian Charts, and as a Dashy block. Both
  * snippets are the README's, verbatim, and the third-party side keeps its
@@ -211,6 +238,7 @@ function build() {
             ...sleepHours(back, seasonal, weekly),
             ...training(back, weekday, weeksBack),
             `meditate: ${meditated(back)}`,
+            ...guideHabits(back, weekday),
         ];
 
         fs.writeFileSync(
@@ -414,6 +442,33 @@ field: sleep
 color: purple
 bands: [8h, 7h, 6h]
 range: 182d
+\`\`\`
+`);
+
+    fs.writeFileSync(path.join(out, "Workdays.md"), `\`\`\`stats
+columns: 3
+items:
+  - { label: Workdays in a row, source: Diary, field: deep_work, agg: current_streak, days: weekdays, skip_field: vacation, unit: days, icon: 💻 }
+  - { label: With weekends, source: Diary, field: deep_work, agg: current_streak, unit: days }
+  - { label: Best run of workdays, source: Diary, field: deep_work, agg: streak, days: weekdays, skip_field: vacation, unit: days }
+\`\`\`
+
+\`\`\`heatmap
+source: Diary
+field: deep_work
+skip_field: vacation
+color: blue
+range: 91d
+title: Deep work
+\`\`\`
+`);
+
+    fs.writeFileSync(path.join(out, "Layers.md"), `\`\`\`heatmap
+source: Diary
+layers:
+  - { field: gym, color: orange, label: Gym }
+  - { field: read, color: green, label: Reading }
+title: Gym and reading
 \`\`\`
 `);
 

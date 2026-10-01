@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two activities on one heatmap in Obsidian · Dashy</title>
+<meta name="description" content="Put two habits on one Obsidian heatmap, each in its own colour: gym in orange, reading in green, on one year of days. From daily note checkboxes, no Dataview, YAML you can copy.">
+<link rel="canonical" href="https://dimagious.github.io/dashsidian/guides/heatmap-two-activities/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%238b6cef'/%3E%3Crect x='7' y='7.5' width='11' height='3' rx='1.5' fill='%23fff'/%3E%3Crect x='7' y='13' width='8.5' height='7' rx='2' fill='%23fff' fill-opacity='.55'/%3E%3Crect x='16.5' y='13' width='8.5' height='7' rx='2' fill='%23fff'/%3E%3Crect x='7' y='22.5' width='18' height='3' rx='1.5' fill='%23fff' fill-opacity='.35'/%3E%3Crect x='7' y='22.5' width='12' height='3' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Dashy">
+<meta property="og:url" content="https://dimagious.github.io/dashsidian/guides/heatmap-two-activities/">
+<meta property="og:title" content="Two activities on one heatmap in Obsidian">
+<meta property="og:description" content="Gym in orange, reading in green, on one year of days. One heatmap block with layers.">
+<meta property="og:image" content="https://dimagious.github.io/dashsidian/img/heatmap-layers-light.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="../../assets/site.css">
+<link rel="stylesheet" href="../../assets/guides.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"HowTo","name":"Two activities on one heatmap in Obsidian","step":[
+{"@type":"HowToStep","name":"A checkbox per activity"},
+{"@type":"HowToStep","name":"One grid, two colours"},
+{"@type":"HowToStep","name":"Pick which colour wins"}]}
+</script>
+</head>
+<body>
+<!--shell:top tab="Two activities on one heatmap"-->
+
+    <main class="note guide" id="note">
+      <article class="file" style="padding-top:34px">
+        <div class="crumb">Guides/Two activities on one heatmap.md</div>
+        <h1 class="inline-title">Two activities on one heatmap in Obsidian</h1>
+
+        <div class="props" aria-label="Properties">
+          <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
+          <div class="prop"><div class="k"><svg><use href="#i-tag"/></svg>blocks</div><div class="v"><span class="pill">heatmap</span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>keys</div><div class="v"><code>layers</code></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>needs dataview</div><div class="v"><span class="check off" aria-label="no"></span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
+        </div>
+
+        <p class="lede">Gym in orange, reading in green, on one year of days. One heatmap block, a line per activity. A day with both is painted in one colour, the one you list first, and its tooltip names both.</p>
+
+        <figure class="shot">
+          <picture>
+            <source data-dark srcset="../../img/heatmap-layers-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="../../img/heatmap-layers-light.png" width="700" height="195" alt="A year of days: gym days in orange, reading days in green, and a legend with both">
+          </picture>
+          <figcaption>What you have at the end of step 2. From a demo vault with a year of daily notes.</figcaption>
+        </figure>
+
+        <nav class="toc" aria-label="On this page">
+          <b>ON THIS PAGE</b>
+          <ol>
+            <li><a href="#daily-note">A checkbox per activity</a></li>
+            <li><a href="#layers">One grid, two colours</a></li>
+            <li><a href="#order">Pick which colour wins</a></li>
+            <li><a href="#full">The whole note</a></li>
+            <li><a href="#other-ways">With Tracker</a></li>
+            <li><a href="#variations">Variations</a></li>
+            <li><a href="#errors">If a block shows an error</a></li>
+            <li><a href="#related">Related guides</a></li>
+          </ol>
+        </nav>
+
+        <!-- ============ 1 ============ -->
+        <h2 class="step" id="daily-note" data-short="A checkbox per activity"><span class="n">1</span>A checkbox per activity</h2>
+        <p>One checkbox property per activity in each daily note. In a daily note, add a property, set its type to <b>Checkbox</b>, and name it after the activity.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Diary/2026-09-14.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">---
+gym: true
+read: false
+---
+
+## 2026-09-14</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>2026-09-14</code><span>The note's name is its date. Anything after the date is fine: <code>2026-09-14 Monday</code> counts too.</span></li>
+          <li><code>gym: true</code><span>A ticked box paints the day. An unticked one, or none at all, leaves it empty.</span></li>
+          <li><code>Diary</code><span>The folder the block reads from. Use the one your daily notes already live in.</span></li>
+        </ul>
+        <p class="muted" style="font-size:14.5px">Numbers work too: <code>run_km: 8.5</code> and <code>swim_km: 1.5</code> on one grid. The darker the cell, the higher the number. The scale is shared by the whole grid, so a layer with small numbers stays pale next to one with big numbers.</p>
+
+        <!-- ============ 2 ============ -->
+        <h2 class="step" id="layers" data-short="One grid, two colours"><span class="n">2</span>One grid, two colours</h2>
+        <p>Make a note, say <code>Habits.md</code>, and paste this block. It draws the picture above.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Habits.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+layers:
+  - { field: gym, color: orange, label: Gym }
+  - { field: read, color: green, label: Reading }
+title: Gym and reading
+```</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>layers</code><span>One line per activity, in place of <code>field</code>. Use one or the other, not both.</span></li>
+          <li><code>color</code><span>Per layer: <code>blue</code>, <code>green</code>, <code>cyan</code>, <code>purple</code>, <code>pink</code>, <code>orange</code>, <code>red</code>, <code>gray</code> or <code>#rrggbb</code>. Leave it out and the next free colour is picked.</span></li>
+          <li><code>label</code><span>The name in the legend and the tooltip. Without it, the property name.</span></li>
+          <li>Caption<span>Counts the days where any activity was painted.</span></li>
+        </ul>
+
+        <!-- ============ 3 ============ -->
+        <h2 class="step" id="order" data-short="Pick which colour wins"><span class="n">3</span>Pick which colour wins</h2>
+        <p>A cell has one colour. On a day with both activities, the layer listed first paints it. Hover the cell and the tooltip lists every activity in that day's note, ticked or not, as in <code>Gym 1, Reading 1</code>. A property left out of the note is not listed.</p>
+        <p>So put first the one you want to see. If reading is rare and you want every reading day to show, swap the lines:</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Habits.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+layers:
+  - { field: read, color: green, label: Reading }
+  - { field: gym, color: orange, label: Gym }
+title: Gym and reading
+```</code></pre>
+        </div>
+        <div class="callout warn">
+          <div class="callout-title"><svg><use href="#i-alert"/></svg>No split cells, no mixed colours</div>
+          <p>A day with both never shows both colours. If every overlap has to be visible at a glance, use two grids, one per activity, as in the variations below.</p>
+        </div>
+
+        <!-- ============ full ============ -->
+        <h2 id="full" data-short="The whole note">The whole note</h2>
+        <p>The block from step 2, ready to paste into an empty note.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Habits.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+layers:
+  - { field: gym, color: orange, label: Gym }
+  - { field: read, color: green, label: Reading }
+title: Gym and reading
+```</code></pre>
+        </div>
+
+        <!-- ============ other ways ============ -->
+        <h2 id="other-ways" data-short="With Tracker">The same with Tracker</h2>
+        <p>Tracker's calendar can read both properties from the same notes:</p>
+        <div class="codeblock other" data-code>
+          <div class="bar"><span>With the Tracker plugin</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```tracker
+searchType: frontmatter
+searchTarget: gym, read
+folder: Diary
+datasetName: Gym, Reading
+month:
+    startWeekOn: 'Mon'
+```</code></pre>
+        </div>
+        <ul>
+          <li>The calendar is a month view, one month at a time.</li>
+          <li>It shows one activity at a time. Click its name in the header to switch to the next.</li>
+        </ul>
+        <p class="muted" style="font-size:14.5px">With dataviewjs you would draw the grid yourself, or add a heatmap plugin on top of Dataview. That code is longer than this page, so it is left out.</p>
+
+        <div class="table-wrap">
+          <table class="cmp">
+            <thead><tr><th></th><th class="us">Dashy</th><th>Tracker</th></tr></thead>
+            <tbody>
+              <tr><td>Both on one grid</td><td data-h="Dashy" class="us"><span>Yes, a colour each</span></td><td data-h="Tracker"><span>One at a time, click to switch</span></td></tr>
+              <tr><td>A day with both</td><td data-h="Dashy" class="us"><span>First layer's colour, both in the tooltip</span></td><td data-h="Tracker"><span>Shown in each activity's own view</span></td></tr>
+              <tr><td>Span</td><td data-h="Dashy" class="us"><span>A year, or any <code>range</code></span></td><td data-h="Tracker"><span>A month</span></td></tr>
+              <tr><td>What you install</td><td data-h="Dashy" class="us"><span>Dashy</span></td><td data-h="Tracker"><span>Tracker</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ============ variations ============ -->
+        <h2 id="variations" data-short="Variations">Variations</h2>
+        <div class="vars">
+          <div class="var">
+            <h3>Every overlap visible</h3>
+            <p>Two grids, one under the other. Same days, same columns.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>heatmap</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+field: gym
+color: orange
+title: Gym
+```
+
+```heatmap
+source: Diary
+field: read
+color: green
+title: Reading
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>Three or more</h3>
+            <p>Add a line per activity. A layer without <code>color</code> gets the next free one.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>heatmap</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+layers:
+  - { field: gym, color: orange, label: Gym }
+  - { field: read, color: green, label: Reading }
+  - { field: meditate, label: Meditation }
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>Half a year, phone-sized</h3>
+            <p>One grid over the last 182 days instead of a grid per calendar year.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>heatmap</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+layers:
+  - { field: gym, color: orange, label: Gym }
+  - { field: read, color: green, label: Reading }
+range: 182d
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>Holidays marked</h3>
+            <p>Days whose note sets <code>vacation</code> get a hatched cell, over any colour they have.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>heatmap</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+layers:
+  - { field: gym, color: orange, label: Gym }
+  - { field: read, color: green, label: Reading }
+skip_field: vacation
+```</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ errors ============ -->
+        <h2 id="errors" data-short="If a block shows an error">If a block shows an error</h2>
+        <p>A block that cannot draw says why, inside the note. The usual three:</p>
+        <ul>
+          <li><b><code>layers</code> and <code>field</code> are both set.</b> Keep <code>layers</code> and delete the block's own <code>field</code> line.</li>
+          <li><b><code>color</code> is ignored.</b> A <code>color</code> at the top of the block does nothing with <code>layers</code>. Put one on each layer.</li>
+          <li><b>Layer 2: No note in the selection has "read".</b> The property is misspelled, or the notes are in another folder.</li>
+        </ul>
+
+        <!-- ============ related ============ -->
+        <h2 id="related" data-short="Related guides">Related guides</h2>
+        <div class="cards small">
+          <a class="card" href="../habit-tracker-without-dataview/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/habits-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/habits-light.png" width="700" height="369" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A habit tracker without Dataview</span><p class="card-promise">Counts, streaks and a year of days from daily note checkboxes.</p></div>
+          </a>
+          <a class="card" href="../streak-weekdays/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/streak-weekdays-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/streak-weekdays-light.png" width="700" height="346" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A streak that skips weekends</span><p class="card-promise">Friday joins up with Monday. Holidays do not end the run.</p></div>
+          </a>
+          <a class="card" href="../weekly-chart-tracker-alternative/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/chart-weekly-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/chart-weekly-light.png" width="700" height="223" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A weekly chart without Tracker</span><p class="card-promise">A number summed by week, with a goal line.</p></div>
+          </a>
+        </div>
+
+        <div class="next">
+          <p>Dashy is in Obsidian's community plugins. Search for <b>Dashy</b>, install, enable, then paste the note above.</p>
+          <div class="actions">
+            <a class="btn primary" href="../../#install"><svg><use href="#i-plug"/></svg>Install Dashy</a>
+            <a class="btn" href="../../#heatmap">Every heatmap key</a>
+          </div>
+        </div>
+
+        <footer class="note-foot">
+          <span>MIT © Dmitriy Yurkin</span>
+          <a href="../../guides/">All guides</a>
+          <a href="https://github.com/Dimagious/dashsidian">GitHub</a>
+          <a href="https://community.obsidian.md/plugins/dashsidian">Plugin listing</a>
+          <a href="https://github.com/Dimagious/dashsidian/issues">Something wrong on this page?</a>
+        </footer>
+      </article>
+    </main>
+<!--shell:bottom-->
