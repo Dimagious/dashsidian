@@ -13,6 +13,7 @@
     "build": "npm run build:css && esbuild src/main.ts --bundle --outfile=main.js --minify --platform=browser --format=cjs --target=es2020 --external:obsidian --external:electron --external:@codemirror/state --external:@codemirror/view --footer:js=\"module.exports = module.exports.default || module.exports;\" && node scripts/assert-bundle.cjs",
     "build:css": "node scripts/build-css.cjs",
     "build:skill": "node scripts/build-skill.cjs",
+    "build:reference": "node scripts/build-reference.cjs",
     "build:vault": "node scripts/build-vault.cjs",
     "dev:vault": "node scripts/build-vault.cjs --watch",
     "preview": "node scripts/preview.cjs",

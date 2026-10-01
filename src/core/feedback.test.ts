@@ -1,11 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { buildIssueUrl, blockSnippet, REPO_URL } from "./feedback";
+import { buildIssueUrl, blockSnippet, DOCS_URL, REPO_URL } from "./feedback";
 
 const context = { plugin: "1.0.0", obsidian: "1.13.7", platform: "macOS desktop" };
 
 /** The body as GitHub will read it: a query string spells a space as `+`. */
 const bodyOf = (url: string): string =>
     new URLSearchParams(url.split("?")[1] ?? "").get("body") ?? "";
+
+describe("DOCS_URL", () => {
+    // The settings row says "Every block, every key, with examples": since
+    // the README became a landing page, only the site's reference holds that.
+    it("opens the block reference on the site, not the README", () => {
+        expect(DOCS_URL).toBe("https://dimagious.github.io/dashsidian/reference/");
+    });
+});
 
 describe("buildIssueUrl", () => {
     it("points at this repository's new-issue form", () => {

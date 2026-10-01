@@ -6,7 +6,7 @@
  * description on grey. For a plugin whose entire job is to look like
  * something, that wastes the only thing worth showing, so the card carries a
  * real fragment of a real dashboard: the same `docs/screens/dashboard-dark.png`
- * the README uses, captured from a running Obsidian. Nothing here is drawn by
+ * the site uses, captured from a running Obsidian. Nothing here is drawn by
  * hand — a picture showing something other than what installs is a lie,
  * however small.
  *

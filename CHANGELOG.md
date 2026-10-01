@@ -10,6 +10,14 @@ removed public export.
 
 ## [Unreleased]
 
+### Changed
+
+- **Documentation in the settings opens the block reference** on the website:
+  one page per block with a picture, a block to paste, and every key with its
+  type, default and synonyms, generated from the same schema the plugin checks
+  your config against. The README is now a short introduction with one
+  complete example and no longer lists every key.
+
 ## [1.5.2] - 2026-10-01
 
 ### Fixed

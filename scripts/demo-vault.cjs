@@ -15,7 +15,7 @@ const out = path.join(root, ".capture", "vault");
 const key = (d) =>
     [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
 
-// Knobs the README snippets have to match, kept in one place.
+// Knobs the snippets on the site have to match, kept in one place.
 const HERO_RANGE = "182d";
 const SERIES_RANGE = "";
 const STREAK_COLUMNS = "2";
@@ -126,10 +126,11 @@ function guideHabits(back, weekday) {
 }
 
 /**
- * The README's "From `dataviewjs` to Dashy" picture: the same weekly chart as
- * a Dataview script drawn by Obsidian Charts, and as a Dashy block. Both
- * snippets are the README's, verbatim, and the third-party side keeps its
- * defaults: styling it either way would make the comparison dishonest.
+ * The weekly chart guide's "From `dataviewjs` to Dashy" picture: the same
+ * weekly chart as a Dataview script drawn by Obsidian Charts, and as a Dashy
+ * block. Both snippets are the guide's, verbatim, and the third-party side
+ * keeps its defaults: styling it either way would make the comparison
+ * dishonest.
  *
  * Optional. The two plugins are never downloaded here and never committed:
  * they are copied from `.capture/livecheck/` when someone put them there. The
@@ -363,8 +364,8 @@ layers: [sleep_score]
 \`\`\`
 `);
 
-    // The README's opening picture: a week of training and a year of sleep
-    // on one page, the way someone would actually keep it.
+    // The opening picture of the README and the site: a week of training and
+    // a year of sleep on one page, the way someone would actually keep it.
     fs.writeFileSync(path.join(out, "Training.md"), `\`\`\`stats
 columns: 4
 items:
@@ -394,7 +395,7 @@ title: Sleep
 \`\`\`
 `);
 
-    // Blocks photographed one at a time, each YAML exactly as the README prints it.
+    // Blocks photographed one at a time, each YAML exactly as the site prints it.
     fs.writeFileSync(path.join(out, "Charts.md"), `\`\`\`chart
 source: Diary
 field: run_km

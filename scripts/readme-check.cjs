@@ -9,7 +9,12 @@
  * Checked, all against `README.md`:
  *   - every relative image or link (Markdown `![]()`/`[]()` and the raw
  *     `<img>`/`<source>`/`<a>` HTML the README also uses for its `<picture>`
- *     blocks) resolves to a file that exists, relative to the repo root
+ *     blocks) resolves to a file that exists, relative to the repo root. An
+ *     absolute URL into this repository (`raw.githubusercontent.com/<owner>/
+ *     dashsidian/<ref>/<path>` or `github.com/<owner>/dashsidian/blob/<ref>/
+ *     <path>`) counts as `<path>`: the README is also read by Obsidian's
+ *     plugin browser, so it links absolutely, and a renamed screenshot must
+ *     still fail here rather than on the listing
  *   - every `[text](#anchor)` link resolves to a heading's GitHub-style slug
  *     or an explicit `id="..."` on the page
  *   - no em dash or en dash in the prose (fenced code blocks, inline code
@@ -110,20 +115,51 @@ function isExemptRef(ref) {
     );
 }
 
+// This repository's own files, linked absolutely: the raw file, or its page
+// on GitHub. The ref (`HEAD`, `master`) is one path segment; the rest is the
+// path from the repo root.
+const REPO_FILE_URL_RES = [
+    /^https:\/\/raw\.githubusercontent\.com\/Dimagious\/dashsidian\/[^/]+\/([^?#]+)/i,
+    /^https:\/\/github\.com\/Dimagious\/dashsidian\/blob\/[^/]+\/([^?#]+)/i,
+];
+
+/** The repo-relative path an absolute URL into this repository points at, or null for any other reference. */
+function repoPathFromUrl(ref) {
+    for (const re of REPO_FILE_URL_RES) {
+        const m = ref.match(re);
+        if (!m) continue;
+        // A malformed escape is still a path to report, not a crash.
+        try {
+            return decodeURIComponent(m[1]);
+        } catch {
+            return m[1];
+        }
+    }
+    return null;
+}
+
+/** A reference as a repo-relative path to check on disk, or null when there is nothing on disk to check. */
+function localPathOf(ref) {
+    if (!isExemptRef(ref)) return ref;
+    return repoPathFromUrl(ref);
+}
+
 /**
  * Every relative image or link reference in the README, both the Markdown
  * forms (`![alt](path)`, `[text](path)`) and the raw HTML the `<picture>`
- * blocks use (`src="path"`, `srcset="path"`, `href="path"`). Paths are
- * relative to the repository root, where `README.md` itself lives.
+ * blocks use (`src="path"`, `srcset="path"`, `href="path"`), plus every
+ * absolute URL into this repository mapped back to its path (see
+ * `repoPathFromUrl`). Paths are relative to the repository root, where
+ * `README.md` itself lives.
  */
 function extractRelativeRefs(markdown) {
     const refs = new Set();
-    for (const m of markdown.matchAll(/!?\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
-        if (!isExemptRef(m[1])) refs.add(m[1]);
-    }
-    for (const m of markdown.matchAll(/\b(?:src|srcset|href)="([^"]+)"/g)) {
-        if (!isExemptRef(m[1])) refs.add(m[1]);
-    }
+    const add = (ref) => {
+        const local = localPathOf(ref);
+        if (local !== null) refs.add(local);
+    };
+    for (const m of markdown.matchAll(/!?\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) add(m[1]);
+    for (const m of markdown.matchAll(/\b(?:src|srcset|href)="([^"]+)"/g)) add(m[1]);
     return Array.from(refs).sort();
 }
 
@@ -198,6 +234,7 @@ module.exports = {
     extractAnchorTargets,
     findDeadAnchors,
     isExemptRef,
+    repoPathFromUrl,
     extractRelativeRefs,
     findMissingRefs,
     stripToProse,

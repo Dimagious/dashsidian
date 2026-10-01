@@ -36,9 +36,10 @@
  *     fills the placeholders in from `manifest.json` at deploy time, on
  *     every page, so a guide may carry `{{version}}` too)
  * Across the site:
- *   - every page is listed in `sitemap.xml`, and every guide
- *     (`guides/<slug>/index.html`) is linked from `guides/index.html`, so a
- *     new guide cannot ship as an orphan
+ *   - every page is listed in `sitemap.xml`, every guide
+ *     (`guides/<slug>/index.html`) is linked from `guides/index.html`, and
+ *     every block page (`reference/<block>/index.html`) from
+ *     `reference/index.html`, so a new page cannot ship as an orphan
  *
  * The functions above `main()` take plain strings, sets and maps, not the
  * filesystem, so they run the same way from the CI step and from
@@ -75,6 +76,9 @@ const SHELL_FILE = "_shell.html";
 const SHELL_TOP_RE = /<!--shell:top tab="([^"]*)"-->/g;
 const SHELL_BOTTOM = "<!--shell:bottom-->";
 const SHELL_CONTENT = "<!--shell:content-->";
+// The view header's folder name (`{{folder}}` in the shell), by the page's
+// first path segment: "Dashy vault / Reference / stats".
+const SHELL_FOLDERS = { guides: "Guides", reference: "Reference" };
 
 /** Strips `<script>...</script>` bodies, so a JS string literal like `"#" + id` is never read as an HTML attribute. */
 function stripScripts(html) {
@@ -128,8 +132,10 @@ function resolveRef(pagePath, ref) {
  * Puts the shared shell around a page that asks for it (see `SHELL_FILE`),
  * filling the shell's own placeholders for this page: `{{root}}` is the way
  * back to the site root (`../../` from `guides/x/index.html`), `{{tab}}` the
- * page's `tab` attribute, and `{{active:<folder>/}}` becomes `active` on the
- * page whose folder that is and nothing elsewhere. A page with no shell
+ * page's `tab` attribute, `{{folder}}` the view header's folder name from
+ * `SHELL_FOLDERS` (empty for a folder it does not name), and
+ * `{{active:<folder>/}}` becomes `active` on the page whose folder that is
+ * and nothing elsewhere. A page with no shell
  * placeholder comes back unchanged. Throws, with the page named, on a
  * placeholder that is malformed, repeated or out of order, or on a shell
  * without exactly one content marker: a half-filled page must not deploy.
@@ -159,10 +165,13 @@ function fillShell(html, shell, pagePath) {
     const depth = dir.split("/").length - 1;
     const root = depth === 0 ? "./" : "../".repeat(depth);
     const tab = top[1];
+    const first = dir.split("/")[0];
+    const folderName = Object.prototype.hasOwnProperty.call(SHELL_FOLDERS, first) ? SHELL_FOLDERS[first] : "";
     const fill = (part) =>
         part
             .replaceAll("{{root}}", root)
             .replaceAll("{{tab}}", tab)
+            .replaceAll("{{folder}}", folderName)
             .replace(/\{\{active:([^}]*)\}\}/g, (_, folder) => (folder === dir ? "active" : ""));
     // Function replacers: a `$&` or `$1` in the shell is text, not a pattern.
     return html.replace(top[0], () => fill(parts[0])).replace(SHELL_BOTTOM, () => fill(parts[1]));
@@ -414,29 +423,41 @@ function findThirdPartyRequestUrls(html) {
 }
 
 const GUIDE_PAGE_RE = /^guides\/[^/]+\/index\.html$/;
+const REFERENCE_PAGE_RE = /^reference\/[^/]+\/index\.html$/;
+
+/** The `site/`-relative paths of every page an index page at `indexPath` links to. */
+function linkedPages(indexPath, indexHtml) {
+    const linked = new Set();
+    for (const ref of extractRelativeRefs(indexHtml || "")) {
+        const resolved = resolveRef(indexPath, ref);
+        if (resolved) linked.add(resolved.path);
+    }
+    return linked;
+}
 
 /**
  * Pages a search engine or a reader could not reach: a page missing from
  * `sitemap.xml` (null when the file itself is missing, which the root page's
- * check already reports), and a guide, `guides/<slug>/index.html`, that
- * `guides/index.html` (null when absent) does not link to. `pagePaths` are
- * relative to `site/`.
+ * check already reports), a guide, `guides/<slug>/index.html`, that
+ * `guides/index.html` (null when absent) does not link to, and a block
+ * reference page, `reference/<block>/index.html`, that `reference/index.html`
+ * (null when absent) does not link to. `pagePaths` are relative to `site/`.
  */
-function findOrphanPages(pagePaths, sitemapXml, guidesIndexHtml) {
+function findOrphanPages(pagePaths, sitemapXml, guidesIndexHtml, referenceIndexHtml = null) {
     const issues = [];
     const listed = new Set(Array.from((sitemapXml || "").matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g), (m) => m[1]));
-    const linked = new Set();
-    for (const ref of extractRelativeRefs(guidesIndexHtml || "")) {
-        const resolved = resolveRef("guides/index.html", ref);
-        if (resolved) linked.add(resolved.path);
-    }
+    const guides = linkedPages("guides/index.html", guidesIndexHtml);
+    const reference = linkedPages("reference/index.html", referenceIndexHtml);
     for (const page of pagePaths) {
         const url = expectedUrlFor(page);
         if (sitemapXml !== null && !listed.has(url)) {
             issues.push(`${page} is not in sitemap.xml: add <loc>${url}</loc>`);
         }
-        if (GUIDE_PAGE_RE.test(page) && !linked.has(page)) {
+        if (GUIDE_PAGE_RE.test(page) && !guides.has(page)) {
             issues.push(`${page} is not linked from guides/index.html`);
+        }
+        if (REFERENCE_PAGE_RE.test(page) && !reference.has(page)) {
+            issues.push(`${page} is not linked from reference/index.html`);
         }
     }
     return issues;
@@ -539,7 +560,7 @@ function main() {
             issues.push(`site/${page}: ${issue}`);
         }
     }
-    for (const issue of findOrphanPages(pagePaths, read("sitemap.xml"), read("guides/index.html"))) {
+    for (const issue of findOrphanPages(pagePaths, read("sitemap.xml"), read("guides/index.html"), read("reference/index.html"))) {
         issues.push(`site/${issue}`);
     }
 
@@ -558,6 +579,7 @@ module.exports = {
     SITE_URL,
     IMAGE_RENAME_MAP,
     SHELL_FILE,
+    SHELL_FOLDERS,
     pageDirOf,
     expectedUrlFor,
     resolveRef,

@@ -1,0 +1,52 @@
+/* Block reference pages: the key tables. On top of site.css and guides.css, same tokens. */
+
+.note.ref .keys { margin: 6px 0 12px; }
+.note.ref h1 code.h-code { font-size: .92em; background: none; border: 0; padding: 0; color: var(--accent-text); white-space: nowrap; }
+.note.ref .keys a { text-decoration: none; }
+.note.ref .keys a:hover code { border-color: var(--accent); }
+
+/* the key table */
+.keytab-wrap { margin: 10px 0 18px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+table.keytab { border-collapse: collapse; width: 100%; font-size: 14.5px; table-layout: fixed; }
+table.keytab th, table.keytab td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+table.keytab tbody tr:last-child td { border-bottom: 0; }
+table.keytab thead th { background: var(--bg-2); font-weight: 600; font-size: 12.5px; color: var(--muted); }
+table.keytab th:nth-child(1) { width: 22%; }
+table.keytab th:nth-child(3) { width: 13%; }
+table.keytab th:nth-child(4) { width: 12%; }
+table.keytab td.k { overflow-wrap: anywhere; }
+table.keytab td.k .key { text-decoration: none; }
+table.keytab td.k .key code { font-size: 13.5px; font-weight: 500; color: var(--accent-text); border-color: transparent; background: var(--accent-soft); }
+table.keytab td.d { color: var(--text); line-height: 1.55; overflow-wrap: anywhere; }
+table.keytab td.d code { white-space: normal; }
+table.keytab td.t, table.keytab td.v { color: var(--muted); font-size: 13.5px; }
+table.keytab td.v code { white-space: normal; }
+table.keytab .none { color: var(--faint); }
+table.keytab .req {
+  display: inline-block; margin-left: 4px; font-size: 11px; font-weight: 600; padding: 0 7px; border-radius: 999px;
+  background: rgba(var(--callout-warn), 0.12); color: rgb(var(--callout-warn)); vertical-align: 1px;
+}
+table.keytab .also { display: block; margin-top: 4px; font-size: 12.5px; color: var(--faint); }
+table.keytab .also code { font-size: 12px; }
+table.keytab tr:target td { background: var(--accent-soft); }
+table.keytab tr { scroll-margin-top: 64px; }
+
+/* behaviour notes: longer prose, a little air between them */
+ul.notes { padding-left: 20px; }
+ul.notes li { margin-bottom: 10px; line-height: 1.6; }
+ul.notes code, ul.hints code { white-space: normal; }
+
+@media (max-width: 900px) {
+  /* one card per key: no sideways scroll at phone width */
+  .keytab-wrap { border: 0; border-radius: 0; overflow: visible; }
+  table.keytab, table.keytab tbody, table.keytab tr, table.keytab td { display: block; width: auto; }
+  table.keytab thead { display: none; }
+  table.keytab tr { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+  table.keytab td { border-bottom: 0; padding: 6px 12px; }
+  table.keytab td.k { background: var(--bg-2); padding-top: 9px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  table.keytab td.t, table.keytab td.v { display: inline-block; padding-top: 0; padding-bottom: 9px; }
+  table.keytab td.t::before, table.keytab td.v::before {
+    content: attr(data-h) " "; font: 500 11.5px "JetBrains Mono", monospace; color: var(--faint);
+  }
+  table.keytab td.t { padding-right: 4px; }
+}

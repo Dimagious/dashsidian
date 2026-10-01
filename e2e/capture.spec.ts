@@ -3,7 +3,7 @@ import path from "node:path";
 import { test, expect, openSettings, READING_VIEW } from "./fixtures";
 
 /**
- * The pictures for the README and the store listing.
+ * The pictures for the README, the site and the store listing.
  *
  * Taken from the running plugin rather than a mock, because a listing showing
  * something other than what installs is a lie, however small. Run on demand:
@@ -151,7 +151,7 @@ async function openNote(win: import("@playwright/test").Page, file: string, read
             };
         }).app;
         // The reel below turns readable line length off; these shots are read
-        // at the README's column width, so they keep it on whatever ran before.
+        // at a note column's width, so they keep it on whatever ran before.
         a?.vault?.setConfig?.("readableLineLength", true);
         a?.workspace?.trigger?.("css-change");
         await a?.workspace?.openLinkText?.(link, "");
@@ -163,7 +163,7 @@ async function openNote(win: import("@playwright/test").Page, file: string, read
     await win.evaluate(() => {
         for (const notice of Array.from(document.querySelectorAll(".notice"))) notice.remove();
     });
-    // A README picture showing a warning box would be advertising a mistake.
+    // A published picture showing a warning box would be advertising a mistake.
     await expect(view.locator(".dashy-diag-warning, .dashy-diag-error")).toHaveCount(0);
 }
 
@@ -324,7 +324,7 @@ test("settings", async ({ app, win }) => {
     // Since Obsidian 1.13 the settings live in a window of their own.
     const settings = await openSettings(app, win);
     await settings.waitForTimeout(600);
-    // The README puts this picture under the agent section and describes its
+    // The site puts this picture under the agent section and describes its
     // two install buttons, so they have to be in it. The pane outgrew one
     // window when "New day" arrived: scroll until the last setting (the
     // AGENTS.md row) sits at the bottom, and let the top fall where it may.
@@ -344,7 +344,7 @@ test("settings", async ({ app, win }) => {
 });
 
 /**
- * Every block redrawing at once, which is what the README claims a page does.
+ * Every block redrawing at once, which is what the site claims a page does.
  * This replaced a 760x295 strip of `stats` alone: enough beside a heading that
  * names the block, useless anywhere the picture stands on its own. Readable
  * line length goes off so the note fills the pane and the reel comes out wide
