@@ -19,6 +19,15 @@ Step-by-step pages, one problem each, with YAML to copy:
 - A habit tracker in Obsidian without Dataview (checkbox properties in daily
   notes become counts, streaks, this week against last, and a year heatmap):
   https://dimagious.github.io/dashsidian/guides/habit-tracker-without-dataview/
+- A habit streak that skips weekends (`days: weekdays` and `skip_field` on
+  `current_streak` and `streak`):
+  https://dimagious.github.io/dashsidian/guides/streak-weekdays/
+- Two activities on one heatmap (`layers`, one colour each; on a day with
+  both, the first layer's colour shows):
+  https://dimagious.github.io/dashsidian/guides/heatmap-two-activities/
+- A weekly chart without Tracker (`chart` with `bucket: week` and `goal`;
+  `dashy-chart` next to Obsidian Charts; frontmatter only):
+  https://dimagious.github.io/dashsidian/guides/weekly-chart-tracker-alternative/
 
 ## Documentation
 

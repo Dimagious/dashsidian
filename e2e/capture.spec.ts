@@ -221,6 +221,18 @@ for (const theme of ["obsidian", "moonstone"] as const) {
         const grid = view.locator(".block-language-heatmap").last().locator(".dashy-hm-wrap").last();
         await win.screenshot({ path: path.join(SHOTS, `sleep-${suffix}.png`), clip: await union(cards, grid) });
 
+        await openNote(win, "Workdays.md", ".dashy-hm-cell");
+        const workCards = view.locator(".dashy-stats").first();
+        await workCards.evaluate((el) => el.scrollIntoView({ block: "start" }));
+        await win.waitForTimeout(300);
+        const workGrid = view.locator(".block-language-heatmap").last().locator(".dashy-hm-wrap").last();
+        await win.screenshot({ path: path.join(SHOTS, `streak-weekdays-${suffix}.png`), clip: await union(workCards, workGrid) });
+
+        await openNote(win, "Layers.md", ".dashy-hm-cell");
+        const layers = view.locator(".block-language-heatmap").first().locator(".dashy-hm-wrap").first();
+        await layers.scrollIntoViewIfNeeded();
+        await layers.screenshot({ path: path.join(SHOTS, `heatmap-layers-${suffix}.png`) });
+
         // Back where `setUp` expects to find the next test.
         await openNote(win, "Dashboard.md", ".dashy-hm-cell");
     });

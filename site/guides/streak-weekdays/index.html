@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Habit streak that skips weekends in Obsidian · Dashy</title>
+<meta name="description" content="A habit streak in Obsidian that Saturday and Sunday do not break: Friday joins up with Monday, and a holiday week does not reset the run either. Daily note checkboxes, no Dataview, YAML you can copy.">
+<link rel="canonical" href="https://dimagious.github.io/dashsidian/guides/streak-weekdays/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%238b6cef'/%3E%3Crect x='7' y='7.5' width='11' height='3' rx='1.5' fill='%23fff'/%3E%3Crect x='7' y='13' width='8.5' height='7' rx='2' fill='%23fff' fill-opacity='.55'/%3E%3Crect x='16.5' y='13' width='8.5' height='7' rx='2' fill='%23fff'/%3E%3Crect x='7' y='22.5' width='18' height='3' rx='1.5' fill='%23fff' fill-opacity='.35'/%3E%3Crect x='7' y='22.5' width='12' height='3' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Dashy">
+<meta property="og:url" content="https://dimagious.github.io/dashsidian/guides/streak-weekdays/">
+<meta property="og:title" content="A habit streak in Obsidian that skips weekends">
+<meta property="og:description" content="Saturday and Sunday stop breaking the run. One key, days: weekdays.">
+<meta property="og:image" content="https://dimagious.github.io/dashsidian/img/streak-weekdays-light.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="../../assets/site.css">
+<link rel="stylesheet" href="../../assets/guides.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"HowTo","name":"A habit streak in Obsidian that skips weekends","step":[
+{"@type":"HowToStep","name":"Tick the habit on workdays"},
+{"@type":"HowToStep","name":"Count workdays in a row"},
+{"@type":"HowToStep","name":"See the weeks"}]}
+</script>
+</head>
+<body>
+<!--shell:top tab="Streak that skips weekends"-->
+
+    <main class="note guide" id="note">
+      <article class="file" style="padding-top:34px">
+        <div class="crumb">Guides/Streak that skips weekends.md</div>
+        <h1 class="inline-title">A habit streak in Obsidian that skips weekends</h1>
+
+        <div class="props" aria-label="Properties">
+          <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
+          <div class="prop"><div class="k"><svg><use href="#i-tag"/></svg>blocks</div><div class="v"><span class="pill">stats</span><span class="pill">heatmap</span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>keys</div><div class="v"><code>days: weekdays</code><code>skip_field</code></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>needs dataview</div><div class="v"><span class="check off" aria-label="no"></span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
+        </div>
+
+        <p class="lede">Some habits are for workdays only. A plain streak then resets every Monday, because Saturday and Sunday were empty. One key fixes that: Friday joins up with Monday. A second one keeps a holiday week from ending the run.</p>
+
+        <figure class="shot">
+          <picture>
+            <source data-dark srcset="../../img/streak-weekdays-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="../../img/streak-weekdays-light.png" width="700" height="346" alt="Three cards: workdays in a row, the same habit counted with weekends, and the best run of workdays; below them three months of days with the workdays in blue, weekends empty and a holiday week hatched">
+          </picture>
+          <figcaption>What you have at the end of step 3. The middle card is the same habit counted the plain way. From a demo vault.</figcaption>
+        </figure>
+
+        <nav class="toc" aria-label="On this page">
+          <b>ON THIS PAGE</b>
+          <ol>
+            <li><a href="#daily-note">Tick the habit on workdays</a></li>
+            <li><a href="#count">Count workdays in a row</a></li>
+            <li><a href="#weeks">See the weeks</a></li>
+            <li><a href="#full">The whole note</a></li>
+            <li><a href="#other-ways">With Tracker or dataviewjs</a></li>
+            <li><a href="#variations">Variations</a></li>
+            <li><a href="#errors">If a block shows an error</a></li>
+            <li><a href="#related">Related guides</a></li>
+          </ol>
+        </nav>
+
+        <!-- ============ 1 ============ -->
+        <h2 class="step" id="daily-note" data-short="Tick the habit on workdays"><span class="n">1</span>Tick the habit on workdays</h2>
+        <p>One checkbox property for the habit, ticked in the daily note on the days you did it. Here it is <code>deep_work</code>.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Diary/2026-09-14.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">---
+deep_work: true
+---
+
+## 2026-09-14</code></pre>
+        </div>
+        <p>For a day off, add a second property to that day's note. Any value counts except <code>false</code>, <code>0</code> or an empty one.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Diary/2026-08-03.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">---
+deep_work: false
+vacation: true
+---
+
+## 2026-08-03</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>2026-09-14</code><span>The note's name is its date. Anything after the date is fine: <code>2026-09-14 Monday</code> counts too.</span></li>
+          <li><span>Weekends</span><span>Tick, untick or leave the box out. With <code>days: weekdays</code> Saturday and Sunday do not count either way.</span></li>
+          <li><code>vacation: true</code><span>The day needs a note to carry it. A workday with no note at all still ends the run.</span></li>
+        </ul>
+
+        <!-- ============ 2 ============ -->
+        <h2 class="step" id="count" data-short="Count workdays in a row"><span class="n">2</span>Count workdays in a row</h2>
+        <p>Make a note for the tracker, say <code>Workdays.md</code>, and paste this block. It is the top row of the picture above.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Workdays.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+columns: 3
+items:
+  - { label: Workdays in a row, source: Diary, field: deep_work, agg: current_streak, days: weekdays, skip_field: vacation, unit: days, icon: 💻 }
+  - { label: With weekends, source: Diary, field: deep_work, agg: current_streak, unit: days }
+  - { label: Best run of workdays, source: Diary, field: deep_work, agg: streak, days: weekdays, skip_field: vacation, unit: days }
+```</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>days: weekdays</code><span>Saturday and Sunday neither break the run nor add to it. Friday and Monday count as two days in a row.</span></li>
+          <li><code>skip_field: vacation</code><span>A day whose note sets <code>vacation</code> is skipped the same way. Works with <code>days</code> or on its own.</span></li>
+          <li><code>current_streak</code><span>The run you are on now, counted back from today. Today never breaks it: until you tick today, it counts up to yesterday.</span></li>
+          <li><code>streak</code><span>The longest run on record, by the same rules.</span></li>
+        </ul>
+        <p>The middle card has neither key. It is there to show the difference: here, on a Monday it reads 1 at most, because Sunday was empty. Keep it next to the first card, or drop it.</p>
+        <div class="callout tip">
+          <div class="callout-title"><svg><use href="#i-flame"/></svg>Weekends only, not your own rest days</div>
+          <p><code>days</code> knows two values, <code>all</code> and <code>weekdays</code>. For a Monday, Wednesday and Friday plan, mark the other days with a property and name it in <code>skip_field</code>, as in the variations below.</p>
+        </div>
+
+        <!-- ============ 3 ============ -->
+        <h2 class="step" id="weeks" data-short="See the weeks"><span class="n">3</span>See the weeks</h2>
+        <p>Paste this under the cards. Ticked days are blue, weekends stay empty, and a holiday is hatched.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Workdays.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+field: deep_work
+skip_field: vacation
+color: blue
+range: 91d
+title: Deep work
+```</code></pre>
+        </div>
+        <p><code>range: 91d</code> is the last thirteen weeks, ending today. Leave it out for a grid per calendar year. Hover a hatched cell and its tooltip says "day off".</p>
+
+        <!-- ============ full ============ -->
+        <h2 id="full" data-short="The whole note">The whole note</h2>
+        <p>Both blocks in one piece, ready to paste into an empty note.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Workdays.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+columns: 3
+items:
+  - { label: Workdays in a row, source: Diary, field: deep_work, agg: current_streak, days: weekdays, skip_field: vacation, unit: days, icon: 💻 }
+  - { label: With weekends, source: Diary, field: deep_work, agg: current_streak, unit: days }
+  - { label: Best run of workdays, source: Diary, field: deep_work, agg: streak, days: weekdays, skip_field: vacation, unit: days }
+```
+
+```heatmap
+source: Diary
+field: deep_work
+skip_field: vacation
+color: blue
+range: 91d
+title: Deep work
+```</code></pre>
+        </div>
+
+        <!-- ============ other ways ============ -->
+        <h2 id="other-ways" data-short="With Tracker or dataviewjs">The same streak with Tracker or dataviewjs</h2>
+        <p>Both read the same <code>deep_work: true</code> notes.</p>
+
+        <div class="vs" data-tabs>
+          <div class="seg" role="tablist" aria-label="Other ways to build it">
+            <button type="button" role="tab" id="tab-tracker" aria-controls="panel-tracker" aria-selected="true">tracker</button>
+            <button type="button" role="tab" id="tab-dvjs" aria-controls="panel-dvjs" aria-selected="false">dataviewjs</button>
+          </div>
+
+          <div class="vs-panel" id="panel-tracker" role="tabpanel" aria-labelledby="tab-tracker">
+            <div class="codeblock other" data-code>
+              <div class="bar"><span>With the Tracker plugin</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```tracker
+searchType: frontmatter
+searchTarget: deep_work
+folder: Diary
+summary:
+    template: "Longest streak: {{maxStreak()}} days\nCurrent streak: {{currentStreak()}} days"
+```</code></pre>
+            </div>
+            <ul>
+              <li>Tracker counts every calendar day. A Saturday with no tick, or no note, breaks <code>maxStreak()</code> and <code>currentStreak()</code>.</li>
+              <li>Tracker's docs list no setting to skip weekends or holidays.</li>
+              <li>The current streak counts back from the newest note Tracker finds, not from today, unless you set <code>endDate</code>.</li>
+            </ul>
+          </div>
+
+          <div class="vs-panel" id="panel-dvjs" role="tabpanel" aria-labelledby="tab-dvjs">
+            <div class="codeblock other" data-code>
+              <div class="bar"><span>With Dataview, JavaScript queries turned on</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">```dataviewjs
+const done = new Set(dv.pages('"Diary"')
+  .where(p => p.file.day && p.deep_work === true)
+  .map(p => p.file.day.toISODate())
+  .array());
+
+let day = dv.luxon.DateTime.now().startOf("day");
+if (!done.has(day.toISODate())) day = day.minus({ days: 1 });
+let run = 0;
+for (;;) {
+  if (day.weekday >= 6) { day = day.minus({ days: 1 }); continue; }
+  if (!done.has(day.toISODate())) break;
+  run++;
+  day = day.minus({ days: 1 });
+}
+dv.paragraph(`Workdays in a row: ${run}`);
+```</code></pre>
+            </div>
+            <ul>
+              <li>Needs <b>Enable JavaScript queries</b> in Dataview's settings. It is off by default.</li>
+              <li>This is the current run only. Holidays, the best run and the grid are more code.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="cmp">
+            <thead><tr><th></th><th class="us">Dashy</th><th>Tracker</th><th>dataviewjs</th></tr></thead>
+            <tbody>
+              <tr><td>Skip weekends</td><td data-h="Dashy" class="us"><span><code>days: weekdays</code></span></td><td data-h="Tracker"><span>Not in the docs</span></td><td data-h="dataviewjs"><span>Write it</span></td></tr>
+              <tr><td>Skip holidays</td><td data-h="Dashy" class="us"><span><code>skip_field</code></span></td><td data-h="Tracker"><span>Not in the docs</span></td><td data-h="dataviewjs"><span>Write it</span></td></tr>
+              <tr><td>Current streak</td><td data-h="Dashy" class="us"><span><code>current_streak</code>, from today</span></td><td data-h="Tracker"><span><code>currentStreak()</code>, from the newest note</span></td><td data-h="dataviewjs"><span>The loop above</span></td></tr>
+              <tr><td>Best streak</td><td data-h="Dashy" class="us"><span><code>streak</code>, same rules</span></td><td data-h="Tracker"><span><code>maxStreak()</code>, weekends break it</span></td><td data-h="dataviewjs"><span>Write it</span></td></tr>
+              <tr><td>What you install</td><td data-h="Dashy" class="us"><span>Dashy</span></td><td data-h="Tracker"><span>Tracker</span></td><td data-h="dataviewjs"><span>Dataview, JavaScript queries on</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ============ variations ============ -->
+        <h2 id="variations" data-short="Variations">Variations</h2>
+        <div class="vars">
+          <div class="var">
+            <h3>Holidays and sick days</h3>
+            <p><code>skip_field</code> takes one property. Give it a value per reason: <code>day_off: vacation</code>, <code>day_off: sick</code>.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+items:
+  - label: Workdays in a row
+    source: Diary
+    field: deep_work
+    agg: current_streak
+    days: weekdays
+    skip_field: day_off
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>Your own rest days</h3>
+            <p>Gym on Monday, Wednesday and Friday: mark the other days <code>rest: true</code> and leave <code>days</code> out.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+items:
+  - label: Gym days in a row
+    source: Diary
+    field: gym
+    agg: current_streak
+    skip_field: rest
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>A number, on workdays</h3>
+            <p>A workday counts once it reaches the bar. Weekends still do not count.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+items:
+  - label: 8000+ steps, workdays in a row
+    source: Diary
+    field: steps
+    agg: current_streak
+    at_least: 8000
+    days: weekdays
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>A goal for the run</h3>
+            <p>The same keys work on a <code>progress</code> bar: twenty workdays in a row, and how far along you are.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>progress</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```progress
+items:
+  - label: Twenty workdays in a row
+    source: Diary
+    field: deep_work
+    agg: current_streak
+    days: weekdays
+    goal: 20
+```</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ errors ============ -->
+        <h2 id="errors" data-short="If a block shows an error">If a block shows an error</h2>
+        <p>A block that cannot do what you asked says so, inside the note. The ones you are likely to see here:</p>
+        <ul>
+          <li><b><code>days</code> expects <code>all</code> or <code>weekdays</code>.</b> Something else was written, <code>weekday</code> or <code>workdays</code> for example. The card falls back to <code>all</code> until you fix it.</li>
+          <li><b><code>at_least</code>, <code>at_most</code>, <code>days</code> and <code>skip_field</code> only apply to <code>agg: streak</code> and <code>agg: current_streak</code>.</b> The keys sit on a <code>sum</code> or <code>count</code> card, where they mean nothing.</li>
+          <li><b>The run is shorter than you expected.</b> A workday with no note, or with the box unticked, ends it. Holidays need a note with <code>vacation</code> set.</li>
+        </ul>
+
+        <!-- ============ related ============ -->
+        <h2 id="related" data-short="Related guides">Related guides</h2>
+        <div class="cards small">
+          <a class="card" href="../habit-tracker-without-dataview/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/habits-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/habits-light.png" width="700" height="369" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A habit tracker without Dataview</span><p class="card-promise">Counts, streaks and a year of days from daily note checkboxes.</p></div>
+          </a>
+          <a class="card" href="../heatmap-two-activities/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/heatmap-layers-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/heatmap-layers-light.png" width="700" height="195" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">Two activities on one heatmap</span><p class="card-promise">Each in its own colour, on one year of days.</p></div>
+          </a>
+          <a class="card" href="../weekly-chart-tracker-alternative/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/chart-weekly-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/chart-weekly-light.png" width="700" height="223" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A weekly chart without Tracker</span><p class="card-promise">A number summed by week, with a goal line.</p></div>
+          </a>
+        </div>
+
+        <div class="next">
+          <p>Dashy is in Obsidian's community plugins. Search for <b>Dashy</b>, install, enable, then paste the note above.</p>
+          <div class="actions">
+            <a class="btn primary" href="../../#install"><svg><use href="#i-plug"/></svg>Install Dashy</a>
+            <a class="btn" href="../../#stats">Every block and key</a>
+          </div>
+        </div>
+
+        <footer class="note-foot">
+          <span>MIT © Dmitriy Yurkin</span>
+          <a href="../../guides/">All guides</a>
+          <a href="https://github.com/Dimagious/dashsidian">GitHub</a>
+          <a href="https://community.obsidian.md/plugins/dashsidian">Plugin listing</a>
+          <a href="https://github.com/Dimagious/dashsidian/issues">Something wrong on this page?</a>
+        </footer>
+      </article>
+    </main>
+<!--shell:bottom-->
