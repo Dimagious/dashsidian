@@ -10,6 +10,21 @@ removed public export.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Dashy loads next to Obsidian Charts.** Both plugins register the `chart`
+  code block, and Obsidian refuses a second processor for a language. In 1.5.0
+  that refusal stopped Dashy's start-up halfway: every block still drew, but
+  without its stylesheet, and the **Insert block** command, the settings tab,
+  live redraws and the day rollover were missing. A name another plugin already
+  holds now costs only that name, with a console warning, and the rest of the
+  plugin loads.
+
+### Added
+
+- **`dashy-chart`**, a second name for the `chart` block that no other plugin
+  claims. Use it when Obsidian Charts is installed; the keys are the same.
+
 ## [1.5.0] - 2026-09-30
 
 ### Added

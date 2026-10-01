@@ -13,6 +13,7 @@ import { renderStats } from "../blocks/stats";
 import { renderToday } from "../blocks/today";
 import { renderTiles } from "../blocks/tiles";
 import { BlockRefresher } from "./refresh";
+import { registerBlocks } from "./register";
 import { t } from "../i18n";
 import { InsertBlockModal } from "../ui/insert-block";
 import { DashySettingTab } from "../ui/settings";
@@ -62,12 +63,15 @@ export default class DashyPlugin extends Plugin {
             (error) => console.error("[dashy] a block failed to redraw", error),
         );
 
-        for (const [name, draw] of Object.entries(BLOCKS)) {
+        const taken = registerBlocks(BLOCKS, (name, draw) => {
             this.registerMarkdownCodeBlockProcessor(name, (source, el, ctx) => {
                 ctx.addChild(new DashyBlock(el, this.refresher, () => {
                     draw(this.context(), source, el);
                 }));
             });
+        });
+        if (taken.length > 0) {
+            console.warn(`[dashy] another plugin already handles these code blocks: ${taken.join(", ")}. Use dashy-chart for a Dashy chart.`);
         }
 
         // The way in for someone who does not keep the YAML in their head.
