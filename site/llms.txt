@@ -11,6 +11,15 @@ Repository: https://github.com/Dimagious/dashsidian
 Community plugin listing: https://community.obsidian.md/plugins/dashsidian
 Plugin id: dashsidian
 
+## Guides
+
+Step-by-step pages, one problem each, with YAML to copy:
+
+- All guides: https://dimagious.github.io/dashsidian/guides/
+- A habit tracker in Obsidian without Dataview (checkbox properties in daily
+  notes become counts, streaks, this week against last, and a year heatmap):
+  https://dimagious.github.io/dashsidian/guides/habit-tracker-without-dataview/
+
 ## Documentation
 
 - README, install steps and all seven blocks with examples:

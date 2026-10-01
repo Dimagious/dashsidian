@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Habit tracker in Obsidian without Dataview · Dashy</title>
+<meta name="description" content="Track habits from checkboxes in your daily notes: days done, longest and current streak, this week against last week, and a year heatmap. No Dataview, no JavaScript, YAML you can copy.">
+<link rel="canonical" href="https://dimagious.github.io/dashsidian/guides/habit-tracker-without-dataview/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%238b6cef'/%3E%3Crect x='7' y='7.5' width='11' height='3' rx='1.5' fill='%23fff'/%3E%3Crect x='7' y='13' width='8.5' height='7' rx='2' fill='%23fff' fill-opacity='.55'/%3E%3Crect x='16.5' y='13' width='8.5' height='7' rx='2' fill='%23fff'/%3E%3Crect x='7' y='22.5' width='18' height='3' rx='1.5' fill='%23fff' fill-opacity='.35'/%3E%3Crect x='7' y='22.5' width='12' height='3' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Dashy">
+<meta property="og:url" content="https://dimagious.github.io/dashsidian/guides/habit-tracker-without-dataview/">
+<meta property="og:title" content="A habit tracker in Obsidian without Dataview">
+<meta property="og:description" content="Checkboxes in daily notes become counts, streaks and a year heatmap. Two short YAML blocks.">
+<meta property="og:image" content="https://dimagious.github.io/dashsidian/img/habits-light.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="../../assets/site.css">
+<link rel="stylesheet" href="../../assets/guides.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"HowTo","name":"A habit tracker in Obsidian without Dataview","step":[
+{"@type":"HowToStep","name":"Give every daily note a checkbox"},
+{"@type":"HowToStep","name":"Count the days"},
+{"@type":"HowToStep","name":"Paint the year"},
+{"@type":"HowToStep","name":"The streak you are on"}]}
+</script>
+</head>
+<body>
+<!--shell:top tab="Habit tracker without Dataview"-->
+
+    <main class="note guide" id="note">
+      <article class="file" style="padding-top:34px">
+        <div class="crumb">Guides/Habit tracker without Dataview.md</div>
+        <h1 class="inline-title">A habit tracker in Obsidian without Dataview</h1>
+
+        <div class="props" aria-label="Properties">
+          <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
+          <div class="prop"><div class="k"><svg><use href="#i-tag"/></svg>blocks</div><div class="v"><span class="pill">stats</span><span class="pill">heatmap</span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>reads</div><div class="v">checkbox properties in daily notes</div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>needs dataview</div><div class="v"><span class="check off" aria-label="no"></span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
+        </div>
+
+        <p class="lede">Tick a checkbox in each daily note. Two short blocks turn those ticks into a count, a streak, this week against last week, and a year of days. No Dataview and no JavaScript.</p>
+
+        <figure class="shot">
+          <picture>
+            <source data-dark srcset="../../img/habits-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="../../img/habits-light.png" width="700" height="369" alt="Four cards: 164 gym days, a longest streak of 14 days, 3 this week with +1 against last week, 19 this month; below them a year of days with the gym days in orange">
+          </picture>
+          <figcaption>What you have at the end of step 3. From a demo vault with a year of daily notes.</figcaption>
+        </figure>
+
+        <nav class="toc" aria-label="On this page">
+          <b>ON THIS PAGE</b>
+          <ol>
+            <li><a href="#daily-note">Give every daily note a checkbox</a></li>
+            <li><a href="#count">Count the days</a></li>
+            <li><a href="#year">Paint the year</a></li>
+            <li><a href="#streak">The streak you are on</a></li>
+            <li><a href="#full">The whole note</a></li>
+            <li><a href="#other-ways">With Tracker or dataviewjs</a></li>
+            <li><a href="#variations">Variations</a></li>
+            <li><a href="#errors">If a block shows an error</a></li>
+          </ol>
+        </nav>
+
+        <!-- ============ 1 ============ -->
+        <h2 class="step" id="daily-note" data-short="Give every daily note a checkbox"><span class="n">1</span>Give every daily note a checkbox</h2>
+        <p>One checkbox property per habit. In a daily note, add a property, set its type to <b>Checkbox</b>, and name it after the habit.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Diary/2026-09-14.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">---
+gym: true
+meditate: true
+read: false
+---
+
+## 2026-09-14</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>2026-09-14</code><span>The note's name is its date. Anything after the date is fine: <code>2026-09-14 Monday</code> counts too.</span></li>
+          <li><code>gym: true</code><span>A ticked box counts as 1, an unticked one as 0.</span></li>
+          <li><code>Diary</code><span>The folder the blocks read from. Use the one your daily notes already live in.</span></li>
+        </ul>
+        <div class="callout tip">
+          <div class="callout-title"><svg><use href="#i-flame"/></svg>Put the boxes in your template</div>
+          <p>Add the properties, unticked, to your daily note template. Every new day then starts with the boxes ready to tick.</p>
+        </div>
+
+        <!-- ============ 2 ============ -->
+        <h2 class="step" id="count" data-short="Count the days"><span class="n">2</span>Count the days</h2>
+        <p>Make a note for the tracker, say <code>Habits.md</code>, and paste this block. It is the top row of the picture above.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Habits.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+columns: 4
+items:
+  - { label: Gym days, source: Diary, field: gym, agg: sum, icon: 🏋️ }
+  - { label: Longest gym streak, source: Diary, field: gym, agg: streak, unit: days, icon: 🔥 }
+  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, icon: 📅, compare: true, better: up }
+  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month, icon: 🗓 }
+```</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>agg: sum</code><span>Adds up the ticks, so it counts the ticked days.</span></li>
+          <li><code>agg: streak</code><span>The longest run of ticked days on record. An unticked day breaks it, and so does a day with no note.</span></li>
+          <li><code>period: week</code><span>Only this week, ending today. The week starts on Monday or Sunday, as your language has it.</span></li>
+          <li><code>compare: true</code><span>Sets this week against the same days of last week. With <code>better: up</code>, a rise shows green.</span></li>
+        </ul>
+
+        <!-- ============ 3 ============ -->
+        <h2 class="step" id="year" data-short="Paint the year"><span class="n">3</span>Paint the year</h2>
+        <p>Paste this under the cards. Every ticked day gets a coloured cell. Click a cell to open that day's note.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Habits.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+field: gym
+color: orange
+title: Gym
+```</code></pre>
+        </div>
+        <p>Without <code>range</code> you get one grid per calendar year. <code>range: 182d</code> shows the last half year as one grid instead, which fits a phone better.</p>
+
+        <!-- ============ 4 ============ -->
+        <h2 class="step" id="streak" data-short="The streak you are on"><span class="n">4</span>The streak you are on</h2>
+        <p>The longest streak is history. For the run you are on today, use <code>current_streak</code>. Here it is on a second habit, <code>meditate</code>:</p>
+        <div class="pair">
+          <div class="codeblock" data-code>
+            <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Habits.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+columns: 2
+items:
+  - { label: Days in a row, source: Diary, field: meditate, agg: current_streak, unit: days, icon: 🔥 }
+  - { label: Best streak, source: Diary, field: meditate, agg: streak, unit: days }
+```</code></pre>
+          </div>
+          <div>
+            <div class="renders">renders as</div>
+            <figure class="shot plain">
+              <picture>
+                <source data-dark srcset="../../img/streak-dark.png" media="(prefers-color-scheme: dark)">
+                <img src="../../img/streak-light.png" width="700" height="129" loading="lazy" alt="Two cards: 12 days in a row, and a best streak of 31 days">
+              </picture>
+            </figure>
+          </div>
+        </div>
+        <p>Today never breaks the run. Until you tick today's box, the count stops at yesterday. Only a missed yesterday ends the run.</p>
+
+        <!-- ============ full ============ -->
+        <h2 id="full" data-short="The whole note">The whole note</h2>
+        <p>Everything above in one piece, ready to paste into an empty note.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Habits.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+columns: 4
+items:
+  - { label: Gym days, source: Diary, field: gym, agg: sum, icon: 🏋️ }
+  - { label: Longest gym streak, source: Diary, field: gym, agg: streak, unit: days, icon: 🔥 }
+  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, icon: 📅, compare: true, better: up }
+  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month, icon: 🗓 }
+```
+
+```heatmap
+source: Diary
+field: gym
+color: orange
+title: Gym
+```
+
+```stats
+columns: 2
+items:
+  - { label: Days in a row, source: Diary, field: meditate, agg: current_streak, unit: days, icon: 🔥 }
+  - { label: Best streak, source: Diary, field: meditate, agg: streak, unit: days }
+```</code></pre>
+        </div>
+
+        <!-- ============ other ways ============ -->
+        <h2 id="other-ways" data-short="With Tracker or dataviewjs">The same tracker with Tracker or dataviewjs</h2>
+        <p>If you searched for this, you have probably seen one of these. Both read the same <code>gym: true</code> notes.</p>
+
+        <div class="vs" data-tabs>
+          <div class="seg" role="tablist" aria-label="Other ways to build it">
+            <button type="button" role="tab" id="tab-tracker" aria-controls="panel-tracker" aria-selected="true">tracker</button>
+            <button type="button" role="tab" id="tab-dvjs" aria-controls="panel-dvjs" aria-selected="false">dataviewjs</button>
+          </div>
+
+          <div class="vs-panel" id="panel-tracker" role="tabpanel" aria-labelledby="tab-tracker">
+            <div class="codeblock other" data-code>
+              <div class="bar"><span>With the Tracker plugin</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```tracker
+searchType: frontmatter
+searchTarget: gym
+folder: Diary
+summary:
+    template: "Gym days: {{sum()}}\nLongest streak: {{maxStreak()}} days\nCurrent streak: {{currentStreak()}} days"
+```
+
+```tracker
+searchType: frontmatter
+searchTarget: gym
+folder: Diary
+datasetName: Gym
+month:
+    startWeekOn: 'Mon'
+```</code></pre>
+            </div>
+            <ul>
+              <li>Tracker reads <code>true</code> as 1 and <code>false</code> as 0, so <code>sum()</code> counts the ticked days.</li>
+              <li>The calendar is a month view: one month at a time, with arrows to the others.</li>
+              <li>The current streak counts back from the newest note Tracker finds, not from today, unless you set <code>endDate</code>.</li>
+              <li>Tracker's docs list no setting for "this week against last week".</li>
+            </ul>
+          </div>
+
+          <div class="vs-panel" id="panel-dvjs" role="tabpanel" aria-labelledby="tab-dvjs">
+            <div class="codeblock other" data-code>
+              <div class="bar"><span>With Dataview, JavaScript queries turned on</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">```dataviewjs
+const days = dv.pages('"Diary"')
+  .where(p => p.file.day && p.gym === true)
+  .sort(p => p.file.day)
+  .map(p => p.file.day)
+  .array();
+
+let best = 0, run = 0, prev = null;
+for (const d of days) {
+  run = prev && d.diff(prev, "days").days === 1 ? run + 1 : 1;
+  best = Math.max(best, run);
+  prev = d;
+}
+dv.paragraph(`Gym days: ${days.length}`);
+dv.paragraph(`Longest streak: ${best} days`);
+```</code></pre>
+            </div>
+            <ul>
+              <li>Needs <b>Enable JavaScript queries</b> in Dataview's settings. It is off by default.</li>
+              <li>This prints two lines of text. Cards, the week comparison and the year grid are more code, or another plugin.</li>
+              <li>Two notes on the same day reset this streak to 1. Fixing that is more code too.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="cmp">
+            <thead><tr><th></th><th class="us">Dashy</th><th>Tracker</th><th>dataviewjs</th></tr></thead>
+            <tbody>
+              <tr><td>Reads <code>gym: true</code></td><td data-h="Dashy" class="us"><span>Yes</span></td><td data-h="Tracker"><span>Yes, with <code>searchType: frontmatter</code></span></td><td data-h="dataviewjs"><span>Yes, you compare it in code</span></td></tr>
+              <tr><td>Count and longest streak</td><td data-h="Dashy" class="us"><span><code>sum</code>, <code>streak</code></span></td><td data-h="Tracker"><span><code>sum()</code>, <code>maxStreak()</code></span></td><td data-h="dataviewjs"><span>Write the loop</span></td></tr>
+              <tr><td>Current streak</td><td data-h="Dashy" class="us"><span><code>current_streak</code>, from today</span></td><td data-h="Tracker"><span><code>currentStreak()</code>, from the newest note</span></td><td data-h="dataviewjs"><span>Write it</span></td></tr>
+              <tr><td>This week against last</td><td data-h="Dashy" class="us"><span><code>compare: true</code></span></td><td data-h="Tracker"><span>Not in the docs</span></td><td data-h="dataviewjs"><span>Write it</span></td></tr>
+              <tr><td>Calendar</td><td data-h="Dashy" class="us"><span>A year of days</span></td><td data-h="Tracker"><span>A month at a time</span></td><td data-h="dataviewjs"><span>Write it, or add a plugin</span></td></tr>
+              <tr><td>What you install</td><td data-h="Dashy" class="us"><span>Dashy</span></td><td data-h="Tracker"><span>Tracker</span></td><td data-h="dataviewjs"><span>Dataview, JavaScript queries on</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="muted" style="font-size:14.5px">Tracker also draws line, bar, pie and bullet charts from tags, text and inline fields. Dashy reads frontmatter only. If you track things that live in the text of your notes, Tracker is the better fit.</p>
+
+        <!-- ============ variations ============ -->
+        <h2 id="variations" data-short="Variations">Variations</h2>
+        <div class="vars">
+          <div class="var">
+            <h3>Two habits on one grid</h3>
+            <p>Each habit in its own colour. A day with both shows the first one listed.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>heatmap</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+layers:
+  - field: gym
+    color: orange
+    label: Gym
+  - field: read
+    color: green
+    label: Reading
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>Weekends off</h3>
+            <p>Saturday and Sunday neither break the run nor add to it. Friday and Monday join up.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+items:
+  - label: Workdays in a row
+    source: Diary
+    field: gym
+    agg: current_streak
+    days: weekdays
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>Holidays do not count</h3>
+            <p>Mark a day with <code>vacation: true</code>. That day is skipped: it neither counts nor breaks the run.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+items:
+  - label: Days in a row
+    source: Diary
+    field: gym
+    agg: current_streak
+    skip_field: vacation
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>A habit with a number</h3>
+            <p>Steps instead of a tick. A day counts once it reaches the bar.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+items:
+  - label: 8000+ steps, days in a row
+    source: Diary
+    field: steps
+    agg: current_streak
+    at_least: 8000
+```</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ errors ============ -->
+        <h2 id="errors" data-short="If a block shows an error">If a block shows an error</h2>
+        <p>A block that cannot draw says why, inside the note. The usual three:</p>
+        <ul>
+          <li><b>The field is missing.</b> No note in <code>Diary</code> has <code>gym</code>. Check the spelling and the folder.</li>
+          <li><b>The field holds text.</b> <code>gym: done</code> is text, not a checkbox. Set the property type to Checkbox.</li>
+          <li><b>No note has a date.</b> A card with <code>period</code> says so when no note is named <code>YYYY-MM-DD</code>. If the date is a property, add <code>date_field: date</code>.</li>
+        </ul>
+
+        <div class="next">
+          <p>Dashy is in Obsidian's community plugins. Search for <b>Dashy</b>, install, enable, then paste the note above.</p>
+          <div class="actions">
+            <a class="btn primary" href="../../#install"><svg><use href="#i-plug"/></svg>Install Dashy</a>
+            <a class="btn" href="../../#stats">Every block and key</a>
+          </div>
+        </div>
+
+        <footer class="note-foot">
+          <span>MIT © Dmitriy Yurkin</span>
+          <a href="../../guides/">All guides</a>
+          <a href="https://github.com/Dimagious/dashsidian">GitHub</a>
+          <a href="https://community.obsidian.md/plugins/dashsidian">Plugin listing</a>
+          <a href="https://github.com/Dimagious/dashsidian/issues">Something wrong on this page?</a>
+        </footer>
+      </article>
+    </main>
+<!--shell:bottom-->

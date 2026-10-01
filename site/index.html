@@ -546,6 +546,13 @@ footer.note-foot a { color: var(--muted); }
       <li><a href="#habits"><svg width="14" height="14"><use href="#i-file"/></svg>Habit tracker<span class="ext">.md</span></a></li>
       <li><a href="#sleep"><svg width="14" height="14"><use href="#i-file"/></svg>Sleep log<span class="ext">.md</span></a></li>
       <li>
+        <div class="folder" data-folder><svg><use href="#i-chev"/></svg>Guides</div>
+        <ul>
+          <li><a href="guides/"><svg width="14" height="14"><use href="#i-file"/></svg>All guides<span class="ext">.md</span></a></li>
+          <li><a href="guides/habit-tracker-without-dataview/"><svg width="14" height="14"><use href="#i-file"/></svg>Habits, no Dataview<span class="ext">.md</span></a></li>
+        </ul>
+      </li>
+      <li>
         <div class="folder" data-folder><svg><use href="#i-chev"/></svg>Blocks</div>
         <ul>
           <li><a href="#today"><svg width="14" height="14"><use href="#i-file"/></svg><code>today</code></a></li>
@@ -741,6 +748,7 @@ items:
         </div>
         <p><code>streak</code> is the best run on record; <code>current_streak</code> is the run going on now, counted back from today by the same rules. Today never breaks it: a day with no note yet leaves the run counted up to yesterday, and only a missed yesterday resets it.</p>
         <p>Streaks bend to real life. <code>at_least: 5000</code> counts a day only once the steps get there. <code>days: weekdays</code> lets Friday and Monday join into one run. <code>skip_field: vacation</code> makes a holiday neither break a streak nor extend it.</p>
+        <p><a href="guides/habit-tracker-without-dataview/">Step by step: a habit tracker without Dataview</a>, from the daily note to the year grid, next to the same tracker in Tracker and dataviewjs.</p>
       </section>
 
       <!-- ============ Sleep log.md ============ -->
