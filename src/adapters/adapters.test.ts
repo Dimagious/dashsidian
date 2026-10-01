@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { Platform } from "obsidian";
+import { Platform, type App } from "obsidian";
 import { snapshot, noteExists, VaultSnapshot } from "./vault";
 import { discoverPeriodics } from "./periodic";
 import {
@@ -7,6 +7,7 @@ import {
 } from "./datetime";
 import { applyObsidianLocale, applyLocale } from "./locale";
 import { isMobile } from "./platform";
+import { isPluginEnabled } from "./plugins";
 import { setLocale, getLocale } from "../i18n";
 import { mockApp, countingContext, diary } from "../test/vault";
 
@@ -20,6 +21,32 @@ describe("isMobile", () => {
         expect(isMobile()).toBe(false);
         Platform.isMobile = true;
         expect(isMobile()).toBe(true);
+    });
+});
+
+describe("isPluginEnabled", () => {
+    const appWith = (host: unknown): App => host as App;
+
+    it("finds an enabled plugin by id", () => {
+        const app = appWith({ plugins: { enabledPlugins: new Set(["obsidian-charts"]), manifests: { "obsidian-charts": {} } } });
+        expect(isPluginEnabled(app, "obsidian-charts")).toBe(true);
+        expect(isPluginEnabled(app, "dataview")).toBe(false);
+    });
+
+    it("says no for a plugin listed as enabled whose folder is gone", () => {
+        const app = appWith({ plugins: { enabledPlugins: new Set(["obsidian-charts"]), manifests: {} } });
+        expect(isPluginEnabled(app, "obsidian-charts")).toBe(false);
+    });
+
+    it("says no for an installed plugin that is switched off", () => {
+        const app = appWith({ plugins: { enabledPlugins: new Set<string>(), manifests: { "obsidian-charts": {} } } });
+        expect(isPluginEnabled(app, "obsidian-charts")).toBe(false);
+    });
+
+    it("says no when the private plugin registry is missing or not a set", () => {
+        expect(isPluginEnabled(appWith({}), "obsidian-charts")).toBe(false);
+        expect(isPluginEnabled(appWith({ plugins: {} }), "obsidian-charts")).toBe(false);
+        expect(isPluginEnabled(appWith({ plugins: { enabledPlugins: ["obsidian-charts"] } }), "obsidian-charts")).toBe(false);
     });
 });
 
