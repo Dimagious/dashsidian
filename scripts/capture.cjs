@@ -36,7 +36,7 @@ const fs = require("fs");
 const frames = path.join(root, ".capture", "frames");
 const shots = path.join(root, "docs", "screens");
 
-// A README picture sits beside its heading and is read at the width of the
+// A picture on the site sits beside its heading and is read at the width of the
 // column; a reel posted on its own is read at whatever the feed gives it, so it
 // keeps more pixels.
 const WIDTHS = { "dashboard-wide": 1000 };

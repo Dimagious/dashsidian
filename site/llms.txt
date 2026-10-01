@@ -31,7 +31,17 @@ Step-by-step pages, one problem each, with YAML to copy:
 
 ## Documentation
 
-- README, install steps and all seven blocks with examples:
+- Block reference, every key of every block with defaults and synonyms,
+  one page per block, generated from the schema:
+  https://dimagious.github.io/dashsidian/reference/
+  - stats: https://dimagious.github.io/dashsidian/reference/stats/
+  - chart: https://dimagious.github.io/dashsidian/reference/chart/
+  - heatmap: https://dimagious.github.io/dashsidian/reference/heatmap/
+  - progress: https://dimagious.github.io/dashsidian/reference/progress/
+  - today: https://dimagious.github.io/dashsidian/reference/today/
+  - tiles: https://dimagious.github.io/dashsidian/reference/tiles/
+  - countdown: https://dimagious.github.io/dashsidian/reference/countdown/
+- README, install and one complete example:
   https://raw.githubusercontent.com/Dimagious/dashsidian/master/README.md
 - Changelog:
   https://raw.githubusercontent.com/Dimagious/dashsidian/master/CHANGELOG.md

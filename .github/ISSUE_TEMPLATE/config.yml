@@ -6,8 +6,8 @@ blank_issues_enabled: true
 
 contact_links:
   - name: Block reference
-    url: https://github.com/Dimagious/dashsidian#readme
-    about: Every block and every key, with examples — check here before filing.
+    url: https://dimagious.github.io/dashsidian/reference/
+    about: Every block and every key, with examples. Check here before filing.
   - name: Full specification
     url: https://github.com/Dimagious/dashsidian/blob/master/docs/SPEC.md
     about: What each block is meant to do, including the where microlanguage.

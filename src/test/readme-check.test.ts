@@ -16,6 +16,7 @@ interface ReadmeCheckModule {
     extractAnchorTargets: (markdown: string) => string[];
     findDeadAnchors: (markdown: string) => string[];
     isExemptRef: (ref: string) => boolean;
+    repoPathFromUrl: (ref: string) => string | null;
     extractRelativeRefs: (markdown: string) => string[];
     findMissingRefs: (markdown: string, fileExists: (ref: string) => boolean) => string[];
     stripToProse: (markdown: string) => string;
@@ -33,12 +34,19 @@ const {
     extractAnchorTargets,
     findDeadAnchors,
     isExemptRef,
+    repoPathFromUrl,
     extractRelativeRefs,
     findMissingRefs,
     stripToProse,
     findTypographicDashes,
     runChecks,
 } = readmeCheck;
+
+describe("readme-check — a malformed escape in a repo URL", () => {
+    it("is reported as the raw path rather than thrown", () => {
+        expect(repoPathFromUrl("https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/a%E0.png")).toBe("docs/screens/a%E0.png");
+    });
+});
 
 describe("readme-check — headingPlainText", () => {
     it("strips code backticks but keeps their content", () => {
@@ -160,6 +168,53 @@ describe("readme-check — isExemptRef / extractRelativeRefs", () => {
     it("ignores an anchor link and a full URL", () => {
         const md = "[here](#section) and [Obsidian](https://obsidian.md)\n";
         expect(extractRelativeRefs(md)).toEqual([]);
+    });
+});
+
+describe("readme-check — absolute URLs into this repository", () => {
+    const RAW = "https://raw.githubusercontent.com/Dimagious/dashsidian";
+    const BLOB = "https://github.com/Dimagious/dashsidian/blob";
+
+    it("maps a raw file URL and a blob page URL back to the repo path, whatever the ref", () => {
+        expect(repoPathFromUrl(`${RAW}/HEAD/docs/screens/hero-light.png`)).toBe("docs/screens/hero-light.png");
+        expect(repoPathFromUrl(`${RAW}/master/README.md`)).toBe("README.md");
+        expect(repoPathFromUrl(`${BLOB}/master/src/i18n/en.ts`)).toBe("src/i18n/en.ts");
+    });
+
+    it("drops a query or a fragment from the path", () => {
+        expect(repoPathFromUrl(`${BLOB}/master/CHANGELOG.md#unreleased`)).toBe("CHANGELOG.md");
+        expect(repoPathFromUrl(`${RAW}/HEAD/docs/banner-dark.svg?raw=1`)).toBe("docs/banner-dark.svg");
+    });
+
+    it("leaves a URL outside this repository alone", () => {
+        expect(repoPathFromUrl("https://github.com/Dimagious/dashsidian/issues")).toBeNull();
+        expect(repoPathFromUrl("https://github.com/phibr0/obsidian-charts")).toBeNull();
+        expect(repoPathFromUrl("https://raw.githubusercontent.com/obsidianmd/obsidian-releases/master/x.json")).toBeNull();
+        expect(repoPathFromUrl("https://dimagious.github.io/dashsidian/reference/")).toBeNull();
+    });
+
+    it("lists the repo paths of a <picture> and a link written with absolute URLs", () => {
+        const md = [
+            `<source srcset="${RAW}/HEAD/docs/screens/hero-dark.png">`,
+            `<img src="${RAW}/HEAD/docs/screens/hero-light.png">`,
+            `[MIT](${BLOB}/master/LICENSE) and [site](https://dimagious.github.io/dashsidian/)`,
+        ].join("\n");
+        expect(extractRelativeRefs(md)).toEqual(["LICENSE", "docs/screens/hero-dark.png", "docs/screens/hero-light.png"]);
+    });
+
+    it("reports a renamed screenshot behind an absolute URL as a missing file", () => {
+        const md = `# T\n\n<img src="${RAW}/HEAD/docs/screens/ghost-light.png">\n\n[ok](${BLOB}/master/LICENSE)\n`;
+        const exists = (ref: string): boolean => ref === "LICENSE";
+        expect(runChecks(md, { fileExists: exists })).toEqual([
+            'missing file: "docs/screens/ghost-light.png" does not exist',
+        ]);
+    });
+
+    it("never asks the filesystem about a foreign URL", () => {
+        const asked: string[] = [];
+        const md = "[charts](https://github.com/phibr0/obsidian-charts) ![badge](https://img.shields.io/x.svg)\n";
+        expect(runChecks(md, { fileExists: (ref) => { asked.push(ref); return false; } })).toEqual([]);
+        expect(asked).toEqual([]);
     });
 });
 

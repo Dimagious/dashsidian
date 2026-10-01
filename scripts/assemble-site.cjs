@@ -15,7 +15,7 @@
  *      `<!--shell:bottom-->` gets `site/_shell.html` around its content: the
  *      part before the shell's `<!--shell:content-->` marker in place of the
  *      first placeholder, the part after it in place of the second, with
- *      `{{root}}`, `{{tab}}` and `{{active:<folder>/}}` filled for that page
+ *      `{{root}}`, `{{tab}}`, `{{folder}}` and `{{active:<folder>/}}` filled for that page
  *      (`fillShell` in `site-check.cjs`, which checks pages the same way).
  *      `_shell.html` is a source file and is not copied into `_site/`.
  *   2. `{{version}}` and `{{minAppVersion}}` from `manifest.json`. No page

@@ -567,6 +567,19 @@ footer.note-foot a { color: var(--muted); }
           <li><a href="#chart"><svg width="14" height="14"><use href="#i-file"/></svg><code>chart</code></a></li>
         </ul>
       </li>
+      <li class="closed">
+        <div class="folder" data-folder><svg><use href="#i-chev"/></svg>Reference</div>
+        <ul>
+          <li><a href="reference/"><svg width="14" height="14"><use href="#i-file"/></svg>All blocks<span class="ext">.md</span></a></li>
+          <li><a href="reference/stats/"><svg width="14" height="14"><use href="#i-file"/></svg><code>stats</code></a></li>
+          <li><a href="reference/chart/"><svg width="14" height="14"><use href="#i-file"/></svg><code>chart</code></a></li>
+          <li><a href="reference/heatmap/"><svg width="14" height="14"><use href="#i-file"/></svg><code>heatmap</code></a></li>
+          <li><a href="reference/progress/"><svg width="14" height="14"><use href="#i-file"/></svg><code>progress</code></a></li>
+          <li><a href="reference/today/"><svg width="14" height="14"><use href="#i-file"/></svg><code>today</code></a></li>
+          <li><a href="reference/tiles/"><svg width="14" height="14"><use href="#i-file"/></svg><code>tiles</code></a></li>
+          <li><a href="reference/countdown/"><svg width="14" height="14"><use href="#i-file"/></svg><code>countdown</code></a></li>
+        </ul>
+      </li>
       <li>
         <div class="folder" data-folder><svg><use href="#i-chev"/></svg>Behaviour</div>
         <ul>
@@ -701,10 +714,10 @@ monthly: true
 <pre><code class="yaml-fenced">```stats
 columns: 4
 items:
-  - { label: Gym days, source: Diary, field: gym, agg: sum }
-  - { label: Longest gym streak, source: Diary, field: gym, agg: streak, unit: days }
-  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }
-  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month }
+  - { label: Gym days, source: Diary, field: gym, agg: sum, icon: 🏋️ }
+  - { label: Longest gym streak, source: Diary, field: gym, agg: streak, unit: days, icon: 🔥 }
+  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, icon: 📅, compare: true, better: up }
+  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month, icon: 🗓 }
 ```
 
 ```heatmap
@@ -825,7 +838,7 @@ monthly: true
           </div>
         </div>
         <p>Dashy's own <b>New day starts at</b> setting (00:00 to 06:00, midnight by default) decides what "today" means here, and for every other block on the page: <code>period</code> and <code>compare</code> windows, the heatmap's current day, <code>countdown</code>. It moves which day this block points to, not which day a note itself falls on: a note's own date is still its name or <code>date_field</code>.</p>
-        <div class="keys"><code>daily</code><code>weekly</code><code>monthly</code><code>title</code></div>
+        <p class="muted" style="font-size:14.5px">Every key: <a href="reference/today/">reference/today/</a></p>
       </section>
 
       <!-- ============ Blocks/tiles.md ============ -->
@@ -866,6 +879,7 @@ items:
 ```</code></pre>
         </div>
         <p class="muted" style="font-size:14.5px">These four keys only mean something next to <code>badge: count</code>; on a tile with no badge, or a custom one, they are ignored and warn.</p>
+        <p class="muted" style="font-size:14.5px">Every key: <a href="reference/tiles/">reference/tiles/</a></p>
       </section>
 
       <!-- ============ Blocks/stats.md ============ -->
@@ -905,6 +919,7 @@ items:
           <div class="callout-title"><svg><use href="#i-quote"/></svg>A dash, not a zero</div>
           <p>With nothing to count, a field aggregate like <code>sum</code> or <code>avg</code> shows a dash: "no notes at all" and "the sum is zero" are different answers. <code>count</code> has no such gap; an empty selection reads a plain <code>0</code>, the same as everywhere else it counts notes. The dash also covers a <code>field</code> that no selected note actually carries, or one that holds text instead of a number: the card names which, rather than a zero that hides a typo.</p>
         </div>
+        <p class="muted" style="font-size:14.5px">Every key: <a href="reference/stats/">reference/stats/</a></p>
       </section>
 
       <!-- ============ Blocks/progress.md ============ -->
@@ -919,7 +934,7 @@ items:
 items:
   - { label: Days logged this year, source: Diary, agg: count, goal: 365, icon: 📔 }
   - { label: Books this year, source: Books, period: year, date_field: finished, agg: count, goal: 24, icon: 📚 }
-  - { label: Steps, source: Diary, field: steps, agg: sum, goal: 3000000, unit: steps }
+  - { label: Steps, source: Diary, field: steps, agg: sum, goal: 3000000, unit: steps, sub: three million }
 ```</code></pre>
           </div>
           <div>
@@ -932,6 +947,7 @@ items:
             </figure>
           </div>
         </div>
+        <p class="muted" style="font-size:14.5px">Every key: <a href="reference/progress/">reference/progress/</a></p>
       </section>
 
       <!-- ============ Blocks/countdown.md ============ -->
@@ -960,6 +976,7 @@ items:
             </figure>
           </div>
         </div>
+        <p class="muted" style="font-size:14.5px">Every key: <a href="reference/countdown/">reference/countdown/</a></p>
       </section>
 
       <!-- ============ Blocks/heatmap.md ============ -->
@@ -990,6 +1007,7 @@ title: Sleep, last twelve months
         </div>
         <p>Two or more notes landing on the same day paint one cell: their values sum, and a ticked or numeric note always outweighs a <code>false</code> one on the same day. A field nothing carries, or one that holds text rather than a number or a checkbox, is an error that says which, rather than an empty grid that looks like a note-taking gap.</p>
         <p class="muted" style="font-size:14.5px">A checkbox property works as <code>field</code> too: a ticked day paints its cell. That is the whole <a href="#habits">habit tracker</a>. Two habits on one grid, each in its own colour: <a href="guides/heatmap-two-activities/">the <code>layers</code> guide</a>.</p>
+        <p class="muted" style="font-size:14.5px">Every key: <a href="reference/heatmap/">reference/heatmap/</a></p>
       </section>
 
       <!-- ============ Blocks/chart.md ============ -->
@@ -1044,7 +1062,7 @@ series:
           </div>
         </div>
         <p><code>agg</code> turns a bucket into one number: <code>sum</code> by default, or <code>avg</code>, <code>min</code>, <code>max</code>, <code>count</code>. It is one step over every value on every note dated in the bucket, so a week's <code>avg</code> is the same number a <code>stats</code> card with <code>agg: avg, period: week</code> shows. Hover a bar for its value and the note behind it; click a day to open that note. On a phone, the first tap shows the value and a second tap opens the note.</p>
-        <div class="keys"><code>source</code><code>tag</code><code>where</code><code>date_field</code><code>field</code><code>series</code><code>agg</code><code>bucket</code><code>range</code><code>type</code><code>goal</code><code>unit</code><code>precision</code><code>label</code><code>color</code><code>link</code><code>title</code></div>
+        <p class="muted" style="font-size:14.5px">Every key: <a href="reference/chart/">reference/chart/</a></p>
       </section>
 
       <!-- ============ Behaviour/Live redraw.md ============ -->
@@ -1167,8 +1185,20 @@ layers: [sleep_score]
           <p>From the note's name, as long as it starts with <code>YYYY-MM-DD</code>: <code>2026-03-02 Monday</code> and <code>2026-03-02_standup</code> both count. <code>date_field</code> can name a frontmatter date property instead on any block that counts by day, which is how a book note counts by the day it was finished. Notes without a date are left out of anything that counts by day.</p>
         </details>
         <details class="callout">
+          <summary class="callout-title"><svg><use href="#i-help"/></svg>Does a time zone shift my dates?<svg class="chev"><use href="#i-right"/></svg></summary>
+          <p>No. A note's date is its name or its <code>date_field</code>, text that no time zone changes. "Today" and every <code>period</code> window come from your local calendar day, never from <code>toISOString()</code>, which turns local midnight into the previous day east of UTC. At 23:50 in Tokyo, the dashboard still counts that day as today.</p>
+        </details>
+        <details class="callout">
+          <summary class="callout-title"><svg><use href="#i-help"/></svg>I go to bed after midnight. Which day is today?<svg class="chev"><use href="#i-right"/></svg></summary>
+          <p><b>New day starts at</b> in the settings (00:00 to 06:00, midnight by default) decides what "today" means for every block: <code>period</code> and <code>compare</code> windows, the current day on the heatmap and the chart, <code>countdown</code>, <code>current_streak</code>. It changes which day the blocks point to, not which day a note falls on. Obsidian's own "Open today's daily note" keeps creating the calendar date's note at any hour.</p>
+        </details>
+        <details class="callout">
+          <summary class="callout-title"><svg><use href="#i-help"/></svg>Can a block read a nested property?<svg class="chev"><use href="#i-right"/></svg></summary>
+          <p>Yes. <code>field: health.sleep</code> reads <code>sleep</code> under a <code>health:</code> map, and <code>where</code> takes the same dotted paths. A literal key with a dot in its name wins first. A list is never indexed.</p>
+        </details>
+        <details class="callout">
           <summary class="callout-title"><svg><use href="#i-help"/></svg>Will it write to my notes?<svg class="chev"><use href="#i-right"/></svg></summary>
-          <p>The blocks only read. Files get written when you ask: <b>Insert block</b> puts an example at your cursor, the settings buttons write the agent reference, and clicking a dimmed link in <code>today</code> creates that periodic note.</p>
+          <p>The blocks only read. Files get written when you ask: <b>Insert block</b> puts an example at your cursor, the settings buttons write the agent reference (in <code>AGENTS.md</code> Dashy owns only its fenced section; the rest of the file stays as it was), and clicking a dimmed link in <code>today</code> creates that periodic note.</p>
         </details>
         <details class="callout">
           <summary class="callout-title"><svg><use href="#i-help"/></svg>Does it match my theme?<svg class="chev"><use href="#i-right"/></svg></summary>

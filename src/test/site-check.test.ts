@@ -24,7 +24,12 @@ interface SiteCheckModule {
         pagePath: string,
         idsOf: (path: string) => Set<string> | null
     ) => string[];
-    findOrphanPages: (pagePaths: string[], sitemapXml: string | null, guidesIndexHtml: string | null) => string[];
+    findOrphanPages: (
+        pagePaths: string[],
+        sitemapXml: string | null,
+        guidesIndexHtml: string | null,
+        referenceIndexHtml?: string | null
+    ) => string[];
     findClaudePathMentions: (html: string) => string[];
     stripToVisibleText: (html: string) => string;
     findTypographicDashes: (html: string) => string[];
@@ -504,6 +509,17 @@ describe("site-check — fillShell", () => {
         expect(fillShell(html, null, "index.html")).toBe(html);
     });
 
+    it("names the page's folder in the view header: Guides, Reference, or nothing elsewhere", () => {
+        const header = "<div>Dashy vault / <span>{{folder}}</span> / <b>{{tab}}</b></div><!--shell:content-->";
+        expect(fillShell(page("Habits"), header, GUIDE)).toContain("<span>Guides</span> / <b>Habits</b>");
+        expect(fillShell(page("All guides"), header, "guides/index.html")).toContain("<span>Guides</span>");
+        expect(fillShell(page("stats"), header, "reference/stats/index.html")).toContain("<span>Reference</span> / <b>stats</b>");
+        expect(fillShell(page("Block reference"), header, "reference/index.html")).toContain("<span>Reference</span>");
+        expect(fillShell(page("About"), header, "about/index.html")).toContain("<span></span>");
+        expect(fillShell(page("Home"), header, "index.html")).toContain("<span></span>");
+        expect(fillShell(page("Proto"), header, "__proto__/index.html")).toContain("<span></span>");
+    });
+
     it("keeps a $ sequence in the shell as text", () => {
         const out = fillShell(page("T"), "<b>$& $1</b><!--shell:content-->", GUIDE);
         expect(out).toContain("<b>$& $1</b>");
@@ -561,6 +577,19 @@ describe("site-check — findOrphanPages", () => {
 
     it("leaves the sitemap rule to the missing-file check when sitemap.xml is absent", () => {
         expect(findOrphanPages(pages, null, index)).toEqual([]);
+    });
+
+    it("flags a block reference page the reference index does not link to, and passes once it does", () => {
+        const ref = "reference/stats/index.html";
+        const all = `${sitemap}${loc(`${SITE_URL}reference/`)}${loc(`${SITE_URL}reference/stats/`)}`;
+        const withRef = [...pages, "reference/index.html", ref];
+        expect(findOrphanPages(withRef, all, index, `<a href="chart/">chart</a>`)).toEqual([
+            "reference/stats/index.html is not linked from reference/index.html",
+        ]);
+        expect(findOrphanPages(withRef, all, index, null)).toEqual([
+            "reference/stats/index.html is not linked from reference/index.html",
+        ]);
+        expect(findOrphanPages(withRef, all, index, `<a class="card" href="stats/">stats</a>`)).toEqual([]);
     });
 
     it("does not ask a non-guide page to be linked from the guides index", () => {

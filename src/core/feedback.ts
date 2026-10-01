@@ -3,7 +3,8 @@
  */
 
 export const REPO_URL = "https://github.com/Dimagious/dashsidian";
-export const DOCS_URL = `${REPO_URL}#readme`;
+/** The block reference on the site: every block and every key, generated from the schema. */
+export const DOCS_URL = "https://dimagious.github.io/dashsidian/reference/";
 export const FUNDING_URL = "https://buymeacoffee.com/dimagious";
 
 export type IssueKind = "bug" | "feature";
