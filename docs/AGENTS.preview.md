@@ -315,6 +315,7 @@ agg: avg
 ```
 ````
 
+- With the Obsidian Charts plugin installed, write the block as `dashy-chart`: Charts owns the `chart` language and Obsidian gives a language to whichever plugin registers it first. `dashy-chart` takes the same keys and always works.
 - A note's date is its name, as long as it starts with `YYYY-MM-DD`, unless `date_field` names a property instead. Notes without a date are left out, and a selection where none has one warns. Notes dated after today are never drawn.
 - A week starts on the locale's first day, the same day `period: week` and the heatmap grid use, and a week's tooltip names it: `Week of Sun Sep 27, 2026`.
 - A bucket with no data is a gap in the line and no bar, never a zero: a missing day is not a day of zero. An unticked checkbox (`false`) is a real 0, and `count` over an empty bucket is a plain 0.

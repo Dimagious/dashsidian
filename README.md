@@ -129,6 +129,10 @@ the first tap shows the value and a second tap opens the note.
 | `link` | clicking a day opens its note (default `true`); weeks and months have no single note |
 | `title` | your own heading |
 
+- **With [Obsidian Charts](https://github.com/phibr0/obsidian-charts) installed, write ` ```dashy-chart `.**
+  Both plugins answer to `chart`, and Obsidian hands a code block language to whichever plugin
+  claims it first, so a `chart` block may be drawn by Charts. `dashy-chart` takes the same keys
+  and is always Dashy's.
 - A bucket's values are every value on every note dated in it. A week's `avg` is the same
   number a `stats` card with `agg: avg, period: week` shows. `sum` of a checkbox counts ticked days.
 - A bucket with no data is a gap in the line and has no bar. An unticked checkbox is a real 0,
