@@ -126,7 +126,7 @@ window.renderChart({
 
 ## Dashy
 
-\`\`\`chart
+\`\`\`dashy-chart
 source: Diary
 field: run_km
 type: bar

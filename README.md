@@ -130,9 +130,9 @@ the first tap shows the value and a second tap opens the note.
 | `title` | your own heading |
 
 - **With [Obsidian Charts](https://github.com/phibr0/obsidian-charts) installed, write ` ```dashy-chart `.**
-  Both plugins answer to `chart`, and Obsidian hands a code block language to whichever plugin
-  claims it first, so a `chart` block may be drawn by Charts. `dashy-chart` takes the same keys
-  and is always Dashy's.
+  Both plugins answer to `chart`, and a code block language can have only one owner. When Charts
+  is enabled, Dashy leaves `chart` to it, so your Charts blocks keep working. `dashy-chart` takes
+  the same keys and is always Dashy's. Turned Charts on while Obsidian was open? Restart it once.
 - A bucket's values are every value on every note dated in it. A week's `avg` is the same
   number a `stats` card with `agg: avg, period: week` shows. `sum` of a checkbox counts ticked days.
 - A bucket with no data is a gap in the line and has no bar. An unticked checkbox is a real 0,
@@ -309,10 +309,11 @@ window.renderChart({
 ```
 ````
 
-The same chart in Dashy, with a goal line added:
+The same chart in Dashy, with a goal line added. With Obsidian Charts installed, the block is
+`dashy-chart`:
 
 ````markdown
-```chart
+```dashy-chart
 source: Diary
 field: run_km
 type: bar

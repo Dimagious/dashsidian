@@ -13,7 +13,8 @@ import { renderStats } from "../blocks/stats";
 import { renderToday } from "../blocks/today";
 import { renderTiles } from "../blocks/tiles";
 import { BlockRefresher } from "./refresh";
-import { registerBlocks } from "./register";
+import { fenceName, registerBlocks } from "./register";
+import { isPluginEnabled } from "../adapters/plugins";
 import { t } from "../i18n";
 import { InsertBlockModal } from "../ui/insert-block";
 import { DashySettingTab } from "../ui/settings";
@@ -63,13 +64,15 @@ export default class DashyPlugin extends Plugin {
             (error) => console.error("[dashy] a block failed to redraw", error),
         );
 
-        const taken = registerBlocks(BLOCKS, (name, draw) => {
+        // With Obsidian Charts enabled, `chart` is left to it on purpose (B-137):
+        // that is the expected setup, not something to warn about.
+        const { taken, yielded } = registerBlocks(BLOCKS, (name, draw) => {
             this.registerMarkdownCodeBlockProcessor(name, (source, el, ctx) => {
                 ctx.addChild(new DashyBlock(el, this.refresher, () => {
                     draw(this.context(), source, el);
                 }));
             });
-        });
+        }, (id) => isPluginEnabled(this.app, id));
         if (taken.length > 0) {
             console.warn(`[dashy] another plugin already handles these code blocks: ${taken.join(", ")}. Use dashy-chart for a Dashy chart.`);
         }
@@ -79,7 +82,7 @@ export default class DashyPlugin extends Plugin {
             id: "insert-block",
             name: t("insert.name"),
             editorCallback: (editor) => {
-                new InsertBlockModal(this.app, editor, this.snapshot.get()).open();
+                new InsertBlockModal(this.app, editor, this.snapshot.get(), (name) => fenceName(name, yielded)).open();
             },
         });
 

@@ -10,6 +10,16 @@ removed public export.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Obsidian Charts loads next to Dashy again.** 1.5.1 kept Dashy running when
+  Charts held the `chart` code block first, but the other way round broke
+  Charts: when Dashy loaded first, Charts failed to load with "Failed to load
+  plugin", and its `chart` blocks were drawn by Dashy with unknown-key
+  warnings. With Charts enabled, Dashy now leaves `chart` to it and answers to
+  `dashy-chart` only, and **Insert block** pastes a `dashy-chart` block. If
+  you switch Charts on while Obsidian is open, restart Obsidian once.
+
 ## [1.5.1] - 2026-10-01
 
 ### Fixed
