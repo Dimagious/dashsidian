@@ -10,6 +10,8 @@ removed public export.
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-10-01
+
 ### Fixed
 
 - **Dashy loads next to Obsidian Charts.** Both plugins register the `chart`
@@ -520,7 +522,8 @@ agent can read.
 - No Dataview, no JavaScript in your notes, and not one hard-coded colour: the
   blocks take their palette from whatever theme you run.
 
-[Unreleased]: https://github.com/Dimagious/dashsidian/compare/1.5.0...HEAD
+[Unreleased]: https://github.com/Dimagious/dashsidian/compare/1.5.1...HEAD
+[1.5.1]: https://github.com/Dimagious/dashsidian/releases/tag/1.5.1
 [1.5.0]: https://github.com/Dimagious/dashsidian/releases/tag/1.5.0
 [1.4.0]: https://github.com/Dimagious/dashsidian/releases/tag/1.4.0
 [1.3.0]: https://github.com/Dimagious/dashsidian/releases/tag/1.3.0
