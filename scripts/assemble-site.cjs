@@ -10,16 +10,24 @@
  * or two renamed image references and this assembly step can never drift
  * apart: the checker validates against the same map this script acts on.
  *
- * Also fills in `{{version}}` and `{{minAppVersion}}` from `manifest.json`.
- * `site/index.html` never hand-writes a version: the Pages workflow deploys
- * from a release tag (see `.github/workflows/pages.yml`), so `manifest.json`
- * at that commit is already the version that just shipped.
+ * Then, on every `.html` page under `_site/`, in this order:
+ *   1. the shared shell. A page holding `<!--shell:top tab="..."-->` and
+ *      `<!--shell:bottom-->` gets `site/_shell.html` around its content: the
+ *      part before the shell's `<!--shell:content-->` marker in place of the
+ *      first placeholder, the part after it in place of the second, with
+ *      `{{root}}`, `{{tab}}` and `{{active:<folder>/}}` filled for that page
+ *      (`fillShell` in `site-check.cjs`, which checks pages the same way).
+ *      `_shell.html` is a source file and is not copied into `_site/`.
+ *   2. `{{version}}` and `{{minAppVersion}}` from `manifest.json`. No page
+ *      hand-writes a version: the Pages workflow deploys from a release tag
+ *      (see `.github/workflows/pages.yml`), so `manifest.json` at that commit
+ *      is already the version that just shipped.
  */
 "use strict";
 
 const fs = require("fs");
 const path = require("path");
-const { IMAGE_RENAME_MAP } = require("./site-check.cjs");
+const { IMAGE_RENAME_MAP, SHELL_FILE, fillShell } = require("./site-check.cjs");
 
 function copyDir(src, dest) {
     fs.mkdirSync(dest, { recursive: true });
@@ -36,17 +44,39 @@ function substitutePlaceholders(html, manifest) {
     return html.replaceAll("{{version}}", manifest.version).replaceAll("{{minAppVersion}}", manifest.minAppVersion);
 }
 
+/** One page as it deploys: the shell put around it, then the version placeholders filled. `pagePath` is relative to the site root. */
+function assemblePage(html, shell, pagePath, manifest) {
+    return substitutePlaceholders(fillShell(html, shell, pagePath), manifest);
+}
+
+/** Every `.html` file under `dir`, as forward-slash paths relative to it. */
+function listHtml(dir, sub = "") {
+    const result = [];
+    for (const entry of fs.readdirSync(path.join(dir, sub), { withFileTypes: true })) {
+        const rel = sub ? `${sub}/${entry.name}` : entry.name;
+        if (entry.isDirectory()) result.push(...listHtml(dir, rel));
+        else if (entry.name.endsWith(".html")) result.push(rel);
+    }
+    return result;
+}
+
 function assemble(root) {
     const siteDir = path.join(root, "site");
     const screensDir = path.join(root, "docs", "screens");
     const outDir = path.join(root, "_site");
     const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8"));
 
+    const shellPath = path.join(siteDir, SHELL_FILE);
+    const shell = fs.existsSync(shellPath) ? fs.readFileSync(shellPath, "utf8") : null;
+
     fs.rmSync(outDir, { recursive: true, force: true });
     copyDir(siteDir, outDir);
+    fs.rmSync(path.join(outDir, SHELL_FILE), { force: true });
 
-    const indexPath = path.join(outDir, "index.html");
-    fs.writeFileSync(indexPath, substitutePlaceholders(fs.readFileSync(indexPath, "utf8"), manifest));
+    for (const page of listHtml(outDir)) {
+        const pagePath = path.join(outDir, page);
+        fs.writeFileSync(pagePath, assemblePage(fs.readFileSync(pagePath, "utf8"), shell, page, manifest));
+    }
 
     const imgDir = path.join(outDir, "img");
     fs.mkdirSync(imgDir, { recursive: true });
@@ -71,4 +101,4 @@ if (require.main === module) {
     console.log(`[assemble-site] wrote ${out}`);
 }
 
-module.exports = { assemble, substitutePlaceholders };
+module.exports = { assemble, assemblePage, substitutePlaceholders };

@@ -4,29 +4,41 @@
  * dependencies: the CI job that runs this has nothing installed yet beyond
  * `npm ci` for the plugin itself, and this script does not need any of that.
  *
- * Checked, all against `site/index.html` unless noted:
- *   - every `img/...` reference (src, srcset, or an absolute og/twitter image
- *     URL) resolves to a file under `docs/screens/`, once the one-off rename
- *     map below is applied
+ * Checked on every page, `site/**\/*.html` except the shell source
+ * `site/_shell.html` (see `fillShell` below), after the shell is filled in so
+ * the explorer, tab bar and sprite are checked as the reader gets them.
+ * Relative references resolve against the page's own folder, the way a
+ * browser does: `../../img/x.png` on a guide is `img/x.png`, and a link
+ * ending in `/` means that folder's `index.html`.
+ *   - every reference that lands in `img/` (src, srcset, or an absolute
+ *     og/twitter image URL) resolves to a file under `docs/screens/`, once
+ *     the one-off rename map below is applied
  *   - every `#anchor` link targets an `id` that exists on the page
- *   - every other relative link (assets/..., not an anchor, not a full URL)
- *     points at a file that exists under `site/`
+ *   - every other relative link (assets/..., ../, not a full URL) points at
+ *     a file that exists under `site/`, and its `#fragment`, if any, at an
+ *     `id` on the target page
  *   - no path contains `.claude`
  *   - no em dash or en dash in the page's visible text (tags, scripts and
  *     styles stripped first; a dash inside a `<code>` sample or a CSS
  *     `content:` bullet is out of scope for this check and reviewed by hand)
- *   - `sitemap.xml`, `robots.txt` and `llms.txt` exist next to `index.html`
- *   - the canonical link and the `og:url` meta tag both match the deployed
- *     URL
- *   - `{{version}}` and `{{minAppVersion}}` placeholders are present, and no
- *     literal x.y.z version string sits next to the version label instead
- *     (the page never hand-writes a version; `scripts/assemble-site.cjs`
- *     fills the placeholders in from `manifest.json` at deploy time)
+ *   - the canonical link and the `og:url` meta tag both match the page's
+ *     deployed URL: the site URL plus the page's folder
  *   - no request to a third-party origin: a `<link>` that fetches something
  *     (stylesheet, icon, preconnect, ...), a `<script src>`, an `<img src>`/
  *     `srcset`, or a CSS `url(...)` pointing at an absolute `http(s)://` URL
  *     (an `<a href>` is a link, not a request, and stays exempt; fonts are
  *     self-hosted under `site/assets/fonts/` for exactly this reason)
+ * On the root page `site/index.html` only:
+ *   - `sitemap.xml`, `robots.txt` and `llms.txt` exist next to it
+ *   - `{{version}}` and `{{minAppVersion}}` placeholders are present, and no
+ *     literal x.y.z version string sits next to the version label instead
+ *     (the page never hand-writes a version; `scripts/assemble-site.cjs`
+ *     fills the placeholders in from `manifest.json` at deploy time, on
+ *     every page, so a guide may carry `{{version}}` too)
+ * Across the site:
+ *   - every page is listed in `sitemap.xml`, and every guide
+ *     (`guides/<slug>/index.html`) is linked from `guides/index.html`, so a
+ *     new guide cannot ship as an orphan
  *
  * The functions above `main()` take plain strings, sets and maps, not the
  * filesystem, so they run the same way from the CI step and from
@@ -53,9 +65,107 @@ const IMAGE_RENAME_MAP = {
 // working notes and must never end up in a published file.
 const ALLOWED_CLAUDE_MENTIONS = new Set([".claude/skills/dashy/SKILL.md"]);
 
+// The explorer, ribbon, tab bar, command palette and icon sprite every guide
+// shares. A page that wants it holds two placeholders, `<!--shell:top
+// tab="..."-->` and `<!--shell:bottom-->`; the shell file holds one
+// `<!--shell:content-->` marker, and `fillShell` puts the part before it in
+// place of the first placeholder and the part after it in place of the
+// second. A source file, never published: `assemble-site.cjs` drops it.
+const SHELL_FILE = "_shell.html";
+const SHELL_TOP_RE = /<!--shell:top tab="([^"]*)"-->/g;
+const SHELL_BOTTOM = "<!--shell:bottom-->";
+const SHELL_CONTENT = "<!--shell:content-->";
+
 /** Strips `<script>...</script>` bodies, so a JS string literal like `"#" + id` is never read as an HTML attribute. */
 function stripScripts(html) {
     return html.replace(/<script[\s\S]*?<\/script>/gi, " ");
+}
+
+/** The folder of a page path relative to `site/`, with a trailing slash: `"guides/x/"` for `"guides/x/index.html"`, `""` for the root page. */
+function pageDirOf(pagePath) {
+    return pagePath.slice(0, pagePath.lastIndexOf("/") + 1);
+}
+
+/** The deployed URL of a page: the site URL plus the page's folder (`index.html` is what a folder URL serves). */
+function expectedUrlFor(pagePath) {
+    return SITE_URL + pageDirOf(pagePath);
+}
+
+/** A full URL, a mail/tel link or a data URI: nothing on disk to resolve. */
+function isNonRelative(ref) {
+    return /^(?:https?:|mailto:|tel:|data:|javascript:)/i.test(ref);
+}
+
+/**
+ * Resolves a relative reference from the page at `pagePath` the way a
+ * browser does, returning `{ path, fragment }` with `path` relative to
+ * `site/`. A reference ending in `/` (or `.`/`..`) is that folder's
+ * `index.html`; an empty path (`#x`, `?q`) is the page itself. Returns null
+ * for a reference that climbs above the site root or starts with `/`: the
+ * site is served under `/dashsidian/`, so a root-absolute path breaks there.
+ */
+function resolveRef(pagePath, ref) {
+    const hashAt = ref.indexOf("#");
+    const fragment = hashAt < 0 ? "" : ref.slice(hashAt + 1);
+    const target = (hashAt < 0 ? ref : ref.slice(0, hashAt)).split("?")[0];
+    if (target === "") return { path: pagePath, fragment };
+    if (target.startsWith("/")) return null;
+    const out = [];
+    for (const seg of (pageDirOf(pagePath) + target).split("/")) {
+        if (seg === "..") {
+            if (out.length === 0) return null;
+            out.pop();
+        } else if (seg !== "." && seg !== "") {
+            out.push(seg);
+        }
+    }
+    const isDir = /(?:^|\/)\.{0,2}$/.test(target);
+    const joined = out.join("/");
+    return { path: isDir ? `${joined ? `${joined}/` : ""}index.html` : joined, fragment };
+}
+
+/**
+ * Puts the shared shell around a page that asks for it (see `SHELL_FILE`),
+ * filling the shell's own placeholders for this page: `{{root}}` is the way
+ * back to the site root (`../../` from `guides/x/index.html`), `{{tab}}` the
+ * page's `tab` attribute, and `{{active:<folder>/}}` becomes `active` on the
+ * page whose folder that is and nothing elsewhere. A page with no shell
+ * placeholder comes back unchanged. Throws, with the page named, on a
+ * placeholder that is malformed, repeated or out of order, or on a shell
+ * without exactly one content marker: a half-filled page must not deploy.
+ */
+function fillShell(html, shell, pagePath) {
+    if (!html.includes("<!--shell:")) return html;
+    const tops = Array.from(html.matchAll(SHELL_TOP_RE));
+    const bottoms = html.split(SHELL_BOTTOM).length - 1;
+    const markers = html.split("<!--shell:").length - 1;
+    if (tops.length !== 1 || bottoms !== 1 || markers !== 2) {
+        throw new Error(
+            `${pagePath}: expected one <!--shell:top tab="..."--> and one ${SHELL_BOTTOM}, found ${tops.length} and ${bottoms} (${markers} shell placeholders in all)`
+        );
+    }
+    const top = tops[0];
+    if (html.indexOf(SHELL_BOTTOM) < top.index) {
+        throw new Error(`${pagePath}: ${SHELL_BOTTOM} comes before <!--shell:top-->`);
+    }
+    if (shell === null) {
+        throw new Error(`${pagePath}: uses the shell, but site/${SHELL_FILE} does not exist`);
+    }
+    const parts = shell.split(SHELL_CONTENT);
+    if (parts.length !== 2) {
+        throw new Error(`site/${SHELL_FILE}: expected one ${SHELL_CONTENT} marker, found ${parts.length - 1}`);
+    }
+    const dir = pageDirOf(pagePath);
+    const depth = dir.split("/").length - 1;
+    const root = depth === 0 ? "./" : "../".repeat(depth);
+    const tab = top[1];
+    const fill = (part) =>
+        part
+            .replaceAll("{{root}}", root)
+            .replaceAll("{{tab}}", tab)
+            .replace(/\{\{active:([^}]*)\}\}/g, (_, folder) => (folder === dir ? "active" : ""));
+    // Function replacers: a `$&` or `$1` in the shell is text, not a pattern.
+    return html.replace(top[0], () => fill(parts[0])).replace(SHELL_BOTTOM, () => fill(parts[1]));
 }
 
 /** Maps an `img/<name>` reference (name only, no `img/` prefix) to its path under `docs/screens/`. */
@@ -63,12 +173,19 @@ function screenPathFor(imageName) {
     return IMAGE_RENAME_MAP[imageName] || imageName;
 }
 
-/** Every `img/...` path the page references: from `src`/`srcset` attributes and from absolute og/twitter image URLs. */
-function extractImageRefs(html) {
+/**
+ * Every `img/...` path the page references, relative to `site/`: from
+ * `src`/`srcset` attributes resolved against the page's folder (so
+ * `../../img/x.png` on `guides/x/index.html` is `img/x.png`), and from
+ * absolute og/twitter image URLs.
+ */
+function extractImageRefs(html, pagePath = "index.html") {
     const noScripts = stripScripts(html);
     const refs = new Set();
-    for (const m of noScripts.matchAll(/\b(?:src|srcset)="(img\/[^"]+)"/g)) {
-        refs.add(m[1]);
+    for (const m of noScripts.matchAll(/\b(?:src|srcset)="([^"]+)"/g)) {
+        if (isNonRelative(m[1])) continue;
+        const resolved = resolveRef(pagePath, m[1]);
+        if (resolved && resolved.path.startsWith("img/")) refs.add(resolved.path);
     }
     const prefix = `${SITE_URL}img/`;
     for (const m of noScripts.matchAll(/content="([^"]+)"/g)) {
@@ -83,9 +200,9 @@ function extractImageRefs(html) {
  * Image references whose mapped `docs/screens/` path is not in
  * `availableScreens` (paths relative to `docs/screens/`, forward slashes).
  */
-function findMissingImages(html, availableScreens) {
+function findMissingImages(html, availableScreens, pagePath = "index.html") {
     const missing = [];
-    for (const ref of extractImageRefs(html)) {
+    for (const ref of extractImageRefs(html, pagePath)) {
         const name = ref.slice("img/".length);
         if (!availableScreens.has(screenPathFor(name))) {
             missing.push(ref);
@@ -118,31 +235,50 @@ function findDeadAnchors(html) {
     return extractAnchorTargets(html).filter((t) => !ids.has(t));
 }
 
-/** Every relative link or asset reference: not an anchor, not `img/...` (checked separately), not a full URL, a data URI or a mail/tel link. */
+/** Every relative link or asset reference as written: not a same-page `#anchor` (checked separately), not a full URL, a data URI or a mail/tel link. */
 function extractRelativeRefs(html) {
     const refs = new Set();
-    for (const m of stripScripts(html).matchAll(/\b(?:href|src)="([^"]+)"/g)) {
-        const v = m[1];
-        if (
-            v === "" ||
-            v.startsWith("#") ||
-            v.startsWith("img/") ||
-            v.startsWith("http://") ||
-            v.startsWith("https://") ||
-            v.startsWith("mailto:") ||
-            v.startsWith("tel:") ||
-            v.startsWith("data:")
-        ) {
-            continue;
-        }
+    const add = (v) => {
+        if (v === "" || v.startsWith("#") || isNonRelative(v)) return;
         refs.add(v);
-    }
+    };
+    for (const m of stripScripts(html).matchAll(/\b(?:href|src)="([^"]+)"/g)) add(m[1]);
+    // stripScripts drops the whole element, `src` included: an external
+    // script would otherwise be the one reference a rename never breaks.
+    for (const m of html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/gi)) add(m[1]);
     return Array.from(refs).sort();
 }
 
-/** Relative refs for which `fileExists(ref)` is false. `fileExists` takes a path relative to `site/`. */
-function findBrokenRelativeRefs(html, fileExists) {
-    return extractRelativeRefs(html).filter((ref) => !fileExists(ref));
+/**
+ * Relative refs that do not resolve to a file: `fileExists` takes a path
+ * relative to `site/`, after the ref is resolved from `pagePath` and its
+ * `#fragment` dropped. A ref that lands in `img/` is left to
+ * `findMissingImages`, and one that climbs above the site root is broken.
+ */
+function findBrokenRelativeRefs(html, fileExists, pagePath = "index.html") {
+    return extractRelativeRefs(html).filter((ref) => {
+        const resolved = resolveRef(pagePath, ref);
+        if (!resolved) return true;
+        if (resolved.path.startsWith("img/")) return false;
+        return !fileExists(resolved.path);
+    });
+}
+
+/**
+ * Relative links into another page (`../../#install`, `../guides/#x`) whose
+ * `#fragment` names no `id` on that page. `idsOf(path)` returns the ids of
+ * the page at a `site/`-relative path, or null when it is not a page this
+ * run knows; a missing file is `findBrokenRelativeRefs`'s to report.
+ */
+function findDeadCrossPageAnchors(html, pagePath, idsOf) {
+    const dead = [];
+    for (const ref of extractRelativeRefs(html)) {
+        const resolved = resolveRef(pagePath, ref);
+        if (!resolved || resolved.fragment === "") continue;
+        const ids = idsOf(resolved.path);
+        if (ids && !ids.has(resolved.fragment)) dead.push(ref);
+    }
+    return dead;
 }
 
 /**
@@ -277,18 +413,56 @@ function findThirdPartyRequestUrls(html) {
     return urls;
 }
 
-/** Runs every check against one page and returns a list of human-readable issue strings, empty when the page is clean. */
-function runChecks(html, { availableScreens, siteFileExists, siteFiles, expectedUrl }) {
-    const issues = [];
+const GUIDE_PAGE_RE = /^guides\/[^/]+\/index\.html$/;
 
-    for (const ref of findMissingImages(html, availableScreens)) {
+/**
+ * Pages a search engine or a reader could not reach: a page missing from
+ * `sitemap.xml` (null when the file itself is missing, which the root page's
+ * check already reports), and a guide, `guides/<slug>/index.html`, that
+ * `guides/index.html` (null when absent) does not link to. `pagePaths` are
+ * relative to `site/`.
+ */
+function findOrphanPages(pagePaths, sitemapXml, guidesIndexHtml) {
+    const issues = [];
+    const listed = new Set(Array.from((sitemapXml || "").matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g), (m) => m[1]));
+    const linked = new Set();
+    for (const ref of extractRelativeRefs(guidesIndexHtml || "")) {
+        const resolved = resolveRef("guides/index.html", ref);
+        if (resolved) linked.add(resolved.path);
+    }
+    for (const page of pagePaths) {
+        const url = expectedUrlFor(page);
+        if (sitemapXml !== null && !listed.has(url)) {
+            issues.push(`${page} is not in sitemap.xml: add <loc>${url}</loc>`);
+        }
+        if (GUIDE_PAGE_RE.test(page) && !linked.has(page)) {
+            issues.push(`${page} is not linked from guides/index.html`);
+        }
+    }
+    return issues;
+}
+
+/**
+ * Runs every check against one page (`pagePath` relative to `site/`, the
+ * root page by default) and returns a list of human-readable issue strings,
+ * empty when the page is clean. `idsOf` feeds the cross-page anchor check;
+ * without it that check is skipped.
+ */
+function runChecks(html, { availableScreens, siteFileExists, siteFiles, pagePath = "index.html", idsOf = () => null }) {
+    const issues = [];
+    const isRoot = pagePath === "index.html";
+
+    for (const ref of findMissingImages(html, availableScreens, pagePath)) {
         issues.push(`missing image: "${ref}" has no matching file under docs/screens/`);
     }
     for (const target of findDeadAnchors(html)) {
         issues.push(`dead anchor: href="#${target}" has no id="${target}" on the page`);
     }
-    for (const ref of findBrokenRelativeRefs(html, siteFileExists)) {
+    for (const ref of findBrokenRelativeRefs(html, siteFileExists, pagePath)) {
         issues.push(`broken relative link: "${ref}" does not exist under site/`);
+    }
+    for (const ref of findDeadCrossPageAnchors(html, pagePath, idsOf)) {
+        issues.push(`dead anchor: href="${ref}" has no matching id on the page it points to`);
     }
     for (const mention of findClaudePathMentions(html)) {
         issues.push(`.claude path leaked into the page: "${mention}"`);
@@ -296,17 +470,21 @@ function runChecks(html, { availableScreens, siteFileExists, siteFiles, expected
     for (const snippet of findTypographicDashes(html)) {
         issues.push(`typographic dash in visible text: "...${snippet}..."`);
     }
-    for (const missing of findMissingSiteFiles(siteFiles)) {
-        issues.push(`missing site file: "${missing}"`);
+    if (isRoot) {
+        for (const missing of findMissingSiteFiles(siteFiles)) {
+            issues.push(`missing site file: "${missing}"`);
+        }
     }
-    for (const problem of checkCanonicalUrl(html, expectedUrl)) {
+    for (const problem of checkCanonicalUrl(html, expectedUrlFor(pagePath))) {
         issues.push(`canonical URL: ${problem}`);
     }
-    for (const placeholder of findMissingVersionPlaceholders(html)) {
-        issues.push(`missing version placeholder: "${placeholder}"`);
-    }
-    for (const version of findHardcodedVersionStrings(html)) {
-        issues.push(`hardcoded version "${version}" next to the version label; use {{version}}/{{minAppVersion}} instead`);
+    if (isRoot) {
+        for (const placeholder of findMissingVersionPlaceholders(html)) {
+            issues.push(`missing version placeholder: "${placeholder}"`);
+        }
+        for (const version of findHardcodedVersionStrings(html)) {
+            issues.push(`hardcoded version "${version}" next to the version label; use {{version}}/{{minAppVersion}} instead`);
+        }
     }
     for (const url of findThirdPartyRequestUrls(html)) {
         issues.push(`third-party request: "${url}"`);
@@ -315,7 +493,8 @@ function runChecks(html, { availableScreens, siteFileExists, siteFiles, expected
     return issues;
 }
 
-function listScreens(dir) {
+/** Every file under `dir`, as forward-slash paths relative to it. */
+function listFiles(dir) {
     const result = new Set();
     function walk(sub) {
         for (const entry of fs.readdirSync(path.join(dir, sub), { withFileTypes: true })) {
@@ -332,28 +511,57 @@ function main() {
     const root = path.resolve(__dirname, "..");
     const siteDir = path.join(root, "site");
     const screensDir = path.join(root, "docs", "screens");
+    const read = (rel) => (fs.existsSync(path.join(siteDir, rel)) ? fs.readFileSync(path.join(siteDir, rel), "utf8") : null);
 
-    const html = fs.readFileSync(path.join(siteDir, "index.html"), "utf8");
-    const availableScreens = listScreens(screensDir);
+    const availableScreens = listFiles(screensDir);
+    const allSiteFiles = listFiles(siteDir);
     const siteFiles = new Set(fs.readdirSync(siteDir));
-    const siteFileExists = (rel) => fs.existsSync(path.join(siteDir, rel));
+    // The shell source exists on disk but is never deployed, so nothing may link to it.
+    const siteFileExists = (rel) => rel !== SHELL_FILE && allSiteFiles.has(rel);
+    const pagePaths = Array.from(allSiteFiles)
+        .filter((rel) => rel.endsWith(".html") && rel !== SHELL_FILE)
+        .sort();
+    const shell = read(SHELL_FILE);
 
-    const issues = runChecks(html, { availableScreens, siteFileExists, siteFiles, expectedUrl: SITE_URL });
+    const issues = [];
+    const pages = new Map();
+    for (const page of pagePaths) {
+        try {
+            pages.set(page, fillShell(read(page), shell, page));
+        } catch (err) {
+            issues.push(`site/${page}: ${err.message}`);
+        }
+    }
+    const ids = new Map(Array.from(pages, ([page, html]) => [page, extractIds(html)]));
+    const idsOf = (rel) => ids.get(rel) || null;
+    for (const [page, html] of pages) {
+        for (const issue of runChecks(html, { availableScreens, siteFileExists, siteFiles, pagePath: page, idsOf })) {
+            issues.push(`site/${page}: ${issue}`);
+        }
+    }
+    for (const issue of findOrphanPages(pagePaths, read("sitemap.xml"), read("guides/index.html"))) {
+        issues.push(`site/${issue}`);
+    }
 
     if (issues.length > 0) {
-        console.error(`[site-check] ${issues.length} issue(s) found in site/index.html:\n`);
+        console.error(`[site-check] ${issues.length} issue(s) found in site/:\n`);
         for (const issue of issues) {
             console.error(`  - ${issue}`);
         }
         process.exit(1);
     }
 
-    console.log("[site-check] site/ is clean.");
+    console.log(`[site-check] site/ is clean (${pagePaths.length} pages).`);
 }
 
 module.exports = {
     SITE_URL,
     IMAGE_RENAME_MAP,
+    SHELL_FILE,
+    pageDirOf,
+    expectedUrlFor,
+    resolveRef,
+    fillShell,
     screenPathFor,
     extractImageRefs,
     findMissingImages,
@@ -362,6 +570,7 @@ module.exports = {
     findDeadAnchors,
     extractRelativeRefs,
     findBrokenRelativeRefs,
+    findDeadCrossPageAnchors,
     findClaudePathMentions,
     stripToVisibleText,
     findTypographicDashes,
@@ -370,6 +579,7 @@ module.exports = {
     findMissingVersionPlaceholders,
     findHardcodedVersionStrings,
     findThirdPartyRequestUrls,
+    findOrphanPages,
     runChecks,
 };
 
