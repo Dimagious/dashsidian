@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
     aggregate, numberAt, isFalseMark, isBooleanMark, classifyField, classifyValues, series, isAgg, isStreakAgg,
+    newestFirst,
 } from "./aggregate";
 import { filterByPeriod } from "./period";
 import type { NoteRecord } from "./source";
@@ -986,5 +987,26 @@ describe("aggregate over durations, in minutes", () => {
     it("series sums a day's durations too", () => {
         const today = new Date(2026, 8, 22);
         expect(series(nights, "sleep", 3, today)).toEqual([450, 480, 405]);
+    });
+});
+
+describe("newestFirst", () => {
+    it("orders dated notes newest first, drops undated ones, and breaks a tie by path", () => {
+        const notes = [
+            noteAt("B/2026-09-20.md", "2026-09-20", {}),
+            noteAt("Diary/Template.md", "Template", {}),
+            noteAt("A/2026-09-20.md", "2026-09-20", {}),
+            noteAt("A/2026-09-22 run.md", "2026-09-22 run", {}),
+        ];
+        expect(newestFirst(notes).map((n) => n.path))
+            .toEqual(["A/2026-09-22 run.md", "A/2026-09-20.md", "B/2026-09-20.md"]);
+    });
+
+    it("reads the date from `date_field` when given", () => {
+        const notes = [
+            noteAt("x.md", "x", { on: "2026-01-01" }),
+            noteAt("y.md", "y", { on: "2026-02-01T09:00" }),
+        ];
+        expect(newestFirst(notes, "on").map((n) => n.path)).toEqual(["y.md", "x.md"]);
     });
 });

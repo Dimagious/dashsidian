@@ -31,7 +31,7 @@
         <div class="props" aria-label="Properties">
           <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
           <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>code block</div><div class="v"><code>countdown</code></div></div>
-          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">2 on the block, 4 on each date</div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">2 on the block, 9 on each date</div></div>
           <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
         </div>
 
@@ -80,6 +80,7 @@ columns: 3
 items:
   - { label: IRONMAN 70.3, date: 2026-11-15, icon: 🏊 }
   - { label: Holiday, date: 2026-12-20, icon: 🏖, sub: two weeks off }
+  - { label: Birthday, date: 1990-05-12, repeat: yearly, icon: 🎂 }
 ```</code></pre>
         </div>
 
@@ -108,7 +109,7 @@ items:
 
         <h2 id="item-keys">Keys on each date</h2>
         <p>Each entry under <code>items</code> is one date.</p>
-        <div class="keys"><a href="#label"><code>label</code></a><a href="#date"><code>date</code></a><a href="#icon"><code>icon</code></a><a href="#sub"><code>sub</code></a></div>
+        <div class="keys"><a href="#label"><code>label</code></a><a href="#date"><code>date</code></a><a href="#field"><code>field</code></a><a href="#source"><code>source</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#repeat"><code>repeat</code></a><a href="#icon"><code>icon</code></a><a href="#sub"><code>sub</code></a></div>
         <div class="keytab-wrap">
           <table class="keytab">
             <thead><tr><th>Key</th><th>What it does</th><th>Type</th><th>Default</th></tr></thead>
@@ -120,8 +121,38 @@ items:
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
               <tr id="date">
-                <td class="k"><a class="key" href="#date"><code>date</code></a> <span class="req">required</span></td>
-                <td class="d">the date itself, YYYY-MM-DD</td>
+                <td class="k"><a class="key" href="#date"><code>date</code></a></td>
+                <td class="d">the date itself, YYYY-MM-DD. Required unless <code>field</code> is set, and not allowed together with it: exactly one of the two</td>
+                <td class="t" data-h="type">text</td>
+                <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
+              <tr id="field">
+                <td class="k"><a class="key" href="#field"><code>field</code></a><span class="also">also <code>property</code>, <code>prop</code></span></td>
+                <td class="d">a date property to read the date from instead of writing it: <code>2026-03-02</code>, with or without a time after it, or an Obsidian date property; dotted for a nested one like <code>meta.expires</code>. Read from the newest note in the selection that has it filled in, the way <code>agg: latest</code> picks one: by the date in the note's name, and a note without one, like <code>Passport.md</code>, after every dated note. A value that is not a date, or no note having the property at all, is an error on the card that names it</td>
+                <td class="t" data-h="type">text</td>
+                <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
+              <tr id="source">
+                <td class="k"><a class="key" href="#source"><code>source</code></a><span class="also">also <code>folder</code>, <code>from</code></span></td>
+                <td class="d">with <code>field</code> only: folder to look for the note in; includes nested ones. Without it, the whole vault</td>
+                <td class="t" data-h="type">text</td>
+                <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
+              <tr id="tag">
+                <td class="k"><a class="key" href="#tag"><code>tag</code></a></td>
+                <td class="d">with <code>field</code> only: tag the note carries, with or without the hash</td>
+                <td class="t" data-h="type">text</td>
+                <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
+              <tr id="where">
+                <td class="k"><a class="key" href="#where"><code>where</code></a></td>
+                <td class="d">with <code>field</code> only: a condition the note must meet, like <code>type = passport</code>, or several joined with <code>and</code> or written as a list, the same language as on a <code>stats</code> card</td>
+                <td class="t" data-h="type">text or list</td>
+                <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
+              <tr id="repeat">
+                <td class="k"><a class="key" href="#repeat"><code>repeat</code></a></td>
+                <td class="d"><code>yearly</code> counts to the next time the date's month and day come round, today included, for a birthday or an anniversary, and shows how many years that one is: <code>37 years</code>. 29 February falls on the 28th in a year without one. A date still ahead counts to itself, with no years shown. Works with <code>date</code> and <code>field</code> alike; any other value is an error</td>
                 <td class="t" data-h="type">text</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
@@ -133,7 +164,7 @@ items:
               </tr>
               <tr id="sub">
                 <td class="k"><a class="key" href="#sub"><code>sub</code></a></td>
-                <td class="d">small caption under the label</td>
+                <td class="d">small caption under the label; with <code>repeat: yearly</code> it comes before the years</td>
                 <td class="t" data-h="type">text</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
@@ -146,7 +177,7 @@ items:
         <ul class="notes">
           <li>A date that has passed is shown too, counting up instead of down. What happened yesterday is still worth seeing.</li>
           <li>The day count is whole days, so a daylight saving switch cannot shift it.</li>
-          <li>The date does not repeat every year: a birthday or anniversary needs its year moved forward by hand once it has passed.</li>
+          <li>A birthday or an anniversary repeats with <code>repeat: yearly</code>. A date kept in a note, like a passport's expiry, is read with <code>field</code> and stays current when the note changes: <code>{ label: Passport, field: expires, where: &quot;type = passport&quot; }</code>.</li>
         </ul>
 
 

@@ -51,6 +51,7 @@ export function t(key: MessageKey, params?: Record<string, string | number>): st
 export type PluralKey =
     | "countdown.daysLeft"
     | "countdown.daysAgo"
+    | "countdown.years"
     | "compare.vsDays"
     | "heatmap.notesCount"
     | "chart.days"

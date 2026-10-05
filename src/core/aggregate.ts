@@ -284,20 +284,7 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
     if (!spec.field) return null;
 
     if (spec.agg === "latest") {
-        // Undated notes never compete for "latest" — without this, a
-        // `Template.md` sitting in the diary folder sorted after every date
-        // and its placeholder number became the reading. A tie on the same
-        // resolved date (two notes for one day, `date_field` or a suffixed
-        // name) breaks by path, ascending: whichever sorts first wins,
-        // regardless of the order the vault happened to hand the notes in.
-        const dated = notes
-            .map((n) => ({ n, date: resolveNoteDate(n, spec.dateField) }))
-            .filter((x): x is { n: NoteRecord; date: string } => x.date !== null)
-            .sort((a, b) => {
-                if (a.date !== b.date) return a.date < b.date ? 1 : -1;
-                return a.n.path < b.n.path ? -1 : 1;
-            });
-        for (const { n } of dated) {
+        for (const n of newestFirst(notes, spec.dateField)) {
             const v = numberAt(n, spec.field);
             if (v !== null) return v;
         }
@@ -323,6 +310,28 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
         default:
             return null;
     }
+}
+
+/**
+ * The dated notes, newest first: the order `agg: latest` reads them in, and
+ * the countdown's `field` too (core/countdown.ts).
+ *
+ * Undated notes never compete for "latest". Without this, a `Template.md`
+ * sitting in the diary folder sorted after every date and its placeholder
+ * number became the reading. A tie on the same resolved date (two notes for
+ * one day, `date_field` or a suffixed name) breaks by path, ascending:
+ * whichever sorts first wins, regardless of the order the vault happened to
+ * hand the notes in.
+ */
+export function newestFirst(notes: readonly NoteRecord[], dateField?: string): NoteRecord[] {
+    return notes
+        .map((n) => ({ n, date: resolveNoteDate(n, dateField) }))
+        .filter((x): x is { n: NoteRecord; date: string } => x.date !== null)
+        .sort((a, b) => {
+            if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+            return a.n.path < b.n.path ? -1 : 1;
+        })
+        .map(({ n }) => n);
 }
 
 /**

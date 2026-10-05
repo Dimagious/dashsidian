@@ -10,6 +10,24 @@ removed public export.
 
 ## [Unreleased]
 
+### Added
+
+- **`countdown` reads its date from a note.** Write `field: valid_until`
+  instead of `date:`, and the card counts to that property, so a certificate
+  renewed in its note moves the countdown with it. `source`, `tag` and `where`
+  pick the note the way they do on a `stats` card. The newest note named for a
+  day wins, as with `agg: latest`; a note without a date in its name, like
+  `Passport.md`, is read when no dated note has the property. The label links
+  to the note the date came from. A card with both `date` and `field`, or
+  neither, shows an error. So does a property no note has filled in, named in
+  the message, or a value that is not a date, named with the note it sits in.
+  The other cards still draw.
+- **`repeat: yearly` on `countdown`** counts to the next birthday or
+  anniversary instead of up from a date long gone, and shows how many years
+  it will be, like `37 years`, under the date. A date that falls today reads
+  Today, 29 February falls on the 28th in other years, and a date still ahead
+  counts to itself with no years shown. Your own `sub` stays and comes first.
+
 ### Changed
 
 - **Documentation in the settings opens the block reference** on the website:
