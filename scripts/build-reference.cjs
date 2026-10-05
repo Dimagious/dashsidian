@@ -52,7 +52,7 @@ const PAGES = [
                 "  - { label: Great nights, source: Diary, where: \"sleep_score >= 90\", agg: count }",
                 "  - { label: Books read, source: Books, period: year, date_field: finished, agg: count, icon: 📚 }",
             ].join("\n") },
-        guides: ["habit-tracker-without-dataview", "streak-weekdays"],
+        guides: ["habit-tracker-without-dataview", "streak-weekdays", "books-per-year", "homepage-dashboard"],
     },
     {
         block: "chart", tagline: "a number over time", item: "series", items: "series",
@@ -60,7 +60,7 @@ const PAGES = [
         showcase: { image: "chart-weekly", width: 700, height: 223,
             alt: "Weekly bars of running distance over half a year, a dashed goal line at 30 km, the current week drawn lighter",
             yaml: "source: Diary\nfield: run_km\ntype: bar\nbucket: week\nunit: km\ngoal: 30" },
-        guides: ["weekly-chart-tracker-alternative"],
+        guides: ["weekly-chart-tracker-alternative", "books-per-year"],
     },
     {
         block: "heatmap", tagline: "the year", item: "layer", items: "layers",
@@ -79,14 +79,14 @@ const PAGES = [
                 "  - { label: Books this year, source: Books, period: year, date_field: finished, agg: count, goal: 24, icon: 📚 }",
                 "  - { label: Steps, source: Diary, field: steps, agg: sum, goal: 3000000, unit: steps, sub: three million }",
             ].join("\n") },
-        guides: ["streak-weekdays"],
+        guides: ["streak-weekdays", "books-per-year"],
     },
     {
         block: "today", tagline: "where the day starts", item: null, items: null,
         showcase: { image: "today", width: 700, height: 74,
             alt: "The date and three chips linking to the daily, weekly and monthly notes",
             yaml: "daily: true\nweekly: true\nmonthly: true" },
-        guides: [],
+        guides: ["homepage-dashboard"],
     },
     {
         block: "tiles", tagline: "getting around", item: "tile", items: "tiles",
@@ -100,7 +100,7 @@ const PAGES = [
                 "  - { label: Books, path: Books, icon: 📚, badge: count }",
                 "  - { label: Sport, path: Diary, icon: 🏃, accent: true, sub: training log }",
             ].join("\n") },
-        guides: [],
+        guides: ["homepage-dashboard"],
     },
     {
         block: "countdown", tagline: "what is coming", item: "date", items: "dates",
@@ -113,7 +113,7 @@ const PAGES = [
                 "  - { label: Holiday, date: 2027-01-20, icon: 🏖, sub: two weeks off }",
                 "  - { label: Review, date: 2027-03-01, icon: 🗒 }",
             ].join("\n") },
-        guides: [],
+        guides: ["countdown-birthday", "homepage-dashboard"],
     },
 ];
 

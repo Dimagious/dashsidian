@@ -28,6 +28,15 @@ Step-by-step pages, one problem each, with YAML to copy:
 - A weekly chart without Tracker (`chart` with `bucket: week` and `goal`;
   `dashy-chart` next to Obsidian Charts; frontmatter only):
   https://dimagious.github.io/dashsidian/guides/weekly-chart-tracker-alternative/
+- An Obsidian homepage dashboard without code (`today` with `clock`, `stats`
+  with `layout: inline`, folder `tiles` with `badge: count`, `countdown`):
+  https://dimagious.github.io/dashsidian/guides/homepage-dashboard/
+- Countdown to a birthday (`countdown` with `field` and `repeat: yearly`, the
+  age on the card, expiry dates read from a note):
+  https://dimagious.github.io/dashsidian/guides/countdown-birthday/
+- Books per year, a reading log chart (`chart` with `bucket: year` and
+  `date_field`, `stats` with `period: year` and `compare`):
+  https://dimagious.github.io/dashsidian/guides/books-per-year/
 
 ## Documentation
 

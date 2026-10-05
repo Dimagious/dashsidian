@@ -554,6 +554,9 @@ footer.note-foot a { color: var(--muted); }
           <li><a href="guides/streak-weekdays/"><svg width="14" height="14"><use href="#i-file"/></svg>Weekday streaks<span class="ext">.md</span></a></li>
           <li><a href="guides/heatmap-two-activities/"><svg width="14" height="14"><use href="#i-file"/></svg>Two on one heatmap<span class="ext">.md</span></a></li>
           <li><a href="guides/weekly-chart-tracker-alternative/"><svg width="14" height="14"><use href="#i-file"/></svg>Weekly chart<span class="ext">.md</span></a></li>
+          <li><a href="guides/homepage-dashboard/"><svg width="14" height="14"><use href="#i-file"/></svg>Homepage dashboard<span class="ext">.md</span></a></li>
+          <li><a href="guides/countdown-birthday/"><svg width="14" height="14"><use href="#i-file"/></svg>Birthday countdown<span class="ext">.md</span></a></li>
+          <li><a href="guides/books-per-year/"><svg width="14" height="14"><use href="#i-file"/></svg>Books per year<span class="ext">.md</span></a></li>
         </ul>
       </li>
       <li>
@@ -839,6 +842,7 @@ monthly: true
           </div>
         </div>
         <p>Dashy's own <b>New day starts at</b> setting (00:00 to 06:00, midnight by default) decides what "today" means here, and for every other block on the page: <code>period</code> and <code>compare</code> windows, the heatmap's current day, <code>countdown</code>. It moves which day this block points to, not which day a note itself falls on: a note's own date is still its name or <code>date_field</code>.</p>
+        <p class="muted" style="font-size:14.5px">With a clock, tiles and a line of numbers it makes a start page: <a href="guides/homepage-dashboard/">a homepage dashboard without code</a>.</p>
         <p class="muted" style="font-size:14.5px">Every key: <a href="reference/today/">reference/today/</a></p>
       </section>
 
@@ -880,6 +884,7 @@ items:
 ```</code></pre>
         </div>
         <p class="muted" style="font-size:14.5px">These four keys only mean something next to <code>badge: count</code>; on a tile with no badge, or a custom one, they are ignored and warn.</p>
+        <p class="muted" style="font-size:14.5px">Tiles as the navigation of a start page, with folder counts: <a href="guides/homepage-dashboard/">a homepage dashboard without code</a>.</p>
         <p class="muted" style="font-size:14.5px">Every key: <a href="reference/tiles/">reference/tiles/</a></p>
       </section>
 
@@ -977,6 +982,7 @@ items:
             </figure>
           </div>
         </div>
+        <p class="muted" style="font-size:14.5px">Days to the next birthday, read from a person's note: <a href="guides/countdown-birthday/">countdown to a birthday</a>.</p>
         <p class="muted" style="font-size:14.5px">Every key: <a href="reference/countdown/">reference/countdown/</a></p>
       </section>
 
@@ -1063,6 +1069,7 @@ series:
           </div>
         </div>
         <p><code>agg</code> turns a bucket into one number: <code>sum</code> by default, or <code>avg</code>, <code>min</code>, <code>max</code>, <code>count</code>. It is one step over every value on every note dated in the bucket, so a week's <code>avg</code> is the same number a <code>stats</code> card with <code>agg: avg, period: week</code> shows. Hover a bar for its value and the note behind it; click a day to open that note. On a phone, the first tap shows the value and a second tap opens the note.</p>
+        <p class="muted" style="font-size:14.5px">Ten years of a reading log, one bar a year: <a href="guides/books-per-year/">books per year</a>.</p>
         <p class="muted" style="font-size:14.5px">Every key: <a href="reference/chart/">reference/chart/</a></p>
       </section>
 
