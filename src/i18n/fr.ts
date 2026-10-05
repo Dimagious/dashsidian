@@ -67,6 +67,10 @@ export const fr: Catalog = {
     "stats.durationMixed": "{card} : « {field} » mélange des durées (« {durationNote} ») et des nombres simples (« {plainNote} »). Tout est compté en minutes et affiché comme un nombre simple.",
     "stats.durationUnitIgnored": "{card} : `unit: {unit}` est ignoré. « {field} » contient des durées, qui portent déjà leurs unités.",
     "stats.durationThresholdOnPlain": "{card} : `{key}: {value}` est une durée, mais « {field} » contient des nombres simples. La valeur est appliquée en minutes.",
+    "stats.layoutInvalid": "`layout` attend cards ou inline, reçu « {value} ». Affichage en cartes.",
+    "stats.inlineColumnsIgnored": "`columns` est sans effet avec `layout: inline`, qui tient sur une seule ligne.",
+    "stats.inlineTrendHidden": "`trend` n'est pas dessiné avec `layout: inline` : {cards}. Utilisez `layout: cards` pour le voir.",
+    "stats.inlineSubHidden": "`sub` n'est pas affiché avec `layout: inline` : {cards}. Utilisez `layout: cards` pour le voir.",
 
     "progress.empty": "Aucune barre à dessiner. Attendu : `items:` ou une liste.",
     "progress.goalRequired": "{card} : `goal:` a besoin d'un nombre ou d'une durée comme `7h 30m`. Il n'y a rien à mesurer.",

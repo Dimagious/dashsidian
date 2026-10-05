@@ -69,6 +69,10 @@ export const en = {
     "stats.durationMixed": "{card}: \"{field}\" mixes durations (\"{durationNote}\") and plain numbers (\"{plainNote}\"). All of them are counted as minutes and shown as a plain number.",
     "stats.durationUnitIgnored": "{card}: `unit: {unit}` is ignored. \"{field}\" holds durations, which already carry their own units.",
     "stats.durationThresholdOnPlain": "{card}: `{key}: {value}` is a duration, but \"{field}\" holds plain numbers. It is applied as minutes.",
+    "stats.layoutInvalid": "`layout` expects cards or inline, got \"{value}\". Drawing cards.",
+    "stats.inlineColumnsIgnored": "`columns` has no effect with `layout: inline`, which draws one line.",
+    "stats.inlineTrendHidden": "`trend` is not drawn with `layout: inline`: {cards}. Use `layout: cards` to see it.",
+    "stats.inlineSubHidden": "`sub` is not shown with `layout: inline`: {cards}. Use `layout: cards` to see it.",
 
     "progress.empty": "No bars to draw. Expected `items:` or a list.",
     "progress.goalRequired": "{card}: `goal:` needs a number or a duration like `7h 30m`. There is nothing to measure against.",

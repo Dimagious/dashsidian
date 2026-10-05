@@ -46,6 +46,15 @@ removed public export.
   without seconds, like `7:30`, and the card reads hours and minutes as
   before. `H:MM` is always hours and minutes, so a 5 km time written `18:51`
   counts as 18 hours: write it `0:18:51`.
+- **`stats` in one line**: `layout: inline` draws the same `items` as a line
+  of text instead of cards, like `1001 notes · 188 journal entries · 14 open tasks`,
+  for the top of a home page. Each number keeps its `icon` and `unit`, a
+  `compare` delta follows its label in the same colours a card uses, and a
+  narrow pane wraps the line between items, never inside one. A card whose
+  number cannot be computed shows a dash and the rest of the line still draws.
+  The line has no room for `trend` or `sub`: each gets one warning naming the
+  cards that set it, and `columns`, with no grid to size, gets one of its own.
+  `layout: cards`, the default, keeps today's look.
 
 ### Changed
 

@@ -31,7 +31,7 @@
         <div class="props" aria-label="Properties">
           <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
           <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>code block</div><div class="v"><code>stats</code></div></div>
-          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">7 on the block, 19 on each card</div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">8 on the block, 19 on each card</div></div>
           <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
         </div>
 
@@ -94,7 +94,7 @@ items:
 
 
         <h2 id="root-keys">Keys on the block</h2>
-        <div class="keys"><a href="#columns"><code>columns</code></a><a href="#items"><code>items</code></a><a href="#source"><code>source</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#period"><code>period</code></a><a href="#date_field"><code>date_field</code></a></div>
+        <div class="keys"><a href="#columns"><code>columns</code></a><a href="#layout"><code>layout</code></a><a href="#items"><code>items</code></a><a href="#source"><code>source</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#period"><code>period</code></a><a href="#date_field"><code>date_field</code></a></div>
         <div class="keytab-wrap">
           <table class="keytab">
             <thead><tr><th>Key</th><th>What it does</th><th>Type</th><th>Default</th></tr></thead>
@@ -104,6 +104,12 @@ items:
                 <td class="d">columns in the grid, 1 to 6</td>
                 <td class="t" data-h="type">number</td>
                 <td class="v" data-h="default"><code>3</code></td>
+              </tr>
+              <tr id="layout">
+                <td class="k"><a class="key" href="#layout"><code>layout</code></a></td>
+                <td class="d"><code>cards</code> draws a grid of cards; <code>inline</code> draws the same numbers as one line of text, like <code>1001 notes · 188 journal entries · 14 open tasks</code>, for a page header. Inline keeps <code>icon</code>, <code>unit</code> and the <code>compare</code> delta, but draws no <code>trend</code> and no <code>sub</code> and ignores <code>columns</code>, with one warning for each. An unrecognised value warns and falls back to cards</td>
+                <td class="t" data-h="type">text</td>
+                <td class="v" data-h="default"><code>cards</code></td>
               </tr>
               <tr id="items">
                 <td class="k"><a class="key" href="#items"><code>items</code></a> <span class="req">required</span></td>
@@ -154,7 +160,7 @@ items:
             <tbody>
               <tr id="label">
                 <td class="k"><a class="key" href="#label"><code>label</code></a> <span class="req">required</span><span class="also">also <code>title</code>, <code>name</code></span></td>
-                <td class="d">caption under the number</td>
+                <td class="d">caption under the number, or after it with <code>layout: inline</code></td>
                 <td class="t" data-h="type">text</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
@@ -280,6 +286,7 @@ items:
           <li><code>compare</code> needs a note in both windows; when either the current or the previous stretch has none at all, the card shows its number alone with no delta. <code>streak</code> and <code>current_streak</code> have no value of their own to compare and refuse <code>compare</code> outright, the way <code>trend</code> refuses <code>count</code>.</li>
           <li><code>at_least</code>/<code>at_most</code> turn <code>streak</code> into a threshold: a day counts only when its notes' <code>field</code> values, summed for that day, satisfy the bound, <code>at_least: 5000</code> on steps for example. <code>days: weekdays</code> makes Saturday and Sunday transparent for <code>streak</code> and <code>current_streak</code>: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. <code>skip_field</code> does the same for a day any note marks special, <code>vacation: true</code> or <code>sick: flu</code> for example, and combines with <code>days: weekdays</code>. All three keys apply to <code>agg: streak</code> and <code>agg: current_streak</code> only and are ignored on every other aggregate.</li>
           <li><code>source</code>, <code>tag</code>, <code>where</code>, <code>period</code> and <code>date_field</code> written at the block root, next to <code>items:</code>, apply to every card, so a folder shared by the whole block is written once. A card's own <code>source</code>, <code>tag</code>, <code>period</code> or <code>date_field</code> replaces the root's for that card; <code>where</code> is the exception: the root's conditions and the card's own both hold. A root folder that does not exist, or a root <code>where</code> that cannot be read, is reported once for the block. Without <code>items:</code> the block is a single card and these keys are simply its own.</li>
+          <li><code>layout: inline</code> draws every card as one item of a single line, its number first and its label after, joined by a middle dot: <code>items: [{ label: notes, agg: count }, { label: journal entries, source: Journal, agg: count }]</code> with <code>layout: inline</code> reads <code>1001 notes · 188 journal entries</code>, so a lowercase label reads best there. A <code>compare</code> delta follows the label, coloured the way it is on a card. A narrow pane wraps the line between items, never inside one. A card whose number cannot be computed shows a dash in its place and the rest of the line still draws.</li>
         </ul>
 
 

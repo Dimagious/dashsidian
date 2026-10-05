@@ -1666,3 +1666,152 @@ describe("stats: race times as a clock", () => {
         expect(nodes(el, ".dashy-stat-delta")[0]?.getAttribute("title")).toBe("vs the same days last week: 2:17:55");
     });
 });
+
+describe("stats — layout: inline (B-150)", () => {
+    const inline = (items: string, extra = "") => card(`layout: inline\n${extra}items:\n${items}`);
+
+    it("draws one line: each value apart from its label, joined by a middle dot", () => {
+        const el = inline(`  - { label: diary days, source: Diary, agg: count }
+  - { label: read, tag: read, agg: count }
+  - { label: steps, source: Diary, field: steps, agg: sum, unit: st, icon: 👟 }`);
+        expect(nodes(el, ".dashy-stats")).toHaveLength(0);
+        expect(nodes(el, ".dashy-stat")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-inline")).toEqual(["10 diary days", "2 read", "👟 14\u202F500 st steps"]);
+        expect(texts(el, ".dashy-stat-inline-value")).toEqual(["10", "2", "14\u202F500 st"]);
+        expect(texts(el, ".dashy-stat-inline-label")).toEqual(["diary days", "read", "steps"]);
+        expect(texts(el, ".dashy-stat-inline-icon")).toEqual(["👟"]);
+        // Two separators for three items, each glued to the item before it
+        // with a no-break space so a wrapped line never starts with a dot.
+        const seps = nodes(el, ".dashy-stats-inline-sep");
+        expect(seps.map((s) => s.textContent)).toEqual(["\u00A0·", "\u00A0·"]);
+        // No break point inside a value: "14 500" stays with its label.
+        expect(nodes(el, ".dashy-stat-inline-value wbr")).toHaveLength(0);
+        expect(seps.every((s) => s.getAttribute("aria-hidden") === "true")).toBe(true);
+        expect(nodes(el, ".dashy-stats-inline")[0]?.textContent)
+            .toBe("10 diary days\u00A0· 2 read\u00A0· 👟 14\u202F500 st steps");
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("`layout: cards`, written out, draws the grid exactly as no layout does", () => {
+        const items = "  - { label: Days, source: Diary, agg: count, sub: all of them }";
+        const plain = card(`items:\n${items}`);
+        const cards = card(`layout: cards\nitems:\n${items}`);
+        expect(cards.innerHTML).toBe(plain.innerHTML);
+        expect(texts(cards, ".dashy-stat-value")).toEqual(["10"]);
+        expect(texts(cards, ".dashy-stat-sub")).toEqual(["all of them"]);
+        expect(nodes(cards, ".dashy-stats-inline")).toHaveLength(0);
+    });
+
+    it("an unknown layout warns, naming it, and draws cards", () => {
+        const el = card("layout: row\nitems:\n  - { label: Days, source: Diary, agg: count }");
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: `layout` expects cards or inline, got "row". Drawing cards.',
+        ]);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
+        expect(nodes(el, ".dashy-stats-inline")).toHaveLength(0);
+    });
+
+    it("`trend` is not drawn, with one warning for the whole block naming each card", () => {
+        const el = inline(`  - { label: sleep, source: Diary, field: sleep_score, agg: avg, trend: 30d }
+  - { label: steps, source: Diary, field: steps, agg: max, trend: 7d }`);
+        expect(nodes(el, ".dashy-stat-trend")).toHaveLength(0);
+        expect(nodes(el, ".dashy-stat-bar")).toHaveLength(0);
+        expect(texts(el, ".dashy-stat-inline-value")).toEqual(["74.5", "1900"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: `trend` is not drawn with `layout: inline`: "sleep", "steps". Use `layout: cards` to see it.',
+        ]);
+    });
+
+    it("`sub` is not shown, with one warning for the whole block naming each card", () => {
+        const el = inline(`  - { label: days, source: Diary, agg: count, sub: so far }
+  - { label: books, source: Books, agg: count, sub: read }`);
+        expect(nodes(el, ".dashy-stat-sub")).toHaveLength(0);
+        expect(nodes(el, ".dashy-stats-inline")[0]?.textContent).not.toContain("so far");
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: `sub` is not shown with `layout: inline`: "days", "books". Use `layout: cards` to see it.',
+        ]);
+    });
+
+    it("`columns` has nothing to size and says so", () => {
+        const el = inline("  - { label: days, source: Diary, agg: count }", "columns: 4\n");
+        expect(diagnostics(el, "warning")).toEqual([
+            "⚠️ stats: `columns` has no effect with `layout: inline`, which draws one line.",
+        ]);
+        expect(texts(el, ".dashy-stat-inline")).toEqual(["10 days"]);
+    });
+
+    it("a card with an error shows a dash in its place, and the rest of the line still draws", () => {
+        const el = inline(`  - { label: days, source: Diary, agg: count }
+  - { label: sleep, source: Diary, agg: avg }
+  - { label: books, source: Books, agg: count }`);
+        expect(diagnostics(el, "error")).toHaveLength(1);
+        expect(diagnostics(el, "error")[0]).toContain("sleep");
+        expect(texts(el, ".dashy-stat-inline")).toEqual(["10 days", "— sleep", "2 books"]);
+        expect(nodes(el, ".dashy-stat-inline-value")[1]?.className).toContain("is-empty");
+        expect(nodes(el, ".dashy-stat-inline-value")[0]?.className).not.toContain("is-empty");
+    });
+
+    it("draws itself once however many times it is rendered", () => {
+        const el = host();
+        const config = "layout: inline\nitems:\n  - { label: days, source: Diary, agg: count }";
+        renderStats(ctx, config, el);
+        renderStats(ctx, config, el);
+        expect(nodes(el, ".dashy-stats-inline")).toHaveLength(1);
+        expect(texts(el, ".dashy-stat-inline")).toEqual(["10 days"]);
+    });
+
+    describe("compare", () => {
+        // The same fixture as the card compare tests above: Thursday
+        // 2026-09-24, an English week from Sunday. Gym sums 4 against 2 last
+        // week, mood averages 3 against 5, steps sum 500 against 500.
+        const TODAY = new Date(2026, 8, 24);
+        afterEach(() => vi.useRealTimers());
+
+        const week = (from: number, values: { gym: boolean; mood: number }[]) =>
+            values.map((v, i) => ({
+                path: `Diary/2026-09-${String(from + i).padStart(2, "0")}.md`,
+                frontmatter: { ...v, steps: 100 },
+            }));
+        const compareCtx = mockContext({
+            notes: [
+                ...week(13, [
+                    { gym: true, mood: 5 }, { gym: false, mood: 5 }, { gym: false, mood: 5 },
+                    { gym: false, mood: 5 }, { gym: true, mood: 5 },
+                ]),
+                ...week(20, [
+                    { gym: true, mood: 3 }, { gym: false, mood: 3 }, { gym: true, mood: 3 },
+                    { gym: true, mood: 3 }, { gym: true, mood: 3 },
+                ]),
+            ],
+        });
+
+        const render = (items: string) => {
+            vi.useFakeTimers();
+            vi.setSystemTime(TODAY);
+            const el = host();
+            renderStats(compareCtx, `layout: inline\nitems:\n${items}`, el);
+            return el;
+        };
+
+        it("a rise: an up arrow and the delta after the label, coloured like a card's", () => {
+            const el = render("  - { label: gym days, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }");
+            expect(texts(el, ".dashy-stat-inline")).toEqual(["4 gym days ▲ +2"]);
+            const delta = nodes(el, ".dashy-stat-inline .dashy-stat-delta")[0];
+            expect(delta?.className).toContain("dashy-stat-delta-good");
+            expect(delta?.getAttribute("title")).toBe("vs the same days last week: 2");
+            expect(delta?.querySelector(".dashy-stat-delta-arrow")?.getAttribute("aria-hidden")).toBe("true");
+        });
+
+        it("a fall: a down arrow, a real minus sign, and `better: up` colours it bad", () => {
+            const el = render("  - { label: mood, source: Diary, field: mood, agg: avg, period: week, compare: true, better: up }");
+            expect(texts(el, ".dashy-stat-delta")).toEqual(["▼ −2"]);
+            expect(nodes(el, ".dashy-stat-delta")[0]?.className).toContain("dashy-stat-delta-bad");
+        });
+
+        it("no change: an equals sign, neutral even with `better` set", () => {
+            const el = render("  - { label: steps, source: Diary, field: steps, agg: sum, period: week, compare: true, better: up }");
+            expect(texts(el, ".dashy-stat-inline")).toEqual(["500 steps = 0"]);
+            expect(nodes(el, ".dashy-stat-delta")[0]?.className).toContain("dashy-stat-delta-neutral");
+        });
+    });
+});

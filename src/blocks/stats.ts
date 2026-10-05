@@ -19,6 +19,7 @@ import {
     dateFieldHasEffect,
     type DeltaTone,
 } from "../core/period";
+import { readStatsLayout, inlineLayoutDiagnostics } from "../core/stats-layout";
 import { firstDayOfWeek } from "../adapters/datetime";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics } from "../shared/render";
@@ -69,9 +70,12 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
     }
     // Root keys are only checked for the `items:` shape — otherwise a single
     // card written as an object would get warnings about its own keys.
-    if (isRecord(value) && Array.isArray(value.items)) diags.push(...unknownKeys(value, KNOWN_ROOT));
+    const root = isRecord(value) && Array.isArray(value.items) ? value : null;
+    if (root) diags.push(...unknownKeys(root, KNOWN_ROOT));
 
     const columns = isRecord(value) && typeof value.columns === "number" ? value.columns : 3;
+    const { layout, diagnostics: layoutDiags } = readStatsLayout(root);
+    diags.push(...layoutDiags, ...inlineLayoutDiagnostics(layout, root, items));
 
     // One snapshot for the whole page, taken by the context.
     const notes = ctx.notes();
@@ -190,7 +194,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         const card: Card = {
             label: label || spec?.field || "",
             text: formatReading(current, spec?.precision, duration, clock),
-            trend: spec?.trend && spec.field
+            trend: layout === "cards" && spec?.trend && spec.field
                 ? sparkBars(series(selected, spec.field, spec.trend, today, dateField))
                 : [],
         };
@@ -228,6 +232,11 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
 
     // Diagnostics before the cards: an error must be seen before a dash is.
     renderDiagnostics(el, "stats", diags);
+
+    if (layout === "inline") {
+        renderInline(el, cards);
+        return;
+    }
 
     const grid = el.createDiv({ cls: "dashy-stats" });
     grid.style.setProperty("--dashy-stat-columns", String(Math.max(1, Math.min(6, columns))));
@@ -273,6 +282,54 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         if (card.label) box.createDiv({ cls: "dashy-stat-label", text: card.label });
         if (card.sub) box.createDiv({ cls: "dashy-stat-sub", text: card.sub });
     }
+}
+
+/**
+ * `layout: inline` (B-150): every card as one item of a single line of text,
+ * "1001 notes · 188 journal entries · 14 open tasks", for a home page header.
+ * The value stays its own element, drawn apart from the label, and keeps
+ * the unit, the icon before it and the `compare` delta after the label.
+ * `trend` and `sub` are not drawn; `inlineLayoutDiagnostics` already said so.
+ *
+ * Each item is `white-space: nowrap`, so a narrow pane wraps between items,
+ * never inside "14 open tasks". The separator hangs off the item before it
+ * with a no-break space, so a wrapped line never starts with a dot.
+ */
+function renderInline(el: HTMLElement, cards: readonly Card[]): void {
+    const line = el.createDiv({ cls: "dashy-stats-inline" });
+    cards.forEach((card, i) => {
+        if (i > 0) {
+            line.createSpan({ cls: "dashy-stats-inline-sep", attr: { "aria-hidden": "true" }, text: "\u00A0·" });
+            line.appendText(" ");
+        }
+        const item = line.createSpan({ cls: "dashy-stat-inline" });
+        if (card.icon) {
+            item.createSpan({ cls: "dashy-stat-inline-icon", text: card.icon });
+            item.appendText(" ");
+        }
+        const isEmpty = card.text === "—";
+        const valueEl = item.createSpan({ cls: isEmpty ? "dashy-stat-inline-value is-empty" : "dashy-stat-inline-value" });
+        // Plain text, not renderGroupedValue: its <wbr> stays a break point even
+        // under nowrap in Chromium, which would tear "14 500" from its label.
+        valueEl.appendText(card.text);
+        if (card.unit && !isEmpty) {
+            valueEl.appendText(" ");
+            valueEl.createSpan({ cls: "dashy-stat-inline-unit", text: card.unit });
+        }
+        if (card.label) {
+            item.appendText(" ");
+            item.createSpan({ cls: "dashy-stat-inline-label", text: card.label });
+        }
+        if (card.delta) {
+            item.appendText(" ");
+            const deltaEl = item.createSpan({
+                cls: `dashy-stat-delta dashy-stat-delta-${card.delta.tone}`,
+                title: card.delta.title,
+            });
+            deltaEl.createSpan({ cls: "dashy-stat-delta-arrow", attr: { "aria-hidden": "true" }, text: card.delta.arrow });
+            deltaEl.appendText(` ${card.delta.text}`);
+        }
+    });
 }
 
 /**

@@ -66,6 +66,7 @@ Number cards: one value per card, computed over a selection of notes.
 | key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
 | `columns` | number | — | `3` | — | columns in the grid, 1 to 6 |
+| `layout` | string | — | `cards` | — | `cards` draws a grid of cards; `inline` draws the same numbers as one line of text, like `1001 notes · 188 journal entries · 14 open tasks`, for a page header. Inline keeps `icon`, `unit` and the `compare` delta, but draws no `trend` and no `sub` and ignores `columns`, with one warning for each. An unrecognised value warns and falls back to cards |
 | `items` | list | yes | — | — | the list of cards |
 | `source` | string | — | — | `folder`, `from` | folder for every card that names none of its own; includes nested ones. A card's own `source` replaces it |
 | `tag` | string | — | — | — | tag for every card that names none of its own, with or without the hash. A card's own `tag` replaces it |
@@ -77,7 +78,7 @@ Number cards: one value per card, computed over a selection of notes.
 
 | key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
-| `label` | string | yes | — | `title`, `name` | caption under the number |
+| `label` | string | yes | — | `title`, `name` | caption under the number, or after it with `layout: inline` |
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
 | `where` | string\|list | — | — | — | a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, "rating >= 4"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or`. One unreadable condition drops the whole filter with a warning, and the numbers are drawn unfiltered |
@@ -118,6 +119,7 @@ items:
 - `compare` needs a note in both windows; when either the current or the previous stretch has none at all, the card shows its number alone with no delta. `streak` and `current_streak` have no value of their own to compare and refuse `compare` outright, the way `trend` refuses `count`.
 - `at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak` and `current_streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. `skip_field` does the same for a day any note marks special, `vacation: true` or `sick: flu` for example, and combines with `days: weekdays`. All three keys apply to `agg: streak` and `agg: current_streak` only and are ignored on every other aggregate.
 - `source`, `tag`, `where`, `period` and `date_field` written at the block root, next to `items:`, apply to every card, so a folder shared by the whole block is written once. A card's own `source`, `tag`, `period` or `date_field` replaces the root's for that card; `where` is the exception: the root's conditions and the card's own both hold. A root folder that does not exist, or a root `where` that cannot be read, is reported once for the block. Without `items:` the block is a single card and these keys are simply its own.
+- `layout: inline` draws every card as one item of a single line, its number first and its label after, joined by a middle dot: `items: [{ label: notes, agg: count }, { label: journal entries, source: Journal, agg: count }]` with `layout: inline` reads `1001 notes · 188 journal entries`, so a lowercase label reads best there. A `compare` delta follows the label, coloured the way it is on a card. A narrow pane wraps the line between items, never inside one. A card whose number cannot be computed shows a dash in its place and the rest of the line still draws.
 
 ### `progress`
 
