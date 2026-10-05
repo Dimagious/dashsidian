@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Countdown to a birthday in Obsidian · Dashy</title>
+<meta name="description" content="Days until the next birthday or anniversary in Obsidian, read from the date in a person's note, with the age they turn. Plus a passport expiry from a note property.">
+<link rel="canonical" href="https://dimagious.github.io/dashsidian/guides/countdown-birthday/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%238b6cef'/%3E%3Crect x='7' y='7.5' width='11' height='3' rx='1.5' fill='%23fff'/%3E%3Crect x='7' y='13' width='8.5' height='7' rx='2' fill='%23fff' fill-opacity='.55'/%3E%3Crect x='16.5' y='13' width='8.5' height='7' rx='2' fill='%23fff'/%3E%3Crect x='7' y='22.5' width='18' height='3' rx='1.5' fill='%23fff' fill-opacity='.35'/%3E%3Crect x='7' y='22.5' width='12' height='3' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Dashy">
+<meta property="og:url" content="https://dimagious.github.io/dashsidian/guides/countdown-birthday/">
+<meta property="og:title" content="Countdown to a birthday in Obsidian">
+<meta property="og:description" content="Days until the next birthday, and the age, from the date in a person's note. One key, repeat: yearly.">
+<meta property="og:image" content="https://dimagious.github.io/dashsidian/img/countdown-birthday-light.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="../../assets/site.css">
+<link rel="stylesheet" href="../../assets/guides.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"HowTo","name":"Countdown to a birthday in Obsidian","step":[
+{"@type":"HowToStep","name":"Keep the date in the person's note"},
+{"@type":"HowToStep","name":"Count to the next birthday"},
+{"@type":"HowToStep","name":"Expiry dates from a note"}]}
+</script>
+</head>
+<body>
+<!--shell:top tab="Countdown to a birthday"-->
+
+    <main class="note guide" id="note">
+      <article class="file" style="padding-top:34px">
+        <div class="crumb">Guides/Countdown to a birthday.md</div>
+        <h1 class="inline-title">Countdown to a birthday in Obsidian</h1>
+
+        <div class="props" aria-label="Properties">
+          <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
+          <div class="prop"><div class="k"><svg><use href="#i-tag"/></svg>blocks</div><div class="v"><span class="pill">countdown</span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>keys</div><div class="v"><code>field</code><code>repeat: yearly</code></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>needs dataview</div><div class="v"><span class="check off" aria-label="no"></span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
+        </div>
+
+        <p class="lede">A birthday is a date you write down once, in the person's note. What you want on your dashboard is a different date: the next time it comes round, how many days are left, and how old they turn. Dashy's <code>countdown</code> reads the first and works out the rest. The same card reads a passport's expiry date from its note.</p>
+
+        <figure class="shot">
+          <picture>
+            <source data-dark srcset="../../img/countdown-birthday-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="../../img/countdown-birthday-light.png" width="700" height="400" alt="Countdown cards: two birthdays and a wedding anniversary, each with the days left, the date and the years it marks; below them a passport with days left and a first aid certificate that expired, counting days ago">
+          </picture>
+          <figcaption>What you have at the end of step 3. From a demo vault.</figcaption>
+        </figure>
+
+        <nav class="toc" aria-label="On this page">
+          <b>ON THIS PAGE</b>
+          <ol>
+            <li><a href="#person">Keep the date in the person's note</a></li>
+            <li><a href="#birthdays">Count to the next birthday</a></li>
+            <li><a href="#expiry">Expiry dates from a note</a></li>
+            <li><a href="#full">The whole note</a></li>
+            <li><a href="#other-ways">With Bases or a written date</a></li>
+            <li><a href="#variations">Variations</a></li>
+            <li><a href="#errors">If a card shows an error</a></li>
+            <li><a href="#related">Related guides</a></li>
+          </ol>
+        </nav>
+
+        <!-- ============ 1 ============ -->
+        <h2 class="step" id="person" data-short="Keep the date in the person's note"><span class="n">1</span>Keep the date in the person's note</h2>
+        <p>One date property with the year of birth, and one property that tells this person's note from the others. Here they are <code>birthday</code> and <code>name</code>.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>People/Anna.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">---
+name: Anna
+birthday: 1991-11-02
+---
+
+Likes: climbing, Japanese whisky.</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>birthday: 1991-11-02</code><span>Year, month, day. A Date property set in Obsidian's Properties panel is the same thing. With a time after it, the time is ignored.</span></li>
+          <li><code>name: Anna</code><span>Any property works, as long as it picks out one note. Step 2 says why it is needed.</span></li>
+        </ul>
+
+        <!-- ============ 2 ============ -->
+        <h2 class="step" id="birthdays" data-short="Count to the next birthday"><span class="n">2</span>Count to the next birthday</h2>
+        <p>Make a note for the dates, say <code>Birthdays.md</code>, and paste this block. It is the top row of the picture above.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Birthdays.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```countdown
+items:
+  - { label: Anna, field: birthday, repeat: yearly, source: People, where: "name = Anna", icon: 🎂 }
+  - { label: Leo, field: birthday, repeat: yearly, source: People, where: "name = Leo", icon: 🎂 }
+  - { label: Our wedding, date: 2015-06-20, repeat: yearly, icon: 💍 }
+```</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>field: birthday</code><span>Read the date from this property instead of writing it on the card. The card's label links to the note it came from.</span></li>
+          <li><code>repeat: yearly</code><span>Count to the next time the month and day come round, and show how many years that one is: <code>35 years</code> under Anna's card is the age she turns.</span></li>
+          <li><code>where: "name = Anna"</code><span>Which note to read. A card reads one note: the first in its selection that has the property filled in, notes with a date in their name newest first, then the rest in path order. Without <code>where</code>, all of <code>People</code> is the selection, and every card would show the same person's birthday.</span></li>
+          <li><code>date: 2015-06-20</code><span>A date you would rather write on the card than keep in a note. <code>repeat</code> works the same with it.</span></li>
+        </ul>
+        <p>On the day itself the card says <b>Today</b>, with the years still under it. The day after, it moves on to next year.</p>
+        <div class="callout tip">
+          <div class="callout-title"><svg><use href="#i-info"/></svg>Born on 29 February</div>
+          <p>In a year without one, the card counts to 28 February. Leo, born 2000-02-29, turns 27 on 28 February 2027 as far as the card is concerned, and 28 on 29 February 2028.</p>
+        </div>
+
+        <!-- ============ 3 ============ -->
+        <h2 class="step" id="expiry" data-short="Expiry dates from a note"><span class="n">3</span>Expiry dates from a note</h2>
+        <p>The same <code>field</code> reads any date: a passport, a driving licence, a certificate. Keep the date in the document's note.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Documents/Passport.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">---
+type: passport
+expires: 2031-03-14
+---
+
+Number and scans in the attachments folder.</code></pre>
+        </div>
+        <p>Then, under the birthdays:</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Birthdays.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```countdown
+columns: 2
+items:
+  - { label: Passport, field: expires, where: "type = passport", icon: 🛂 }
+  - { label: First aid certificate, field: expires, where: "type = first-aid", icon: ⛑️ }
+```</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li>No <code>repeat</code><span>An expiry date happens once. The card counts down to it, and once it has passed, counts up: <code>40 days ago</code>. It does not vanish, because a certificate that ran out last month is exactly what you want to see.</span></li>
+          <li>No <code>source</code><span>Without it, the card looks through the whole vault. <code>where</code> is enough to find the one note.</span></li>
+        </ul>
+        <p>Renew the passport, change <code>expires</code> in its note, and the card follows. Nothing on the dashboard needs editing.</p>
+
+        <!-- ============ full ============ -->
+        <h2 id="full" data-short="The whole note">The whole note</h2>
+        <p>Both blocks in one piece, ready to paste into an empty note.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Birthdays.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```countdown
+items:
+  - { label: Anna, field: birthday, repeat: yearly, source: People, where: "name = Anna", icon: 🎂 }
+  - { label: Leo, field: birthday, repeat: yearly, source: People, where: "name = Leo", icon: 🎂 }
+  - { label: Our wedding, date: 2015-06-20, repeat: yearly, icon: 💍 }
+```
+
+```countdown
+columns: 2
+items:
+  - { label: Passport, field: expires, where: "type = passport", icon: 🛂 }
+  - { label: First aid certificate, field: expires, where: "type = first-aid", icon: ⛑️ }
+```</code></pre>
+        </div>
+
+        <!-- ============ other ways ============ -->
+        <h2 id="other-ways" data-short="With Bases or a written date">The same countdown with Bases or a written date</h2>
+        <p>Two ways people do this today.</p>
+
+        <div class="vs" data-tabs>
+          <div class="seg" role="tablist" aria-label="Other ways to build it">
+            <button type="button" role="tab" id="tab-bases" aria-controls="panel-bases" aria-selected="true">Bases</button>
+            <button type="button" role="tab" id="tab-written" aria-controls="panel-written" aria-selected="false">written date</button>
+          </div>
+
+          <div class="vs-panel" id="panel-bases" role="tabpanel" aria-labelledby="tab-bases">
+            <div class="codeblock other" data-code>
+              <div class="bar"><span>Two formulas in a base</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">formulas:
+  thisYear: date(today().year + "-" + birthday.format("MM-DD"))
+  nextBirthday: if(formula.thisYear >= today(), formula.thisYear, formula.thisYear + "1y").format("ddd MMM DD")</code></pre>
+            </div>
+            <ul>
+              <li>From the forum thread <a href="https://forum.obsidian.md/t/118980">Oct 14 1939 birthday: how to display as occurring on Wed (this year)</a>, with the property renamed to <code>birthday</code>.</li>
+              <li>The first formula moves the date into this year, the second moves it to next year once it has passed. That gives the next date. The days left and the age are more formulas on top.</li>
+              <li>The thread itself notes that 29 February needs more logic still.</li>
+              <li>The result is a column in a table view, one row per person.</li>
+            </ul>
+          </div>
+
+          <div class="vs-panel" id="panel-written" role="tabpanel" aria-labelledby="tab-written">
+            <div class="codeblock other" data-code>
+              <div class="bar"><span>The date of this year's birthday, typed in</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">```countdown
+items:
+  - { label: Anna, date: 2026-11-02 }
+```</code></pre>
+            </div>
+            <ul>
+              <li>Works, and on 3 November it starts counting up: <code>1 day ago</code>. Someone has to change the year by hand, every year, for every person.</li>
+              <li>The age is not on the card, and the date lives on the dashboard rather than in Anna's note.</li>
+              <li>With <code>repeat: yearly</code> and the year of birth, <code>date: 1991-11-02</code>, the same card needs no edits.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="cmp">
+            <thead><tr><th></th><th class="us">Dashy</th><th>Bases</th><th>Written date</th></tr></thead>
+            <tbody>
+              <tr><td>Next date</td><td data-h="Dashy" class="us"><span><code>repeat: yearly</code></span></td><td data-h="Bases"><span>Two formulas</span></td><td data-h="Written date"><span>Edit it every year</span></td></tr>
+              <tr><td>Days left</td><td data-h="Dashy" class="us"><span>On the card</span></td><td data-h="Bases"><span>Another formula</span></td><td data-h="Written date"><span>On the card</span></td></tr>
+              <tr><td>Age they turn</td><td data-h="Dashy" class="us"><span>On the card</span></td><td data-h="Bases"><span>Another formula</span></td><td data-h="Written date"><span>No</span></td></tr>
+              <tr><td>29 February</td><td data-h="Dashy" class="us"><span>28 February in other years</span></td><td data-h="Bases"><span>Write it</span></td><td data-h="Written date"><span>By hand</span></td></tr>
+              <tr><td>Date kept in</td><td data-h="Dashy" class="us"><span>The person's note</span></td><td data-h="Bases"><span>The person's note</span></td><td data-h="Written date"><span>The dashboard</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ============ variations ============ -->
+        <h2 id="variations" data-short="Variations">Variations</h2>
+        <div class="vars">
+          <div class="var">
+            <h3>Every date in one note</h3>
+            <p>No note per person: one property per date, in a single note. Without <code>where</code>, each card finds the one note that has its property.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>countdown</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```countdown
+items:
+  - { label: Mum, field: mum_birthday, repeat: yearly, icon: 🎂 }
+  - { label: Dad, field: dad_birthday, repeat: yearly, icon: 🎂 }
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>A note to yourself</h3>
+            <p><code>sub</code> is a line of your own under the date. With <code>repeat</code>, it comes before the years.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>countdown</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```countdown
+items:
+  - label: Anna
+    field: birthday
+    repeat: yearly
+    source: People
+    where: "name = Anna"
+    sub: order the cake a week before
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>Days since</h3>
+            <p>A date in the past without <code>repeat</code> counts up, every day. Handy for "days since I quit".</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>countdown</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```countdown
+items:
+  - { label: Smoke-free, date: 2025-01-01, icon: 🚭 }
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>People by tag</h3>
+            <p>Your people notes carry <code>#person</code> rather than live in one folder: <code>tag</code> picks them, <code>where</code> still picks the one.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>countdown</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```countdown
+items:
+  - { label: Anna, field: birthday, repeat: yearly, tag: person, where: "name = Anna" }
+```</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ errors ============ -->
+        <h2 id="errors" data-short="If a card shows an error">If a card shows an error</h2>
+        <p>A card that cannot find its date says so above the cards, and draws a dash. The ones you are likely to see here, and one surprise that comes with no message:</p>
+        <ul>
+          <li><b>No note in the selection has "birthday" filled in.</b> The property name is spelled differently in the note, or <code>source</code>, <code>tag</code> or <code>where</code> match no note that has it.</li>
+          <li><b>"birthday" in "Anna" is "next week", not a date.</b> The note holds text. Write the date as <code>YYYY-MM-DD</code>.</li>
+          <li><b>Both <code>date:</code> and <code>field:</code> are set.</b> A card takes one of them: the date on the card, or a property read from a note.</li>
+          <li><b><code>repeat</code> expects <code>yearly</code>.</b> Something else was written, <code>repeat: annual</code> or <code>repeat: true</code> for example.</li>
+          <li><b>Every card shows the same birthday.</b> The cards have no <code>where</code>, so each reads the same note. Add one per card, as in step 2.</li>
+        </ul>
+
+        <!-- ============ related ============ -->
+        <h2 id="related" data-short="Related guides">Related guides</h2>
+        <div class="cards small">
+          <a class="card" href="../homepage-dashboard/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/homepage-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/homepage-light.png" width="700" height="520" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">An Obsidian homepage dashboard without code</span><p class="card-promise">A clock, a line of counts, folder tiles and what is coming up.</p></div>
+          </a>
+          <a class="card" href="../books-per-year/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/books-per-year-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/books-per-year-light.png" width="700" height="380" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">Books per year: a reading log chart</span><p class="card-promise">One bar per year from your book notes, with a goal line.</p></div>
+          </a>
+          <a class="card" href="../habit-tracker-without-dataview/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/habits-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/habits-light.png" width="700" height="369" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A habit tracker without Dataview</span><p class="card-promise">Counts, streaks and a year of days from daily note checkboxes.</p></div>
+          </a>
+        </div>
+
+        <div class="next">
+          <p>Dashy is in Obsidian's community plugins. Search for <b>Dashy</b>, install, enable, then paste the note above.</p>
+          <div class="actions">
+            <a class="btn primary" href="../../#install"><svg><use href="#i-plug"/></svg>Install Dashy</a>
+            <a class="btn" href="../../reference/countdown/">Every countdown key</a>
+          </div>
+        </div>
+
+        <footer class="note-foot">
+          <span>MIT © Dmitriy Yurkin</span>
+          <a href="../../guides/">All guides</a>
+          <a href="https://github.com/Dimagious/dashsidian">GitHub</a>
+          <a href="https://community.obsidian.md/plugins/dashsidian">Plugin listing</a>
+          <a href="https://github.com/Dimagious/dashsidian/issues">Something wrong on this page?</a>
+        </footer>
+      </article>
+    </main>
+<!--shell:bottom-->

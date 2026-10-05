@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>An Obsidian homepage dashboard without code · Dashy</title>
+<meta name="description" content="A home note for Obsidian with a live clock, today's links, a line of counts, folder tiles with note counts and the dates coming up. Four YAML blocks, no dataviewjs, ready to copy.">
+<link rel="canonical" href="https://dimagious.github.io/dashsidian/guides/homepage-dashboard/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%238b6cef'/%3E%3Crect x='7' y='7.5' width='11' height='3' rx='1.5' fill='%23fff'/%3E%3Crect x='7' y='13' width='8.5' height='7' rx='2' fill='%23fff' fill-opacity='.55'/%3E%3Crect x='16.5' y='13' width='8.5' height='7' rx='2' fill='%23fff'/%3E%3Crect x='7' y='22.5' width='18' height='3' rx='1.5' fill='%23fff' fill-opacity='.35'/%3E%3Crect x='7' y='22.5' width='12' height='3' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Dashy">
+<meta property="og:url" content="https://dimagious.github.io/dashsidian/guides/homepage-dashboard/">
+<meta property="og:title" content="An Obsidian homepage dashboard without code">
+<meta property="og:description" content="A clock, today's notes, a line of counts, folder tiles and the dates coming up. Four blocks of YAML.">
+<meta property="og:image" content="https://dimagious.github.io/dashsidian/img/homepage-light.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="../../assets/site.css">
+<link rel="stylesheet" href="../../assets/guides.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"HowTo","name":"An Obsidian homepage dashboard without code","step":[
+{"@type":"HowToStep","name":"The day and the clock"},
+{"@type":"HowToStep","name":"A line of counts"},
+{"@type":"HowToStep","name":"Tiles for your folders"},
+{"@type":"HowToStep","name":"What is coming up"}]}
+</script>
+</head>
+<body>
+<!--shell:top tab="Homepage dashboard"-->
+
+    <main class="note guide" id="note">
+      <article class="file" style="padding-top:34px">
+        <div class="crumb">Guides/Homepage dashboard.md</div>
+        <h1 class="inline-title">An Obsidian homepage dashboard without code</h1>
+
+        <div class="props" aria-label="Properties">
+          <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
+          <div class="prop"><div class="k"><svg><use href="#i-tag"/></svg>blocks</div><div class="v"><span class="pill">today</span><span class="pill">stats</span><span class="pill">tiles</span><span class="pill">countdown</span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>keys</div><div class="v"><code>clock</code><code>layout: inline</code><code>badge: count</code></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>needs dataview</div><div class="v"><span class="check off" aria-label="no"></span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
+        </div>
+
+        <p class="lede">A home note is the page you see first: the time, today's note, how full the inbox is, a way into each part of the vault, and what is coming up. Usually it is a note full of dataviewjs. Here it is four Dashy blocks, each a few lines of YAML, and every number on it updates as the vault changes.</p>
+
+        <figure class="shot">
+          <picture>
+            <source data-dark srcset="../../img/homepage-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="../../img/homepage-light.png" width="700" height="520" alt="A home note: a clock above today's date with links to the daily and weekly notes; a line of counts for notes, the inbox, diary days and books; four folder tiles with note counts; three countdown cards for a holiday, a birthday and a passport">
+          </picture>
+          <figcaption>What you have at the end of step 4. From a demo vault.</figcaption>
+        </figure>
+
+        <nav class="toc" aria-label="On this page">
+          <b>ON THIS PAGE</b>
+          <ol>
+            <li><a href="#day">The day and the clock</a></li>
+            <li><a href="#counts">A line of counts</a></li>
+            <li><a href="#tiles">Tiles for your folders</a></li>
+            <li><a href="#coming">What is coming up</a></li>
+            <li><a href="#full">The whole note</a></li>
+            <li><a href="#other-ways">With dataviewjs</a></li>
+            <li><a href="#variations">Variations</a></li>
+            <li><a href="#errors">If a block shows an error</a></li>
+            <li><a href="#related">Related guides</a></li>
+          </ol>
+        </nav>
+
+        <!-- ============ 1 ============ -->
+        <h2 class="step" id="day" data-short="The day and the clock"><span class="n">1</span>The day and the clock</h2>
+        <p>Make a note for the home page, say <code>Home.md</code>, and start with this block.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Home.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```today
+clock: true
+daily: true
+weekly: true
+```</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>clock: true</code><span>Hours and minutes above the date, ticking. 12 or 24 hours follows your language. <code>clock: seconds</code> adds the seconds.</span></li>
+          <li><code>daily</code>, <code>weekly</code><span>Links to today's note and this week's. <code>monthly: true</code> adds the month's.</span></li>
+        </ul>
+        <p>The folder and the name format come from the Periodic Notes plugin or the core Daily notes plugin, or from the folders set in Dashy's settings. With none of them, the daily note is <code>YYYY-MM-DD</code> at the vault root. A note that does not exist yet is still linked, dimmed, and a click creates it.</p>
+
+        <!-- ============ 2 ============ -->
+        <h2 class="step" id="counts" data-short="A line of counts"><span class="n">2</span>A line of counts</h2>
+        <p>Number cards take room. For a header, <code>layout: inline</code> puts the same numbers on one line of text.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Home.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+layout: inline
+items:
+  - { label: notes, agg: count }
+  - { label: in the inbox, source: Inbox, agg: count }
+  - { label: diary days this month, source: Diary, agg: count, period: month }
+  - { label: books this year, source: Reading, date_field: date_read, period: year, agg: count }
+```</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>label: notes, agg: count</code><span>No <code>source</code>: every note in the vault.</span></li>
+          <li><code>period: month</code><span>Only notes dated this month, by the date in the note's name. <code>date_field</code> reads the date from a property instead, as on the books item.</span></li>
+          <li>Narrow pane<span>The line wraps between items, never inside one.</span></li>
+        </ul>
+        <p>Inline keeps <code>icon</code>, <code>unit</code> and the <code>compare</code> change, but not <code>trend</code> or <code>sub</code>. Leave those on, and the block warns that they are not drawn.</p>
+
+        <!-- ============ 3 ============ -->
+        <h2 class="step" id="tiles" data-short="Tiles for your folders"><span class="n">3</span>Tiles for your folders</h2>
+        <p>One tile per part of the vault, with the number of notes in it.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Home.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```tiles
+items:
+  - { label: Inbox, path: Inbox, icon: 📥, badge: count }
+  - { label: Diary, path: Diary, icon: 📔, badge: count, period: week, sub: this week }
+  - { label: Reading, path: Reading, icon: 📚, badge: count }
+  - { label: Projects, path: Projects, icon: 🗂, badge: count, accent: true }
+```</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>path: Inbox</code><span>A folder. The tile opens its folder note, <code>Inbox/Inbox.md</code> or <code>Inbox.md</code> next to the folder. Without one, a click shows the folder in the file explorer.</span></li>
+          <li><code>badge: count</code><span>The number of notes in the folder, subfolders included. An empty folder shows 0, not nothing.</span></li>
+          <li><code>period: week</code><span>Narrows the badge to notes dated this week. <code>tag</code> and <code>where</code> narrow it too.</span></li>
+          <li><code>path</code><span>Can also be a note, or <code>File.base#View</code> for a view of a base.</span></li>
+        </ul>
+        <div class="callout tip">
+          <div class="callout-title"><svg><use href="#i-info"/></svg>Cover images, if you want them</div>
+          <p>Add <code>image:</code> to a tile for a picture above its label: a path in the vault, a <code>[[wikilink]]</code>, or an <code>https://</code> address. See the variations below.</p>
+        </div>
+
+        <!-- ============ 4 ============ -->
+        <h2 class="step" id="coming" data-short="What is coming up"><span class="n">4</span>What is coming up</h2>
+        <p>The days to a holiday, a birthday and a passport's expiry. The last two are read from notes, so they stay right without edits.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Home.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```countdown
+items:
+  - { label: Holiday, date: 2027-01-20, icon: 🏖 }
+  - { label: Anna, field: birthday, repeat: yearly, source: People, where: "name = Anna", icon: 🎂 }
+  - { label: Passport, field: expires, where: "type = passport", icon: 🛂 }
+```</code></pre>
+        </div>
+        <p>How the birthday and the passport cards find their dates, and why <code>where</code> is there: <a href="../countdown-birthday/">countdown to a birthday</a>.</p>
+
+        <!-- ============ full ============ -->
+        <h2 id="full" data-short="The whole note">The whole note</h2>
+        <p>All four blocks, ready to paste into an empty note. Change the folder names to yours.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Home.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```today
+clock: true
+daily: true
+weekly: true
+```
+
+```stats
+layout: inline
+items:
+  - { label: notes, agg: count }
+  - { label: in the inbox, source: Inbox, agg: count }
+  - { label: diary days this month, source: Diary, agg: count, period: month }
+  - { label: books this year, source: Reading, date_field: date_read, period: year, agg: count }
+```
+
+```tiles
+items:
+  - { label: Inbox, path: Inbox, icon: 📥, badge: count }
+  - { label: Diary, path: Diary, icon: 📔, badge: count, period: week, sub: this week }
+  - { label: Reading, path: Reading, icon: 📚, badge: count }
+  - { label: Projects, path: Projects, icon: 🗂, badge: count, accent: true }
+```
+
+```countdown
+items:
+  - { label: Holiday, date: 2027-01-20, icon: 🏖 }
+  - { label: Anna, field: birthday, repeat: yearly, source: People, where: "name = Anna", icon: 🎂 }
+  - { label: Passport, field: expires, where: "type = passport", icon: 🛂 }
+```</code></pre>
+        </div>
+        <div class="callout tip">
+          <div class="callout-title"><svg><use href="#i-info"/></svg>Opening it when Obsidian starts</div>
+          <p>Dashy draws the note; it does not choose which note Obsidian opens first. If the Homepage plugin does that for you, keep it and point it at <code>Home.md</code>.</p>
+        </div>
+
+        <!-- ============ other ways ============ -->
+        <h2 id="other-ways" data-short="With dataviewjs">The same home note with dataviewjs</h2>
+        <p>The usual setup: the Homepage plugin opens a note, and the note is a script.</p>
+        <div class="codeblock other" data-code>
+          <div class="bar"><span>With Dataview, JavaScript queries on</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">```dataviewjs
+dv.header(2, moment().format("dddd, MMMM D"));
+const all = dv.pages().length;
+const inbox = dv.pages('"Inbox"').length;
+const month = dv.pages('"Diary"')
+  .where(p => p.file.day && p.file.day.hasSame(dv.luxon.DateTime.now(), "month")).length;
+dv.paragraph(`${all} notes · ${inbox} in the inbox · ${month} diary days this month`);
+```</code></pre>
+        </div>
+        <ul>
+          <li>Needs <b>Enable JavaScript queries</b> in Dataview's settings. It is off by default.</li>
+          <li>The date is printed once. A ticking clock is a timer you write and clean up yourself.</li>
+          <li>Tiles with counts and countdowns are more code each, usually HTML built in the script and styled with a CSS snippet.</li>
+          <li>A mistake in the script shows a JavaScript error, or nothing.</li>
+        </ul>
+
+        <div class="table-wrap">
+          <table class="cmp">
+            <thead><tr><th></th><th class="us">Dashy</th><th>dataviewjs</th></tr></thead>
+            <tbody>
+              <tr><td>Live clock</td><td data-h="Dashy" class="us"><span><code>clock: true</code></span></td><td data-h="dataviewjs"><span>A timer you write</span></td></tr>
+              <tr><td>Today's notes</td><td data-h="Dashy" class="us"><span><code>daily</code>, <code>weekly</code>, <code>monthly</code></span></td><td data-h="dataviewjs"><span>Build the paths yourself</span></td></tr>
+              <tr><td>Line of counts</td><td data-h="Dashy" class="us"><span><code>layout: inline</code></span></td><td data-h="dataviewjs"><span>The script above</span></td></tr>
+              <tr><td>Folder tiles with counts</td><td data-h="Dashy" class="us"><span><code>badge: count</code></span></td><td data-h="dataviewjs"><span>HTML and a CSS snippet</span></td></tr>
+              <tr><td>A config mistake</td><td data-h="Dashy" class="us"><span>A message naming the key</span></td><td data-h="dataviewjs"><span>A JavaScript error</span></td></tr>
+              <tr><td>What you install</td><td data-h="Dashy" class="us"><span>Dashy</span></td><td data-h="dataviewjs"><span>Dataview, JavaScript queries on</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ============ variations ============ -->
+        <h2 id="variations" data-short="Variations">Variations</h2>
+        <div class="vars">
+          <div class="var">
+            <h3>Tiles with covers</h3>
+            <p>A picture above each label, from the vault or the web.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>tiles</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```tiles
+columns: 3
+items:
+  - { label: Reading, path: Reading, image: Attachments/books.jpg, badge: count }
+  - { label: Projects, path: Projects, image: "[[desk.jpg]]", badge: count }
+  - { label: Inbox, path: Inbox, image: https://example.com/inbox.jpg }
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>This week against last</h3>
+            <p><code>compare</code> works on the inline line too: the change sits after the label.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+layout: inline
+items:
+  - { label: diary days this week, source: Diary, agg: count, period: week, compare: true, better: up }
+  - { label: in the inbox, source: Inbox, agg: count, icon: 📥 }
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>A greeting instead of the date</h3>
+            <p><code>title</code> replaces the date line. The clock and the links stay.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>today</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```today
+title: Good to see you
+clock: seconds
+daily: true
+monthly: true
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>A tile for what is left to read</h3>
+            <p>The badge counts only the notes that match <code>where</code>.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>tiles</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```tiles
+items:
+  - { label: To read, path: Reading, icon: 📚, badge: count, where: "status = to-read" }
+```</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ errors ============ -->
+        <h2 id="errors" data-short="If a block shows an error">If a block shows an error</h2>
+        <p>A block that cannot do what you asked says so, inside the note. The ones you are likely to see here:</p>
+        <ul>
+          <li><b>Nothing is filed under <code>Inbox</code>.</b> A counted tile's <code>path</code> or a card's <code>source</code> names a folder with no notes in your vault. Use your own folder names.</li>
+          <li><b><code>trend</code> is not drawn with <code>layout: inline</code>.</b> Inline has no room for a sparkline. Remove <code>trend</code>, or switch back to cards.</li>
+          <li><b><code>clock</code> expects true, false, minutes or seconds.</b> Something like <code>clock: yes</code> was written. No clock is shown until you fix it.</li>
+          <li><b>None of the selected notes has a name starting with a date like YYYY-MM-DD.</b> A <code>period</code> needs dated notes. Add <code>date_field</code> if the date lives in a property.</li>
+        </ul>
+
+        <!-- ============ related ============ -->
+        <h2 id="related" data-short="Related guides">Related guides</h2>
+        <div class="cards small">
+          <a class="card" href="../countdown-birthday/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/countdown-birthday-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/countdown-birthday-light.png" width="700" height="400" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">Countdown to a birthday</span><p class="card-promise">Days left and the age they turn, from the date in a person's note.</p></div>
+          </a>
+          <a class="card" href="../books-per-year/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/books-per-year-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/books-per-year-light.png" width="700" height="380" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">Books per year: a reading log chart</span><p class="card-promise">One bar per year from your book notes, with a goal line.</p></div>
+          </a>
+          <a class="card" href="../habit-tracker-without-dataview/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/habits-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/habits-light.png" width="700" height="369" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A habit tracker without Dataview</span><p class="card-promise">Counts, streaks and a year of days from daily note checkboxes.</p></div>
+          </a>
+        </div>
+
+        <div class="next">
+          <p>Dashy is in Obsidian's community plugins. Search for <b>Dashy</b>, install, enable, then paste the note above.</p>
+          <div class="actions">
+            <a class="btn primary" href="../../#install"><svg><use href="#i-plug"/></svg>Install Dashy</a>
+            <a class="btn" href="../../reference/">Every block and key</a>
+          </div>
+        </div>
+
+        <footer class="note-foot">
+          <span>MIT © Dmitriy Yurkin</span>
+          <a href="../../guides/">All guides</a>
+          <a href="https://github.com/Dimagious/dashsidian">GitHub</a>
+          <a href="https://community.obsidian.md/plugins/dashsidian">Plugin listing</a>
+          <a href="https://github.com/Dimagious/dashsidian/issues">Something wrong on this page?</a>
+        </footer>
+      </article>
+    </main>
+<!--shell:bottom-->

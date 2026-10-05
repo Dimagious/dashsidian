@@ -180,6 +180,127 @@ function compareSetup() {
     fs.writeFileSync(path.join(out, "Dataview compare.md"), COMPARE_NOTE);
 }
 
+/**
+ * The notes behind the birthday, books-per-year and homepage guides (B-155),
+ * in folders of their own, so no count on an existing picture moves: every
+ * existing block reads `Diary`, `Books` or `Inbox`. Each block below is the
+ * guide's YAML verbatim, except the homepage's holiday date, which follows
+ * the year the way `Dashboard.md`'s countdown does.
+ *
+ * `People`: Anna's birthday 28 days ahead, her 35th, and Leo born on
+ * 29 February. `Documents`: a passport years ahead and a first aid
+ * certificate 40 days past, so one card counts up. `Reading`: a log from five
+ * years back with this year a little ahead of last year to date, two books
+ * not finished yet (no `date_read`), and one empty year so the chart's 0
+ * shows. `Projects`: four notes with the folder note next to the folder.
+ */
+function guideNotes(today) {
+    const year = today.getFullYear();
+    const shift = (days) => new Date(today.getFullYear(), today.getMonth(), today.getDate() + days);
+    const write = (rel, text) => {
+        fs.mkdirSync(path.dirname(path.join(out, rel)), { recursive: true });
+        fs.writeFileSync(path.join(out, rel), text);
+    };
+
+    const anna = shift(28);
+    const annaBorn = new Date(anna.getFullYear() - 35, anna.getMonth(), anna.getDate());
+    write("People/Anna.md", `---\nname: Anna\nbirthday: ${key(annaBorn)}\n---\n\nLikes: climbing, Japanese whisky.\n`);
+    write("People/Leo.md", "---\nname: Leo\nbirthday: 2000-02-29\n---\n");
+    write("Documents/Passport.md", `---\ntype: passport\nexpires: ${key(shift(1621))}\n---\n`);
+    write("Documents/First aid.md", `---\ntype: first-aid\nexpires: ${key(shift(-40))}\n---\n`);
+
+    // Books a year, five years back to last year; the year three back is empty.
+    const perYear = [14, 19, 0, 21, 25];
+    let n = 0;
+    const book = (finished) => {
+        n += 1;
+        write(`Reading/Book ${n}.md`, `---\ndate_read: ${key(finished)}\npages: ${180 + ((n * 37) % 420)}\nrating: ${3 + (n % 3)}\n---\n`);
+    };
+    perYear.forEach((count, i) => {
+        for (let b = 0; b < count; b++) book(new Date(year - 5 + i, 0, 1 + Math.floor(((b + 0.5) / count) * 364)));
+    });
+    // This year at a pace of 28 a year up to today, against last year's 25:
+    // the `compare` delta on "Books this year" reads up.
+    const daysSoFar = Math.round((today.getTime() - new Date(year, 0, 1).getTime()) / 86_400_000);
+    const thisYear = Math.max(1, Math.floor((28 * (daysSoFar + 1)) / 365));
+    for (let b = 0; b < thisYear; b++) book(new Date(year, 0, 1 + Math.floor(((b + 0.5) / thisYear) * daysSoFar)));
+    write("Reading/Still reading.md", "---\nstatus: reading\npages: 320\n---\n");
+    write("Reading/Next up.md", "---\nstatus: to-read\npages: 210\n---\n");
+
+    for (const name of ["Garden", "Kitchen", "Conference talk", "Archive/Old website"]) {
+        write(`Projects/${name}.md`, `# ${name.replace(/.*\//, "")}\n`);
+    }
+    write("Projects.md", "# Projects\n");
+
+    write("Birthdays.md", `\`\`\`countdown
+items:
+  - { label: Anna, field: birthday, repeat: yearly, source: People, where: "name = Anna", icon: 🎂 }
+  - { label: Leo, field: birthday, repeat: yearly, source: People, where: "name = Leo", icon: 🎂 }
+  - { label: Our wedding, date: 2015-06-20, repeat: yearly, icon: 💍 }
+\`\`\`
+
+\`\`\`countdown
+columns: 2
+items:
+  - { label: Passport, field: expires, where: "type = passport", icon: 🛂 }
+  - { label: First aid certificate, field: expires, where: "type = first-aid", icon: ⛑️ }
+\`\`\`
+`);
+
+    write("Reading log.md", `\`\`\`stats
+source: Reading
+date_field: date_read
+period: year
+items:
+  - { label: Books this year, agg: count, compare: true, better: up, icon: 📚 }
+  - { label: Pages this year, field: pages, agg: sum }
+  - { label: Average rating, field: rating, agg: avg, precision: 1 }
+\`\`\`
+
+\`\`\`chart
+source: Reading
+date_field: date_read
+agg: count
+bucket: year
+type: bar
+range: 1825d
+label: Books
+goal: 24
+\`\`\`
+`);
+
+    write("Home.md", `\`\`\`today
+clock: true
+daily: true
+weekly: true
+\`\`\`
+
+\`\`\`stats
+layout: inline
+items:
+  - { label: notes, agg: count }
+  - { label: in the inbox, source: Inbox, agg: count }
+  - { label: diary days this month, source: Diary, agg: count, period: month }
+  - { label: books this year, source: Reading, date_field: date_read, period: year, agg: count }
+\`\`\`
+
+\`\`\`tiles
+items:
+  - { label: Inbox, path: Inbox, icon: 📥, badge: count }
+  - { label: Diary, path: Diary, icon: 📔, badge: count, period: week, sub: this week }
+  - { label: Reading, path: Reading, icon: 📚, badge: count }
+  - { label: Projects, path: Projects, icon: 🗂, badge: count, accent: true }
+\`\`\`
+
+\`\`\`countdown
+items:
+  - { label: Holiday, date: ${year + 1}-01-20, icon: 🏖 }
+  - { label: Anna, field: birthday, repeat: yearly, source: People, where: "name = Anna", icon: 🎂 }
+  - { label: Passport, field: expires, where: "type = passport", icon: 🛂 }
+\`\`\`
+`);
+}
+
 function build() {
     fs.rmSync(out, { recursive: true, force: true });
     fs.mkdirSync(path.join(out, "Diary"), { recursive: true });
@@ -472,6 +593,8 @@ layers:
 title: Gym and reading
 \`\`\`
 `);
+
+    guideNotes(todayMidnight);
 
     fs.writeFileSync(path.join(out, ".obsidian", "community-plugins.json"), '["dashsidian"]\n');
     fs.writeFileSync(

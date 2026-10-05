@@ -98,12 +98,15 @@ YAML line gets its line number.
 
 ## Guides
 
-One problem per page, with the notes, the block, and the Tracker or dataviewjs version beside it:
+One problem per page, with the notes, the block, and the Bases, Tracker or dataviewjs version beside it:
 
 - [A habit tracker without Dataview](https://dimagious.github.io/dashsidian/guides/habit-tracker-without-dataview/)
 - [A habit streak that skips weekends](https://dimagious.github.io/dashsidian/guides/streak-weekdays/)
 - [Two activities on one heatmap](https://dimagious.github.io/dashsidian/guides/heatmap-two-activities/)
 - [A weekly chart without Tracker](https://dimagious.github.io/dashsidian/guides/weekly-chart-tracker-alternative/)
+- [Countdown to a birthday](https://dimagious.github.io/dashsidian/guides/countdown-birthday/)
+- [Books per year: a reading log chart](https://dimagious.github.io/dashsidian/guides/books-per-year/)
+- [A homepage dashboard without code](https://dimagious.github.io/dashsidian/guides/homepage-dashboard/)
 
 ## Your AI agent can write these blocks
 

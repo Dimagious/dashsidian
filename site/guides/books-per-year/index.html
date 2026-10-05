@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Books per year: a reading log chart in Obsidian · Dashy</title>
+<meta name="description" content="How many books you read each year, as bars with a goal line, from your book notes in Obsidian. Plus this year's count against last year's. No dataviewjs, no Charts plugin, YAML you can copy.">
+<link rel="canonical" href="https://dimagious.github.io/dashsidian/guides/books-per-year/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%238b6cef'/%3E%3Crect x='7' y='7.5' width='11' height='3' rx='1.5' fill='%23fff'/%3E%3Crect x='7' y='13' width='8.5' height='7' rx='2' fill='%23fff' fill-opacity='.55'/%3E%3Crect x='16.5' y='13' width='8.5' height='7' rx='2' fill='%23fff'/%3E%3Crect x='7' y='22.5' width='18' height='3' rx='1.5' fill='%23fff' fill-opacity='.35'/%3E%3Crect x='7' y='22.5' width='12' height='3' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Dashy">
+<meta property="og:url" content="https://dimagious.github.io/dashsidian/guides/books-per-year/">
+<meta property="og:title" content="Books per year: a reading log chart in Obsidian">
+<meta property="og:description" content="One bar per year from your book notes, a goal line, and this year against last. No JavaScript.">
+<meta property="og:image" content="https://dimagious.github.io/dashsidian/img/books-per-year-light.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="../../assets/site.css">
+<link rel="stylesheet" href="../../assets/guides.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"HowTo","name":"Books per year: a reading log chart in Obsidian","step":[
+{"@type":"HowToStep","name":"Give each book the day you finished it"},
+{"@type":"HowToStep","name":"This year in numbers"},
+{"@type":"HowToStep","name":"One bar per year"}]}
+</script>
+</head>
+<body>
+<!--shell:top tab="Books per year"-->
+
+    <main class="note guide" id="note">
+      <article class="file" style="padding-top:34px">
+        <div class="crumb">Guides/Books per year.md</div>
+        <h1 class="inline-title">Books per year: a reading log chart in Obsidian</h1>
+
+        <div class="props" aria-label="Properties">
+          <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
+          <div class="prop"><div class="k"><svg><use href="#i-tag"/></svg>blocks</div><div class="v"><span class="pill">stats</span><span class="pill">chart</span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>keys</div><div class="v"><code>bucket: year</code><code>date_field</code></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>needs dataview</div><div class="v"><span class="check off" aria-label="no"></span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
+        </div>
+
+        <p class="lede">You keep a note per book and want to see how many you read each year, and how this year is going against the last. A book note is named after the book, not a date, so the date has to come from a property. Two Dashy blocks read it: a row of numbers for this year and a bar per year.</p>
+
+        <figure class="shot">
+          <picture>
+            <source data-dark srcset="../../img/books-per-year-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="../../img/books-per-year-light.png" width="700" height="380" alt="Three cards for this year: books read with the change against last year, pages read and the average rating; below them one bar per year for six years, a dashed goal line at 24, and this year's bar drawn lighter">
+          </picture>
+          <figcaption>What you have at the end of step 3. From a demo vault.</figcaption>
+        </figure>
+
+        <div class="callout warn">
+          <div class="callout-title"><svg><use href="#i-alert"/></svg>Obsidian Charts turned on? Write <code>dashy-chart</code></div>
+          <p>Obsidian Charts also uses the <code>chart</code> code block. When Charts is on, Dashy leaves <code>chart</code> to it. Name the chart below <code>dashy-chart</code> instead: same keys, always Dashy.</p>
+        </div>
+
+        <nav class="toc" aria-label="On this page">
+          <b>ON THIS PAGE</b>
+          <ol>
+            <li><a href="#book-note">Give each book the day you finished it</a></li>
+            <li><a href="#this-year">This year in numbers</a></li>
+            <li><a href="#per-year">One bar per year</a></li>
+            <li><a href="#full">The whole note</a></li>
+            <li><a href="#other-ways">With dataviewjs</a></li>
+            <li><a href="#variations">Variations</a></li>
+            <li><a href="#errors">If a block shows an error</a></li>
+            <li><a href="#related">Related guides</a></li>
+          </ol>
+        </nav>
+
+        <!-- ============ 1 ============ -->
+        <h2 class="step" id="book-note" data-short="Give each book the day you finished it"><span class="n">1</span>Give each book the day you finished it</h2>
+        <p>One date property for when you finished the book. Here it is <code>date_read</code>, next to the page count and your rating.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Reading/Project Hail Mary.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">---
+date_read: 2026-03-14
+pages: 476
+rating: 5
+---
+
+Read it in four evenings.</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>date_read: 2026-03-14</code><span>Year, month, day, or a Date property from Obsidian's Properties panel. A book you are still reading leaves it out and is not counted yet.</span></li>
+          <li><code>pages</code>, <code>rating</code><span>Optional. Plain numbers, for the cards in step 2.</span></li>
+        </ul>
+        <p>If your book notes are named with the date first, like <code>2026-03-14 Project Hail Mary.md</code>, that works too: leave <code>date_field</code> out of the blocks below and the date is read from the name.</p>
+
+        <!-- ============ 2 ============ -->
+        <h2 class="step" id="this-year" data-short="This year in numbers"><span class="n">2</span>This year in numbers</h2>
+        <p>Make a note for the log, say <code>Reading log.md</code>, and paste this block. It is the row of cards in the picture above.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Reading log.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+source: Reading
+date_field: date_read
+period: year
+items:
+  - { label: Books this year, agg: count, compare: true, better: up, icon: 📚 }
+  - { label: Pages this year, field: pages, agg: sum }
+  - { label: Average rating, field: rating, agg: avg, precision: 1 }
+```</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>source</code>, <code>date_field</code>, <code>period</code><span>Written once, above <code>items</code>, they apply to every card. A card can still set its own, and its own wins.</span></li>
+          <li><code>period: year</code><span>1 January to today. Books without a <code>date_read</code> are left out first.</span></li>
+          <li><code>compare: true</code><span>The change against last year, to the same day: on 5 October it compares with 1 January to 5 October of last year, not with all of it. <code>better: up</code> makes a rise green.</span></li>
+        </ul>
+
+        <!-- ============ 3 ============ -->
+        <h2 class="step" id="per-year" data-short="One bar per year"><span class="n">3</span>One bar per year</h2>
+        <p>Paste this under the cards.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Reading log.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```chart
+source: Reading
+date_field: date_read
+agg: count
+bucket: year
+type: bar
+range: 1825d
+label: Books
+goal: 24
+```</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>agg: count</code><span>Counts the books dated in each year. No <code>field</code> is needed.</span></li>
+          <li><code>bucket: year</code><span>One bar per calendar year, labelled with the year alone.</span></li>
+          <li><code>range: 1825d</code><span>Five years back from today. The window starts on 1 January of the year it reaches, so in 2026 the bars run from 2021 to 2026. Leave it out for the last ten years and this one.</span></li>
+          <li><code>goal: 24</code><span>A dashed line at 24 books, with its value.</span></li>
+        </ul>
+        <p>This year's bar is drawn lighter and its tooltip says "so far": the year is not over. A year with no books is a 0, since counting nothing is still a count. Hover a bar for the number.</p>
+
+        <!-- ============ full ============ -->
+        <h2 id="full" data-short="The whole note">The whole note</h2>
+        <p>Both blocks in one piece, ready to paste into an empty note.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Reading log.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+source: Reading
+date_field: date_read
+period: year
+items:
+  - { label: Books this year, agg: count, compare: true, better: up, icon: 📚 }
+  - { label: Pages this year, field: pages, agg: sum }
+  - { label: Average rating, field: rating, agg: avg, precision: 1 }
+```
+
+```chart
+source: Reading
+date_field: date_read
+agg: count
+bucket: year
+type: bar
+range: 1825d
+label: Books
+goal: 24
+```</code></pre>
+        </div>
+
+        <!-- ============ other ways ============ -->
+        <h2 id="other-ways" data-short="With dataviewjs">The same chart with dataviewjs</h2>
+        <p>The usual way: a Dataview script groups the books by year and hands the numbers to Obsidian Charts.</p>
+        <div class="codeblock other" data-code>
+          <div class="bar"><span>With Dataview, JavaScript queries on, and Obsidian Charts</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">```dataviewjs
+const years = {};
+for (const p of dv.pages('"Reading"').where(p => p.date_read)) {
+  const y = String(p.date_read.year);
+  years[y] = (years[y] ?? 0) + 1;
+}
+const labels = Object.keys(years).sort();
+window.renderChart({
+  type: "bar",
+  data: { labels, datasets: [{ label: "Books", data: labels.map(y => years[y]) }] },
+}, this.container);
+```</code></pre>
+        </div>
+        <ul>
+          <li>Two plugins: Dataview with <b>Enable JavaScript queries</b> on, which is off by default, and Obsidian Charts for <code>renderChart</code>.</li>
+          <li>A year with no books has no key in <code>years</code>, so it drops off the axis instead of showing 0.</li>
+          <li>No goal line, and nothing marks the current year as unfinished. Both are more code.</li>
+          <li>This year's count, pages and the change against last year are a second script.</li>
+        </ul>
+
+        <div class="table-wrap">
+          <table class="cmp">
+            <thead><tr><th></th><th class="us">Dashy</th><th>dataviewjs</th></tr></thead>
+            <tbody>
+              <tr><td>Group by year</td><td data-h="Dashy" class="us"><span><code>bucket: year</code></span></td><td data-h="dataviewjs"><span>The loop above</span></td></tr>
+              <tr><td>A year with no books</td><td data-h="Dashy" class="us"><span>0</span></td><td data-h="dataviewjs"><span>Missing from the axis</span></td></tr>
+              <tr><td>Goal line</td><td data-h="Dashy" class="us"><span><code>goal: 24</code></span></td><td data-h="dataviewjs"><span>Write it</span></td></tr>
+              <tr><td>This year against last</td><td data-h="Dashy" class="us"><span><code>compare: true</code></span></td><td data-h="dataviewjs"><span>Write it</span></td></tr>
+              <tr><td>What you install</td><td data-h="Dashy" class="us"><span>Dashy</span></td><td data-h="dataviewjs"><span>Dataview, JavaScript queries on, and Obsidian Charts</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ============ variations ============ -->
+        <h2 id="variations" data-short="Variations">Variations</h2>
+        <div class="vars">
+          <div class="var">
+            <h3>A yearly goal as a bar</h3>
+            <p>How far along this year's goal you are, as a percentage.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>progress</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```progress
+items:
+  - { label: Reading goal, source: Reading, date_field: date_read, period: year, agg: count, goal: 24, icon: 📚 }
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>Pages, not books</h3>
+            <p>A long book counts for more. <code>sum</code> adds the pages up; a year with none is a gap.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>chart</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```chart
+source: Reading
+date_field: date_read
+field: pages
+bucket: year
+type: bar
+label: Pages
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>This year by month</h3>
+            <p>The same books, one bar per month since 1 January.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>chart</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```chart
+source: Reading
+date_field: date_read
+agg: count
+bucket: month
+range: year
+type: bar
+label: Books
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>Only the five-star ones</h3>
+            <p><code>where</code> narrows the books first. It works on the chart and on the cards alike.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+source: Reading
+items:
+  - { label: Five-star books, where: "rating = 5", agg: count }
+```</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ errors ============ -->
+        <h2 id="errors" data-short="If a block shows an error">If a block shows an error</h2>
+        <p>A block that cannot do what you asked says so, inside the note. The ones you are likely to see here:</p>
+        <ul>
+          <li><b>None of the selected notes has a date in "date_read".</b> The property is spelled differently in the book notes, or <code>source</code> names the wrong folder.</li>
+          <li><b>None of the selected notes has a name starting with a date like YYYY-MM-DD.</b> The block has no <code>date_field</code> and the book notes are named after the book. Add <code>date_field: date_read</code>.</li>
+          <li><b><code>bucket</code> expects day, week, month or year.</b> Something like <code>yearly</code> was written. The chart falls back to days until you fix it.</li>
+          <li><b>An error from Obsidian Charts, not from Dashy.</b> With Charts on, a <code>chart</code> block is Charts'. Write <code>dashy-chart</code>.</li>
+        </ul>
+
+        <!-- ============ related ============ -->
+        <h2 id="related" data-short="Related guides">Related guides</h2>
+        <div class="cards small">
+          <a class="card" href="../weekly-chart-tracker-alternative/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/chart-weekly-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/chart-weekly-light.png" width="700" height="223" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A weekly chart without Tracker</span><p class="card-promise">A number summed by week, with a goal line.</p></div>
+          </a>
+          <a class="card" href="../homepage-dashboard/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/homepage-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/homepage-light.png" width="700" height="520" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">An Obsidian homepage dashboard without code</span><p class="card-promise">A clock, a line of counts, folder tiles and what is coming up.</p></div>
+          </a>
+          <a class="card" href="../countdown-birthday/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/countdown-birthday-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/countdown-birthday-light.png" width="700" height="400" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">Countdown to a birthday</span><p class="card-promise">Days left and the age they turn, from the date in a person's note.</p></div>
+          </a>
+        </div>
+
+        <div class="next">
+          <p>Dashy is in Obsidian's community plugins. Search for <b>Dashy</b>, install, enable, then paste the note above.</p>
+          <div class="actions">
+            <a class="btn primary" href="../../#install"><svg><use href="#i-plug"/></svg>Install Dashy</a>
+            <a class="btn" href="../../reference/chart/">Every chart key</a>
+          </div>
+        </div>
+
+        <footer class="note-foot">
+          <span>MIT © Dmitriy Yurkin</span>
+          <a href="../../guides/">All guides</a>
+          <a href="https://github.com/Dimagious/dashsidian">GitHub</a>
+          <a href="https://community.obsidian.md/plugins/dashsidian">Plugin listing</a>
+          <a href="https://github.com/Dimagious/dashsidian/issues">Something wrong on this page?</a>
+        </footer>
+      </article>
+    </main>
+<!--shell:bottom-->
