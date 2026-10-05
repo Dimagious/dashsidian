@@ -161,6 +161,7 @@ describe("tiles — badge: count narrowed by a selection (B-114, issue #8)", () 
     };
 
     it("the issue's own two tiles: period: month and period: 1d count only what falls in their window", () => {
+        const revealed: string[] = [];
         const fixture = mockContext({
             notes: [
                 // Mails: last day of the previous month is out, the 1st and
@@ -176,6 +177,7 @@ describe("tiles — badge: count narrowed by a selection (B-114, issue #8)", () 
                 { path: "Events/yesterday.md", frontmatter: { start: "2026-09-23" } },
                 { path: "Events/nostart.md", frontmatter: {} },
             ],
+            fileExplorer: { enabled: true, instance: { revealInFolder: (file: { path: string }) => revealed.push(file.path) } },
         });
         const el = withToday(
             fixture,
@@ -185,10 +187,15 @@ describe("tiles — badge: count narrowed by a selection (B-114, issue #8)", () 
         );
         expect(texts(el, ".dashy-tile-badge")).toEqual(["2", "1"]);
         expect(diagnostics(el, "warning")).toHaveLength(0);
-        // The link still opens the folder, unchanged by the selection keys.
+        // The tile still leads to its folder, unchanged by the selection
+        // keys: neither has a folder note, so both are folder tiles (B-144).
         const links = nodes(el, "a.dashy-tile-link");
-        expect(links[0]?.getAttribute("data-href")).toBe("Mails");
-        expect(links[1]?.getAttribute("data-href")).toBe("Events");
+        expect(links.map((l) => l.className)).toEqual([
+            "dashy-tile-link dashy-tile-folder",
+            "dashy-tile-link dashy-tile-folder",
+        ]);
+        for (const link of links) link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+        expect(revealed).toEqual(["Mails", "Events"]);
     });
 
     it("`where` alone narrows the count, nested subfolders included", () => {
@@ -536,5 +543,143 @@ describe("tiles — cover image (B-083)", () => {
         expect(nodes(el, "img.dashy-tile-cover")).toHaveLength(1);
         expect(nodes(el, ".dashy-tile")).toHaveLength(2);
         expect(texts(el, ".dashy-tile-label")).toEqual(["Gym", "Sport"]);
+    });
+});
+
+describe("tiles — a folder as the path (B-144)", () => {
+    /** The core File explorer, recording what it was asked to reveal. */
+    function explorer(enabled = true): { entry: unknown; revealed: string[] } {
+        const revealed: string[] = [];
+        return {
+            revealed,
+            entry: { enabled, instance: { revealInFolder: (file: { path: string }) => revealed.push(file.path) } },
+        };
+    }
+
+    /**
+     * Stands in for Obsidian's own link handling: a click on an
+     * `.internal-link` opens its `data-href`, and creates it when nothing is
+     * there. This is how a folder tile used to leave an empty
+     * `00-Inbox/00-Inbox.md` behind.
+     */
+    function obsidianLinks(el: HTMLElement): string[] {
+        const opened: string[] = [];
+        const handle = (evt: Event): void => {
+            const link = evt.target instanceof HTMLElement ? evt.target.closest(".internal-link") : null;
+            const href = link?.getAttribute("data-href");
+            if (href) opened.push(href);
+        };
+        el.addEventListener("click", handle);
+        el.addEventListener("auxclick", handle);
+        return opened;
+    }
+
+    function click(target: Element | undefined, init: MouseEventInit = {}, type = "click"): MouseEvent {
+        const evt = new MouseEvent(type, { bubbles: true, cancelable: true, ...init });
+        target?.dispatchEvent(evt);
+        return evt;
+    }
+
+    it("a folder without a folder note opens nothing and creates nothing, on any click", () => {
+        const fe = explorer();
+        const fixture = mockContext({ notes: [{ path: "00-Inbox/a.md" }], fileExplorer: fe.entry });
+        const el = host();
+        const opened = obsidianLinks(el);
+        renderTiles(fixture, "items:\n  - { label: Inbox, path: 00-Inbox, badge: count }", el);
+
+        const tile = nodes(el, ".dashy-tile-link")[0];
+        expect(nodes(el, ".internal-link")).toHaveLength(0);
+        expect(tile?.hasAttribute("href")).toBe(false);
+        expect(tile?.hasAttribute("data-href")).toBe(false);
+
+        expect(click(tile).defaultPrevented).toBe(true);
+        expect(click(tile, { ctrlKey: true }).defaultPrevented).toBe(true);
+        expect(click(tile, { metaKey: true }).defaultPrevented).toBe(true);
+        expect(click(tile, { button: 1 }, "auxclick").defaultPrevented).toBe(true);
+        expect(opened).toEqual([]);
+        // The three clicks revealed the folder; the middle click did nothing.
+        expect(fe.revealed).toEqual(["00-Inbox", "00-Inbox", "00-Inbox"]);
+    });
+
+    it("Enter on the focused tile reveals the folder too", () => {
+        const fe = explorer();
+        const fixture = mockContext({ notes: [{ path: "00-Inbox/a.md" }], fileExplorer: fe.entry });
+        const el = host();
+        renderTiles(fixture, "items:\n  - { label: Inbox, path: 00-Inbox }", el);
+        const tile = nodes(el, ".dashy-tile-link")[0];
+        expect(tile?.getAttribute("tabindex")).toBe("0");
+        tile?.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+        expect(fe.revealed).toEqual([]);
+        tile?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+        expect(fe.revealed).toEqual(["00-Inbox"]);
+    });
+
+    it("the count badge on a folder tile is unchanged", () => {
+        const fixture = mockContext({ notes: [{ path: "00-Inbox/a.md" }, { path: "00-Inbox/b.md" }] });
+        const el = host();
+        renderTiles(fixture, "items:\n  - { label: Inbox, path: 00-Inbox, badge: count }", el);
+        expect(texts(el, ".dashy-tile-label")).toEqual(["Inbox2"]);
+        expect(texts(el, ".dashy-tile-badge")).toEqual(["2"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("a folder note inside the folder is what the tile links to", () => {
+        const fixture = mockContext({ notes: [{ path: "00-Inbox/a.md" }, { path: "00-Inbox/00-Inbox.md" }] });
+        const el = host();
+        renderTiles(fixture, "items:\n  - { label: Inbox, path: 00-Inbox, badge: count }", el);
+        const link = nodes(el, "a.dashy-tile-link")[0];
+        expect(link?.getAttribute("data-href")).toBe("00-Inbox/00-Inbox.md");
+        expect(link?.className).toBe("dashy-tile-link internal-link");
+        // The folder note is a note in the folder, and the count says so.
+        expect(texts(el, ".dashy-tile-badge")).toEqual(["2"]);
+    });
+
+    it("a folder note next to the folder is linked when there is none inside", () => {
+        const fixture = mockContext({ notes: [{ path: "01-Areas/Sport/run.md" }, { path: "01-Areas/Sport.md" }] });
+        const el = host();
+        renderTiles(fixture, "items:\n  - { label: Sport, path: 01-Areas/Sport }", el);
+        expect(nodes(el, "a.dashy-tile-link")[0]?.getAttribute("data-href")).toBe("01-Areas/Sport.md");
+    });
+
+    it("with a note both inside and next to the folder, the one inside wins", () => {
+        const fixture = mockContext({
+            notes: [{ path: "Projects/Projects.md" }, { path: "Projects.md" }],
+        });
+        const el = host();
+        renderTiles(fixture, "items:\n  - { label: Projects, path: Projects }", el);
+        expect(nodes(el, "a.dashy-tile-link")[0]?.getAttribute("data-href")).toBe("Projects/Projects.md");
+    });
+
+    it("with the file explorer off or missing, a click does nothing and does not throw", () => {
+        for (const fileExplorer of [explorer(false).entry, undefined, { enabled: true, instance: {} }]) {
+            const fixture = mockContext({ notes: [{ path: "00-Inbox/a.md" }], fileExplorer });
+            const el = host();
+            const opened = obsidianLinks(el);
+            renderTiles(fixture, "items:\n  - { label: Inbox, path: 00-Inbox }", el);
+            const tile = nodes(el, ".dashy-tile-link")[0];
+            expect(() => click(tile)).not.toThrow();
+            expect(opened).toEqual([]);
+        }
+        const off = explorer(false);
+        const fixture = mockContext({ notes: [{ path: "00-Inbox/a.md" }], fileExplorer: off.entry });
+        const el = host();
+        renderTiles(fixture, "items:\n  - { label: Inbox, path: 00-Inbox }", el);
+        click(nodes(el, ".dashy-tile-link")[0]);
+        expect(off.revealed).toEqual([]);
+    });
+
+    it("a note tile and a tile for a path that does not exist link exactly as before", () => {
+        const fixture = mockContext({ notes: [{ path: "01-Areas/Sport/run.md" }], fileExplorer: explorer().entry });
+        const el = host();
+        renderTiles(
+            fixture,
+            "items:\n  - { label: Run, path: 01-Areas/Sport/run.md }\n  - { label: Idea, path: Ideas/new idea }",
+            el,
+        );
+        const links = nodes(el, "a.dashy-tile-link");
+        expect(links.map((l) => [l.className, l.getAttribute("data-href"), l.getAttribute("href")])).toEqual([
+            ["dashy-tile-link internal-link", "01-Areas/Sport/run.md", "01-Areas/Sport/run.md"],
+            ["dashy-tile-link internal-link", "Ideas/new idea", "Ideas/new idea"],
+        ]);
     });
 });

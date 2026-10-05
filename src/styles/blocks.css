@@ -39,6 +39,18 @@
 }
 .dashy-tile-link,
 .dashy-tile-link:hover { display: block; text-decoration: none; color: inherit; }
+/* A tile pointing at a note is also Obsidian's `.internal-link`, whose colour
+   and underline (`.markdown-rendered .internal-link.is-unresolved:hover`, up to
+   0,4,0) beat the rule above, so note tiles read as links and folder tiles
+   (B-144, no `.internal-link`) as plain text. Same weight, loaded later, wins:
+   every tile label is plain text. The dimming of a missing note stays. */
+.dashy-tiles .dashy-tile .dashy-tile-link.internal-link,
+.dashy-tiles .dashy-tile .dashy-tile-link.internal-link:hover {
+  color: inherit;
+  text-decoration-line: none;
+}
+/* a folder tile has no href, so the browser would not show a link cursor */
+.dashy-tile-folder { cursor: pointer; }
 .dashy-tile-icon { display: block; font-size: 1.6em; margin-bottom: 6px; }
 .dashy-tile-label { font-weight: 500; }
 .dashy-tile-sub { display: block; font-size: 0.7em; opacity: 0.55; margin-top: 2px; }

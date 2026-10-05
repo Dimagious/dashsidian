@@ -28,7 +28,7 @@
         "path": {
           "type": "string",
           "required": true,
-          "doc": "where it leads; understands File.base#View"
+          "doc": "where it leads: a note, File.base#View, or a folder. A folder opens its folder note, `Folder/Folder.md` or else `Folder.md` next to it, and without one shows the folder in the file explorer"
         },
         "tag": {
           "type": "string",
