@@ -27,6 +27,16 @@ removed public export.
   it will be, like `37 years`, under the date. A date that falls today reads
   Today, 29 February falls on the 28th in other years, and a date still ahead
   counts to itself with no years shown. Your own `sub` stays and comes first.
+- **`stats` and `progress` take the selection once, at the block root.**
+  `source`, `tag`, `where`, `period` and `date_field` written next to
+  `items:` apply to every card or bar, so a folder shared by the whole block
+  no longer has to be repeated on each card. A card's own `source`, `tag`,
+  `period` or `date_field` replaces the root's for that card. `where` adds
+  up instead: the root's conditions and the card's own must all hold. A
+  folder that does not exist or a `where` that cannot be read at the root is
+  reported once for the block, not once per card. A single card written
+  without `items:` reads as before. The `stats` example in **Insert block**
+  now sets its folder at the root.
 
 ### Changed
 

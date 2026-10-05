@@ -31,7 +31,7 @@
         <div class="props" aria-label="Properties">
           <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
           <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>code block</div><div class="v"><code>stats</code></div></div>
-          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">2 on the block, 19 on each card</div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">7 on the block, 19 on each card</div></div>
           <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
         </div>
 
@@ -83,17 +83,18 @@ items:
           <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
 <pre><code class="yaml-fenced">```stats
 columns: 3
+source: Diary
 items:
   - { label: Notes, source: 01-Areas, agg: count }
-  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }
-  - { label: Best streak, source: Diary, field: sleep_score, agg: streak }
-  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }
+  - { label: Sleep, field: sleep_score, agg: avg, precision: 1, trend: 30d }
+  - { label: Best streak, field: sleep_score, agg: streak }
+  - { label: Gym this week, field: gym, agg: sum, period: week, compare: true, better: up }
 ```</code></pre>
         </div>
 
 
         <h2 id="root-keys">Keys on the block</h2>
-        <div class="keys"><a href="#columns"><code>columns</code></a><a href="#items"><code>items</code></a></div>
+        <div class="keys"><a href="#columns"><code>columns</code></a><a href="#items"><code>items</code></a><a href="#source"><code>source</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#period"><code>period</code></a><a href="#date_field"><code>date_field</code></a></div>
         <div class="keytab-wrap">
           <table class="keytab">
             <thead><tr><th>Key</th><th>What it does</th><th>Type</th><th>Default</th></tr></thead>
@@ -110,13 +111,43 @@ items:
                 <td class="t" data-h="type">list</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
+              <tr id="source">
+                <td class="k"><a class="key" href="#source"><code>source</code></a><span class="also">also <code>folder</code>, <code>from</code></span></td>
+                <td class="d">folder for every card that names none of its own; includes nested ones. A card's own <code>source</code> replaces it</td>
+                <td class="t" data-h="type">text</td>
+                <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
+              <tr id="tag">
+                <td class="k"><a class="key" href="#tag"><code>tag</code></a></td>
+                <td class="d">tag for every card that names none of its own, with or without the hash. A card's own <code>tag</code> replaces it</td>
+                <td class="t" data-h="type">text</td>
+                <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
+              <tr id="where">
+                <td class="k"><a class="key" href="#where"><code>where</code></a></td>
+                <td class="d">conditions every card must meet, written like a card's <code>where</code>. A card's own <code>where</code> does not replace it but narrows further: both must hold</td>
+                <td class="t" data-h="type">text or list</td>
+                <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
+              <tr id="period">
+                <td class="k"><a class="key" href="#period"><code>period</code></a></td>
+                <td class="d">window for every card that sets none of its own, written like a card's <code>period</code>. A card's own <code>period</code> replaces it</td>
+                <td class="t" data-h="type">text or number</td>
+                <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
+              <tr id="date_field">
+                <td class="k"><a class="key" href="#date_field"><code>date_field</code></a></td>
+                <td class="d">date property for every card that sets none of its own, written like a card's <code>date_field</code>. A card's own <code>date_field</code> replaces it</td>
+                <td class="t" data-h="type">text</td>
+                <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
             </tbody>
           </table>
         </div>
 
         <h2 id="item-keys">Keys on each card</h2>
         <p>Each entry under <code>items</code> is one card.</p>
-        <div class="keys"><a href="#label"><code>label</code></a><a href="#source"><code>source</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#period"><code>period</code></a><a href="#date_field"><code>date_field</code></a><a href="#compare"><code>compare</code></a><a href="#better"><code>better</code></a><a href="#field"><code>field</code></a><a href="#agg"><code>agg</code></a><a href="#at_least"><code>at_least</code></a><a href="#at_most"><code>at_most</code></a><a href="#days"><code>days</code></a><a href="#skip_field"><code>skip_field</code></a><a href="#unit"><code>unit</code></a><a href="#precision"><code>precision</code></a><a href="#trend"><code>trend</code></a><a href="#icon"><code>icon</code></a><a href="#sub"><code>sub</code></a></div>
+        <div class="keys"><a href="#label"><code>label</code></a><a href="#card-source"><code>source</code></a><a href="#card-tag"><code>tag</code></a><a href="#card-where"><code>where</code></a><a href="#card-period"><code>period</code></a><a href="#card-date_field"><code>date_field</code></a><a href="#compare"><code>compare</code></a><a href="#better"><code>better</code></a><a href="#field"><code>field</code></a><a href="#agg"><code>agg</code></a><a href="#at_least"><code>at_least</code></a><a href="#at_most"><code>at_most</code></a><a href="#days"><code>days</code></a><a href="#skip_field"><code>skip_field</code></a><a href="#unit"><code>unit</code></a><a href="#precision"><code>precision</code></a><a href="#trend"><code>trend</code></a><a href="#icon"><code>icon</code></a><a href="#sub"><code>sub</code></a></div>
         <div class="keytab-wrap">
           <table class="keytab">
             <thead><tr><th>Key</th><th>What it does</th><th>Type</th><th>Default</th></tr></thead>
@@ -127,32 +158,32 @@ items:
                 <td class="t" data-h="type">text</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
-              <tr id="source">
-                <td class="k"><a class="key" href="#source"><code>source</code></a><span class="also">also <code>folder</code>, <code>from</code></span></td>
+              <tr id="card-source">
+                <td class="k"><a class="key" href="#card-source"><code>source</code></a><span class="also">also <code>folder</code>, <code>from</code></span></td>
                 <td class="d">folder; includes nested ones</td>
                 <td class="t" data-h="type">text</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
-              <tr id="tag">
-                <td class="k"><a class="key" href="#tag"><code>tag</code></a></td>
+              <tr id="card-tag">
+                <td class="k"><a class="key" href="#card-tag"><code>tag</code></a></td>
                 <td class="d">tag, with or without the hash</td>
                 <td class="t" data-h="type">text</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
-              <tr id="where">
-                <td class="k"><a class="key" href="#where"><code>where</code></a></td>
+              <tr id="card-where">
+                <td class="k"><a class="key" href="#card-where"><code>where</code></a></td>
                 <td class="d">a condition like <code>year = 2026</code>, <code>rating &gt;= 4</code>, <code>tags contains books</code>, or several that must all hold: joined with <code>and</code> (<code>year = 2026 and rating &gt;= 4</code>) or written as a list (<code>[year = 2026, &quot;rating &gt;= 4&quot;]</code>). The field name may be a dotted path into a nested property, like <code>health.sleep &gt; 70</code>. <code>or</code> is not supported; quote a value holding the word <code>and</code> or <code>or</code>. One unreadable condition drops the whole filter with a warning, and the numbers are drawn unfiltered</td>
                 <td class="t" data-h="type">text or list</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
-              <tr id="period">
-                <td class="k"><a class="key" href="#period"><code>period</code></a></td>
+              <tr id="card-period">
+                <td class="k"><a class="key" href="#card-period"><code>period</code></a></td>
                 <td class="d">narrow to a window ending today: <code>week</code>, <code>month</code>, <code>year</code> (the current calendar one) or a rolling count of days like <code>30d</code>. Notes without a date are left out first, then every agg, count included, runs on what remains. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages</td>
                 <td class="t" data-h="type">text or number</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
-              <tr id="date_field">
-                <td class="k"><a class="key" href="#date_field"><code>date_field</code></a></td>
+              <tr id="card-date_field">
+                <td class="k"><a class="key" href="#card-date_field"><code>date_field</code></a></td>
                 <td class="d">a date frontmatter property to read instead of the note name: <code>2026-03-02</code> or <code>2026-03-02T10:30</code>, or a dotted path into a nested property like <code>meta.date</code>. Feeds <code>period</code>'s window and the <code>streak</code>, <code>current_streak</code>, <code>latest</code> and <code>trend</code> readings; has no effect on <code>count</code>, <code>sum</code>, <code>avg</code>, <code>min</code> or <code>max</code> without <code>period</code></td>
                 <td class="t" data-h="type">text</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
@@ -248,6 +279,7 @@ items:
           <li><code>period</code> narrows to a calendar week, month, year or a rolling <code>Nd</code>, always ending today. A note's date is its name, as long as it starts with <code>YYYY-MM-DD</code> (<code>2026-03-02 Monday</code> counts, <code>2026-03-021</code> does not), unless <code>date_field</code> names a property instead; a note with no date under either rule is left out before counting.</li>
           <li><code>compare</code> needs a note in both windows; when either the current or the previous stretch has none at all, the card shows its number alone with no delta. <code>streak</code> and <code>current_streak</code> have no value of their own to compare and refuse <code>compare</code> outright, the way <code>trend</code> refuses <code>count</code>.</li>
           <li><code>at_least</code>/<code>at_most</code> turn <code>streak</code> into a threshold: a day counts only when its notes' <code>field</code> values, summed for that day, satisfy the bound, <code>at_least: 5000</code> on steps for example. <code>days: weekdays</code> makes Saturday and Sunday transparent for <code>streak</code> and <code>current_streak</code>: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. <code>skip_field</code> does the same for a day any note marks special, <code>vacation: true</code> or <code>sick: flu</code> for example, and combines with <code>days: weekdays</code>. All three keys apply to <code>agg: streak</code> and <code>agg: current_streak</code> only and are ignored on every other aggregate.</li>
+          <li><code>source</code>, <code>tag</code>, <code>where</code>, <code>period</code> and <code>date_field</code> written at the block root, next to <code>items:</code>, apply to every card, so a folder shared by the whole block is written once. A card's own <code>source</code>, <code>tag</code>, <code>period</code> or <code>date_field</code> replaces the root's for that card; <code>where</code> is the exception: the root's conditions and the card's own both hold. A root folder that does not exist, or a root <code>where</code> that cannot be read, is reported once for the block. Without <code>items:</code> the block is a single card and these keys are simply its own.</li>
         </ul>
 
 

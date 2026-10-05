@@ -1,6 +1,7 @@
 import type { NoteRecord } from "../core/source";
 import type { BlockContext } from "./context";
-import { selectNotes, readSource, unmatchedSource } from "../core/source";
+import { selectNotes, unmatchedSource } from "../core/source";
+import { readBlockSelection, inheritSelection } from "../core/inherit";
 import { aggregate, classifyField, classifyValues } from "../core/aggregate";
 import { readDateField } from "../core/note-date";
 import { formatReading, showsDuration, durationDiagnostics } from "../core/stat";
@@ -15,6 +16,8 @@ import schema from "./schema.json";
 /** Keys come from schema.json — the same source the agent skill is built from. */
 const KNOWN_ITEM = Object.keys(schema.blocks.progress.item);
 const KNOWN_ROOT = Object.keys(schema.blocks.progress.root);
+/** Keys a card inherits from the block root: the ones the schema declares at both levels. */
+const SHARED = KNOWN_ROOT.filter((key) => KNOWN_ITEM.includes(key));
 
 interface Bar {
     label: string;
@@ -54,16 +57,22 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
     const firstDay = firstDayOfWeek();
     const bars: Bar[] = [];
 
-    for (const item of items) {
-        diags.push(...unknownKeys(item, KNOWN_ITEM));
+    // Same as stats: a root selection is read, and reported on, once.
+    const block = readBlockSelection(value, SHARED);
+    diags.push(...block.diagnostics);
+    const rootMissing = unmatchedSource(notes, block.source);
+    if (rootMissing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: rootMissing }) });
+
+    for (const own of items) {
+        diags.push(...unknownKeys(own, KNOWN_ITEM));
+        const { item, source, diagnostics: sourceDiags } = inheritSelection(own, block);
 
         const label = typeof item.label === "string" ? item.label : "";
         const { spec, diagnostics: barDiags } = readProgress(item, label);
         diags.push(...barDiags);
 
-        const { spec: source, diagnostics: sourceDiags } = readSource(item);
         diags.push(...sourceDiags);
-        const missing = unmatchedSource(notes, source);
+        const missing = own.source !== undefined ? unmatchedSource(notes, source) : null;
         if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
         const selected = selectNotes(notes, source);
 
@@ -116,8 +125,9 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
         // aggregates make `date_field` do anything. Judged by whether
         // `period` was written at all, not whether it parsed — an
         // unreadable `period` already has its own diagnostic above, and this
-        // one would only double up on the same mistake.
-        if (dateField && spec && !dateFieldHasEffect(item.period !== undefined, spec.agg)) {
+        // one would only double up on the same mistake. Only a bar's own
+        // `date_field` is judged, as in stats.
+        if (dateField && spec && readDateField(own) && !dateFieldHasEffect(item.period !== undefined, spec.agg)) {
             const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
             diags.push({ level: "warning", message: t("period.dateFieldUnused", { card: cardLabel }) });
         }

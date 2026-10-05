@@ -37,11 +37,12 @@ Tick `gym: true` in a daily note's Properties. Paste this into any other note:
 ````markdown
 ```stats
 columns: 4
+source: Diary
 items:
-  - { label: Gym days, source: Diary, field: gym, agg: sum, icon: 🏋️ }
-  - { label: Longest gym streak, source: Diary, field: gym, agg: streak, unit: days, icon: 🔥 }
-  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, icon: 📅, compare: true, better: up }
-  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month, icon: 🗓 }
+  - { label: Gym days, field: gym, agg: sum, icon: 🏋️ }
+  - { label: Longest gym streak, field: gym, agg: streak, unit: days, icon: 🔥 }
+  - { label: Gym this week, field: gym, agg: sum, period: week, icon: 📅, compare: true, better: up }
+  - { label: Gym this month, field: gym, agg: sum, period: month, icon: 🗓 }
 ```
 
 ```heatmap
@@ -59,6 +60,7 @@ title: Gym
 </picture>
 
 `Diary` is the folder your daily notes live in, and each note's name starts with its date.
+Written once at the top, it applies to every card; a card with its own `source` reads that folder instead.
 A ticked box counts as 1. `period: week` is always the current week, and `compare: true` sets it
 against the same days of last week. The step-by-step version, with the same tracker in Tracker
 and dataviewjs next to it: [a habit tracker without Dataview](https://dimagious.github.io/dashsidian/guides/habit-tracker-without-dataview/).

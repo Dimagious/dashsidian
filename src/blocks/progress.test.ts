@@ -606,3 +606,55 @@ describe("progress — durations", () => {
         expect(texts(el, ".dashy-progress-value")).toEqual(["7\u00A0ч 5\u00A0мин / 8\u00A0ч 89%"]);
     });
 });
+
+describe("progress — selection at the block root (B-131)", () => {
+    // km on the 10 diary days reads 1..10.
+    it("every bar inherits the root source and where", () => {
+        const el = bars(`source: Diary
+where: "km > 5"
+items:
+  - { label: Days, agg: count, goal: 10 }
+  - { label: Run, field: km, agg: sum, goal: 100 }`);
+        expect(texts(el, ".dashy-progress-percent")).toEqual(["50%", "40%"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("a bar's own where narrows further, and its own source replaces the root's", () => {
+        const el = bars(`source: Diary
+where: "km > 5"
+items:
+  - { label: Long, where: "km >= 9", agg: count, goal: 10 }
+  - { label: Elsewhere, source: Nowhere, agg: count, goal: 10 }`);
+        expect(texts(el, ".dashy-progress-percent")).toEqual(["20%", "0%"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            "⚠️ progress: Nothing is filed under `Nowhere`. The numbers below count nothing. Point `source` at a folder of your own.",
+        ]);
+    });
+
+    it("an unreadable root where is reported once for the whole block", () => {
+        const el = bars(`source: Diary
+where: [km > 5, "km <"]
+items:
+  - { label: A, agg: count, goal: 10 }
+  - { label: B, agg: count, goal: 10 }`);
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+        expect(diagnostics(el, "warning")[0]).toContain("`km <` in `where` could not be read");
+        expect(texts(el, ".dashy-progress-percent")).toEqual(["100%", "100%"]);
+    });
+
+    it("a root period applies to every bar, and a bar's own replaces it", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 0, 10));
+        try {
+            const el = bars(`source: Diary
+period: 3d
+items:
+  - { label: Three days, agg: count, goal: 10 }
+  - { label: Year, agg: count, goal: 10, period: year }`);
+            expect(texts(el, ".dashy-progress-percent")).toEqual(["30%", "100%"]);
+            expect(diagnostics(el, "warning")).toEqual([]);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+});
