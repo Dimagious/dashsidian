@@ -4,6 +4,7 @@ import { snapshot, noteExists, VaultSnapshot, pathKind, revealFolder } from "./v
 import { discoverPeriodics } from "./periodic";
 import {
     formatDate, currentLocale, weekdayNamesShort, monthNamesShort, firstDayOfWeek, monthYearShort, formatDayMedium,
+    formatYear,
 } from "./datetime";
 import { applyObsidianLocale, applyLocale } from "./locale";
 import { isMobile } from "./platform";
@@ -217,6 +218,11 @@ describe("datetime", () => {
 
     it("gives a short month name plus its year", () => {
         expect(monthYearShort(new Date(2025, 8, 1))).toBe("Sep 2025");
+    });
+
+    it("gives the year alone, without digit grouping, on 1 January and 31 December alike", () => {
+        expect(formatYear(new Date(2024, 0, 1))).toBe("2024");
+        expect(formatYear(new Date(2024, 11, 31))).toBe("2024");
     });
 
     it("gives a medium date for a heatmap cell's tooltip", () => {

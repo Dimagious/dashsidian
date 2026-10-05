@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>chart block reference: every key · Dashy</title>
-<meta name="description" content="A number over time: a line or bars per day, week or month, for one property or a few side by side. Every key of the Dashy chart block for Obsidian, with defaults, synonyms and examples.">
+<meta name="description" content="A number over time: a line or bars per day, week, month or year, for one property or a few side by side. Every key of the Dashy chart block for Obsidian, with defaults, synonyms and examples.">
 <link rel="canonical" href="https://dimagious.github.io/dashsidian/reference/chart/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%238b6cef'/%3E%3Crect x='7' y='7.5' width='11' height='3' rx='1.5' fill='%23fff'/%3E%3Crect x='7' y='13' width='8.5' height='7' rx='2' fill='%23fff' fill-opacity='.55'/%3E%3Crect x='16.5' y='13' width='8.5' height='7' rx='2' fill='%23fff'/%3E%3Crect x='7' y='22.5' width='18' height='3' rx='1.5' fill='%23fff' fill-opacity='.35'/%3E%3Crect x='7' y='22.5' width='12' height='3' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
@@ -12,7 +12,7 @@
 <meta property="og:site_name" content="Dashy">
 <meta property="og:url" content="https://dimagious.github.io/dashsidian/reference/chart/">
 <meta property="og:title" content="chart block reference: every key">
-<meta property="og:description" content="A number over time: a line or bars per day, week or month, for one property or a few side by side. Every key of the Dashy chart block for Obsidian, with defaults, synonyms and examples.">
+<meta property="og:description" content="A number over time: a line or bars per day, week, month or year, for one property or a few side by side. Every key of the Dashy chart block for Obsidian, with defaults, synonyms and examples.">
 <meta property="og:image" content="https://dimagious.github.io/dashsidian/img/chart-weekly-light.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="../../assets/site.css">
@@ -35,7 +35,7 @@
           <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
         </div>
 
-        <p class="lede">A number over time: a line or bars per day, week or month, for one property or a few side by side.</p>
+        <p class="lede">A number over time: a line or bars per day, week, month or year, for one property or a few side by side.</p>
 
         <div class="callout warn">
           <div class="callout-title"><svg><use href="#i-alert"/></svg>Obsidian Charts turned on?</div>
@@ -141,13 +141,13 @@ agg: avg
               </tr>
               <tr id="bucket">
                 <td class="k"><a class="key" href="#bucket"><code>bucket</code></a></td>
-                <td class="d"><code>day</code>, <code>week</code> or <code>month</code>. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages; a month starts on the 1st. An unrecognised value warns and falls back to day</td>
+                <td class="d"><code>day</code>, <code>week</code>, <code>month</code> or <code>year</code>. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages; a month starts on the 1st, a year on 1 January. A year is labelled with the year alone, like <code>2024</code>. An unrecognised value warns and falls back to day</td>
                 <td class="t" data-h="type">text</td>
                 <td class="v" data-h="default"><code>day</code></td>
               </tr>
               <tr id="range">
                 <td class="k"><a class="key" href="#range"><code>range</code></a></td>
-                <td class="d">the window, ending today: <code>week</code>, <code>month</code>, <code>year</code> (1 January of the current year to today) or a rolling count of days like <code>90d</code>. Defaults to <code>30d</code> for <code>day</code>, <code>182d</code> for <code>week</code> and <code>365d</code> for <code>month</code>. The window's start moves back to the start of the bucket it falls in, so only the last bucket can be partial. Above 400 buckets only the most recent 400 are drawn, and a window of a single bucket is drawn too; both warn. An unrecognised value warns and falls back to the default</td>
+                <td class="d">the window, ending today: <code>week</code>, <code>month</code>, <code>year</code> (1 January of the current year to today) or a rolling count of days like <code>90d</code>. Defaults to <code>30d</code> for <code>day</code>, <code>182d</code> for <code>week</code>, <code>365d</code> for <code>month</code> and <code>3650d</code> for <code>year</code>. The window's start moves back to the start of the bucket it falls in, so only the last bucket can be partial. Above 400 buckets only the most recent 400 are drawn, and a window of a single bucket is drawn too; both warn. An unrecognised value warns and falls back to the default</td>
                 <td class="t" data-h="type">text or number</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
@@ -189,7 +189,7 @@ agg: avg
               </tr>
               <tr id="link">
                 <td class="k"><a class="key" href="#link"><code>link</code></a></td>
-                <td class="d">clicking a <code>day</code> bucket opens that day's note, the first by path when there are several. No effect on <code>week</code> and <code>month</code> buckets</td>
+                <td class="d">clicking a <code>day</code> bucket opens that day's note, the first by path when there are several. No effect on <code>week</code>, <code>month</code> and <code>year</code> buckets</td>
                 <td class="t" data-h="type">true or false</td>
                 <td class="v" data-h="default"><code>true</code></td>
               </tr>
@@ -256,7 +256,7 @@ agg: avg
           <li>A week starts on the locale's first day, the same day <code>period: week</code> and the heatmap grid use, and a week's tooltip names it: <code>Week of Sun Sep 27, 2026</code>.</li>
           <li>A bucket with no data is a gap in the line and no bar, never a zero: a missing day is not a day of zero. An unticked checkbox (<code>false</code>) is a real 0, and <code>count</code> over an empty bucket is a plain 0.</li>
           <li><code>avg</code> is over values, not days: two notes on one day both count, so a week's average matches a stats card with <code>agg: avg</code> and <code>period: week</code>. <code>sum</code> of a checkbox counts the ticked days.</li>
-          <li>The last bucket is usually still running (this week, this month): it is drawn lighter, or as a hollow point on a line, and its tooltip ends with <code>so far</code>.</li>
+          <li>The last bucket is usually still running (this week, this month, this year): it is drawn lighter, or as a hollow point on a line, and its tooltip ends with <code>so far</code>.</li>
           <li>A list in the block's own <code>field</code> is an error rather than a guess: write <code>series:</code> for several lines, or <code>series: [{field: [a, b]}]</code> to fold several properties into one.</li>
           <li>Not in this block, on purpose: pie, doughnut, radar and scatter charts, stacked bars, cumulative sums, a second y axis, smoothing and trend lines, zoom, tick and axis settings, annotations, and a height key (the height is the <code>--dashy-chart-height</code> CSS variable, which a CSS snippet can change). Steps and sleep on one chart are two chart blocks.</li>
         </ul>

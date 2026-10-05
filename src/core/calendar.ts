@@ -330,20 +330,21 @@ export function yearsOf(dates: readonly string[]): number[] {
     return [...years].sort((a, b) => b - a);
 }
 
-/** The calendar grain a `chart` groups days by (ADR 0005): one day, one week, one month. */
-export type BucketSize = "day" | "week" | "month";
+/** The calendar grain a `chart` groups days by (ADR 0005): one day, one week, one month, one year. */
+export type BucketSize = "day" | "week" | "month" | "year";
 
 /**
  * The first day of the bucket a day key falls in: the day itself for `day`,
  * the locale's first day of that week for `week` (`firstDay`, 0 Sunday, 1
  * Monday, the same day `period: week` and the heatmap grid start on), the
- * 1st for `month`. Built from `getFullYear/getMonth/getDate` through
- * `parseDateKey`, never `toISOString`.
+ * 1st for `month`, 1 January for `year`. Built from
+ * `getFullYear/getMonth/getDate` through `parseDateKey`, never `toISOString`.
  */
 export function bucketStart(key: string, bucket: BucketSize, firstDay: number): string {
     if (bucket === "day") return key;
     const day = parseDateKey(key);
     if (bucket === "month") return dateKey(new Date(day.getFullYear(), day.getMonth(), 1));
+    if (bucket === "year") return dateKey(new Date(day.getFullYear(), 0, 1));
     const back = weekdayRow(day.getDay(), firstDay);
     return dateKey(new Date(day.getFullYear(), day.getMonth(), day.getDate() - back));
 }
@@ -359,9 +360,11 @@ export function eachBucket(start: string, end: string, bucket: BucketSize): stri
     const first = parseDateKey(start);
     const out: string[] = [];
     for (let i = 0; ; i++) {
-        const at = bucket === "month"
-            ? new Date(first.getFullYear(), first.getMonth() + i, 1)
-            : new Date(first.getFullYear(), first.getMonth(), first.getDate() + i * (bucket === "week" ? 7 : 1));
+        const at = bucket === "year"
+            ? new Date(first.getFullYear() + i, 0, 1)
+            : bucket === "month"
+                ? new Date(first.getFullYear(), first.getMonth() + i, 1)
+                : new Date(first.getFullYear(), first.getMonth(), first.getDate() + i * (bucket === "week" ? 7 : 1));
         const key = dateKey(at);
         // An invalid `start` formats as "NaN-NaN-NaN", which sorts after any
         // real key, so the loop ends at once rather than spinning.

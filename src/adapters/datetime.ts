@@ -99,6 +99,11 @@ export function monthYearShort(date: Date): string {
     return formatDate(date, "MMM YYYY");
 }
 
+/** The year alone, e.g. "2024": a `bucket: year` chart's x label and tooltip date. */
+export function formatYear(date: Date): string {
+    return formatDate(date, "YYYY");
+}
+
 /**
  * A medium, locale-appropriate date: "Sep 25, 2026" in English, "25 сент.
  * 2026 г." in Russian. Used for a heatmap cell's tooltip (B-092) in place of

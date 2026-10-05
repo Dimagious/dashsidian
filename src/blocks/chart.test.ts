@@ -3,6 +3,7 @@ import { Platform } from "obsidian";
 import { renderChart } from "./chart";
 import { mockContext, countingContext, diary, host, texts, nodes, diagnostics, type FakeNote } from "../test/vault";
 import { setLocale } from "../i18n";
+import { registerBlocks } from "../app/register";
 
 // 2026-09-30 is a Wednesday; the test locale (moment's `en`) starts weeks on Sunday.
 const TODAY = new Date(2026, 8, 30, 12);
@@ -313,6 +314,80 @@ describe("chart: race times as a clock (B-145)", () => {
         const notes: FakeNote[] = [...races, { path: "Diary/2026-09-27.md", frontmatter: { run: "2:20" } }];
         const el = chart("source: Diary\nfield: run\nrange: 1d", notes);
         expect(titles(el)).toEqual(["Sep 30, 2026: run 2h 17m (2026-09-30)"]);
+    });
+});
+
+describe("chart: bucket: year (B-147)", () => {
+    /** Books finished, sparse across years: none in 2016-2018 or 2021, one shelf a year otherwise. */
+    const books: FakeNote[] = [
+        { path: "Books/2019-12-31.md", frontmatter: { pages: 300 } },
+        { path: "Books/2020-01-01.md", frontmatter: { pages: 200 } },
+        { path: "Books/2020-06-15.md", frontmatter: { pages: 100 } },
+        { path: "Books/2022-03-01.md", frontmatter: { pages: 250 } },
+        { path: "Books/2024-02-29.md", frontmatter: { pages: 420 } },
+        { path: "Books/2026-09-01.md", frontmatter: { pages: 180 } },
+    ];
+
+    it("ten years by default: one column per calendar year, labelled with the year alone", () => {
+        const el = chart("source: Books\nagg: count\nbucket: year\ntype: bar", books);
+        expect(texts(el, ".dashy-chart-title")).toEqual(["notes: count per year, last 11 years"]);
+        expect(hits(el)).toHaveLength(11);
+        const xs = texts(el, "text.dashy-chart-label").slice(nodes(el, "line.dashy-chart-grid").length);
+        expect(xs[0]).toBe("2016");
+        expect(xs[xs.length - 1]).toBe("2026");
+        expect(xs.every((x) => /^20\d\d$/.test(x))).toBe(true);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("tooltips name the year; an empty year is 0 for count, the running year says so far", () => {
+        const el = chart("source: Books\nagg: count\nbucket: year\ntype: bar", books);
+        expect(titles(el)).toEqual([
+            "2016: notes 0",
+            "2017: notes 0",
+            "2018: notes 0",
+            "2019: notes 1 (2019-12-31)",
+            "2020: notes 2 (2 notes)",
+            "2021: notes 0",
+            "2022: notes 1 (2022-03-01)",
+            "2023: notes 0",
+            "2024: notes 1 (2024-02-29)",
+            "2025: notes 0",
+            "2026: notes 1 (2026-09-01), so far",
+        ]);
+        expect(hits(el)[10]!.classList.contains("is-partial")).toBe(true);
+        // Year columns never link, like week and month ones.
+        expect(nodes(el, "a.dashy-chart-hit")).toHaveLength(0);
+    });
+
+    it("an explicit range wins; a summed year with no data is a gap, and the goal is drawn", () => {
+        const el = chart("source: Books\nfield: pages\nbucket: year\nrange: 1095d\ngoal: 400", books);
+        expect(titles(el)).toEqual([
+            "2023: no data",
+            "2024: pages 420 (2024-02-29)",
+            "2025: no data",
+            "2026: pages 180 (2026-09-01), so far",
+        ]);
+        // Two lone values between gaps: two points, no line drawn through the empty years.
+        expect(nodes(el, "polyline.dashy-chart-line")).toHaveLength(0);
+        expect(nodes(el, "circle.dashy-chart-point")).toHaveLength(2);
+        expect(texts(el, "text.dashy-chart-goal-label")).toEqual(["goal 400"]);
+    });
+
+    it("works the same as `dashy-chart`, the name left when Obsidian Charts owns `chart`", () => {
+        const blocks: Record<string, typeof renderChart> = {};
+        registerBlocks({ chart: renderChart }, (name, block) => {
+            blocks[name] = block;
+        }, (id) => id === "obsidian-charts");
+        expect(Object.keys(blocks)).toEqual(["dashy-chart"]);
+        const el = host();
+        const config = "source: Books\nbucket: year\nrange: 730d\nseries:\n  - { field: pages, label: Pages }\n  - { agg: count, label: Books }";
+        blocks["dashy-chart"]!(mockContext({ notes: books }), config, el);
+        expect(texts(el, ".dashy-chart-title")).toEqual(["Pages, Books: per year, last 3 years"]);
+        expect(titles(el)).toEqual([
+            "2024: Pages 420, Books 1 (2024-02-29)",
+            "2025: Books 0",
+            "2026: Pages 180, Books 1 (2026-09-01), so far",
+        ]);
     });
 });
 

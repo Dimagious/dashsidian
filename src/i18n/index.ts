@@ -57,6 +57,7 @@ export type PluralKey =
     | "chart.days"
     | "chart.weeks"
     | "chart.months"
+    | "chart.years"
     | "chart.notesCount";
 
 /**

@@ -29,7 +29,7 @@ export const MAX_BUCKETS = 400;
 
 export const CHART_AGGS = ["sum", "avg", "min", "max", "count"] as const;
 export type ChartAgg = (typeof CHART_AGGS)[number];
-export const BUCKETS = ["day", "week", "month"] as const;
+export const BUCKETS = ["day", "week", "month", "year"] as const;
 export const CHART_TYPES = ["line", "bar"] as const;
 
 function isChartAgg(v: unknown): v is ChartAgg {
@@ -47,7 +47,7 @@ function isChartType(v: unknown): v is ChartType {
 /**
  * The window a `bucket` gets when `range` is not written: rolling, not
  * calendar, so the picture is the same on any day of the year. 26 full
- * weeks, 12 full months.
+ * weeks, 12 full months, ten years (the longest `range` there is).
  */
 export function defaultRange(bucket: BucketSize): Period {
     switch (bucket) {
@@ -57,6 +57,8 @@ export function defaultRange(bucket: BucketSize): Period {
             return { kind: "days", days: 182 };
         case "month":
             return { kind: "days", days: 365 };
+        case "year":
+            return { kind: "days", days: 3650 };
     }
 }
 
@@ -308,7 +310,7 @@ export function chartFieldStatus(notes: readonly NoteRecord[], field: string, da
 }
 
 export interface Bucket {
-    /** the bucket's first day, `YYYY-MM-DD`; a month's is its 1st */
+    /** the bucket's first day, `YYYY-MM-DD`; a month's is its 1st, a year's 1 January */
     key: string;
     /** its last day, `YYYY-MM-DD`, which may lie after today for the partial last bucket */
     end: string;
@@ -331,6 +333,7 @@ export interface BucketOutcome {
 function bucketEnd(key: string, bucket: BucketSize): string {
     if (bucket === "day") return key;
     const start = parseDateKey(key);
+    if (bucket === "year") return dateKey(new Date(start.getFullYear(), 11, 31));
     return bucket === "week"
         ? dateKey(new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6))
         : dateKey(new Date(start.getFullYear(), start.getMonth() + 1, 0));
@@ -372,8 +375,8 @@ export function bucketize(
     if (keys.length > MAX_BUCKETS) {
         keys = keys.slice(-MAX_BUCKETS);
         // The next coarser bucket: `bucket: week` itself over ten years of
-        // weeks is still too many. A month never gets here, since `range`
-        // stops at 3650 days, about 121 months.
+        // weeks is still too many. A month or a year never gets here, since
+        // `range` stops at 3650 days, about 121 months.
         const next = spec.bucket === "day" ? "week" : "month";
         diagnostics.push({ level: "warning", message: t("chart.tooManyBuckets", { max: MAX_BUCKETS, next }) });
     }
@@ -427,7 +430,7 @@ export function bucketize(
     return { buckets, anyDated, diagnostics };
 }
 
-/** "last 30 days", "last 26 weeks", "last 12 months": the bucket noun through `tPlural` (CLAUDE.md rule 13). */
+/** "last 30 days", "last 26 weeks", "last 12 months", "last 11 years": the bucket noun through `tPlural` (CLAUDE.md rule 13). */
 export function spanText(bucket: BucketSize, count: number): string {
     switch (bucket) {
         case "day":
@@ -436,6 +439,8 @@ export function spanText(bucket: BucketSize, count: number): string {
             return tPlural("chart.weeks", count);
         case "month":
             return tPlural("chart.months", count);
+        case "year":
+            return tPlural("chart.years", count);
     }
 }
 
@@ -447,6 +452,8 @@ function perText(bucket: BucketSize): string {
             return t("chart.perWeek");
         case "month":
             return t("chart.perMonth");
+        case "year":
+            return t("chart.perYear");
     }
 }
 

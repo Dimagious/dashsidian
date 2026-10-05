@@ -55,6 +55,15 @@ removed public export.
   The line has no room for `trend` or `sub`: each gets one warning naming the
   cards that set it, and `columns`, with no grid to size, gets one of its own.
   `layout: cards`, the default, keeps today's look.
+- **`bucket: year` in `chart`**: one bar or point per calendar year, from
+  1 January, for long histories like books read or races run, where bars
+  per month over several years are too thin to read. Without a `range` the
+  window is the last ten years (`3650d`), its start moved back to 1 January
+  of the year it falls in: the current year and the ten before it (only in
+  the last days of December the nine before it), the current one drawn
+  lighter until 31 December. The axis and the tooltip show the year alone,
+  like `2024`. Everything else works per year as it does per month: `agg`,
+  `series`, `goal`, and a gap for a year without data (`count` shows 0).
 
 ### Changed
 

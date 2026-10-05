@@ -1,6 +1,7 @@
 import type { BlockContext } from "./context";
 import {
-    firstDayOfWeek, formatDayMedium, formatDayShort, formatDayShortYear, formatDayWithWeekday, monthNamesShort, monthYearShort,
+    firstDayOfWeek, formatDayMedium, formatDayShort, formatDayShortYear, formatDayWithWeekday, formatYear, monthNamesShort,
+    monthYearShort,
 } from "../adapters/datetime";
 import { isMobile } from "../adapters/platform";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
@@ -183,7 +184,7 @@ function svg<K extends keyof SVGElementTagNameMap>(
     return node;
 }
 
-/** The date a tooltip opens with: a day, "Week of Sun Sep 27, 2026", or a month and year. */
+/** The date a tooltip opens with: a day, "Week of Sun Sep 27, 2026", a month and year, or a year. */
 function bucketDate(bucket: Bucket, spec: ChartSpec): string {
     const start = parseDateKey(bucket.key);
     switch (spec.bucket) {
@@ -193,11 +194,14 @@ function bucketDate(bucket: Bucket, spec: ChartSpec): string {
             return t("chart.weekOf", { date: formatDayWithWeekday(start) });
         case "month":
             return monthYearShort(start);
+        case "year":
+            return formatYear(start);
     }
 }
 
 /**
- * An x label: a short day for `day` and `week`, a month name for `month`.
+ * An x label: a short day for `day` and `week`, a month name for `month`,
+ * the year itself for `year`.
  * Once the window spans two years, the first label and the first label of
  * each new year carry the year (the heatmap's rule for its months, applied
  * to the labels actually shown, since a January may not be one of them).
@@ -207,6 +211,7 @@ function xLabel(buckets: readonly Bucket[], index: number, previous: number | un
     const bucket = buckets[index];
     if (!bucket) return "";
     const start = parseDateKey(bucket.key);
+    if (spec.bucket === "year") return formatYear(start);
     const year = bucket.key.slice(0, 4);
     const spansYears = buckets[0]?.key.slice(0, 4) !== buckets[buckets.length - 1]?.key.slice(0, 4);
     const withYear = spansYears && (previous === undefined || buckets[previous]?.key.slice(0, 4) !== year);
