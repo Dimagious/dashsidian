@@ -6,6 +6,7 @@ import schema from "../blocks/schema.json";
 import { renderStats } from "../blocks/stats";
 import { renderProgress } from "../blocks/progress";
 import { renderChart } from "../blocks/chart";
+import { renderCountdown } from "../blocks/countdown";
 import { mockContext, host, diagnostics } from "../test/vault";
 
 const note = (folder: string, name: string, fm: Record<string, unknown> = {}): NoteRecord =>
@@ -215,6 +216,14 @@ describe("the schema examples survive a newcomer-shaped vault", () => {
             expect(diagnostics(el, "error"), `${name}:\n${fitted}`).toEqual([]);
             expect(diagnostics(el, "warning"), `${name}:\n${fitted}`).toEqual([]);
         }
+        // The countdown example reads no vault data, but its birthday card
+        // repeats: it has to draw its years, not an error, on first insert.
+        const countdownEl = host();
+        renderCountdown(ctx, fitExample(blocks.countdown!.example, profile), countdownEl);
+        expect(diagnostics(countdownEl, "error")).toEqual([]);
+        expect(diagnostics(countdownEl, "warning")).toEqual([]);
+        expect(countdownEl.querySelector(".dashy-countdown-years")?.textContent).toBe("37 years");
+
         // The chart example is the newcomer's own `mood` per day, with data
         // in its default 30-day window rather than an empty plot.
         const chartEl = host();

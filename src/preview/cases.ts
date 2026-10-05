@@ -115,13 +115,14 @@ daily: true`,
     },
     {
         block: "countdown",
-        title: "countdown — впереди, сегодня, позади, битая дата",
+        title: "countdown — впереди, сегодня, позади, каждый год, битая дата",
         source: `columns: 4
 items:
   - { label: Далеко впереди, date: 2099-01-01, icon: 🏊 }
   - { label: Завтра, date: TOMORROW, icon: 🌅 }
   - { label: Сегодня, date: TODAY, icon: 🎂 }
   - { label: Давно прошло, date: 2000-01-01 }
+  - { label: День рождения, date: 1990-05-12, repeat: yearly, sub: каждый год }
   - { label: Битая дата, date: 15.11.2026 }`,
     },
     {

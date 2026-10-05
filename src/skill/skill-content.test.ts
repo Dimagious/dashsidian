@@ -54,8 +54,15 @@ describe("the generated skill corrects what agents got wrong", () => {
         expect(SKILL_MARKDOWN).not.toContain("Nothing to count, and the bar stays empty and the value shows a dash rather than a zero");
     });
 
-    it("countdown does not repeat a date every year (B-110)", () => {
-        expect(SKILL_MARKDOWN).toContain("The date does not repeat every year");
+    it("countdown repeats a date yearly only when asked, and reads one from a note (B-148)", () => {
+        // B-110's "does not repeat" note is gone with `repeat: yearly`; an agent
+        // reading the old one would move a birthday's year forward by hand.
+        expect(SKILL_MARKDOWN).not.toContain("The date does not repeat every year");
+        expect(SKILL_MARKDOWN).toContain("A birthday or an anniversary repeats with `repeat: yearly`");
+        // `date` gave way to `field` as an alternative, the way heatmap's `field` did to `layers`.
+        const countdown = schema.blocks.countdown as { item: Record<string, { required?: boolean }> };
+        expect(countdown.item.date.required).toBeUndefined();
+        expect(SKILL_MARKDOWN).toContain("Required unless `field` is set, and not allowed together with it");
     });
 
     it("heatmap field is not marked required, since layers replaces it (B-124)", () => {
@@ -106,7 +113,7 @@ describe("the generated skill corrects what agents got wrong", () => {
             "Dashy's own when one is picked in its settings",
             "holding text rather than a number",
             "`count` over nothing reads a plain `0`",
-            "The date does not repeat every year",
+            "A birthday or an anniversary repeats with `repeat: yearly`",
         ]) {
             expect(AGENTS_SECTION, phrase).toContain(phrase);
         }

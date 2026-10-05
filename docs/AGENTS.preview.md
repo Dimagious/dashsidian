@@ -196,9 +196,14 @@ Cards counting the days to a date.
 | key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
 | `label` | string | yes | — | `title`, `name` | what the date is |
-| `date` | string | yes | — | — | the date itself, YYYY-MM-DD |
+| `date` | string | — | — | — | the date itself, YYYY-MM-DD. Required unless `field` is set, and not allowed together with it: exactly one of the two |
+| `field` | string | — | — | `property`, `prop` | a date property to read the date from instead of writing it: `2026-03-02`, with or without a time after it, or an Obsidian date property; dotted for a nested one like `meta.expires`. Read from the newest note in the selection that has it filled in, the way `agg: latest` picks one: by the date in the note's name, and a note without one, like `Passport.md`, after every dated note. A value that is not a date, or no note having the property at all, is an error on the card that names it |
+| `source` | string | — | — | `folder`, `from` | with `field` only: folder to look for the note in; includes nested ones. Without it, the whole vault |
+| `tag` | string | — | — | — | with `field` only: tag the note carries, with or without the hash |
+| `where` | string\|list | — | — | — | with `field` only: a condition the note must meet, like `type = passport`, or several joined with `and` or written as a list, the same language as on a `stats` card |
+| `repeat` | string | — | — | — | `yearly` counts to the next time the date's month and day come round, today included, for a birthday or an anniversary, and shows how many years that one is: `37 years`. 29 February falls on the 28th in a year without one. A date still ahead counts to itself, with no years shown. Works with `date` and `field` alike; any other value is an error |
 | `icon` | string | — | — | `emoji` | emoji |
-| `sub` | string | — | — | — | small caption under the label |
+| `sub` | string | — | — | — | small caption under the label; with `repeat: yearly` it comes before the years |
 
 **Example**
 
@@ -208,12 +213,13 @@ columns: 3
 items:
   - { label: IRONMAN 70.3, date: 2026-11-15, icon: 🏊 }
   - { label: Holiday, date: 2026-12-20, icon: 🏖, sub: two weeks off }
+  - { label: Birthday, date: 1990-05-12, repeat: yearly, icon: 🎂 }
 ```
 ````
 
 - A date that has passed is shown too, counting up instead of down. What happened yesterday is still worth seeing.
 - The day count is whole days, so a daylight saving switch cannot shift it.
-- The date does not repeat every year: a birthday or anniversary needs its year moved forward by hand once it has passed.
+- A birthday or an anniversary repeats with `repeat: yearly`. A date kept in a note, like a passport's expiry, is read with `field` and stays current when the note changes: `{ label: Passport, field: expires, where: "type = passport" }`.
 
 ### `heatmap`
 

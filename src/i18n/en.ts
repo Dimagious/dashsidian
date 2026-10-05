@@ -101,8 +101,14 @@ export const en = {
     "compare.vsDays.other": "vs the {count} days before: {value}",
 
     "countdown.empty": "No dates to draw. Expected `items:` or a list.",
-    "countdown.dateRequired": "{card}: `date:` is missing. There is nothing to count down to.",
+    "countdown.dateRequired": "{card}: neither `date:` nor `field:` is set. There is nothing to count down to.",
     "countdown.dateInvalid": "{card}: \"{date}\" is not a date. Expected YYYY-MM-DD.",
+    "countdown.dateAndField": "{card}: both `date:` and `field:` are set. Keep one of them: a date written here, or a property read from a note.",
+    "countdown.fieldInvalid": "{card}: `field` expects a property name, got \"{value}\".",
+    "countdown.fieldMissing": "{card}: no note in the selection has \"{field}\" filled in. Check the name, `source`, `tag` and `where`.",
+    "countdown.fieldNotDate": "{card}: \"{field}\" in \"{note}\" is \"{value}\", not a date. Expected YYYY-MM-DD.",
+    "countdown.repeatInvalid": "{card}: `repeat` expects `yearly`, got \"{value}\".",
+    "countdown.selectionUnused": "{card}: `source`, `tag` and `where` only choose the note `field` is read from. With `date:` they are ignored.",
     "countdown.today": "Today",
     // The count is drawn separately, in large type, so these carry the noun
     // alone and must read naturally under a number. English splits one from the
@@ -116,6 +122,13 @@ export const en = {
     "countdown.daysAgo.few": "days ago",
     "countdown.daysAgo.many": "days ago",
     "countdown.daysAgo.other": "days ago",
+    // The anniversary a `repeat: yearly` card lands on, under its date: the
+    // number is drawn apart, so this is the noun alone. "years" rather than
+    // "turns": it reads right under a birthday and a wedding date alike.
+    "countdown.years.one": "year",
+    "countdown.years.few": "years",
+    "countdown.years.many": "years",
+    "countdown.years.other": "years",
 
     "today.expectFields": "Expected a set of fields, for example `daily: true`.",
     "today.nothingToShow": "Nothing to show: enable `daily`, `weekly` or `monthly`.",
