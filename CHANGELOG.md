@@ -31,6 +31,10 @@ removed public export.
   Obsidian's link colour and underline, which the tile's own style meant to
   remove; now it reads like every other tile. A tile whose note does not
   exist yet is still dimmed.
+- **A tile's cover image reaches the tile's right edge.** Obsidian limits
+  images to the width of their container, which cut the cover 24px short and
+  left a strip of tile background on the right. The cover now spans the whole
+  tile, in reading view and in live preview.
 
 ## [1.5.2] - 2026-10-01
 
