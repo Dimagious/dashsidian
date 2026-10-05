@@ -37,6 +37,13 @@
   object-fit: cover;
   border-radius: var(--dashy-radius) var(--dashy-radius) 0 0;
 }
+/* Obsidian caps images at `max-width: 100%` (`.workspace-leaf-content
+   img:not([width])`, `.markdown-source-view.mod-cm6 img`, `.internal-embed
+   img:not([width])`, all 0,2,1; `.markdown-rendered img`, 0,1,1, in hover
+   popovers), which cuts the 24px bleed and leaves a strip on the right.
+   0,3,1 wins in reading view, live preview, embeds and popovers alike;
+   the tile's `overflow: hidden` still keeps the cover inside it. */
+.dashy-tiles .dashy-tile img.dashy-tile-cover { max-width: none; }
 .dashy-tile-link,
 .dashy-tile-link:hover { display: block; text-decoration: none; color: inherit; }
 /* A tile pointing at a note is also Obsidian's `.internal-link`, whose colour
