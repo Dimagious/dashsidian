@@ -8,7 +8,7 @@ description: >-
   dashboard, a home page, a tile grid, cards with counters or averages, a
   link to today's note, a day calendar, a heatmap, a habit tracker, a chart
   or graph of a number over time, or a visual entry point into the vault.
-version: 1.7.0
+version: 1.8.0
 ---
 
 # Dashy — dashboard blocks

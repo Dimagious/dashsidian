@@ -10,6 +10,8 @@ removed public export.
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-05
+
 ### Added
 
 - **`countdown` reads its date from a note.** Write `field: valid_until`
@@ -643,7 +645,8 @@ agent can read.
 - No Dataview, no JavaScript in your notes, and not one hard-coded colour: the
   blocks take their palette from whatever theme you run.
 
-[Unreleased]: https://github.com/Dimagious/dashsidian/compare/1.5.2...HEAD
+[Unreleased]: https://github.com/Dimagious/dashsidian/compare/1.6.0...HEAD
+[1.6.0]: https://github.com/Dimagious/dashsidian/releases/tag/1.6.0
 [1.5.2]: https://github.com/Dimagious/dashsidian/releases/tag/1.5.2
 [1.5.1]: https://github.com/Dimagious/dashsidian/releases/tag/1.5.1
 [1.5.0]: https://github.com/Dimagious/dashsidian/releases/tag/1.5.0

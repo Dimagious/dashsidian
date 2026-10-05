@@ -37,11 +37,11 @@
 
 ## Состояние
 
-1.5.2, опубликован в каталоге Obsidian. Трекер привычек: чекбоксы как 1/0,
+1.6.0, опубликован в каталоге Obsidian. Трекер привычек: чекбоксы как 1/0,
 `period`, `compare`, `current_streak`. Шесть блоков ТЗ (`tiles`, `stats`,
 `progress`, `today`, `countdown`, `heatmap`) и седьмой, `chart` (ADR 0005);
 при включённом Obsidian Charts `chart` уступается ему, наш — `dashy-chart`
-(ADR 0007). Схема блоков — 1.7.0. Длительности (`5h 58min`, `7:30`) читаются
+(ADR 0007). Схема блоков — 1.8.0. Длительности (`5h 58min`, `7:30`) читаются
 как минуты, `core/duration.ts`.
 
 Сайт (`site/`, GitHub Pages) — витрина, гайды под поисковые запросы
@@ -223,7 +223,7 @@ Backlog: B-003
 | `npm run scorecard:check` | зеркало сканера community-plugins |
 | `npm run release` | полный гейт + zip |
 | `npm run dev:vault` | сборка в тестовое хранилище с watch |
-| `npm run e2e` | 36 спеков против настоящего Obsidian; в CI не гоняется |
+| `npm run e2e` | спеки против настоящего Obsidian; в CI не гоняется |
 
 ## Ссылки
 
