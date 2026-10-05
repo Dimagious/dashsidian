@@ -74,7 +74,7 @@ page: a picture, an example, every key.
 - [`chart`](https://dimagious.github.io/dashsidian/reference/chart/): a line or bars of a number by day, week, month or year, with a goal line.
 - [`heatmap`](https://dimagious.github.io/dashsidian/reference/heatmap/): a year of days coloured by a number or a checkbox, several habits on one grid.
 - [`progress`](https://dimagious.github.io/dashsidian/reference/progress/): bars towards a goal, like 24 books this year.
-- [`today`](https://dimagious.github.io/dashsidian/reference/today/): today's date and links to the daily, weekly and monthly notes.
+- [`today`](https://dimagious.github.io/dashsidian/reference/today/): today's date, an optional live clock, and links to the daily, weekly and monthly notes.
 - [`tiles`](https://dimagious.github.io/dashsidian/reference/tiles/): link tiles into the vault, with live note counts.
 - [`countdown`](https://dimagious.github.io/dashsidian/reference/countdown/): days until a race, a holiday, the next birthday, or a date kept in a note.
 

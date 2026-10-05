@@ -4,7 +4,7 @@ import { snapshot, noteExists, VaultSnapshot, pathKind, revealFolder } from "./v
 import { discoverPeriodics } from "./periodic";
 import {
     formatDate, currentLocale, weekdayNamesShort, monthNamesShort, firstDayOfWeek, monthYearShort, formatDayMedium,
-    formatYear,
+    formatYear, timeFormats,
 } from "./datetime";
 import { applyObsidianLocale, applyLocale } from "./locale";
 import { isMobile } from "./platform";
@@ -229,6 +229,10 @@ describe("datetime", () => {
         expect(formatDayMedium(new Date(2026, 8, 25))).toBe("Sep 25, 2026");
     });
 
+    it("gives the locale's own time formats, 12-hour in English", () => {
+        expect(timeFormats()).toEqual({ short: "h:mm A", long: "h:mm:ss A" });
+    });
+
     it("reports a locale code", () => {
         expect(currentLocale()).toMatch(/^[a-z]{2}/);
     });
@@ -251,6 +255,8 @@ describe("locale wiring", () => {
         expect(monthNamesShort()[0]).toBe("Jan.");
         expect(monthYearShort(new Date(2025, 0, 1))).toBe("Jan. 2025");
         expect(formatDayMedium(new Date(2026, 0, 15))).toBe("15. Jan. 2026");
+        // and the clock's hours: German counts to 24
+        expect(timeFormats()).toEqual({ short: "HH:mm", long: "HH:mm:ss" });
     });
 
     it("an empty choice follows Obsidian, which is English here", () => {

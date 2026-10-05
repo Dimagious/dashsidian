@@ -124,6 +124,19 @@ monthly: true`,
 daily: true`,
     },
     {
+        block: "today",
+        title: "today — часы с секундами над датой",
+        source: `clock: seconds
+daily: true
+weekly: true`,
+    },
+    {
+        block: "today",
+        title: "today — непонятное значение clock",
+        source: `clock: hours
+daily: true`,
+    },
+    {
         block: "countdown",
         title: "countdown — впереди, сегодня, позади, каждый год, битая дата",
         source: `columns: 4

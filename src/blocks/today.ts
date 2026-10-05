@@ -1,7 +1,8 @@
 import type { BlockContext } from "./context";
 import { noteExists } from "../adapters/vault";
 import { discoverPeriodics } from "../adapters/periodic";
-import { formatDate } from "../adapters/datetime";
+import { formatDate, timeFormats } from "../adapters/datetime";
+import { clockFormat, startClockTicker, type ClockPrecision } from "../core/clock";
 import { readToday, resolveConfig, notePath, type Period } from "../core/periodic";
 import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
@@ -37,7 +38,26 @@ const FOLDER_KEY: Record<Period, "dailyFolder" | "weeklyFolder" | "monthlyFolder
     monthly: "monthlyFolder",
 };
 
-export function renderToday(ctx: BlockContext, source: string, el: HTMLElement): void {
+/**
+ * The running clock ticker of each block's element (B-151), so the next draw
+ * into the same element stops it before starting another. `clearBlock` takes
+ * the clock's node away but not its timer: without this every vault event
+ * would leave one more interval ticking into a detached node. Keyed by the
+ * element for the same reason heatmap keys its observers: the block is a
+ * plain draw function with nowhere else to keep state between calls.
+ */
+const tickers = new WeakMap<HTMLElement, () => void>();
+
+/** Stops and forgets the clock ticking in `el`, if there is one. */
+function stopClock(el: HTMLElement): void {
+    tickers.get(el)?.();
+    tickers.delete(el);
+}
+
+export function renderToday(ctx: BlockContext, source: string, el: HTMLElement): void | (() => void) {
+    // First, before any early return: a redraw into a now broken config
+    // must not leave the previous clock ticking.
+    stopClock(el);
     clearBlock(el);
     const { value, diagnostics } = parseConfig(source, { root: KNOWN });
     const diags: Diagnostic[] = [...diagnostics];
@@ -67,6 +87,7 @@ export function renderToday(ctx: BlockContext, source: string, el: HTMLElement):
     const discovered = discoverPeriodics(ctx.app);
 
     const wrap = el.createDiv({ cls: "dashy-today" });
+    if (spec.clock) drawClock(wrap, el, clockFormat(spec.clock, timeFormats()), spec.clock);
     wrap.createDiv({ cls: "dashy-today-date", text: spec.title ?? formatDate(today, TITLE_FORMAT) });
 
     const row = wrap.createDiv({ cls: "dashy-today-links" });
@@ -84,4 +105,30 @@ export function renderToday(ctx: BlockContext, source: string, el: HTMLElement):
         chip.createSpan({ cls: "dashy-today-name", text: basename });
         chip.setAttr("title", exists ? path : t("today.missingNote", { path }));
     }
+    // For the note closing: no redraw follows, so `DashyBlock.onunload`
+    // (app/block.ts) is the only one left to stop the clock.
+    if (spec.clock) return () => stopClock(el);
+}
+
+/**
+ * The clock above the date. Only its own text node changes on a tick: no
+ * redraw of the block, no vault snapshot. The day rolling over is not its
+ * business either: the plugin's day-rollover timer (`core/day-rollover.ts`)
+ * already redraws every block at the boundary the "New day starts at"
+ * setting names, which brings a new date line, new links and a new clock.
+ *
+ * Not an `aria-live` region on purpose: a screen reader would announce
+ * every minute, or every second.
+ */
+function drawClock(wrap: HTMLElement, el: HTMLElement, format: string, precision: ClockPrecision): void {
+    const clock = wrap.createDiv({ cls: "dashy-today-clock", text: formatDate(new Date(), format) });
+    tickers.set(el, startClockTicker({
+        precision,
+        now: () => new Date(),
+        setTimeout: (fn, delay) => window.setTimeout(fn, delay),
+        clearTimeout: (handle) => window.clearTimeout(handle),
+        setInterval: (fn, delay) => window.setInterval(fn, delay),
+        clearInterval: (handle) => window.clearInterval(handle),
+        onTick: (now) => clock.setText(formatDate(now, format)),
+    }));
 }

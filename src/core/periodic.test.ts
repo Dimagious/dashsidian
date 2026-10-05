@@ -117,4 +117,28 @@ describe("readToday", () => {
         const { spec } = readToday({ daily: null, weekly: true });
         expect(spec?.periods).toEqual(["weekly"]);
     });
+
+    it("clock is read into the spec and does not count as a period", () => {
+        expect(readToday({ clock: true }).spec).toEqual({ periods: ["daily"], clock: "minutes" });
+        expect(readToday({ clock: "seconds", weekly: true }).spec).toEqual({ periods: ["weekly"], clock: "seconds" });
+    });
+
+    it("no clock key or clock: false leaves the spec without one", () => {
+        expect(readToday({}).spec).toEqual({ periods: ["daily"] });
+        expect(readToday({ clock: false }).spec).toEqual({ periods: ["daily"] });
+    });
+
+    it("a clock it cannot read warns and the rest of the block stays", () => {
+        const { spec, diagnostics } = readToday({ clock: "hours", weekly: true });
+        expect(spec).toEqual({ periods: ["weekly"] });
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]?.level).toBe("warning");
+        expect(diagnostics[0]?.message).toContain('"hours"');
+    });
+
+    it("a bad clock is still reported when nothing else is enabled", () => {
+        const { spec, diagnostics } = readToday({ clock: 5, daily: false });
+        expect(spec).toBeNull();
+        expect(diagnostics.map((d) => d.level)).toEqual(["warning", "error"]);
+    });
 });

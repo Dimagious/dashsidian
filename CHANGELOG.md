@@ -64,6 +64,15 @@ removed public export.
   lighter until 31 December. The axis and the tooltip show the year alone,
   like `2024`. Everything else works per year as it does per month: `agg`,
   `series`, `goal`, and a gap for a year without data (`count` shows 0).
+- **A live clock in `today`.** `clock: true` (or `clock: minutes`) puts the
+  time in large digits above the date, `clock: seconds` adds the seconds. It
+  turns over on the minute itself, not up to a minute late, and a tick
+  changes only the digits: nothing is redrawn and the vault is not read
+  again. A 12 or 24 hour clock follows the language, the same as the date:
+  `9:05 AM` in English, `09:05` in German. The date under it changes when the
+  day does, at the hour "New day starts at" names. Screen readers are not
+  told about every tick. Any other value warns and shows no clock. The
+  example `today` block that **Insert block** pastes now has `clock: true`.
 
 ### Changed
 
@@ -100,6 +109,10 @@ removed public export.
   `per_day: max` and a single checkbox field stay one flat colour, and your
   own `bands` still win. A number in one of the listed fields keeps the old
   flat colour for ticks and now says so in a warning naming the note.
+- **A block taken off the page lets go of what it held.** The cleanup a
+  heatmap or a chart hands back after drawing never reached the block's
+  unload, so their resize observers were not disconnected when the note was
+  closed. They are now, and the same path stops the `today` clock.
 
 ## [1.5.2] - 2026-10-01
 

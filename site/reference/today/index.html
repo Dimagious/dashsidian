@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>today block reference: every key · Dashy</title>
-<meta name="description" content="A day row: today's date and links to the daily, weekly and monthly notes. Every key of the Dashy today block for Obsidian, with defaults, synonyms and examples.">
+<meta name="description" content="A day row: today's date, an optional live clock, and links to the daily, weekly and monthly notes. Every key of the Dashy today block for Obsidian, with defaults, synonyms and examples.">
 <link rel="canonical" href="https://dimagious.github.io/dashsidian/reference/today/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%238b6cef'/%3E%3Crect x='7' y='7.5' width='11' height='3' rx='1.5' fill='%23fff'/%3E%3Crect x='7' y='13' width='8.5' height='7' rx='2' fill='%23fff' fill-opacity='.55'/%3E%3Crect x='16.5' y='13' width='8.5' height='7' rx='2' fill='%23fff'/%3E%3Crect x='7' y='22.5' width='18' height='3' rx='1.5' fill='%23fff' fill-opacity='.35'/%3E%3Crect x='7' y='22.5' width='12' height='3' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
@@ -12,7 +12,7 @@
 <meta property="og:site_name" content="Dashy">
 <meta property="og:url" content="https://dimagious.github.io/dashsidian/reference/today/">
 <meta property="og:title" content="today block reference: every key">
-<meta property="og:description" content="A day row: today's date and links to the daily, weekly and monthly notes. Every key of the Dashy today block for Obsidian, with defaults, synonyms and examples.">
+<meta property="og:description" content="A day row: today's date, an optional live clock, and links to the daily, weekly and monthly notes. Every key of the Dashy today block for Obsidian, with defaults, synonyms and examples.">
 <meta property="og:image" content="https://dimagious.github.io/dashsidian/img/today-light.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="../../assets/site.css">
@@ -31,11 +31,11 @@
         <div class="props" aria-label="Properties">
           <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
           <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>code block</div><div class="v"><code>today</code></div></div>
-          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">4</div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">5</div></div>
           <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
         </div>
 
-        <p class="lede">A day row: today's date and links to the daily, weekly and monthly notes.</p>
+        <p class="lede">A day row: today's date, an optional live clock, and links to the daily, weekly and monthly notes.</p>
 
         <nav class="toc" aria-label="On this page">
           <b>ON THIS PAGE</b>
@@ -73,6 +73,7 @@ monthly: true
         <div class="codeblock" data-code>
           <div class="bar"><span>today</span><button class="copy" type="button">Copy</button></div>
 <pre><code class="yaml-fenced">```today
+clock: true
 daily: true
 weekly: true
 monthly: true
@@ -81,7 +82,7 @@ monthly: true
 
 
         <h2 id="keys">Keys</h2>
-        <div class="keys"><a href="#daily"><code>daily</code></a><a href="#weekly"><code>weekly</code></a><a href="#monthly"><code>monthly</code></a><a href="#title"><code>title</code></a></div>
+        <div class="keys"><a href="#daily"><code>daily</code></a><a href="#weekly"><code>weekly</code></a><a href="#monthly"><code>monthly</code></a><a href="#title"><code>title</code></a><a href="#clock"><code>clock</code></a></div>
         <div class="keytab-wrap">
           <table class="keytab">
             <thead><tr><th>Key</th><th>What it does</th><th>Type</th><th>Default</th></tr></thead>
@@ -110,6 +111,12 @@ monthly: true
                 <td class="t" data-h="type">text</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
+              <tr id="clock">
+                <td class="k"><a class="key" href="#clock"><code>clock</code></a></td>
+                <td class="d">a live clock above the date: <code>true</code> or <code>minutes</code> for hours and minutes, <code>seconds</code> to add the seconds. A 12 or 24 hour clock follows the language, the same as the date. Any other value warns and shows no clock</td>
+                <td class="t" data-h="type">true or false or text</td>
+                <td class="v" data-h="default"><code>false</code></td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -118,7 +125,8 @@ monthly: true
         <h2 id="how-it-counts">How it behaves</h2>
         <ul class="notes">
           <li>Takes the folder and the name format from the Periodic Notes plugin when installed; for the day it also picks up the core &quot;Daily notes&quot;. A folder set in the Dashy settings wins over both.</li>
-          <li>With none of the keys given, only the daily note is shown. With at least one given, exactly those apply.</li>
+          <li>With none of <code>daily</code>, <code>weekly</code> and <code>monthly</code> given, only the daily note is shown. With at least one given, exactly those apply.</li>
+          <li>The clock only changes its own digits, on the minute (or the second), and does not reread the vault. The date under it changes when the day does, at the hour set by &quot;New day starts at&quot; in the Dashy settings: with the day starting at 4:00, a clock that reads 01:30 still sits above yesterday's date.</li>
           <li>If the note does not exist yet the link is still drawn, dimmed: clicking it creates the note.</li>
         </ul>
 

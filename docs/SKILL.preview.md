@@ -178,7 +178,7 @@ items:
 
 ### `today`
 
-A day row: today's date and links to the daily, weekly and monthly notes.
+A day row: today's date, an optional live clock, and links to the daily, weekly and monthly notes.
 
 **Block root**
 
@@ -188,11 +188,13 @@ A day row: today's date and links to the daily, weekly and monthly notes.
 | `weekly` | boolean | — | `false` | — | link to the weekly note |
 | `monthly` | boolean | — | `false` | — | link to the monthly note |
 | `title` | string | — | — | — | a custom heading instead of today's date |
+| `clock` | boolean\|string | — | `false` | — | a live clock above the date: `true` or `minutes` for hours and minutes, `seconds` to add the seconds. A 12 or 24 hour clock follows the language, the same as the date. Any other value warns and shows no clock |
 
 **Example**
 
 ````markdown
 ```today
+clock: true
 daily: true
 weekly: true
 monthly: true
@@ -200,7 +202,8 @@ monthly: true
 ````
 
 - Takes the folder and the name format from the Periodic Notes plugin when installed; for the day it also picks up the core "Daily notes". A folder set in the Dashy settings wins over both.
-- With none of the keys given, only the daily note is shown. With at least one given, exactly those apply.
+- With none of `daily`, `weekly` and `monthly` given, only the daily note is shown. With at least one given, exactly those apply.
+- The clock only changes its own digits, on the minute (or the second), and does not reread the vault. The date under it changes when the day does, at the hour set by "New day starts at" in the Dashy settings: with the day starting at 4:00, a clock that reads 01:30 still sits above yesterday's date.
 - If the note does not exist yet the link is still drawn, dimmed: clicking it creates the note.
 
 ### `countdown`

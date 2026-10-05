@@ -1602,7 +1602,7 @@ describe("heatmap — the scroller says when there is more to see", () => {
         window.ResizeObserver = FakeResizeObserver;
         try {
             const el = host();
-            // This is what `DashyBlock.onunload` (src/app/plugin.ts) calls
+            // This is what `DashyBlock.onunload` (src/app/block.ts) calls
             // when a block is removed from the note entirely, not redrawn:
             // a redraw disconnects its own predecessor already, but nothing
             // else ever runs this cleanup for the very last draw.

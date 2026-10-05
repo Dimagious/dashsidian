@@ -9,6 +9,7 @@
 
 import type { Diagnostic } from "../shared/parse";
 import { t } from "../i18n";
+import { readClock, type ClockPrecision } from "./clock";
 
 export const PERIODS = ["daily", "weekly", "monthly"] as const;
 export type Period = (typeof PERIODS)[number];
@@ -69,6 +70,8 @@ export interface TodaySpec {
     periods: Period[];
     /** a custom heading instead of today's date */
     title?: string;
+    /** a live clock above the date; absent: none */
+    clock?: ClockPrecision;
 }
 
 export interface TodayOutcome {
@@ -86,6 +89,8 @@ export interface TodayOutcome {
 export function readToday(value: Record<string, unknown>): TodayOutcome {
     const diagnostics: Diagnostic[] = [];
     const mentioned = PERIODS.filter((p) => value[p] !== undefined);
+    const clock = readClock(value.clock);
+    diagnostics.push(...clock.diagnostics);
 
     for (const p of mentioned) {
         if (typeof value[p] !== "boolean") {
@@ -111,6 +116,7 @@ export function readToday(value: Record<string, unknown>): TodayOutcome {
 
     const spec: TodaySpec = { periods };
     if (typeof value.title === "string" && value.title.trim()) spec.title = value.title.trim();
+    if (clock.clock) spec.clock = clock.clock;
     return { spec, diagnostics };
 }
 

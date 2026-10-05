@@ -631,7 +631,7 @@ function drawYears(
         observers.set(el, drawn);
         // Redraws clean up after themselves (the `disconnectObservers` call
         // above), but the block being removed from the note entirely never
-        // redraws again; this is what `DashyBlock.onunload` (plugin.ts)
+        // redraws again; this is what `DashyBlock.onunload` (app/block.ts)
         // calls for that case. It reads `observers` fresh rather than
         // closing over `drawn`, so it stays correct across any further
         // redraw between now and unload.

@@ -17,10 +17,15 @@ import { CASES } from "./cases";
 import { BLOCKS, fakeVault, previewContext, withDates } from "./fixture";
 
 const ctx = previewContext(fakeVault());
+// What the blocks hand back to stop their timers and observers; run before
+// the stand is drawn again, or a ticking clock outlives its mount.
+let disposers: (() => void)[] = [];
 
 function draw(): void {
     const root = document.querySelector("#cases");
     if (!(root instanceof HTMLElement)) return;
+    for (const dispose of disposers) dispose();
+    disposers = [];
     root.textContent = "";
 
     for (const item of CASES) {
@@ -31,7 +36,8 @@ function draw(): void {
         section.createEl("pre", { cls: "case-source", text: "```" + item.block + "\n" + source + "\n```" });
 
         const mount = section.createDiv({ cls: "case-render" });
-        BLOCKS[item.block]?.(ctx, source, mount);
+        const dispose = BLOCKS[item.block]?.(ctx, source, mount);
+        if (typeof dispose === "function") disposers.push(dispose);
     }
 }
 
