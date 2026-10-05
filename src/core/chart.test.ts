@@ -216,7 +216,7 @@ describe("readChart: every row of the diagnostics table", () => {
         const out = read("field: a\ntype: pie\nbucket: quarter\nrange: fortnight");
         expect(out.spec).toMatchObject({ type: "line", bucket: "day", range: { kind: "days", days: 30 } });
         expect(out.diagnostics.map((d) => d.message)).toEqual([
-            "`bucket` expects day, week or month, got \"quarter\". Using day.",
+            "`bucket` expects day, week, month or year, got \"quarter\". Using day.",
             "`range` expects week, month, year or a rolling window such as 30d, got \"fortnight\". Using the default for the bucket.",
             "`type` expects line or bar, got \"pie\". Drawing a line.",
         ]);
@@ -319,6 +319,104 @@ describe("bucketize: boundaries", () => {
         expect(out.diagnostics.map((d) => d.message)).toEqual([
             "The window holds a single bucket, so there is no trend to see. Widen `range` or pick a smaller `bucket`.",
         ]);
+    });
+});
+
+describe("bucket: year (B-147)", () => {
+    // 2026-10-05 is a Monday; ten years back reaches into 2016.
+    const OCT5 = new Date(2026, 9, 5);
+    const keys = (yaml: string, today: Date = OCT5): string[] =>
+        bucketize([], spec(yaml), today, 1).buckets.map((b) => b.key);
+
+    it("defaults to ten years, the longest range, and an explicit range wins", () => {
+        expect(spec("field: books\nbucket: year").range).toEqual({ kind: "days", days: 3650 });
+        expect(defaultRange("year")).toEqual({ kind: "days", days: 3650 });
+        expect(spec("field: books\nbucket: year\nrange: 1095d").range).toEqual({ kind: "days", days: 1095 });
+        expect(spec("field: books\nbucket: year\nrange: year").range).toEqual({ kind: "year" });
+        expect(read("field: books\nbucket: year").diagnostics).toEqual([]);
+    });
+
+    it("the default window is every calendar year it touches, from 1 January, never clipped", () => {
+        const out = bucketize([], spec("field: books\nbucket: year"), OCT5, 1);
+        expect(out.buckets.map((b) => b.key)).toEqual([
+            "2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01",
+            "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01", "2026-01-01",
+        ]);
+        expect(out.buckets.map((b) => b.end).slice(-3)).toEqual(["2024-12-31", "2025-12-31", "2026-12-31"]);
+        expect(out.buckets.map((b) => b.partial).filter(Boolean)).toHaveLength(1);
+        expect(out.buckets.at(-1)?.partial).toBe(true);
+        expect(out.diagnostics).toEqual([]);
+        // 3650 days are ten years less two or three leap days: at the very end
+        // of December the start already falls in the next year, so ten columns.
+        expect(keys("field: books\nbucket: year", new Date(2026, 11, 28))[0]).toBe("2016-01-01");
+        expect(keys("field: books\nbucket: year", new Date(2026, 11, 31))).toHaveLength(10);
+        expect(keys("field: books\nbucket: year", new Date(2026, 11, 31))[0]).toBe("2017-01-01");
+    });
+
+    it("an explicit range snaps its start back to 1 January; a single year warns", () => {
+        // 1095 days back from 5 Oct 2026 is 7 Oct 2023.
+        expect(keys("field: v\nbucket: year\nrange: 1095d")).toEqual(["2023-01-01", "2024-01-01", "2025-01-01", "2026-01-01"]);
+        const single = bucketize([], spec("field: v\nbucket: year\nrange: year"), OCT5, 1);
+        expect(single.buckets.map((b) => b.key)).toEqual(["2026-01-01"]);
+        expect(single.diagnostics.map((d) => d.message)).toEqual([
+            "The window holds a single bucket, so there is no trend to see. Widen `range` or pick a smaller `bucket`.",
+        ]);
+    });
+
+    it("31 December and 1 January land in different years; today on 31 December is not partial", () => {
+        const notes = [
+            note("Books/2024-12-31.md", { pages: 300 }),
+            note("Books/2025-01-01.md", { pages: 200 }),
+            note("Books/2025-12-31.md", { pages: 50 }),
+        ];
+        const s = spec("field: pages\nbucket: year\nrange: 730d");
+        // 730 days ending 31 Dec 2025 start exactly on 1 Jan 2024 (a leap year).
+        const dec31 = bucketize(notes, s, new Date(2025, 11, 31), 1).buckets;
+        expect(dec31.map((b) => [b.key, b.values[0], b.partial])).toEqual([
+            ["2024-01-01", 300, false],
+            ["2025-01-01", 250, false],
+        ]);
+        // A day earlier the 31 December note is in the future and 2025 is still running.
+        const dec30 = bucketize(notes, s, new Date(2025, 11, 30), 1).buckets;
+        expect(dec30.at(-1)).toMatchObject({ key: "2025-01-01", values: [200], partial: true });
+    });
+
+    it("a year without data is a gap for sum and a plain 0 for count", () => {
+        const notes = [
+            note("Books/2023-03-01.md", { pages: 120 }),
+            note("Books/2023-11-20.md", { pages: 80 }),
+            note("Books/2026-02-14.md", { pages: 400 }),
+        ];
+        const sum = bucketize(notes, spec("field: pages\nbucket: year\nrange: 1095d"), OCT5, 1);
+        expect(sum.buckets.map((b) => b.values[0])).toEqual([200, null, null, 400]);
+        expect(sum.buckets[0]?.notes.map((n) => n.path)).toEqual(["Books/2023-03-01.md", "Books/2023-11-20.md"]);
+        const count = bucketize(notes, spec("agg: count\nbucket: year\nrange: 1095d"), OCT5, 1);
+        expect(count.buckets.map((b) => b.values[0])).toEqual([2, 0, 0, 1]);
+    });
+
+    it("several series fold per year, each with its own aggregate; a partial year is not annualised", () => {
+        const notes = [
+            note("Races/2025-04-12.md", { km: 21, time: 110 }),
+            note("Races/2025-10-05.md", { km: 42, time: 245 }),
+            note("Races/2026-05-01.md", { km: 10, time: 48 }),
+        ];
+        const s = spec("bucket: year\nrange: 730d\nseries:\n  - { field: km, label: Distance }\n  - { field: time, agg: max }\n  - { agg: count }");
+        const out = bucketize(notes, s, OCT5, 1);
+        expect(out.buckets.map((b) => [b.key, ...b.values])).toEqual([
+            ["2024-01-01", null, null, 0],
+            ["2025-01-01", 63, 245, 2],
+            ["2026-01-01", 10, 48, 1],
+        ]);
+    });
+
+    it("the caption says per year and counts the years", () => {
+        expect(chartCaption(spec("agg: count\nbucket: year\nlabel: Books"), 11)).toBe("Books: count per year, last 11 years");
+        expect(spanText("year", 1)).toBe("last 1 year");
+        setLocale("ru");
+        expect(spanText("year", 1)).toBe("последний 1 год");
+        expect(spanText("year", 3)).toBe("последние 3 года");
+        expect(spanText("year", 11)).toBe("последние 11 лет");
+        expect(chartCaption(spec("agg: count\nbucket: year\nlabel: Книги"), 11)).toBe("Книги: количество за год, последние 11 лет");
     });
 });
 

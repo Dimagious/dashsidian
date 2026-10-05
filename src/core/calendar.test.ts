@@ -473,6 +473,13 @@ describe("bucketStart (ADR 0005)", () => {
         expect(bucketStart("2026-09-30", "month", 1)).toBe("2026-09-01");
         expect(bucketStart("2024-02-29", "month", 0)).toBe("2024-02-01");
     });
+
+    it("a year starts on 1 January, whatever the first day of the week", () => {
+        expect(bucketStart("2026-09-30", "year", 1)).toBe("2026-01-01");
+        expect(bucketStart("2026-12-31", "year", 0)).toBe("2026-01-01");
+        expect(bucketStart("2027-01-01", "year", 1)).toBe("2027-01-01");
+        expect(bucketStart("2024-02-29", "year", 1)).toBe("2024-01-01");
+    });
 });
 
 describe("eachBucket (ADR 0005)", () => {
@@ -488,6 +495,13 @@ describe("eachBucket (ADR 0005)", () => {
     it("months step to the 1st whatever their length, across 1 January", () => {
         expect(eachBucket("2025-11-01", "2026-03-15", "month"))
             .toEqual(["2025-11-01", "2025-12-01", "2026-01-01", "2026-02-01", "2026-03-01"]);
+    });
+
+    it("years step to 1 January, a leap year no different, the last one holding `end`", () => {
+        expect(eachBucket("2023-01-01", "2026-10-05", "year"))
+            .toEqual(["2023-01-01", "2024-01-01", "2025-01-01", "2026-01-01"]);
+        expect(eachBucket("2025-01-01", "2025-12-31", "year")).toEqual(["2025-01-01"]);
+        expect(eachBucket("2025-01-01", "2026-01-01", "year")).toEqual(["2025-01-01", "2026-01-01"]);
     });
 
     it("a DST switch inside the window neither adds nor drops a day or a week", () => {

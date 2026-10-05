@@ -104,7 +104,7 @@ description: >-
   Build a dashboard inside an Obsidian note with Dashy blocks: a grid of
   navigation tiles, number cards computed from frontmatter, a day row linking
   to the daily, weekly and monthly notes, a year heatmap, and a line or bar
-  chart of a number per day, week or month. Use it when asked for a
+  chart of a number per day, week, month or year. Use it when asked for a
   dashboard, a home page, a tile grid, cards with counters or averages, a
   link to today's note, a day calendar, a heatmap, a habit tracker, a chart
   or graph of a number over time, or a visual entry point into the vault.

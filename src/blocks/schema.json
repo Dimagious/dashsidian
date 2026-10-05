@@ -581,7 +581,7 @@
       ]
     },
     "chart": {
-      "summary": "A number over time: a line or bars per day, week or month, for one property or a few side by side.",
+      "summary": "A number over time: a line or bars per day, week, month or year, for one property or a few side by side.",
       "root": {
         "source": {
           "type": "string",
@@ -626,11 +626,11 @@
         "bucket": {
           "type": "string",
           "default": "day",
-          "doc": "`day`, `week` or `month`. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages; a month starts on the 1st. An unrecognised value warns and falls back to day"
+          "doc": "`day`, `week`, `month` or `year`. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages; a month starts on the 1st, a year on 1 January. A year is labelled with the year alone, like `2024`. An unrecognised value warns and falls back to day"
         },
         "range": {
           "type": "string|number",
-          "doc": "the window, ending today: `week`, `month`, `year` (1 January of the current year to today) or a rolling count of days like `90d`. Defaults to `30d` for `day`, `182d` for `week` and `365d` for `month`. The window's start moves back to the start of the bucket it falls in, so only the last bucket can be partial. Above 400 buckets only the most recent 400 are drawn, and a window of a single bucket is drawn too; both warn. An unrecognised value warns and falls back to the default"
+          "doc": "the window, ending today: `week`, `month`, `year` (1 January of the current year to today) or a rolling count of days like `90d`. Defaults to `30d` for `day`, `182d` for `week`, `365d` for `month` and `3650d` for `year`. The window's start moves back to the start of the bucket it falls in, so only the last bucket can be partial. Above 400 buckets only the most recent 400 are drawn, and a window of a single bucket is drawn too; both warn. An unrecognised value warns and falls back to the default"
         },
         "type": {
           "type": "string",
@@ -670,7 +670,7 @@
         "link": {
           "type": "boolean",
           "default": true,
-          "doc": "clicking a `day` bucket opens that day's note, the first by path when there are several. No effect on `week` and `month` buckets"
+          "doc": "clicking a `day` bucket opens that day's note, the first by path when there are several. No effect on `week`, `month` and `year` buckets"
         },
         "title": {
           "type": "string",
@@ -723,7 +723,7 @@
         "A week starts on the locale's first day, the same day `period: week` and the heatmap grid use, and a week's tooltip names it: `Week of Sun Sep 27, 2026`.",
         "A bucket with no data is a gap in the line and no bar, never a zero: a missing day is not a day of zero. An unticked checkbox (`false`) is a real 0, and `count` over an empty bucket is a plain 0.",
         "`avg` is over values, not days: two notes on one day both count, so a week's average matches a stats card with `agg: avg` and `period: week`. `sum` of a checkbox counts the ticked days.",
-        "The last bucket is usually still running (this week, this month): it is drawn lighter, or as a hollow point on a line, and its tooltip ends with `so far`.",
+        "The last bucket is usually still running (this week, this month, this year): it is drawn lighter, or as a hollow point on a line, and its tooltip ends with `so far`.",
         "A list in the block's own `field` is an error rather than a guess: write `series:` for several lines, or `series: [{field: [a, b]}]` to fold several properties into one.",
         "Not in this block, on purpose: pie, doughnut, radar and scatter charts, stacked bars, cumulative sums, a second y axis, smoothing and trend lines, zoom, tick and axis settings, annotations, and a height key (the height is the `--dashy-chart-height` CSS variable, which a CSS snippet can change). Steps and sleep on one chart are two chart blocks."
       ]

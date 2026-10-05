@@ -4,7 +4,7 @@ description: >-
   Build a dashboard inside an Obsidian note with Dashy blocks: a grid of
   navigation tiles, number cards computed from frontmatter, a day row linking
   to the daily, weekly and monthly notes, a year heatmap, and a line or bar
-  chart of a number per day, week or month. Use it when asked for a
+  chart of a number per day, week, month or year. Use it when asked for a
   dashboard, a home page, a tile grid, cards with counters or averages, a
   link to today's note, a day calendar, a heatmap, a habit tracker, a chart
   or graph of a number over time, or a visual entry point into the vault.
@@ -294,7 +294,7 @@ bands: [90, 80, 60]
 
 ### `chart`
 
-A number over time: a line or bars per day, week or month, for one property or a few side by side.
+A number over time: a line or bars per day, week, month or year, for one property or a few side by side.
 
 **Block root**
 
@@ -307,15 +307,15 @@ A number over time: a line or bars per day, week or month, for one property or a
 | `field` | string | — | — | `property`, `prop` | required unless `series` is set or `agg` is `count`, and not allowed together with `series`. One numeric frontmatter property, or a checkbox (ticked is 1, unticked 0); dotted for a nested one like `health.sleep`. A duration string like `5h 58min` or `7:30` counts as minutes, and tooltips, the y axis and the goal label then read `5h 58m`. When every value of the field across the selected notes carries seconds, like `2:16:32`, tooltips read as a clock to the second; the axis and the goal label stay `2h 15m`. `H:MM` is always hours and minutes, so write a 5 km time as `0:18:51`, not `18:51`; a field mixing durations and plain numbers counts both as minutes, shows plain numbers and warns. One property only: a list here is an error, write `series` for several lines, or `series: [{field: [a, b]}]` to fold several properties into one line. A field missing from the selection, holding text rather than a number, or holding numbers only on undated notes errors and says which |
 | `series` | list | — | — | — | several lines, or groups of bars, instead of one `field`: `[{field, agg, label, color}]`, at most 4. Not used together with the block's own `field`. Every series is its own line, or its own bar beside the others, never stacked, and all of them share one y axis |
 | `agg` | string | — | `sum` | `aggregate` | how the values landing in one bucket collapse into one number: sum avg min max count. A bucket's values are every value the field(s) hold on every note dated in it, so two notes on one day both count and `avg` is over values, not days: the same number a stats card over that week shows. `sum` of a checkbox is the number of ticked days. `count` needs no `field` and counts the dated notes in the bucket; next to a `field` it warns and ignores it. With `series`, each entry may override it. An unknown value is an error |
-| `bucket` | string | — | `day` | — | `day`, `week` or `month`. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages; a month starts on the 1st. An unrecognised value warns and falls back to day |
-| `range` | string\|number | — | — | — | the window, ending today: `week`, `month`, `year` (1 January of the current year to today) or a rolling count of days like `90d`. Defaults to `30d` for `day`, `182d` for `week` and `365d` for `month`. The window's start moves back to the start of the bucket it falls in, so only the last bucket can be partial. Above 400 buckets only the most recent 400 are drawn, and a window of a single bucket is drawn too; both warn. An unrecognised value warns and falls back to the default |
+| `bucket` | string | — | `day` | — | `day`, `week`, `month` or `year`. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages; a month starts on the 1st, a year on 1 January. A year is labelled with the year alone, like `2024`. An unrecognised value warns and falls back to day |
+| `range` | string\|number | — | — | — | the window, ending today: `week`, `month`, `year` (1 January of the current year to today) or a rolling count of days like `90d`. Defaults to `30d` for `day`, `182d` for `week`, `365d` for `month` and `3650d` for `year`. The window's start moves back to the start of the bucket it falls in, so only the last bucket can be partial. Above 400 buckets only the most recent 400 are drawn, and a window of a single bucket is drawn too; both warn. An unrecognised value warns and falls back to the default |
 | `type` | string | — | `line` | — | `line` or `bar`, for the whole block. Bars always start at zero and hang below it for negative values; a line runs from its data's own minimum to its maximum. An unrecognised value warns and falls back to line |
 | `label` | string | — | — | `name` | the single series' name, in the caption and the tooltip; defaults to the field name. With `series`, each entry carries its own, and this one warns |
 | `color` | string | — | `blue` | `colour` | blue green cyan purple pink orange red gray, or #rrggbb. Ignored, with a warning, when `series` is set: each series carries its own colour instead |
 | `unit` | string | — | — | — | a suffix in the tooltip, the goal label and the top y axis label: km, %, steps. Ignored, with a warning, for a series of durations, which carry their own units |
 | `precision` | number | — | — | — | decimal places in the tooltip, the goal label and the y axis labels, 0 to 6; by default a whole number stays whole and a fraction gets one decimal; no effect on durations |
 | `goal` | number\|string | — | — | `target` | a dashed horizontal reference line with its value, also named in the legend; the y axis always stretches to show it. A duration like `8h` or `7:30` works too, read as minutes, and a plain number against durations means minutes. Anything else warns and is ignored |
-| `link` | boolean | — | `true` | — | clicking a `day` bucket opens that day's note, the first by path when there are several. No effect on `week` and `month` buckets |
+| `link` | boolean | — | `true` | — | clicking a `day` bucket opens that day's note, the first by path when there are several. No effect on `week`, `month` and `year` buckets |
 | `title` | string | — | — | — | a custom heading instead of the automatic one |
 
 **List item**
@@ -349,7 +349,7 @@ agg: avg
 - A week starts on the locale's first day, the same day `period: week` and the heatmap grid use, and a week's tooltip names it: `Week of Sun Sep 27, 2026`.
 - A bucket with no data is a gap in the line and no bar, never a zero: a missing day is not a day of zero. An unticked checkbox (`false`) is a real 0, and `count` over an empty bucket is a plain 0.
 - `avg` is over values, not days: two notes on one day both count, so a week's average matches a stats card with `agg: avg` and `period: week`. `sum` of a checkbox counts the ticked days.
-- The last bucket is usually still running (this week, this month): it is drawn lighter, or as a hollow point on a line, and its tooltip ends with `so far`.
+- The last bucket is usually still running (this week, this month, this year): it is drawn lighter, or as a hollow point on a line, and its tooltip ends with `so far`.
 - A list in the block's own `field` is an error rather than a guess: write `series:` for several lines, or `series: [{field: [a, b]}]` to fold several properties into one.
 - Not in this block, on purpose: pie, doughnut, radar and scatter charts, stacked bars, cumulative sums, a second y axis, smoothing and trend lines, zoom, tick and axis settings, annotations, and a height key (the height is the `--dashy-chart-height` CSS variable, which a CSS snippet can change). Steps and sleep on one chart are two chart blocks.
 
