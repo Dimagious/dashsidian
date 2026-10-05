@@ -1588,6 +1588,165 @@ items:
     });
 });
 
+describe("stats — one message per block for what the root got wrong (B-153)", () => {
+    // 2026-09-24 is a Thursday; the English week starts Sunday the 20th.
+    afterEach(() => vi.useRealTimers());
+
+    const logged = mockContext({
+        notes: [
+            { path: "Log/a.md", frontmatter: { day: "2026-09-23", gym: true } },
+            { path: "Log/b.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-22.md", frontmatter: { gym: true } },
+        ],
+    });
+
+    const withToday = (config: string) => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 8, 24));
+        const el = host();
+        renderStats(logged, config, el);
+        return el;
+    };
+
+    it("a bad root period is one warning for the block, not one per card", () => {
+        const el = withToday(`source: Log
+period: fortnight
+items:
+  - { label: A, agg: count }
+  - { label: B, agg: count }
+  - { label: C, field: gym, agg: sum }`);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: `period` at the block root expects week, month, year or a rolling window such as 30d, got "fortnight". Everything that inherits it is drawn unfiltered.',
+        ]);
+        // Unfiltered, as the warning says.
+        expect(texts(el, ".dashy-stat-value")).toEqual(["2", "2", "2"]);
+    });
+
+    it("compare under a bad root period adds no per-card `needs period` warning", () => {
+        const el = withToday(`source: Log
+period: fortnight
+items:
+  - { label: A, agg: count, compare: true }
+  - { label: B, agg: count, compare: true }`);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: `period` at the block root expects week, month, year or a rolling window such as 30d, got "fortnight". Everything that inherits it is drawn unfiltered.',
+        ]);
+        expect(nodes(el, ".dashy-stat-delta")).toHaveLength(0);
+    });
+
+    it("compare with no period anywhere still says it needs one", () => {
+        const el = withToday("source: Log\nitems:\n  - { label: A, agg: count, compare: true }");
+        expect(diagnostics(el, "warning")).toEqual(['⚠️ stats: "A": `compare` needs `period` set. There is nothing to compare against.']);
+    });
+
+    it("a card's own bad period still warns for that card, next to the root's", () => {
+        const el = withToday(`source: Log
+period: fortnight
+items:
+  - { label: A, agg: count }
+  - { label: B, agg: count, period: biweekly }
+  - { label: C, source: Diary, agg: count, period: week }`);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: `period` at the block root expects week, month, year or a rolling window such as 30d, got "fortnight". Everything that inherits it is drawn unfiltered.',
+            '⚠️ stats: "B": `period` expects week, month, year or a rolling window such as 30d, got "biweekly". Drawn unfiltered.',
+        ]);
+        // C's own week replaces the bad root value and counts its one diary day.
+        expect(texts(el, ".dashy-stat-value")).toEqual(["2", "2", "1"]);
+    });
+
+    it("a bad period on a single card without items: warns per card, as before", () => {
+        const el = withToday("label: A\nsource: Log\nperiod: fortnight\nagg: count");
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: "A": `period` expects week, month, year or a rolling window such as 30d, got "fortnight". Drawn unfiltered.',
+        ]);
+    });
+
+    it("an inherited date_field no selected note carries is one warning naming the cards", () => {
+        const el = withToday(`source: Diary
+date_field: day
+period: week
+items:
+  - { label: A, agg: count }
+  - { label: B, field: gym, agg: sum }
+  - { label: C, agg: count, period: month }`);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: `date_field` at the block root: none of the notes selected for "A", "B", "C" has a date in "day".',
+        ]);
+    });
+
+    it("only the cards that fall short are named; a card's own date_field warns on its own", () => {
+        const el = withToday(`date_field: day
+period: week
+items:
+  - { label: Logged, source: Log, agg: count }
+  - { label: Diary, source: Diary, agg: count }
+  - { agg: count, source: Diary }
+  - { label: Own, source: Diary, agg: count, date_field: when }`);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: "Own": none of the selected notes has a date in "when".',
+            '⚠️ stats: `date_field` at the block root: none of the notes selected for "Diary", a card with no label has a date in "day".',
+        ]);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["1", "0", "0", "0"]);
+    });
+
+    it("a root date_field that every card finds dates in warns about nothing", () => {
+        const el = withToday("source: Log\ndate_field: day\nperiod: week\nitems:\n  - { label: A, agg: count }");
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["1"]);
+    });
+});
+
+describe("stats — a blank source or tag widens the selection, and says so (B-154)", () => {
+    // The vault holds 10 Diary notes and 2 Books, both tagged read.
+    it("a card's blank source over the root reads the whole vault, with a warning", () => {
+        const el = card(`source: Diary
+items:
+  - { label: Days, agg: count }
+  - { label: All, source: , agg: count }
+  - { label: Empty, source: "", agg: count }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10", "12", "12"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: "All": `source` is empty, so it reads the whole vault instead of the folder at the block root. Remove the key to inherit that folder.',
+            '⚠️ stats: "Empty": `source` is empty, so it reads the whole vault instead of the folder at the block root. Remove the key to inherit that folder.',
+        ]);
+    });
+
+    it("a card's blank tag over the root drops the tag filter, with a warning", () => {
+        const el = card(`tag: read
+items:
+  - { label: Read, agg: count }
+  - { label: Any, tag: , agg: count }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["2", "12"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: "Any": `tag` is empty, so it has no tag filter instead of the tag at the block root. Remove the key to inherit that tag.',
+        ]);
+    });
+
+    it("without a root, a blank source still warns, with nothing to inherit", () => {
+        const el = card("items:\n  - { label: All, source: , agg: count }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["12"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: "All": `source` is empty, so it reads the whole vault. Name a folder, or remove the key if the whole vault is meant.',
+        ]);
+    });
+
+    it("a single card without items: with a blank tag warns as a card", () => {
+        const el = card("label: All\nsource: Diary\ntag:\nagg: count");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: "All": `tag` is empty, so no tag filter applies. Name a tag, or remove the key if no tag filter is meant.',
+        ]);
+    });
+
+    it("a blank source at the root is one warning, not one per card", () => {
+        const el = card("source:\nitems:\n  - { label: A, agg: count }\n  - { label: B, agg: count }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["12", "12"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            "⚠️ stats: `source` at the block root is empty, so the whole vault is read. Name a folder, or remove the key if the whole vault is meant.",
+        ]);
+    });
+});
+
 // B-145: race times written to the second read as a clock, `H:MM:SS`.
 describe("stats: race times as a clock", () => {
     // Thursday. In English the week starts on Sunday: this week is 20..24

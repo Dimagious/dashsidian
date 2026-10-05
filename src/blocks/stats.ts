@@ -1,6 +1,6 @@
 import type { BlockContext } from "./context";
 import { selectNotes, unmatchedSource } from "../core/source";
-import { readBlockSelection, inheritSelection } from "../core/inherit";
+import { readBlockSelection, inheritSelection, blankSelectionDiagnostics, undatedRootDiagnostics } from "../core/inherit";
 import { aggregate, series, classifyField, classifyValues } from "../core/aggregate";
 import { readDateField } from "../core/note-date";
 import { sparkBars } from "../core/sparkline";
@@ -91,15 +91,18 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
     const rootMissing = unmatchedSource(notes, block.source);
     if (rootMissing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: rootMissing }) });
 
+    // Cards whose inherited `date_field` found no dated note, named in one warning.
+    const undatedCards: string[] = [];
     for (const own of items) {
         diags.push(...unknownKeys(own, KNOWN_ITEM));
-        const { item, source, diagnostics: sourceDiags } = inheritSelection(own, block);
+        const { item, source, diagnostics: sourceDiags, inherited } = inheritSelection(own, block);
 
         const label = typeof item.label === "string" ? item.label : "";
+        const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
         const { spec, diagnostics: statDiags } = readStat(item, label);
         diags.push(...statDiags);
 
-        diags.push(...sourceDiags);
+        diags.push(...sourceDiags, ...blankSelectionDiagnostics(own, block, cardLabel));
         // An inherited folder was checked above; only the card's own is checked here.
         const missing = own.source !== undefined ? unmatchedSource(notes, source) : null;
         if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
@@ -115,7 +118,6 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         if (spec?.field && selected.length) {
             const fieldStatus = classifyField(selected, spec.field);
             if (fieldStatus !== "ok") {
-                const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
                 diags.push({
                     level: "warning",
                     message: fieldStatus === "missing"
@@ -132,7 +134,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         const duration = spec ? showsDuration(spec.agg, kinds.kind) : false;
         // B-145: race times written to the second read as `2:16:32`.
         const clock = spec ? showsClock(spec.agg, kinds) : false;
-        if (spec) diags.push(...durationDiagnostics(spec, kinds, label ? `"${label}"` : t("stats.unlabeledCard")));
+        if (spec) diags.push(...durationDiagnostics(spec, kinds, cardLabel));
 
         // `date_field` steers every reader of a note's date on this card:
         // `period`'s window below, and `streak`/`latest`/`trend` inside
@@ -142,12 +144,16 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         // `trend` keeps its own trailing window and reads `selected`
         // unfiltered — `period` narrows only what the number itself counts.
         const { spec: periodSpec, diagnostics: periodDiags } = readPeriod(item, label, dateField);
-        diags.push(...periodDiags);
+        // An inherited `period` that does not read was reported once at the root.
+        if (!inherited.has("period")) diags.push(...periodDiags);
         let counted = selected;
         if (periodSpec) {
             const windowed = filterByPeriod(selected, periodSpec.period, today, firstDay, periodSpec.dateField);
-            if (selected.length && !windowed.anyDated) {
-                const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
+            // An inherited `date_field` is reported once for the block, below.
+            const rootDateField = periodSpec.dateField !== undefined && inherited.has("date_field");
+            if (selected.length && !windowed.anyDated && rootDateField) {
+                undatedCards.push(cardLabel);
+            } else if (selected.length && !windowed.anyDated) {
                 diags.push({
                     level: "warning",
                     message: periodSpec.dateField
@@ -170,13 +176,18 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         // the cards that read dates and is simply not needed by the rest.
         if (dateField && spec && readDateField(own)
             && !dateFieldHasEffect(item.period !== undefined, spec.agg, item.trend !== undefined)) {
-            const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
             diags.push({ level: "warning", message: t("period.dateFieldUnused", { card: cardLabel }) });
         }
 
         const { spec: compareSpec, diagnostics: compareDiags } =
             readCompare(item, label, periodSpec !== null, spec?.agg);
-        diags.push(...compareDiags);
+        // An inherited root `period` that could not be read is already one
+        // warning for the block; "`compare` needs `period`" on every card
+        // would contradict it, since a period was written (B-153).
+        const needsPeriod = t("compare.needsPeriod", { card: cardLabel });
+        diags.push(...(inherited.has("period") && periodSpec === null
+            ? compareDiags.filter((d) => d.message !== needsPeriod)
+            : compareDiags));
 
         const current = spec
             ? aggregate(counted, {
@@ -229,6 +240,8 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
 
         cards.push(card);
     }
+
+    diags.push(...undatedRootDiagnostics(block, undatedCards));
 
     // Diagnostics before the cards: an error must be seen before a dash is.
     renderDiagnostics(el, "stats", diags);

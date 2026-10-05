@@ -33,8 +33,13 @@ removed public export.
   no longer has to be repeated on each card. A card's own `source`, `tag`,
   `period` or `date_field` replaces the root's for that card. `where` adds
   up instead: the root's conditions and the card's own must all hold. A
-  folder that does not exist or a `where` that cannot be read at the root is
-  reported once for the block, not once per card. A single card written
+  folder that does not exist, a `where` or `period` that cannot be read, an
+  empty `source` or `tag`, or a `date_field` that no note selected under
+  `period` has a date in is reported once for the block when it sits at the root, not
+  once per card; the `date_field` warning names the cards it affects. An
+  empty `source:` or `tag:` on a card still replaces the root's, so that card
+  reads the whole vault or drops the tag filter, and warns, naming the
+  card: remove the key to inherit the root's value. A single card written
   without `items:` reads as before. The `stats` example in **Insert block**
   now sets its folder at the root.
 - **Race times keep their seconds.** When every value of the field in the card's

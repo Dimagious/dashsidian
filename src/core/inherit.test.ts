@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { readBlockSelection, inheritSelection } from "./inherit";
+import {
+    readBlockSelection, inheritSelection, blankSelectionDiagnostics, undatedRootDiagnostics,
+} from "./inherit";
 import { selectNotes, type NoteRecord } from "./source";
 
 const SHARED = ["source", "tag", "where", "period", "date_field"] as const;
@@ -115,5 +117,105 @@ describe("inheritSelection", () => {
         ];
         const { source } = inheritSelection({ where: "sleep >= 8" }, block);
         expect(selectNotes(notes, source).map((n) => n.name)).toEqual(["a"]);
+    });
+});
+
+describe("readBlockSelection: root problems reported once for the block (B-153, B-154)", () => {
+    it("an unreadable root period is one block-level warning naming the value", () => {
+        const block = readBlockSelection({ period: "fortnight", items: [] }, SHARED);
+        expect(block.diagnostics.map((d) => d.message)).toEqual([
+            '`period` at the block root expects week, month, year or a rolling window such as 30d, got "fortnight". Everything that inherits it is drawn unfiltered.',
+        ]);
+        // Kept in the defaults: cards still inherit it and read it as no window.
+        expect(block.defaults.period).toBe("fortnight");
+    });
+
+    it("a readable root period, or none at all, warns about nothing", () => {
+        expect(readBlockSelection({ period: "30d", items: [] }, SHARED).diagnostics).toEqual([]);
+        expect(readBlockSelection({ period: "week", items: [] }, SHARED).diagnostics).toEqual([]);
+        expect(readBlockSelection({ source: "Diary", items: [] }, SHARED).diagnostics).toEqual([]);
+    });
+
+    it("a root period is not judged when the block does not share it", () => {
+        expect(readBlockSelection({ period: "fortnight", items: [] }, ["source"]).diagnostics).toEqual([]);
+    });
+
+    it("a blank root source or tag, null or empty text, warns once each", () => {
+        const nulls = readBlockSelection({ source: null, tag: null, items: [] }, SHARED);
+        expect(nulls.diagnostics.map((d) => d.message)).toEqual([
+            "`source` at the block root is empty, so the whole vault is read. Name a folder, or remove the key if the whole vault is meant.",
+            "`tag` at the block root is empty, so no tag filter applies. Name a tag, or remove the key if no tag filter is meant.",
+        ]);
+        const empties = readBlockSelection({ source: "", tag: "", items: [] }, SHARED);
+        expect(empties.diagnostics.map((d) => d.message)).toEqual(nulls.diagnostics.map((d) => d.message));
+    });
+
+    it("a single card without items: has no root, so nothing is reported for one", () => {
+        expect(readBlockSelection({ source: null, period: "fortnight" }, SHARED).diagnostics).toEqual([]);
+    });
+});
+
+describe("inheritSelection: which keys came from the root", () => {
+    const block = readBlockSelection({ source: "Diary", period: "week", date_field: "day", items: [] }, SHARED);
+
+    it("a silent card inherits every root key", () => {
+        expect([...inheritSelection({ label: "A" }, block).inherited].sort()).toEqual(["date_field", "period", "source"]);
+    });
+
+    it("a key the card writes, even blank, is its own", () => {
+        const { inherited } = inheritSelection({ period: "fortnight", source: null }, block);
+        expect([...inherited]).toEqual(["date_field"]);
+    });
+
+    it("nothing is inherited without a root", () => {
+        const none = readBlockSelection([{ label: "A" }], SHARED);
+        expect(inheritSelection({ label: "A" }, none).inherited.size).toBe(0);
+    });
+});
+
+describe("blankSelectionDiagnostics (B-154)", () => {
+    const root = readBlockSelection({ source: "Diary", tag: "habit", items: [] }, SHARED);
+    const bare = readBlockSelection({ items: [] }, SHARED);
+
+    it("a blank source or tag over a root value says what is lost and how to inherit it", () => {
+        expect(blankSelectionDiagnostics({ source: null, tag: "" }, root, '"Gym"').map((d) => d.message)).toEqual([
+            '"Gym": `source` is empty, so it reads the whole vault instead of the folder at the block root. Remove the key to inherit that folder.',
+            '"Gym": `tag` is empty, so it has no tag filter instead of the tag at the block root. Remove the key to inherit that tag.',
+        ]);
+    });
+
+    it("with nothing at the root to inherit, the warning only says what the blank means", () => {
+        expect(blankSelectionDiagnostics({ source: "", tag: null }, bare, '"Gym"').map((d) => d.message)).toEqual([
+            '"Gym": `source` is empty, so it reads the whole vault. Name a folder, or remove the key if the whole vault is meant.',
+            '"Gym": `tag` is empty, so no tag filter applies. Name a tag, or remove the key if no tag filter is meant.',
+        ]);
+    });
+
+    it("a blank root value is nothing to inherit either", () => {
+        const blankRoot = readBlockSelection({ source: null, items: [] }, SHARED);
+        expect(blankSelectionDiagnostics({ source: "" }, blankRoot, '"Gym"').map((d) => d.message)).toEqual([
+            '"Gym": `source` is empty, so it reads the whole vault. Name a folder, or remove the key if the whole vault is meant.',
+        ]);
+    });
+
+    it("a written value, a missing key or whitespace is not blank", () => {
+        expect(blankSelectionDiagnostics({ source: "Gym", tag: "run" }, root, '"Gym"')).toEqual([]);
+        expect(blankSelectionDiagnostics({}, root, '"Gym"')).toEqual([]);
+        expect(blankSelectionDiagnostics({ source: " " }, root, '"Gym"')).toEqual([]);
+    });
+});
+
+describe("undatedRootDiagnostics (B-153)", () => {
+    const block = readBlockSelection({ date_field: "day", items: [] }, SHARED);
+
+    it("names every card that found no date, in one warning", () => {
+        expect(undatedRootDiagnostics(block, ['"A"', '"B"']).map((d) => d.message)).toEqual([
+            '`date_field` at the block root: none of the notes selected for "A", "B" has a date in "day".',
+        ]);
+    });
+
+    it("no card falling short, or no root date_field, is no warning", () => {
+        expect(undatedRootDiagnostics(block, [])).toEqual([]);
+        expect(undatedRootDiagnostics(readBlockSelection({ items: [] }, SHARED), ['"A"'])).toEqual([]);
     });
 });

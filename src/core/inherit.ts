@@ -1,5 +1,8 @@
-import { isRecord, type Diagnostic } from "../shared/parse";
+import { describeValue, isRecord, type Diagnostic } from "../shared/parse";
+import { t, type MessageKey } from "../i18n";
 import { readSource, readWhere, type SourceSpec } from "./source";
+import { parsePeriod } from "./period";
+import { readDateField } from "./note-date";
 
 /**
  * Selection written once at the block root and inherited by every card under
@@ -41,6 +44,16 @@ export function readBlockSelection(value: unknown, shared: readonly string[]): B
         defaults[key] = value[key];
     }
     const { spec, diagnostics } = readSource(value);
+    for (const key of BLANKABLE) {
+        if (isBlank(value[key])) diagnostics.push({ level: "warning", message: t(BLANK_AT_ROOT[key]) });
+    }
+    // Checked here, once, so a card that inherits it does not repeat it (B-153).
+    if (shared.includes("period") && value.period !== undefined && parsePeriod(value.period) === null) {
+        diagnostics.push({
+            level: "warning",
+            message: t("inherit.rootPeriodInvalid", { value: describeValue(value.period) }),
+        });
+    }
     return { defaults, source: spec, diagnostics };
 }
 
@@ -57,14 +70,94 @@ export function readBlockSelection(value: unknown, shared: readonly string[]): B
 export function inheritSelection(
     card: Record<string, unknown>,
     block: BlockSelection,
-): { item: Record<string, unknown>; source: SourceSpec; diagnostics: Diagnostic[] } {
+): {
+    item: Record<string, unknown>;
+    source: SourceSpec;
+    diagnostics: Diagnostic[];
+    /** The keys `item` took from the root because the card did not write them. */
+    inherited: ReadonlySet<string>;
+} {
     const item = { ...block.defaults, ...card };
     const { spec, diagnostics } = readSource(item);
     const where = combineWhere(block.source.where, spec.where);
     const source: SourceSpec = { ...spec };
     if (where === undefined) delete source.where;
     else source.where = where;
-    return { item, source, diagnostics };
+    const inherited = new Set(
+        Object.keys(block.defaults).filter((key) => !Object.prototype.hasOwnProperty.call(card, key)),
+    );
+    return { item, source, diagnostics, inherited };
+}
+
+/** The keys whose blank value widens the selection instead of narrowing it. */
+const BLANKABLE = ["source", "tag"] as const;
+type Blankable = (typeof BLANKABLE)[number];
+
+const BLANK_AT_ROOT: Record<Blankable, MessageKey> = {
+    source: "inherit.blankSourceRoot",
+    tag: "inherit.blankTagRoot",
+};
+const BLANK_OVER_ROOT: Record<Blankable, MessageKey> = {
+    source: "inherit.blankSource",
+    tag: "inherit.blankTag",
+};
+const BLANK_ALONE: Record<Blankable, MessageKey> = {
+    source: "inherit.blankSourceNoRoot",
+    tag: "inherit.blankTagNoRoot",
+};
+
+/**
+ * `source:` or `tag:` written with no value (YAML null) or as `""`.
+ *
+ * Either one filters nothing: a blank `source` reads the whole vault and a
+ * blank `tag` drops the tag filter. On a card under a root selection it also
+ * replaces the root's value, so the card silently reads more than the block
+ * around it (B-154). Only these two exact shapes count. A whitespace-only
+ * value is neither blank here nor caught by `unmatchedSource` (its trim and
+ * `inFolder` disagree), so it selects nothing without a word; that is older
+ * than this and tracked as B-156.
+ */
+function isBlank(value: unknown): boolean {
+    return value === null || value === "";
+}
+
+/**
+ * Warnings for a card that writes `source` or `tag` blank (B-154).
+ *
+ * The behaviour stays: the blank value still replaces the root's. The
+ * warning names the card and the key, and says what removing the key would
+ * do instead: inherit the root's value when the root has a usable one, and
+ * otherwise nothing different, so it only confirms the whole vault or no tag
+ * filter was meant. `cardLabel` is the card as the block names it.
+ */
+export function blankSelectionDiagnostics(
+    card: Record<string, unknown>,
+    block: BlockSelection,
+    cardLabel: string,
+): Diagnostic[] {
+    const out: Diagnostic[] = [];
+    for (const key of BLANKABLE) {
+        if (!isBlank(card[key])) continue;
+        const rootValue = block.defaults[key];
+        const overridesRoot = rootValue !== undefined && !isBlank(rootValue);
+        const message = overridesRoot ? BLANK_OVER_ROOT[key] : BLANK_ALONE[key];
+        out.push({ level: "warning", message: t(message, { card: cardLabel }) });
+    }
+    return out;
+}
+
+/**
+ * One warning for a root `date_field` that no note selected by the cards
+ * that inherit it carries (B-153), naming those cards. Empty when no card
+ * fell short. A card's own `date_field` keeps its per-card warning instead.
+ */
+export function undatedRootDiagnostics(block: BlockSelection, cards: readonly string[]): Diagnostic[] {
+    const field = readDateField(block.defaults);
+    if (!field || !cards.length) return [];
+    return [{
+        level: "warning",
+        message: t("inherit.rootDateFieldUndated", { field, cards: cards.join(", ") }),
+    }];
 }
 
 /**

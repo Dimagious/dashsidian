@@ -35,6 +35,23 @@ export const fr: Catalog = {
     "where.emptyList":
         "`where` est une liste vide, le filtre a donc été ignoré et les chiffres ci-dessous ne sont pas filtrés. Listez des conditions, par exemple `[year = 2026, rating >= 4]`, ou retirez la clé.",
 
+    "inherit.rootPeriodInvalid":
+        "`period` à la racine du bloc attend week, month, year ou une fenêtre glissante comme 30d, reçu « {value} ». Tout ce qui en hérite est dessiné sans la fenêtre.",
+    "inherit.rootDateFieldUndated":
+        "`date_field` à la racine du bloc : aucune des notes sélectionnées pour {cards} n'a de date dans « {field} ».",
+    "inherit.blankSourceRoot":
+        "`source` à la racine du bloc est vide, donc tout le coffre est lu. Indiquez un dossier, ou retirez la clé si tout le coffre est voulu.",
+    "inherit.blankTagRoot":
+        "`tag` à la racine du bloc est vide, donc aucun filtre par tag ne s'applique. Indiquez un tag, ou retirez la clé si aucun filtre par tag n'est voulu.",
+    "inherit.blankSource":
+        "{card} : `source` est vide, donc tout le coffre est lu au lieu du dossier à la racine du bloc. Retirez la clé pour hériter de ce dossier.",
+    "inherit.blankTag":
+        "{card} : `tag` est vide, donc aucun filtre par tag ne s'applique au lieu du tag à la racine du bloc. Retirez la clé pour hériter de ce tag.",
+    "inherit.blankSourceNoRoot":
+        "{card} : `source` est vide, donc tout le coffre est lu. Indiquez un dossier, ou retirez la clé si tout le coffre est voulu.",
+    "inherit.blankTagNoRoot":
+        "{card} : `tag` est vide, donc aucun filtre par tag ne s'applique. Indiquez un tag, ou retirez la clé si aucun filtre par tag n'est voulu.",
+
     "tiles.empty": "Aucune tuile à dessiner. Attendu : `items:` ou une liste.",
     "tiles.dateFieldUnused": "{card} : `date_field` n'a aucun effet sans `period`.",
     "tiles.selectionUnused": "{card} : `tag`, `where`, `period` et `date_field` ne font que restreindre `badge: count`.",
