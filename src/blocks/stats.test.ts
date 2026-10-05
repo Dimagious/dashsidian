@@ -1418,3 +1418,172 @@ describe("stats — durations", () => {
         expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +36\u00A0мин"]);
     });
 });
+
+describe("stats — selection at the block root (B-131)", () => {
+    it("every card inherits the root source", () => {
+        const el = card(`source: Diary
+items:
+  - { label: Days, agg: count }
+  - { label: Sleep, field: sleep_score, agg: avg }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10", "74.5"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("a card's own source replaces the root's for that card only", () => {
+        const el = card(`source: Diary
+items:
+  - { label: Days, agg: count }
+  - { label: Books, source: Books, agg: count }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10", "2"]);
+    });
+
+    it("a card's own tag replaces the root's", () => {
+        const el = card(`tag: missing
+items:
+  - { label: None, agg: count }
+  - { label: Read, tag: "#read", agg: count }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["0", "2"]);
+    });
+
+    it("`folder` at the root is read as source (ADR 0004)", () => {
+        const el = card("folder: Diary\nitems:\n  - { label: Days, agg: count }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("`title` at the root is still an unknown key, not a label", () => {
+        const el = card("title: Mine\nsource: Diary\nitems:\n  - { label: Days, agg: count }");
+        expect(diagnostics(el, "warning")).toEqual(['⚠️ stats: Unknown key "title", ignored.']);
+        expect(texts(el, ".dashy-stat-label")).toEqual(["Days"]);
+    });
+
+    it("root and card where both hold", () => {
+        // sleep_score >= 75 keeps days 5..9; steps < 1800 keeps days 0..7.
+        const el = card(`source: Diary
+where: "sleep_score >= 75"
+items:
+  - { label: Root only, agg: count }
+  - { label: Both, where: "steps < 1800", agg: count }
+  - { label: Listed, where: ["steps < 1800", "steps > 1500"], agg: count }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["5", "3", "2"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("an unreadable root where is reported once for the whole block", () => {
+        const el = card(`source: Diary
+where: "sleep_score >= 75 or steps < 1800"
+items:
+  - { label: A, agg: count }
+  - { label: B, agg: count }
+  - { label: C, where: "steps < 1800", agg: count }`);
+        const warnings = diagnostics(el, "warning");
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0]).toContain("uses `or`");
+        // The root filter is dropped whole; the card's own still applies.
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10", "10", "8"]);
+    });
+
+    it("a root folder that does not exist is reported once, a card's own as before", () => {
+        const el = card(`source: Nowhere
+items:
+  - { label: A, agg: count }
+  - { label: B, agg: count }
+  - { label: C, source: Elsewhere, agg: count }`);
+        expect(diagnostics(el, "warning")).toEqual([
+            "⚠️ stats: Nothing is filed under `Nowhere`. The numbers below count nothing. Point `source` at a folder of your own.",
+            "⚠️ stats: Nothing is filed under `Elsewhere`. The numbers below count nothing. Point `source` at a folder of your own.",
+        ]);
+    });
+
+    it("a block without any source counts the whole vault, as before", () => {
+        const el = card("items:\n  - { label: All, agg: count }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["12"]);
+    });
+
+    it("a single card written without items keeps its where once, not twice", () => {
+        const ok = card('label: Late\nsource: Diary\nwhere: "sleep_score >= 75"\nagg: count');
+        expect(texts(ok, ".dashy-stat-value")).toEqual(["5"]);
+        expect(diagnostics(ok, "warning")).toEqual([]);
+
+        const bad = card('label: Late\nsource: Diary\nwhere: "a or b"\nagg: count');
+        expect(diagnostics(bad, "warning")).toHaveLength(1);
+    });
+});
+
+describe("stats — period and date_field at the block root (B-131)", () => {
+    // 2026-09-24 is a Thursday; the English week starts Sunday the 20th.
+    const TODAY = new Date(2026, 8, 24);
+    afterEach(() => vi.useRealTimers());
+
+    const dated = mockContext({
+        notes: [
+            { path: "Diary/2026-09-15.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-18.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-20.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-21.md", frontmatter: { gym: false } },
+            { path: "Diary/2026-09-22.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-09-24.md", frontmatter: { gym: true } },
+            { path: "Log/a.md", frontmatter: { day: "2026-09-23", gym: true } },
+            { path: "Log/b.md", frontmatter: { day: "2026-09-10", gym: true } },
+        ],
+    });
+
+    const withToday = (config: string) => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(dated, config, el);
+        return el;
+    };
+
+    it("cards inherit the root period, and a card's own replaces it", () => {
+        const el = withToday(`source: Diary
+period: week
+items:
+  - { label: Week, field: gym, agg: sum }
+  - { label: Month, field: gym, agg: sum, period: month }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["3", "5"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("compare works off an inherited period", () => {
+        const el = withToday(`source: Diary
+period: week
+items:
+  - { label: Week, field: gym, agg: sum, compare: true }`);
+        expect(diagnostics(el, "warning")).toEqual([]);
+        // 3 this week (Sun 20 to Thu 24) against 1 on the same days before.
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +2"]);
+    });
+
+    it("cards inherit the root date_field, and a card's own replaces it", () => {
+        const el = withToday(`source: Log
+date_field: day
+period: week
+items:
+  - { label: By day, agg: count }
+  - { label: By other, agg: count, date_field: other }`);
+        expect(texts(el, ".dashy-stat-value")[0]).toBe("1");
+        expect(texts(el, ".dashy-stat-value")[1]).toBe("0");
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: "By other": none of the selected notes has a date in "other".',
+        ]);
+    });
+
+    it("a root date_field a card has no use for does not warn on that card", () => {
+        const el = withToday(`source: Log
+date_field: day
+items:
+  - { label: All, agg: count }
+  - { label: Latest, field: gym, agg: latest }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["2", "1"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("a card's own date_field with no use still warns, as before", () => {
+        const el = withToday("source: Log\nitems:\n  - { label: All, agg: count, date_field: day }");
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: "All": `date_field` has no effect here. It only steers `period`, `streak`, `current_streak`, `latest` and `trend`.',
+        ]);
+    });
+});

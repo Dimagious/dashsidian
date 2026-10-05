@@ -1,5 +1,6 @@
 import type { BlockContext } from "./context";
-import { selectNotes, readSource, unmatchedSource } from "../core/source";
+import { selectNotes, unmatchedSource } from "../core/source";
+import { readBlockSelection, inheritSelection } from "../core/inherit";
 import { aggregate, series, classifyField, classifyValues } from "../core/aggregate";
 import { readDateField } from "../core/note-date";
 import { sparkBars } from "../core/sparkline";
@@ -27,6 +28,8 @@ import schema from "./schema.json";
 /** Keys come from schema.json — the same source the agent skill is built from. */
 const KNOWN_ITEM = Object.keys(schema.blocks.stats.item);
 const KNOWN_ROOT = Object.keys(schema.blocks.stats.root);
+/** Keys a card inherits from the block root: the ones the schema declares at both levels. */
+const SHARED = KNOWN_ROOT.filter((key) => KNOWN_ITEM.includes(key));
 
 interface Delta {
     /** decorative glyph, kept out of what a screen reader reads as meaningful */
@@ -77,16 +80,24 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
     const firstDay = firstDayOfWeek();
     const cards: Card[] = [];
 
-    for (const item of items) {
-        diags.push(...unknownKeys(item, KNOWN_ITEM));
+    // A selection at the block root is read, and its problems reported, once
+    // for the whole block rather than once per card that inherits it.
+    const block = readBlockSelection(value, SHARED);
+    diags.push(...block.diagnostics);
+    const rootMissing = unmatchedSource(notes, block.source);
+    if (rootMissing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: rootMissing }) });
+
+    for (const own of items) {
+        diags.push(...unknownKeys(own, KNOWN_ITEM));
+        const { item, source, diagnostics: sourceDiags } = inheritSelection(own, block);
 
         const label = typeof item.label === "string" ? item.label : "";
         const { spec, diagnostics: statDiags } = readStat(item, label);
         diags.push(...statDiags);
 
-        const { spec: source, diagnostics: sourceDiags } = readSource(item);
         diags.push(...sourceDiags);
-        const missing = unmatchedSource(notes, source);
+        // An inherited folder was checked above; only the card's own is checked here.
+        const missing = own.source !== undefined ? unmatchedSource(notes, source) : null;
         if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
         const selected = selectNotes(notes, source);
 
@@ -148,8 +159,10 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         // not by whether it parsed: an unreadable `period` or `trend` has
         // already earned its own diagnostic above, and this one would only
         // double up on the same mistake. Skipped entirely when `agg` itself
-        // failed to parse: that too already has its own diagnostic.
-        if (dateField && spec
+        // failed to parse: that too already has its own diagnostic. Only a
+        // card's own `date_field` is judged: one set at the block root serves
+        // the cards that read dates and is simply not needed by the rest.
+        if (dateField && spec && readDateField(own)
             && !dateFieldHasEffect(item.period !== undefined, spec.agg, item.trend !== undefined)) {
             const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
             diags.push({ level: "warning", message: t("period.dateFieldUnused", { card: cardLabel }) });

@@ -67,6 +67,11 @@ Number cards: one value per card, computed over a selection of notes.
 |---|---|---|---|---|---|
 | `columns` | number | — | `3` | — | columns in the grid, 1 to 6 |
 | `items` | list | yes | — | — | the list of cards |
+| `source` | string | — | — | `folder`, `from` | folder for every card that names none of its own; includes nested ones. A card's own `source` replaces it |
+| `tag` | string | — | — | — | tag for every card that names none of its own, with or without the hash. A card's own `tag` replaces it |
+| `where` | string\|list | — | — | — | conditions every card must meet, written like a card's `where`. A card's own `where` does not replace it but narrows further: both must hold |
+| `period` | string\|number | — | — | — | window for every card that sets none of its own, written like a card's `period`. A card's own `period` replaces it |
+| `date_field` | string | — | — | — | date property for every card that sets none of its own, written like a card's `date_field`. A card's own `date_field` replaces it |
 
 **List item**
 
@@ -97,11 +102,12 @@ Number cards: one value per card, computed over a selection of notes.
 ````markdown
 ```stats
 columns: 3
+source: Diary
 items:
   - { label: Notes, source: 01-Areas, agg: count }
-  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }
-  - { label: Best streak, source: Diary, field: sleep_score, agg: streak }
-  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }
+  - { label: Sleep, field: sleep_score, agg: avg, precision: 1, trend: 30d }
+  - { label: Best streak, field: sleep_score, agg: streak }
+  - { label: Gym this week, field: gym, agg: sum, period: week, compare: true, better: up }
 ```
 ````
 
@@ -111,6 +117,7 @@ items:
 - `period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting.
 - `compare` needs a note in both windows; when either the current or the previous stretch has none at all, the card shows its number alone with no delta. `streak` and `current_streak` have no value of their own to compare and refuse `compare` outright, the way `trend` refuses `count`.
 - `at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak` and `current_streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. `skip_field` does the same for a day any note marks special, `vacation: true` or `sick: flu` for example, and combines with `days: weekdays`. All three keys apply to `agg: streak` and `agg: current_streak` only and are ignored on every other aggregate.
+- `source`, `tag`, `where`, `period` and `date_field` written at the block root, next to `items:`, apply to every card, so a folder shared by the whole block is written once. A card's own `source`, `tag`, `period` or `date_field` replaces the root's for that card; `where` is the exception: the root's conditions and the card's own both hold. A root folder that does not exist, or a root `where` that cannot be read, is reported once for the block. Without `items:` the block is a single card and these keys are simply its own.
 
 ### `progress`
 
@@ -122,6 +129,11 @@ Bars towards a goal: how far a number has come against a target.
 |---|---|---|---|---|---|
 | `columns` | number | — | `1` | — | columns in the grid, 1 to 4; without it every bar is its own row |
 | `items` | list | yes | — | — | the list of bars |
+| `source` | string | — | — | `folder`, `from` | folder for every bar that names none of its own; includes nested ones. A bar's own `source` replaces it |
+| `tag` | string | — | — | — | tag for every bar that names none of its own, with or without the hash. A bar's own `tag` replaces it |
+| `where` | string\|list | — | — | — | conditions every bar must meet, written like a bar's `where`. A bar's own `where` does not replace it but narrows further: both must hold |
+| `period` | string\|number | — | — | — | window for every bar that sets none of its own, written like a bar's `period`. A bar's own `period` replaces it |
+| `date_field` | string | — | — | — | date property for every bar that sets none of its own, written like a bar's `date_field`. A bar's own `date_field` replaces it |
 
 **List item**
 
@@ -160,6 +172,7 @@ items:
 - `streak` counts the longest run of consecutive days on record; label the bar "Best streak" or "Longest streak". `current_streak` counts the run going on now, label it "Current streak" or "Days in a row": today never breaks it, a day not filled yet leaves the run counted up to yesterday, and only a gap on yesterday or earlier resets it. It counts within the selection after `period`, `where`, `tag` and `source`, so `period: month` stops it at the first of the month.
 - `period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting.
 - `at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak` and `current_streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. `skip_field` does the same for a day any note marks special, `vacation: true` or `sick: flu` for example, and combines with `days: weekdays`. All three keys apply to `agg: streak` and `agg: current_streak` only and are ignored on every other aggregate.
+- `source`, `tag`, `where`, `period` and `date_field` written at the block root, next to `items:`, apply to every bar, so a folder shared by the whole block is written once. A bar's own `source`, `tag`, `period` or `date_field` replaces the root's for that bar; `where` is the exception: the root's conditions and the bar's own both hold. A root folder that does not exist, or a root `where` that cannot be read, is reported once for the block. Without `items:` the block is a single bar and these keys are simply its own.
 
 ### `today`
 
