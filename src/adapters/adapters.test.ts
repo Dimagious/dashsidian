@@ -1,6 +1,6 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { Platform, type App } from "obsidian";
-import { snapshot, noteExists, VaultSnapshot } from "./vault";
+import { snapshot, noteExists, VaultSnapshot, pathKind, revealFolder } from "./vault";
 import { discoverPeriodics } from "./periodic";
 import {
     formatDate, currentLocale, weekdayNamesShort, monthNamesShort, firstDayOfWeek, monthYearShort, formatDayMedium,
@@ -91,6 +91,57 @@ describe("vault snapshot", () => {
         const app = mockApp({ notes: [{ path: "a.md" }] });
         expect(noteExists(app, "a.md")).toBe(true);
         expect(noteExists(app, "b.md")).toBe(false);
+    });
+});
+
+describe("folder lookups (B-144)", () => {
+    function explorer(reveal: (file: { path: string }) => void, enabled: unknown = true): unknown {
+        return { enabled, instance: { revealInFolder: reveal } };
+    }
+
+    it("pathKind tells a file, a folder and nothing apart", () => {
+        const app = mockApp({ notes: [{ path: "A/B/c.md" }] });
+        expect(pathKind(app, "A/B/c.md")).toBe("file");
+        expect(pathKind(app, "A/B")).toBe("folder");
+        expect(pathKind(app, "A")).toBe("folder");
+        expect(pathKind(app, "A/B/d.md")).toBeNull();
+    });
+
+    it("revealFolder hands the folder itself to the file explorer", () => {
+        const revealed: string[] = [];
+        const app = mockApp({ notes: [{ path: "A/B/c.md" }], fileExplorer: explorer((f) => revealed.push(f.path)) });
+        expect(revealFolder(app, "A/B")).toBe(true);
+        expect(revealed).toEqual(["A/B"]);
+    });
+
+    it("revealFolder refuses a file and a path that is not there", () => {
+        const revealed: string[] = [];
+        const app = mockApp({ notes: [{ path: "A/c.md" }], fileExplorer: explorer((f) => revealed.push(f.path)) });
+        expect(revealFolder(app, "A/c.md")).toBe(false);
+        expect(revealFolder(app, "Nowhere")).toBe(false);
+        expect(revealed).toEqual([]);
+    });
+
+    it("revealFolder does nothing when the explorer is off, missing or not the expected shape", () => {
+        const notes = [{ path: "A/c.md" }];
+        const reveal = vi.fn();
+        for (const fileExplorer of [
+            explorer(reveal, false), explorer(reveal, "yes"), undefined, null, "file-explorer",
+            { enabled: true }, { enabled: true, instance: { revealInFolder: "no" } },
+        ]) {
+            expect(revealFolder(mockApp({ notes, fileExplorer }), "A")).toBe(false);
+        }
+        expect(revealFolder(mockApp({ notes, fileExplorer: explorer(reveal) }), "A")).toBe(true);
+        expect(reveal).toHaveBeenCalledTimes(1);
+    });
+
+    it("revealFolder reports an explorer that throws instead of passing it on", () => {
+        const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+        const app = mockApp({ notes: [{ path: "A/c.md" }], fileExplorer: explorer(() => { throw new Error("boom"); }) });
+        expect(revealFolder(app, "A")).toBe(false);
+        expect(logged).toHaveBeenCalledTimes(1);
+        expect(logged.mock.calls[0]?.[0]).toBe('[dashy] could not reveal the folder "A" in the file explorer');
+        logged.mockRestore();
     });
 });
 

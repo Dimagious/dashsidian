@@ -27,7 +27,7 @@ A grid of link tiles for navigating the vault.
 | key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
 | `label` | string | yes | — | `title`, `name` | caption |
-| `path` | string | yes | — | — | where it leads; understands File.base#View |
+| `path` | string | yes | — | — | where it leads: a note, File.base#View, or a folder. A folder opens its folder note, `Folder/Folder.md` or else `Folder.md` next to it, and without one shows the folder in the file explorer |
 | `tag` | string | — | — | — | tag, with or without the hash; narrows `badge: count` |
 | `where` | string\|list | — | — | — | a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, "rating >= 4"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or`. One unreadable condition drops the whole filter with a warning, and the count is drawn unfiltered. Narrows `badge: count` |
 | `period` | string\|number | — | — | — | narrow `badge: count` to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. Notes without a date are left out first. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages |

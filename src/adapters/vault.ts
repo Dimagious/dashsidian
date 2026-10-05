@@ -1,5 +1,7 @@
 import type { App, TAbstractFile, TFile } from "obsidian";
 import type { NoteRecord } from "../core/source";
+import type { PathKind } from "../core/folder-tile";
+import { isRecord } from "../shared/parse";
 
 /**
  * A snapshot of the vault metadata. The only place where blocks touch Obsidian
@@ -42,6 +44,49 @@ export function noteExists(app: App, path: string): boolean {
 /** `TFolder` is the only other thing either lookup below can hand back. */
 function isTFile(file: TAbstractFile): file is TFile {
     return "extension" in file;
+}
+
+/**
+ * What sits at an exact vault path: a file, a folder, or nothing. Lets
+ * `core/folder-tile.ts` tell a folder tile from a note tile.
+ */
+export function pathKind(app: App, path: string): PathKind {
+    const found = app.vault.getAbstractFileByPath(path);
+    if (!found) return null;
+    return isTFile(found) ? "file" : "folder";
+}
+
+/** The private part of App: absent from the public types, but stable for years. */
+interface InternalPluginHost {
+    internalPlugins?: { plugins?: Record<string, unknown> };
+}
+
+interface FileExplorer {
+    revealInFolder: (file: TAbstractFile) => void;
+}
+
+function isFileExplorer(value: unknown): value is FileExplorer {
+    return isRecord(value) && typeof value.revealInFolder === "function";
+}
+
+/**
+ * Shows a folder in the core file explorer, the way its own "Reveal file in
+ * navigation" does (B-144). Does nothing when the explorer is switched off,
+ * missing, or the folder is gone: a tile click must never create a file and
+ * never throw. Returns whether the folder was revealed.
+ */
+export function revealFolder(app: App, path: string): boolean {
+    const folder = app.vault.getAbstractFileByPath(path);
+    if (!folder || isTFile(folder)) return false;
+    const plugin = (app as unknown as InternalPluginHost).internalPlugins?.plugins?.["file-explorer"];
+    if (!isRecord(plugin) || plugin.enabled !== true || !isFileExplorer(plugin.instance)) return false;
+    try {
+        plugin.instance.revealInFolder(folder);
+        return true;
+    } catch (error) {
+        console.error(`[dashy] could not reveal the folder "${path}" in the file explorer`, error);
+        return false;
+    }
 }
 
 /**

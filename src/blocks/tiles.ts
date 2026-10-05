@@ -3,8 +3,9 @@ import { selectNotes, readSource, unmatchedSource } from "../core/source";
 import { readDateField } from "../core/note-date";
 import { readPeriod, filterByPeriod, dateFieldHasEffect } from "../core/period";
 import { classifyImage } from "../core/image";
+import { tileTarget, type TileTarget } from "../core/folder-tile";
 import { firstDayOfWeek } from "../adapters/datetime";
-import { resolveImage } from "../adapters/vault";
+import { resolveImage, pathKind, revealFolder } from "../adapters/vault";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
 import { t } from "../i18n";
@@ -22,7 +23,8 @@ interface TileBadge {
 
 interface Tile {
     label: string;
-    path: string;
+    /** where a click leads; absent for a tile without a `path` */
+    target?: TileTarget;
     accent: boolean;
     icon?: string;
     sub?: string;
@@ -78,7 +80,10 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
             item.tag !== undefined || item.where !== undefined ||
             item.period !== undefined || item.date_field !== undefined;
 
-        const tile: Tile = { label: label || path, path, accent: item.accent === true };
+        const tile: Tile = { label: label || path, accent: item.accent === true };
+        // A folder is not a link target: linked as is, it reads as unresolved
+        // and a click creates an empty note inside it (B-144).
+        if (path) tile.target = tileTarget(path, (p) => pathKind(ctx.app, p));
         if (typeof item.icon === "string") tile.icon = item.icon;
         if (typeof item.sub === "string") tile.sub = item.sub;
 
@@ -163,9 +168,11 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
         let cls = tile.accent ? "dashy-tile dashy-tile-accent" : "dashy-tile";
         if (tile.cover) cls += " dashy-tile-has-cover";
         const tileEl = grid.createDiv({ cls });
-        const link = tile.path
-            ? internalLink(tileEl, tile.path, "dashy-tile-link")
-            : tileEl.createDiv({ cls: "dashy-tile-link" });
+        const link = !tile.target
+            ? tileEl.createDiv({ cls: "dashy-tile-link" })
+            : tile.target.kind === "folder"
+                ? folderLink(ctx, tileEl, tile.target.path)
+                : internalLink(tileEl, tile.target.path, "dashy-tile-link");
 
         if (tile.cover) {
             link.createEl("img", {
@@ -186,4 +193,32 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
 
         if (tile.sub) link.createSpan({ cls: "dashy-tile-sub", text: tile.sub });
     }
+}
+
+/**
+ * A tile for a folder without a folder note. Not an `.internal-link` and
+ * without an `href`: Obsidian would offer to create the folder path as a note
+ * on any click, middle and modifier clicks included. A click shows the folder
+ * in the file explorer instead, and does nothing when the explorer is off.
+ */
+function folderLink(ctx: BlockContext, parent: HTMLElement, path: string): HTMLAnchorElement {
+    const link = parent.createEl("a", {
+        cls: "dashy-tile-link dashy-tile-folder",
+        attr: { role: "link", tabindex: "0" },
+    });
+    const reveal = (evt: Event): void => {
+        evt.preventDefault();
+        evt.stopPropagation();
+        revealFolder(ctx.app, path);
+    };
+    link.addEventListener("click", reveal);
+    // A middle click arrives as `auxclick`, not `click`.
+    link.addEventListener("auxclick", (evt) => {
+        evt.preventDefault();
+        evt.stopPropagation();
+    });
+    link.addEventListener("keydown", (evt) => {
+        if (evt.key === "Enter") reveal(evt);
+    });
+    return link;
 }

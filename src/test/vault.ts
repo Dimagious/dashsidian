@@ -27,6 +27,8 @@ export interface FakeVault {
     periodicNotes?: unknown;
     /** options of the core Daily notes plugin, any shape */
     dailyNotes?: unknown;
+    /** the core File explorer plugin's entry (`{ enabled, instance }`), any shape */
+    fileExplorer?: unknown;
 }
 
 function toFile(note: FakeNote) {
@@ -36,9 +38,9 @@ function toFile(note: FakeNote) {
     return { path: note.path, basename, parent: { path: folder }, note };
 }
 
-/** `extension` is the one field `adapters/vault.ts#resolveImage` uses to
- * tell a fake file from a fake folder; `alsoExists` never stands for a
- * folder in this fixture, so every present path gets one. */
+/** `extension` is the one field `adapters/vault.ts` uses to tell a fake file
+ * from a fake folder; `alsoExists` never stands for a folder in this fixture,
+ * so every present path gets one. */
 function extensionOf(path: string): string {
     const dot = path.lastIndexOf(".");
     return dot === -1 ? "" : path.slice(dot + 1);
@@ -49,12 +51,20 @@ export function mockApp(vault: FakeVault = {}): App {
     const files = notes.map(toFile);
     const present = [...files.map((f) => f.path), ...(vault.alsoExists ?? [])];
     const presentSet = new Set(present);
+    // Every folder a present path sits in exists too, the way it does in a
+    // real vault; a folder answers without `extension`, the way a TFolder does.
+    const folders = new Set<string>();
+    for (const p of present) {
+        for (let i = p.indexOf("/"); i !== -1; i = p.indexOf("/", i + 1)) folders.add(p.slice(0, i));
+    }
 
     const app = {
         vault: {
             getMarkdownFiles: () => files,
             getAbstractFileByPath: (path: string) =>
-                presentSet.has(path) ? { path, extension: extensionOf(path) } : null,
+                presentSet.has(path) ? { path, extension: extensionOf(path) }
+                    : folders.has(path) ? { path, children: [] }
+                    : null,
             // A fake, but a stable and inspectable one: tests assert on the
             // exact string rather than trusting any non-null value.
             getResourcePath: (file: { path: string }) => `app://local/${file.path}`,
@@ -78,11 +88,10 @@ export function mockApp(vault: FakeVault = {}): App {
     if (vault.periodicNotes !== undefined) {
         app.plugins = { plugins: { "periodic-notes": { settings: vault.periodicNotes } } };
     }
-    if (vault.dailyNotes !== undefined) {
-        app.internalPlugins = {
-            plugins: { "daily-notes": { instance: { options: vault.dailyNotes } } },
-        };
-    }
+    const internal: Record<string, unknown> = {};
+    if (vault.dailyNotes !== undefined) internal["daily-notes"] = { instance: { options: vault.dailyNotes } };
+    if (vault.fileExplorer !== undefined) internal["file-explorer"] = vault.fileExplorer;
+    if (Object.keys(internal).length) app.internalPlugins = { plugins: internal };
 
     return app as unknown as App;
 }

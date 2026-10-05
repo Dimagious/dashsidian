@@ -93,8 +93,13 @@ export function previewContext(notes: readonly NoteRecord[]): BlockContext {
         vault: {
             getMarkdownFiles: () =>
                 notes.map((n) => ({ path: n.path, basename: n.name, parent: { path: n.folder }, note: n })),
+            // Folders are derived from note paths, so folder tiles show as such.
             getAbstractFileByPath: (path: string) =>
-                notes.some((n) => n.path === path) ? { path, extension: "md" } : null,
+                notes.some((n) => n.path === path)
+                    ? { path, extension: "md" }
+                    : notes.some((n) => n.path.startsWith(`${path}/`))
+                      ? { path, children: [] }
+                      : null,
             // A fake, but stable: `tiles`' cover image resolves through it.
             getResourcePath: (file: { path: string }) => `app://local/${file.path}`,
         },

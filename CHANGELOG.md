@@ -18,6 +18,17 @@ removed public export.
   your config against. The README is now a short introduction with one
   complete example and no longer lists every key.
 
+### Fixed
+
+- **A `tiles` tile that points at a folder no longer creates an empty note.**
+  A tile with `path: 00-Inbox` was drawn as a link Obsidian could not
+  resolve, and clicking it created an empty `00-Inbox/00-Inbox.md`. Such a
+  tile now opens the folder note when there is one, `00-Inbox/00-Inbox.md`
+  first and then `00-Inbox.md` next to the folder, and otherwise shows the
+  folder in the file explorer. With the file explorer turned off, the click
+  does nothing. The `count` badge and tiles that point at a note are
+  unchanged.
+
 ## [1.5.2] - 2026-10-01
 
 ### Fixed
