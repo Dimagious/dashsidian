@@ -35,6 +35,16 @@ removed public export.
   images to the width of their container, which cut the cover 24px short and
   left a strip of tile background on the right. The cover now spans the whole
   tile, in reading view and in live preview.
+- **A heatmap over several checkboxes shows how many were ticked.**
+  `field: [gym, read]` used to paint a day with one habit done exactly like a
+  day with both. Now a day is as dark as its count: with two checkboxes, both
+  ticked is full colour and one is paler, even before any day has both. A box
+  missing from a note counts as unticked. The legend reads `2` and `1`, the
+  tooltip shows the count, and the caption shows the average count per day.
+  `per_day: avg` shades the share of the listed boxes ticked instead,
+  `per_day: max` and a single checkbox field stay one flat colour, and your
+  own `bands` still win. A number in one of the listed fields keeps the old
+  flat colour for ticks and now says so in a warning naming the note.
 
 ## [1.5.2] - 2026-10-01
 

@@ -286,3 +286,46 @@ function fitBands(values: readonly number[], scale: Scale): Band[] | null {
     const fitted = fitGeneralThresholds(min, max, finite);
     return fitted ? bandsFromThresholds(fitted.thresholds, fitted.precision, scale) : null;
 }
+
+/**
+ * The fixed scale for a day that counts ticked checkboxes (B-138): a
+ * `field` list of several checkboxes, where a day's value is how many of
+ * them were ticked. Built over every count the day could reach, 1 to
+ * `fieldCount`, not over the counts the grid happens to hold, so the top
+ * band is exactly "every listed box ticked": with two fields, one ticked
+ * paints visibly paler than both, even before any day had both. The counts
+ * below the top, 1 to `fieldCount - 1`, get a band each up to three of
+ * them, and are otherwise split as evenly as whole counts allow into three
+ * bands, so one box short of all of them never shares the top colour.
+ *
+ * The top label has no `+`: the most there is to tick is known.
+ *
+ * `average` is `per_day: avg`: the day's value is then the share of the
+ * listed boxes ticked, 0 to 1, so the same counts are drawn and compared as
+ * fractions of `fieldCount` (`0.5` for one of two, `1` for all).
+ *
+ * `null` under two fields: a single checkbox has nothing to scale and keeps
+ * its one flat colour.
+ */
+export function checkboxBands(fieldCount: number, average: boolean): Band[] | null {
+    if (!Number.isInteger(fieldCount) || fieldCount < 2) return null;
+    const below = fieldCount - 1;
+    const lower = below <= 3
+        ? Array.from({ length: below }, (_, i) => below - i)
+        : [2, 1, 0].map((k) => 1 + Math.floor((k * below) / 3));
+    const thresholds = [fieldCount, ...lower];
+    const format = average
+        ? (count: number): string => String(roundedValue(count / fieldCount, MAX_PRECISION))
+        : String;
+    // With `average`, a hair under the exact fraction: an average summed in
+    // a different order than this division can land a float's width below it.
+    const minFor = average ? (count: number): number => count / fieldCount - 1e-9 : (count: number): number => count;
+    return thresholds.map((count, i) => {
+        const above = thresholds[i - 1];
+        return {
+            min: minFor(count),
+            alpha: alphaFor(i),
+            label: above === undefined ? format(count) : boundaryLabel(count, above, 0, format),
+        };
+    });
+}

@@ -161,6 +161,7 @@ export const ru: Catalog = {
     "heatmap.cellToday": "{cell}, сегодня",
     "heatmap.legendSkipped": "Выходной",
     "heatmap.durationMixed": "В «{field}» смешаны длительности («{durationNote}») и простые числа («{plainNote}»). Всё посчитано в минутах и показано простыми числами.",
+    "heatmap.checkboxListNumber": "В «{note}» поле «{field}» хранит число, поэтому флажки этого списка не считаются по дням: день только с флажками закрашен полностью.",
     "heatmap.durationThresholdOnPlain": "Порог `bands` «{value}» задан как длительность, но в «{field}» простые числа. Он применён в минутах.",
 
     "chart.expectFields": "Ожидался набор полей, например `source:` и `field:`.",

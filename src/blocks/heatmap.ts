@@ -4,7 +4,7 @@ import { isMobile } from "../adapters/platform";
 import { selectNotes, readSource, unmatchedSource, type NoteRecord } from "../core/source";
 import { classifyField, classifyValues } from "../core/aggregate";
 import {
-    readFields, readPerDay, dayValues, unusedFields, heatmapDurationDiagnostics, type DayNote,
+    readFields, readPerDay, dayValues, unusedFields, heatmapDurationDiagnostics, checkboxCount, type DayNote,
 } from "../core/day-values";
 import { formatDuration } from "../core/duration";
 import { readLayers, combineLayers, type Layer } from "../core/layers";
@@ -225,12 +225,19 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
         }
     }
     diags.push(...heatmapDurationDiagnostics(kinds, fieldLabel, value.bands));
+    // B-138: a list made only of checkboxes counts the ticked ones (or, with
+    // `per_day: avg`, the share of them), shaded against every listed box
+    // ticked; `undefined` keeps a checkbox day flat, as a single checkbox
+    // field always was.
+    const { count, diagnostics: countDiags } = checkboxCount(notes, fields, perDay, marks, dateField);
+    diags.push(...countDiags);
+    const checkboxBands = count?.bands;
 
     renderDiagnostics(el, "heatmap", diags);
 
     const firstDay = firstDayOfWeek();
-    return drawHeatmap(el, ctx, marks, {
-        color, explicitBands, field: fieldLabel, linkable, title: value.title, firstDay, special, duration,
+    return drawHeatmap(el, ctx, count?.marks ?? marks, {
+        color, explicitBands, checkboxBands, field: fieldLabel, linkable, title: value.title, firstDay, special, duration,
     }, restoreByKey, range);
 }
 
@@ -467,7 +474,7 @@ interface CaptionStats {
 function captionStats(
     dayKeys: readonly string[],
     marks: ReadonlyMap<string, Paintable>,
-    opts: Pick<DrawOptions, "layers" | "duration">,
+    opts: Pick<DrawOptions, "layers" | "duration" | "checkboxBands">,
 ): CaptionStats {
     const dayMarks = dayKeys
         .map((k) => marks.get(k))
@@ -483,14 +490,16 @@ function captionStats(
     const average = opts.duration ? formatDuration(mean) : formatValue(mean);
 
     // Every painted day of an all-boolean field can only ever be 1: "average 1"
-    // states the obvious rather than informing, so the caption drops it.
+    // states the obvious rather than informing, so the caption drops it. A
+    // list of checkboxes counted per day (B-138, `checkboxBands`) is the
+    // exception: its average is how many boxes a day gets ticked, and stays.
     // With `layers`, several different fields are being folded into one
     // grid; averaging them together would not be "the average of a field",
     // it would be a number about nothing in particular, so it is dropped
     // unconditionally rather than only when every layer happens to be
     // boolean.
     const booleanOnly = !opts.layers && dayMarks.length > 0 && dayMarks.every((m) => m.isBool);
-    const showAverage = !opts.layers && !booleanOnly;
+    const showAverage = !opts.layers && (!booleanOnly || opts.checkboxBands !== undefined);
 
     return { average, present, total: dayKeys.length, showAverage };
 }
@@ -518,6 +527,11 @@ interface GridBands {
  * non-boolean cells at all (a plain checkbox field or `layers` list) is
  * exactly `autoBands`' own `allBool` case, flat as before.
  *
+ * A `field` list made only of checkboxes (B-138) is the one exception to
+ * "flat": its `checkbox` scale, built once for the whole block against
+ * every listed box ticked, is used as-is by every grid, unless `explicit`
+ * bands were written, which still win.
+ *
  * `layered` decides what "nothing to show" looks like once no scale was
  * built. A plain `field` grid still draws its one flat "has data" row even
  * then, unchanged from before B-116 (`readBands(undefined)`'s own single
@@ -530,10 +544,12 @@ function resolveGridBands(
     dayKeys: readonly string[],
     marks: ReadonlyMap<string, Paintable>,
     explicit: Band[] | undefined,
+    checkbox: Band[] | undefined,
     layered: boolean,
     duration: boolean,
 ): GridBands {
     if (explicit) return { bands: explicit, showLegend: true };
+    if (checkbox) return { bands: checkbox, showLegend: true };
 
     const painted = dayKeys
         .map((k) => marks.get(k))
@@ -591,7 +607,7 @@ function drawYears(
         // B-116: this year's own scale, fitted to only the values it
         // itself paints — a second year with a narrower or wider spread
         // gets its own bands, not whatever the first year happened to fit.
-        const { bands, showLegend } = resolveGridBands(dayKeys, marks, opts.explicitBands, !!opts.layers, opts.duration);
+        const { bands, showLegend } = resolveGridBands(dayKeys, marks, opts.explicitBands, opts.checkboxBands, !!opts.layers, opts.duration);
 
         const observer = drawGrid(el, {
             key: String(year), dayKeys, offset: layout.offset, columns: layout.columns, months: layout.months,
@@ -652,7 +668,7 @@ function drawRangeGrid(
 
     // B-116: the one grid this draws gets its own scale, fitted only to
     // what it itself paints — the same rule a per-year grid follows.
-    const { bands, showLegend } = resolveGridBands(dayKeys, marks, opts.explicitBands, !!opts.layers, opts.duration);
+    const { bands, showLegend } = resolveGridBands(dayKeys, marks, opts.explicitBands, opts.checkboxBands, !!opts.layers, opts.duration);
 
     const observer = drawGrid(el, {
         key: RANGE_GRID_KEY, dayKeys, offset: layout.offset, columns: layout.columns, months: layout.months,
@@ -713,6 +729,13 @@ interface DrawOptions {
     bands: Band[];
     /** whether the bands legend row(s) draw at all for this grid — see `resolveGridBands` for exactly when (B-116) */
     showBandsLegend: boolean;
+    /**
+     * B-138: set only for a `field` list made only of checkboxes, where a
+     * day's value is how many were ticked (`checkboxCount`). Its
+     * presence is what scores a checkbox day through `bands` instead of
+     * painting it flat; never set with `layers`.
+     */
+    checkboxBands?: Band[];
     /** already the display form: one field name, several joined with ", ", or every layer's own label joined the same way */
     field: string;
     /** B-121: values are durations in minutes, shown `7h 30m` in tooltips, the caption's average and the legend */
@@ -914,8 +937,11 @@ function drawGrid(
             // so running a boolean one through `bandFor` at all would score
             // it against a scale that was never fitted to it — full alpha,
             // the same as any boolean cell always painted before B-116,
-            // without even reaching `bandFor`.
-            const alpha = paintable.isBool ? 1 : bandFor(opts.bands, paintable.value)?.alpha ?? 1;
+            // without even reaching `bandFor`. Except a ticked-box count
+            // (B-138, `checkboxBands`): there the value IS a "how much",
+            // and `opts.bands` is its own scale or the reader's `bands:`.
+            const flat = paintable.isBool && opts.checkboxBands === undefined;
+            const alpha = flat ? 1 : bandFor(opts.bands, paintable.value)?.alpha ?? 1;
             // The winning layer's own colour, when there is one — set only
             // by a `LayeredMark`, and only ever `undefined` on one once no
             // layer painted that day, which is exactly when `paintable`
