@@ -65,6 +65,10 @@ export const ru: Catalog = {
     "stats.durationMixed": "{card}: в «{field}» смешаны длительности («{durationNote}») и простые числа («{plainNote}»). Всё посчитано в минутах и показано простым числом.",
     "stats.durationUnitIgnored": "{card}: `unit: {unit}` пропущен. В «{field}» длительности, у них уже есть свои единицы.",
     "stats.durationThresholdOnPlain": "{card}: `{key}: {value}` задан как длительность, но в «{field}» простые числа. Порог применён в минутах.",
+    "stats.layoutInvalid": "`layout` принимает cards или inline, а получено «{value}». Рисую карточки.",
+    "stats.inlineColumnsIgnored": "`columns` не действует при `layout: inline`: там одна строка.",
+    "stats.inlineTrendHidden": "`trend` не рисуется при `layout: inline`: {cards}. Чтобы его увидеть, нужен `layout: cards`.",
+    "stats.inlineSubHidden": "`sub` не показывается при `layout: inline`: {cards}. Чтобы его увидеть, нужен `layout: cards`.",
 
     "progress.empty": "Список полос пуст. Ожидается `items:` или массив.",
     "progress.goalRequired": "{card}: `goal:` ожидает число или длительность вроде `7h 30m`. Иначе не к чему стремиться.",

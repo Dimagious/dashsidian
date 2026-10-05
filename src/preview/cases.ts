@@ -95,6 +95,16 @@ items:
   - { label: Ночей от 7 часов, source: Diary, field: sleep_duration, agg: streak, at_least: 7h }`,
     },
     {
+        block: "stats",
+        title: "stats — в одну строку (layout: inline)",
+        source: `layout: inline
+items:
+  - { label: дней в дневнике, source: Diary, agg: count, icon: 📔 }
+  - { label: шагов за неделю, source: Diary, field: steps, agg: sum, period: week, compare: true, better: up }
+  - { label: средний сон, source: Diary, field: sleep_duration, agg: avg }
+  - { label: без поля, source: Diary, agg: avg }`,
+    },
+    {
         block: "progress",
         title: "progress — длительность к цели 8h",
         source: `items:

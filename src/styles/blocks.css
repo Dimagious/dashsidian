@@ -124,6 +124,16 @@
 }
 .dashy-stat-label { font-size: 0.85em; margin-top: 4px; }
 .dashy-stat-sub { font-size: 0.7em; opacity: 0.55; margin-top: 2px; }
+/* `layout: inline`: the same numbers as one line of text for a page header.
+   An item never breaks inside itself, so a narrow pane wraps between items. */
+.dashy-stats-inline { margin: 0 0 24px; line-height: 1.6; }
+.dashy-stat-inline { white-space: nowrap; }
+.dashy-stats-inline-sep { color: var(--text-faint); }
+.dashy-stat-inline-value { font-weight: 700; font-variant-numeric: tabular-nums; }
+.dashy-stat-inline-value.is-empty { color: var(--text-faint); font-weight: 500; }
+.dashy-stat-inline-unit { font-weight: 500; opacity: 0.6; }
+.dashy-stat-inline-label { color: var(--text-muted); }
+.dashy-stat-inline .dashy-stat-delta { margin-top: 0; }
 
 /* the block picker in the command palette */
 .dashy-suggest-name { font-weight: 500; }
