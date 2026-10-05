@@ -2714,6 +2714,43 @@ describe("heatmap — durations", () => {
         expect(diagnostics(el, "error")[0]).toContain("not a number, a duration like `7h 30m` or a checkbox");
     });
 
+    // B-145: race times written to the second read as a clock in tooltips
+    // and the average; the legend's round thresholds keep hours and minutes.
+    describe("race times as a clock (B-145)", () => {
+        const races = [
+            { path: "Races/2026-09-20.md", frontmatter: { time: "2:16:32", sleep: "7h 30m" } },
+            { path: "Races/2026-09-22.md", frontmatter: { time: "5h 2m 17s", sleep: "8h" } },
+            { path: "Races/2026-09-24.md", frontmatter: { time: "0:18:51", sleep: "7h" } },
+        ];
+        const draw = (config: string, notes = races): HTMLElement => {
+            vi.useFakeTimers();
+            vi.setSystemTime(TODAY);
+            const el = host();
+            renderHeatmap(mockContext({ notes }), config, el);
+            return el;
+        };
+
+        it("a cell's tooltip and the caption's average read H:MM:SS; the legend does not", () => {
+            const el = draw("source: Races\nfield: time\nbands: [2h, 1h]");
+            expect(titleOf(el, "2026-09-22")).toBe(`${medium("2026-09-22")}: time 5:02:17 (2026-09-22)`);
+            expect(titleOf(el, "2026-09-24")).toBe(`${medium("2026-09-24")}: time 0:18:51 (2026-09-24), today`);
+            // 8192 + 18137 + 1131 = 27460 seconds over 3 days: 9153.33, rounded to 2:32:33.
+            expect(texts(el, ".dashy-hm-title")).toEqual(["2026, time: average 2:32:33, 3 of 267 days"]);
+            expect(texts(el, ".dashy-hm-leg")).toEqual(["2h+", "1h–1h 59m"]);
+        });
+
+        it("one value without seconds and the tooltip reads hours and minutes as before", () => {
+            const notes = [...races, { path: "Races/2026-09-23.md", frontmatter: { time: "1:30" } }];
+            const el = draw("source: Races\nfield: time", notes);
+            expect(titleOf(el, "2026-09-22")).toBe(`${medium("2026-09-22")}: time 5h 2m (2026-09-22)`);
+        });
+
+        it("layers: each layer reads in its own form", () => {
+            const el = draw("source: Races\nlayers:\n  - { field: time, label: Race }\n  - { field: sleep, label: Sleep }");
+            expect(titleOf(el, "2026-09-20")).toBe(`${medium("2026-09-20")}: Race 2:16:32, Sleep 7h 30m (2026-09-20)`);
+        });
+    });
+
     it("in Russian, the tooltip and the caption use the catalog's units", () => {
         setLocale("ru");
         const el = render("source: Diary\nfield: sleep\nbands: [8h, 7h]");

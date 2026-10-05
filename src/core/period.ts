@@ -344,11 +344,18 @@ const MINUS_SIGN = "−";
  * raw difference is not exactly zero — the same "-0.0 reads as a
  * measurement" trap `formatValue` already avoids for the value itself.
  */
-export function formatDelta(current: number, previous: number, precision?: number, duration = false): DeltaFormat {
+export function formatDelta(
+    current: number,
+    previous: number,
+    precision?: number,
+    duration = false,
+    clock = false,
+): DeltaFormat {
     // A duration card (core/duration.ts) rounds and prints its own way,
-    // ignoring `precision`: `+32m`, not `+32`.
-    const round = (v: number): number => (duration ? roundedDuration(v) : roundedValue(v, precision));
-    const format = (v: number): string => (duration ? formatDuration(v) : formatValue(v, precision));
+    // ignoring `precision`: `+32m`, not `+32`. A clock card (B-145) keeps
+    // its clock and its seconds in the delta too: `−0:01:12`.
+    const round = (v: number): number => (duration ? roundedDuration(v, clock) : roundedValue(v, precision));
+    const format = (v: number): string => (duration ? formatDuration(v, clock) : formatValue(v, precision));
     const delta = round(current) - round(previous);
     const magnitude = format(Math.abs(delta));
     if (magnitude === format(0)) return { arrow: "=", text: magnitude, direction: "flat" };

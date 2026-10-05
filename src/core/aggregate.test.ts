@@ -947,6 +947,27 @@ describe("classifyValues", () => {
         expect(classifyValues([], ["sleep"])).toEqual({ kind: "none" });
     });
 
+    it("B-145: every duration written to the second is a clock, in either form", () => {
+        const races = [
+            day("2026-09-19", { time: "2:16:32" }),
+            day("2026-09-20", { time: "0:18:51" }),
+            day("2026-09-21", { time: "5h 2m 17s" }),
+        ];
+        expect(classifyValues(races, ["time"])).toEqual({ kind: "duration", durationNote: "Diary/2026-09-19.md", clock: true });
+    });
+
+    it("B-145: one duration without seconds and it is not a clock", () => {
+        const notes = [day("2026-09-19", { time: "2:16:32" }), day("2026-09-20", { time: "7:30" })];
+        expect(classifyValues(notes, ["time"])).toEqual({ kind: "duration", durationNote: "Diary/2026-09-19.md" });
+    });
+
+    it("B-145: a clock never comes with plain numbers mixed in, or with no durations at all", () => {
+        const notes = [day("2026-09-19", { time: "2:16:32" }), day("2026-09-20", { time: 120 })];
+        expect(classifyValues(notes, ["time"]).clock).toBeUndefined();
+        expect(classifyValues(notes, ["time"]).kind).toBe("mixed");
+        expect(classifyValues([], ["time"]).clock).toBeUndefined();
+    });
+
     it("looks across every field in the list", () => {
         const notes = [day("a", { am: "20m", pm: 15 })];
         expect(classifyValues(notes, ["am"]).kind).toBe("duration");

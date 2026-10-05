@@ -282,6 +282,40 @@ describe("chart: durations (B-121)", () => {
     });
 });
 
+describe("chart: race times as a clock (B-145)", () => {
+    const races: FakeNote[] = [
+        { path: "Diary/2026-09-28.md", frontmatter: { run: "2:18:05", sleep: "7h 30m" } },
+        { path: "Diary/2026-09-29.md", frontmatter: { run: "2:17:45", sleep: "7h" } },
+        { path: "Diary/2026-09-30.md", frontmatter: { run: "2h 16m 32s", sleep: "6h 45m" } },
+    ];
+
+    it("the tooltip reads H:MM:SS; the y axis and the goal keep hours and minutes", () => {
+        const el = chart('source: Diary\nfield: run\nrange: 3d\ngoal: "2:15:00"', races);
+        expect(titles(el)).toEqual([
+            "Sep 28, 2026: run 2:18:05 (2026-09-28)",
+            "Sep 29, 2026: run 2:17:45 (2026-09-29)",
+            "Sep 30, 2026: run 2:16:32 (2026-09-30)",
+        ]);
+        const grid = nodes(el, "line.dashy-chart-grid").length;
+        const ys = texts(el, "text.dashy-chart-label").slice(0, grid);
+        expect(ys.length).toBeGreaterThan(0);
+        expect(ys.some((y) => y.includes(":"))).toBe(false);
+        expect(texts(el, ".dashy-chart-leg")).toEqual(["goal 2h 15m"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("each series decides for itself: race times as a clock, sleep in hours and minutes", () => {
+        const el = chart("source: Diary\nrange: 1d\nseries:\n  - { field: run }\n  - { field: sleep }", races);
+        expect(titles(el)).toEqual(["Sep 30, 2026: run 2:16:32, sleep 6h 45m (2026-09-30)"]);
+    });
+
+    it("one value without seconds turns the series back to hours and minutes", () => {
+        const notes: FakeNote[] = [...races, { path: "Diary/2026-09-27.md", frontmatter: { run: "2:20" } }];
+        const el = chart("source: Diary\nfield: run\nrange: 1d", notes);
+        expect(titles(el)).toEqual(["Sep 30, 2026: run 2h 17m (2026-09-30)"]);
+    });
+});
+
 describe("chart: an empty window is not an error", () => {
     it("draws the axes and says no data in the window", () => {
         const old = diary("Diary", "2025-01-01", 5, (i) => ({ steps: i }));

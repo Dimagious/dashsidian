@@ -177,6 +177,10 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     // legend into `7h 30m`; a mix of both is counted in minutes and warned.
     const kinds = classifyValues(notes, fields);
     const duration = kinds.kind === "duration";
+    // B-145: race times written to the second read `2:16:32` in tooltips and
+    // the caption's average. The legend keeps `2h 15m`: its thresholds are
+    // round steps of the scale, not readings.
+    const clock = duration && kinds.clock === true;
     // `undefined` — never `readBands(undefined)`'s own flat default — is
     // what tells `drawYears`/`drawRangeGrid` a scale is theirs to fit per
     // grid (B-116, `resolveGridBands`); written explicitly, it always wins
@@ -237,7 +241,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
 
     const firstDay = firstDayOfWeek();
     return drawHeatmap(el, ctx, count?.marks ?? marks, {
-        color, explicitBands, checkboxBands, field: fieldLabel, linkable, title: value.title, firstDay, special, duration,
+        color, explicitBands, checkboxBands, field: fieldLabel, linkable, title: value.title, firstDay, special, duration, clock,
     }, restoreByKey, range);
 }
 
@@ -328,6 +332,8 @@ function renderLayeredHeatmap(
     // durations, since `bands` scores whichever layer wins a cell.
     const layerKinds = layers.map((layer) => classifyValues(notes, layer.fields));
     const layerDurations = layerKinds.map((k) => k.kind === "duration");
+    // B-145: per layer too, a layer of race times written to the second reads `2:16:32`.
+    const layerClocks = layerKinds.map((k) => k.kind === "duration" && k.clock === true);
     const duration = layerDurations.some(Boolean)
         && layerKinds.every((k) => k.kind === "duration" || k.kind === "none");
     // `undefined` here, same as the plain `field` path, means each grid
@@ -410,6 +416,7 @@ function renderLayeredHeatmap(
         special,
         duration,
         layerDurations,
+        layerClocks,
     }, restoreByKey, range);
 }
 
@@ -474,7 +481,7 @@ interface CaptionStats {
 function captionStats(
     dayKeys: readonly string[],
     marks: ReadonlyMap<string, Paintable>,
-    opts: Pick<DrawOptions, "layers" | "duration" | "checkboxBands">,
+    opts: Pick<DrawOptions, "layers" | "duration" | "checkboxBands" | "clock">,
 ): CaptionStats {
     const dayMarks = dayKeys
         .map((k) => marks.get(k))
@@ -487,7 +494,7 @@ function captionStats(
     // no matter how many days were actually unticked, which is not the rate
     // anyone reading a habit tracker would call "average".
     const mean = dayMarks.length ? dayMarks.reduce((s, m) => s + m.value, 0) / dayMarks.length : 0;
-    const average = opts.duration ? formatDuration(mean) : formatValue(mean);
+    const average = opts.duration ? formatDuration(mean, opts.clock) : formatValue(mean);
 
     // Every painted day of an all-boolean field can only ever be 1: "average 1"
     // states the obvious rather than informing, so the caption drops it. A
@@ -740,8 +747,12 @@ interface DrawOptions {
     field: string;
     /** B-121: values are durations in minutes, shown `7h 30m` in tooltips, the caption's average and the legend */
     duration: boolean;
+    /** B-145: with `duration`, every value was written to the second; tooltips and the average read `2:16:32`, the legend does not */
+    clock?: boolean;
     /** B-121, `layers` mode only: per layer, whether its tooltip part reads as a duration */
     layerDurations?: readonly boolean[];
+    /** B-145, `layers` mode only: per layer, whether its tooltip part reads as a clock */
+    layerClocks?: readonly boolean[];
     linkable: boolean;
     title: unknown;
     /** days (B-095) any note in the selection marked special; hatched regardless of `layers` or of which one painted */
@@ -805,12 +816,13 @@ function noteSuffix(notes: readonly DayNote[]): string | undefined {
 }
 
 /**
- * A cell's value for its tooltip: a duration as `7h 30m` (B-121), a plain
- * number through `roundedValue` as before, without `formatValue`'s digit
- * grouping, whose narrow no-break space has no business in a `title`.
+ * A cell's value for its tooltip: a duration as `7h 30m` (B-121), or as
+ * `2:16:32` with `clock` (B-145), a plain number through `roundedValue` as
+ * before, without `formatValue`'s digit grouping, whose narrow no-break
+ * space has no business in a `title`.
  */
-function cellValue(value: number, duration: boolean): string | number {
-    return duration ? formatDuration(value) : roundedValue(value);
+function cellValue(value: number, duration: boolean, clock = false): string | number {
+    return duration ? formatDuration(value, clock) : roundedValue(value);
 }
 
 /**
@@ -967,11 +979,13 @@ function drawGrid(
                     // `fieldLabel`/`fields.join(", ")` already uses above.
                     parts: paintable.parts
                         .map((p) => t("heatmap.cellPart", {
-                            label: p.label, value: cellValue(p.value, opts.layerDurations?.[p.layer] ?? false),
+                            label: p.label, value: cellValue(
+                                p.value, opts.layerDurations?.[p.layer] ?? false, opts.layerClocks?.[p.layer] ?? false,
+                            ),
                         }))
                         .join(", "),
                 })
-                : t("heatmap.cell", { date: dateLabel, field: opts.field, value: cellValue(paintable.value, opts.duration) });
+                : t("heatmap.cell", { date: dateLabel, field: opts.field, value: cellValue(paintable.value, opts.duration, opts.clock) });
             // B-092: which note(s) this day's value came from — its name
             // when there was exactly one, "N notes" when several. Folded
             // into `baseTooltip` itself, before the day-off/today wrapping

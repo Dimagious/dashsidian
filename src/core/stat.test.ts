@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-    readStat, formatValue, valueLengthClass, showsDuration, formatReading, durationDiagnostics,
+    readStat, formatValue, valueLengthClass, showsDuration, showsClock, formatReading, durationDiagnostics,
 } from "./stat";
 
 describe("readStat — happy path", () => {
@@ -400,11 +400,33 @@ describe("showsDuration", () => {
     });
 });
 
+describe("showsClock (B-145)", () => {
+    it("a duration card over values all written to the second", () => {
+        for (const agg of ["sum", "avg", "min", "max", "latest"] as const) {
+            expect(showsClock(agg, { kind: "duration", clock: true })).toBe(true);
+        }
+    });
+
+    it("not without the clock flag, not for a count or a streak, not for any other kind", () => {
+        expect(showsClock("avg", { kind: "duration" })).toBe(false);
+        expect(showsClock("count", { kind: "duration", clock: true })).toBe(false);
+        expect(showsClock("streak", { kind: "duration", clock: true })).toBe(false);
+        expect(showsClock("current_streak", { kind: "duration", clock: true })).toBe(false);
+        expect(showsClock("avg", { kind: "mixed", clock: true })).toBe(false);
+    });
+});
+
 describe("formatReading", () => {
     it("a duration ignores precision; a plain number keeps it", () => {
         expect(formatReading(358.4, 2, true)).toBe("5h 58m");
         expect(formatReading(358.4, 2, false)).toBe("358.40");
         expect(formatReading(null, 2, true)).toBe("—");
+    });
+
+    it("B-145: a clock duration reads H:MM:SS; clock has no say over a plain number", () => {
+        expect(formatReading(136 + 32 / 60, 2, true, true)).toBe("2:16:32");
+        expect(formatReading(358.4, 2, false, true)).toBe("358.40");
+        expect(formatReading(null, 2, true, true)).toBe("—");
     });
 });
 

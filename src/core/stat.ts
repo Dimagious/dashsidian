@@ -301,9 +301,21 @@ export function showsDuration(agg: Agg, kind: ValueKind): boolean {
     return kind === "duration" && DURATION_AGGS.includes(agg);
 }
 
-/** The card's number as text: a duration (`precision` has no effect there) or a plain number. */
-export function formatReading(value: number | null, precision: number | undefined, duration: boolean): string {
-    return duration ? formatDuration(value) : formatValue(value, precision);
+/**
+ * B-145: a duration card whose field holds only values written down to the
+ * second (`2:16:32`, race times) reads as a clock, `H:MM:SS`. One value
+ * without seconds and the card reads `7h 30m` as before.
+ */
+export function showsClock(agg: Agg, kind: FieldValueKind): boolean {
+    return showsDuration(agg, kind.kind) && kind.clock === true;
+}
+
+/**
+ * The card's number as text: a duration (`precision` has no effect there),
+ * as a clock when `clock` is set, or a plain number.
+ */
+export function formatReading(value: number | null, precision: number | undefined, duration: boolean, clock = false): string {
+    return duration ? formatDuration(value, clock) : formatValue(value, precision);
 }
 
 /**

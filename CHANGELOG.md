@@ -37,6 +37,15 @@ removed public export.
   reported once for the block, not once per card. A single card written
   without `items:` reads as before. The `stats` example in **Insert block**
   now sets its folder at the root.
+- **Race times keep their seconds.** When every value of the field in the card's
+  notes (all of them, not only this period's) was written down to the second, like `time: 2:16:32` or `2h 16m 32s`, `stats` and
+  `progress` show the result as a clock: `2:16:32` instead of `2h 17m`,
+  `0:18:51`, `12:13:30`. Averages round to the nearest second, and a `compare`
+  delta reads the same way, `+0:14:38`. Chart and heatmap tooltips and the
+  heatmap's average follow; axis and legend labels stay `2h 15m`. One value
+  without seconds, like `7:30`, and the card reads hours and minutes as
+  before. `H:MM` is always hours and minutes, so a 5 km time written `18:51`
+  counts as 18 hours: write it `0:18:51`.
 
 ### Changed
 

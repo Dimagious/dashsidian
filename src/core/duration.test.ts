@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { parseDuration, formatDuration, roundedDuration, readThreshold, durationFloor } from "./duration";
+import { parseDuration, readDuration, formatDuration, roundedDuration, readThreshold, durationFloor } from "./duration";
 import { setLocale } from "../i18n";
 
 afterEach(() => setLocale("en"));
@@ -125,7 +125,76 @@ describe("formatDuration — display rules", () => {
     });
 });
 
+// B-145: a race time is written down to the second, and that is what makes a card read as a clock.
+describe("readDuration: whether the seconds were written", () => {
+    it.each([
+        ["2:16:32", 136 + 32 / 60],
+        ["0:18:00", 18],
+        ["2h 16m 32s", 136 + 32 / 60],
+        ["45s", 0.75],
+        ["1h 0m 0s", 60],
+        ["1h 30s", 60.5],
+    ])("%s carries seconds", (text, minutes) => {
+        const read = readDuration(text);
+        expect(read?.seconds).toBe(true);
+        expect(read?.minutes).toBeCloseTo(minutes, 10);
+    });
+
+    it.each([["7:30"], ["18:51"], ["7h 30m"], ["1.5 min"], ["2h"]])("%s does not", (text) => {
+        expect(readDuration(text)?.seconds).toBe(false);
+    });
+
+    it("text that is not a duration is null, the same as parseDuration", () => {
+        expect(readDuration("10 km · 51min")).toBeNull();
+        expect(readDuration("2:16:75")).toBeNull();
+    });
+});
+
+describe("formatDuration: as a clock (B-145)", () => {
+    it.each([
+        [136 + 32 / 60, "2:16:32"],
+        [18 + 51 / 60, "0:18:51"],
+        [302 + 17 / 60, "5:02:17"],
+        [723 + 45 / 60, "12:03:45"],
+        [1510 + 5 / 60, "25:10:05"],
+        [0.75, "0:00:45"],
+        [60, "1:00:00"],
+        [0, "0:00:00"],
+    ])("%d minutes read %s", (minutes, text) => {
+        expect(formatDuration(minutes, true)).toBe(text);
+    });
+
+    it("keeps the seconds past an hour, where the unit form drops them", () => {
+        expect(formatDuration(136 + 32 / 60)).toBe("2h 17m");
+        expect(formatDuration(136 + 32 / 60, true)).toBe("2:16:32");
+    });
+
+    it("rounds to the nearest second, carrying into the minute and the hour", () => {
+        expect(formatDuration(18 + 51.4 / 60, true)).toBe("0:18:51");
+        expect(formatDuration(18 + 51.6 / 60, true)).toBe("0:18:52");
+        expect(formatDuration(59 + 59.6 / 60, true)).toBe("1:00:00");
+        expect(formatDuration(119 + 59.5 / 60, true)).toBe("2:00:00");
+    });
+
+    it("a negative value keeps its sign, one that rounds to nothing does not; null is a dash", () => {
+        expect(formatDuration(-(1 + 12 / 60), true)).toBe("-0:01:12");
+        expect(formatDuration(-0.2 / 60, true)).toBe("0:00:00");
+        expect(formatDuration(null, true)).toBe("—");
+    });
+
+    it("is the same in every language: digits and colons, no catalog units", () => {
+        setLocale("ru");
+        expect(formatDuration(302 + 17 / 60, true)).toBe("5:02:17");
+    });
+});
+
 describe("roundedDuration", () => {
+    it("with clock: the nearest second, past an hour too", () => {
+        expect(roundedDuration(136 + 32.4 / 60, true)).toBeCloseTo(136 + 32 / 60, 10);
+        expect(roundedDuration(-(90 + 0.6 / 60), true)).toBeCloseTo(-(90 + 1 / 60), 10);
+        expect(roundedDuration(-0.2 / 60, true)).toBe(0);
+    });
+
     it("is the displayed value in minutes: seconds under an hour, minutes above", () => {
         expect(roundedDuration(51 + 20.4 / 60)).toBeCloseTo(51 + 20 / 60, 10);
         expect(roundedDuration(432 + 29 / 60)).toBe(432);

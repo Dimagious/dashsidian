@@ -4,7 +4,7 @@ import { selectNotes, unmatchedSource } from "../core/source";
 import { readBlockSelection, inheritSelection } from "../core/inherit";
 import { aggregate, classifyField, classifyValues } from "../core/aggregate";
 import { readDateField } from "../core/note-date";
-import { formatReading, showsDuration, durationDiagnostics } from "../core/stat";
+import { formatReading, showsDuration, showsClock, durationDiagnostics } from "../core/stat";
 import { readProgress, percentOf, barWidth, type ProgressSpec } from "../core/progress";
 import { readPeriod, filterByPeriod, dateFieldHasEffect } from "../core/period";
 import { firstDayOfWeek } from "../adapters/datetime";
@@ -98,6 +98,8 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
         // above: the value and the goal share one format.
         const kinds = spec?.field ? classifyValues(selected, [spec.field]) : { kind: "none" as const };
         const duration = spec ? showsDuration(spec.agg, kinds.kind) : false;
+        // B-145: race times written to the second read as `0:18:51`, the goal too.
+        const clock = spec ? showsClock(spec.agg, kinds) : false;
         if (spec) diags.push(...durationDiagnostics(spec, kinds, label ? `"${label}"` : t("stats.unlabeledCard")));
 
         // Steers `period`'s window below and, inside `aggregate`, `streak`,
@@ -132,7 +134,7 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
             diags.push({ level: "warning", message: t("period.dateFieldUnused", { card: cardLabel }) });
         }
 
-        bars.push(toBar(counted, spec, label, item, today, duration, dateField));
+        bars.push(toBar(counted, spec, label, item, today, duration, clock, dateField));
     }
 
     // Diagnostics before the bars: an error must be seen before an empty track.
@@ -176,6 +178,7 @@ function toBar(
     item: Record<string, unknown>,
     today: Date,
     duration: boolean,
+    clock: boolean,
     dateField?: string,
 ): Bar {
     const bar: Bar = {
@@ -201,8 +204,8 @@ function toBar(
         today,
     });
 
-    bar.value = formatReading(current, spec.precision, duration);
-    bar.goal = formatReading(spec.goal, spec.precision, duration);
+    bar.value = formatReading(current, spec.precision, duration, clock);
+    bar.goal = formatReading(spec.goal, spec.precision, duration, clock);
     bar.percent = percentOf(current, spec.goal);
     bar.width = barWidth(bar.percent);
     // A duration already carries its units (`durationDiagnostics` warned).

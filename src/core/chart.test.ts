@@ -481,6 +481,12 @@ describe("formatPoint and formatAxis", () => {
         expect(formatAxis(480, { duration: true })).toBe("8h");
     });
 
+    it("B-145: with clock, a point reads H:MM:SS; an axis label ignores clock and keeps the unit form", () => {
+        expect(formatPoint(136 + 32 / 60, { duration: true, clock: true })).toBe("2:16:32");
+        expect(formatPoint(136 + 32 / 60, { duration: true })).toBe("2h 17m");
+        expect(formatAxis(120, { duration: true, clock: true })).toBe("2h");
+    });
+
     it("an axis label groups digits like a card and keeps the precision", () => {
         // A narrow no-break space, the card's own group separator.
         expect(formatAxis(40000, { duration: false })).toBe("40\u202f000");

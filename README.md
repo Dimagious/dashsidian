@@ -85,7 +85,8 @@ page: a picture, an example, every key.
 </picture>
 
 Durations read the way your watch writes them: `sleep: 7h 38min` counts as a number and comes
-back as `7h 38m`. Every
+back as `7h 38m`. Race times written to the second, `time: 2:16:32`, come back to the second
+as a clock; `H:MM` always means hours and minutes, so write a 5 km time as `0:18:51`. Every
 block redraws when a note changes and takes its colours from your theme. With Obsidian Charts
 turned on, write the chart block as `dashy-chart`.
 
