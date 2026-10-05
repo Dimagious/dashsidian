@@ -7,7 +7,7 @@ import { longestStreak, currentStreak, isWeekend, dateKey } from "./calendar";
 import { resolveNoteDate } from "./note-date";
 import { readField, hasField } from "./field";
 import { specialDays } from "./special-days";
-import { parseDuration } from "./duration";
+import { readDuration } from "./duration";
 
 export const AGGS = ["count", "sum", "avg", "min", "max", "latest", "streak", "current_streak"] as const;
 export type Agg = (typeof AGGS)[number];
@@ -53,6 +53,8 @@ export function numberAt(note: NoteRecord, field: string): number | null {
 interface ReadNumber {
     value: number;
     duration: boolean;
+    /** a duration string written down to the second (`2:16:32`); false for anything else */
+    seconds: boolean;
 }
 
 /**
@@ -64,13 +66,13 @@ interface ReadNumber {
  * so it reads as a duration without quotes.
  */
 function readNumber(raw: unknown): ReadNumber | null {
-    if (typeof raw === "boolean") return { value: raw ? 1 : 0, duration: false };
-    if (typeof raw === "number") return Number.isFinite(raw) ? { value: raw, duration: false } : null;
+    if (typeof raw === "boolean") return { value: raw ? 1 : 0, duration: false, seconds: false };
+    if (typeof raw === "number") return Number.isFinite(raw) ? { value: raw, duration: false, seconds: false } : null;
     if (typeof raw === "string" && raw.trim() !== "") {
         const n = Number(raw);
-        if (Number.isFinite(n)) return { value: n, duration: false };
-        const minutes = parseDuration(raw);
-        return minutes === null ? null : { value: minutes, duration: true };
+        if (Number.isFinite(n)) return { value: n, duration: false, seconds: false };
+        const read = readDuration(raw);
+        return read === null ? null : { value: read.minutes, duration: true, seconds: read.seconds };
     }
     return null;
 }
@@ -137,12 +139,19 @@ export interface FieldValueKind {
     durationNote?: string;
     /** the first note by path holding a plain number or a checkbox, once any does */
     plainNote?: string;
+    /**
+     * B-145: `kind` is `duration` and every one of those durations was
+     * written down to the second (`2:16:32`), so a reading over them shows
+     * as a clock. Unset otherwise.
+     */
+    clock?: boolean;
 }
 
 /**
  * Classifies every usable value `fields` resolve to across `notes`. Decides
- * whether a card's number is shown as a duration (`5h 58m`) or as a plain
- * number, and names one note of each kind when a field mixes them, so the
+ * whether a card's number is shown as a duration (`5h 58m`), as a clock
+ * (`2:16:32`, every duration written to the second) or as a plain number,
+ * and names one note of each kind when a field mixes them, so the
  * warning points at something the reader can open. Notes are picked by path,
  * not by the order the vault handed them in, so the example never changes
  * between two redraws of the same vault.
@@ -150,11 +159,13 @@ export interface FieldValueKind {
 export function classifyValues(notes: readonly NoteRecord[], fields: readonly string[]): FieldValueKind {
     let durationNote: string | undefined;
     let plainNote: string | undefined;
+    let allSeconds = true;
     for (const n of notes) {
         for (const field of fields) {
             const read = readNumber(readField(n.frontmatter, field));
             if (!read) continue;
             if (read.duration) {
+                if (!read.seconds) allSeconds = false;
                 if (durationNote === undefined || n.path < durationNote) durationNote = n.path;
             } else if (plainNote === undefined || n.path < plainNote) {
                 plainNote = n.path;
@@ -168,6 +179,7 @@ export function classifyValues(notes: readonly NoteRecord[], fields: readonly st
     };
     if (durationNote !== undefined) out.durationNote = durationNote;
     if (plainNote !== undefined) out.plainNote = plainNote;
+    if (out.kind === "duration" && allSeconds) out.clock = true;
     return out;
 }
 

@@ -1587,3 +1587,82 @@ items:
         ]);
     });
 });
+
+// B-145: race times written to the second read as a clock, `H:MM:SS`.
+describe("stats: race times as a clock", () => {
+    // Thursday. In English the week starts on Sunday: this week is 20..24
+    // September, the same days last week 13..17.
+    const TODAY = new Date(2026, 8, 24, 12);
+    const races: Record<string, string> = {
+        "2026-09-14": "2:18:05", "2026-09-16": "2:17:45",
+        "2026-09-20": "2:16:32", "2026-09-22": "5h 2m 17s", "2026-09-24": "0:18:51",
+    };
+    // This week: 8192 + 18137 + 1131 = 27460 seconds, avg 9153.33 (2:32:33).
+    // Last week: 8285 + 8265 = 16550 seconds, avg 8275 (2:17:55).
+    // Everything: 44010 seconds, 12:13:30.
+    const raceCtx = mockContext({
+        notes: [
+            ...Object.entries(races).map(([date, time]) => ({ path: `Races/${date}.md`, frontmatter: { time } })),
+            // 1131 + 1132 + 1132 = 3395 seconds, avg 1131.67.
+            { path: "Parkrun/2026-09-19.md", frontmatter: { time: "0:18:51" } },
+            { path: "Parkrun/2026-09-20.md", frontmatter: { time: "0:18:52" } },
+            { path: "Parkrun/2026-09-21.md", frontmatter: { time: "0:18:52" } },
+            // 8192 + 27000 = 35192 seconds, 586.53 minutes; avg 293.27.
+            { path: "Mixed/2026-09-20.md", frontmatter: { time: "2:16:32" } },
+            { path: "Mixed/2026-09-21.md", frontmatter: { time: "7:30" } },
+        ],
+    });
+
+    const render = (config: string): HTMLElement => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(raceCtx, config, el);
+        return el;
+    };
+
+    afterEach(() => {
+        vi.useRealTimers();
+        setLocale("en");
+    });
+
+    it("sum, avg, min, max and latest read H:MM:SS; count stays a count", () => {
+        const el = render(`items:
+  - { label: Sum, source: Races, field: time, agg: sum, period: week }
+  - { label: Avg, source: Races, field: time, agg: avg, period: week }
+  - { label: Min, source: Races, field: time, agg: min, period: week }
+  - { label: Max, source: Races, field: time, agg: max, period: week }
+  - { label: Latest, source: Races, field: time, agg: latest }
+  - { label: Races, source: Races, field: time, agg: count, period: week }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["7:37:40", "2:32:33", "0:18:51", "5:02:17", "0:18:51", "3"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("past ten hours the hours just grow: 12:13:30", () => {
+        const el = render("items:\n  - { label: Total, source: Races, field: time, agg: sum }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["12:13:30"]);
+    });
+
+    it("under an hour the hours still show, and an average rounds to the nearest second", () => {
+        const el = render(`items:
+  - { label: Avg, source: Parkrun, field: time, agg: avg }
+  - { label: Best, source: Parkrun, field: time, agg: min }
+  - { label: Sum, source: Parkrun, field: time, agg: sum }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["0:18:52", "0:18:51", "0:56:35"]);
+    });
+
+    it("one value without seconds and the card reads hours and minutes as before", () => {
+        const el = render(`items:
+  - { label: Avg, source: Mixed, field: time, agg: avg }
+  - { label: Sum, source: Mixed, field: time, agg: sum }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["4h 53m", "9h 47m"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("compare: the delta and its tooltip read as a clock too", () => {
+        const el = render(
+            "items:\n  - { label: Avg, source: Races, field: time, agg: avg, period: week, compare: true, better: down }");
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +0:14:38"]);
+        expect(nodes(el, ".dashy-stat-delta")[0]?.getAttribute("title")).toBe("vs the same days last week: 2:17:55");
+    });
+});

@@ -33,14 +33,33 @@ const UNITS = new RegExp(
     "i",
 );
 
+/** A duration string read: its length in minutes, and whether it was written down to the second. */
+export interface ReadDuration {
+    minutes: number;
+    /** true when the text carries its own seconds: `2:16:32`, `0:18:00`, `2h 16m 32s`, `45s` */
+    seconds: boolean;
+}
+
 /** A duration string in minutes, or null when the text is not one of the accepted forms. */
 export function parseDuration(text: string): number | null {
+    return readDuration(text)?.minutes ?? null;
+}
+
+/**
+ * `parseDuration`, also saying whether the seconds were written. A race time
+ * is (`2:16:32`), a night of sleep is not (`7:30`, `7h 30m`); a fraction
+ * that happens to land between minutes (`1.5 min`) is not written seconds.
+ */
+export function readDuration(text: string): ReadDuration | null {
     const s = text.trim();
     if (!s || s.length > MAX_LENGTH) return null;
 
     const clock = CLOCK.exec(s);
     if (clock) {
-        return Number(clock[1]) * 60 + Number(clock[2]) + Number(clock[3] ?? 0) / 60;
+        return {
+            minutes: Number(clock[1]) * 60 + Number(clock[2]) + Number(clock[3] ?? 0) / 60,
+            seconds: clock[3] !== undefined,
+        };
     }
 
     const units = UNITS.exec(s);
@@ -48,7 +67,10 @@ export function parseDuration(text: string): number | null {
     // Every group is optional, but `s` is trimmed and non-empty, and each
     // group needs its own digits, so a match always captured at least one.
     const [, h, m, sec] = units;
-    return Number(h ?? 0) * 60 + Number(m ?? 0) + Number(sec ?? 0) / 60;
+    return {
+        minutes: Number(h ?? 0) * 60 + Number(m ?? 0) + Number(sec ?? 0) / 60,
+        seconds: sec !== undefined,
+    };
 }
 
 /** Seconds in an hour: below it a duration shows seconds, from it on only hours and minutes. */
@@ -59,12 +81,13 @@ const HOUR_SECONDS = 3600;
  * second under an hour, to the nearest minute from an hour on. The same
  * rounding `formatDuration` applies, exposed as a number so a `compare` delta
  * can be built from what the reader sees (core/period.ts#formatDelta), the
- * way `roundedValue` does for a plain number.
+ * way `roundedValue` does for a plain number. With `clock`, always to the
+ * nearest second, the grain `formatDuration` keeps then.
  */
-export function roundedDuration(minutes: number): number {
+export function roundedDuration(minutes: number, clock = false): number {
     const abs = Math.abs(minutes);
     const seconds = Math.round(abs * 60);
-    const rounded = seconds < HOUR_SECONDS ? seconds / 60 : Math.round(abs);
+    const rounded = clock || seconds < HOUR_SECONDS ? seconds / 60 : Math.round(abs);
     return minutes < 0 && rounded !== 0 ? -rounded : rounded;
 }
 
@@ -75,13 +98,19 @@ export function roundedDuration(minutes: number): number {
  * are any. No days: a week of sleep reads `52h 10m`, which is what a sum is.
  * `precision` plays no part here, the units already fix the grain.
  *
+ * With `clock` (every value the reading came from was written with seconds,
+ * B-145), the same minutes read as a race clock instead: `2:16:32`,
+ * `0:18:51`, `12:03:45`, always with hours so `0:18:51` is never taken for
+ * eighteen hours, and rounded to the nearest second.
+ *
  * A dash for null, the same "nothing to count" answer `formatValue` gives.
  */
-export function formatDuration(minutes: number | null): string {
+export function formatDuration(minutes: number | null, clock = false): string {
     if (minutes === null || !Number.isFinite(minutes)) return "—";
-    const rounded = roundedDuration(minutes);
+    const rounded = roundedDuration(minutes, clock);
     const sign = rounded < 0 ? "-" : "";
     const abs = Math.abs(rounded);
+    if (clock) return sign + formatClock(abs);
     const parts: string[] = [];
 
     const seconds = Math.round(abs * 60);
@@ -97,6 +126,15 @@ export function formatDuration(minutes: number | null): string {
         if (m > 0) parts.push(t("duration.minutes", { value: m }));
     }
     return sign + parts.join(" ");
+}
+
+/** Non-negative minutes, already whole seconds, as `H:MM:SS`; hours unbounded (`25:10:05`). */
+function formatClock(minutes: number): string {
+    const total = Math.round(minutes * 60);
+    const h = Math.floor(total / HOUR_SECONDS);
+    const m = Math.floor((total % HOUR_SECONDS) / 60);
+    const s = total % 60;
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 /**

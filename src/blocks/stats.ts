@@ -5,7 +5,7 @@ import { aggregate, series, classifyField, classifyValues } from "../core/aggreg
 import { readDateField } from "../core/note-date";
 import { sparkBars } from "../core/sparkline";
 import {
-    readStat, formatReading, showsDuration, durationDiagnostics, valueLengthClass, GROUP_SEPARATOR,
+    readStat, formatReading, showsDuration, showsClock, durationDiagnostics, valueLengthClass, GROUP_SEPARATOR,
 } from "../core/stat";
 import {
     readPeriod,
@@ -126,6 +126,8 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         // previous window's tooltip all share one format.
         const kinds = spec?.field ? classifyValues(selected, [spec.field]) : { kind: "none" as const };
         const duration = spec ? showsDuration(spec.agg, kinds.kind) : false;
+        // B-145: race times written to the second read as `2:16:32`.
+        const clock = spec ? showsClock(spec.agg, kinds) : false;
         if (spec) diags.push(...durationDiagnostics(spec, kinds, label ? `"${label}"` : t("stats.unlabeledCard")));
 
         // `date_field` steers every reader of a note's date on this card:
@@ -187,7 +189,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
 
         const card: Card = {
             label: label || spec?.field || "",
-            text: formatReading(current, spec?.precision, duration),
+            text: formatReading(current, spec?.precision, duration, clock),
             trend: spec?.trend && spec.field
                 ? sparkBars(series(selected, spec.field, spec.trend, today, dateField))
                 : [],
@@ -211,12 +213,12 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
                 ? aggregate(previousFiltered.notes, { agg: spec.agg, field: spec.field, dateField })
                 : null;
             if (previous !== null) {
-                const format = formatDelta(current, previous, spec.precision, duration);
+                const format = formatDelta(current, previous, spec.precision, duration, clock);
                 card.delta = {
                     arrow: format.arrow,
                     text: format.text,
                     tone: deltaTone(format.direction, compareSpec.better),
-                    title: compareCaption(periodSpec.period, formatReading(previous, spec.precision, duration)),
+                    title: compareCaption(periodSpec.period, formatReading(previous, spec.precision, duration, clock)),
                 };
             }
         }

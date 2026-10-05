@@ -658,3 +658,31 @@ items:
         }
     });
 });
+
+// B-145: race times written to the second read as a clock, the goal with them.
+describe("progress: race times as a clock", () => {
+    const raceCtx = mockContext({
+        notes: [
+            { path: "Parkrun/2026-09-19.md", frontmatter: { time: "0:18:51" } },
+            { path: "Parkrun/2026-09-20.md", frontmatter: { time: "0:19:40" } },
+            { path: "Mixed/2026-09-20.md", frontmatter: { time: "0:18:51" } },
+            { path: "Mixed/2026-09-21.md", frontmatter: { time: "19:40" } },
+        ],
+    });
+    const render = (config: string): HTMLElement => {
+        const el = host();
+        renderProgress(raceCtx, config, el);
+        return el;
+    };
+
+    it("the value and the goal read H:MM:SS: 1131 of 1200 seconds is 94%", () => {
+        const el = render('items:\n  - { label: 5k, source: Parkrun, field: time, agg: min, goal: "0:20:00" }');
+        expect(texts(el, ".dashy-progress-value")).toEqual(["0:18:51 / 0:20:00 94%"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("a field where one value lacks seconds keeps hours and minutes: 19:40 is nineteen hours", () => {
+        const el = render("items:\n  - { label: 5k, source: Mixed, field: time, agg: max, goal: 20h }");
+        expect(texts(el, ".dashy-progress-value")).toEqual(["19h 40m / 20h 98%"]);
+    });
+});

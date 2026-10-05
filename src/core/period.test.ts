@@ -581,6 +581,20 @@ describe("formatDelta — durations", () => {
         expect(formatDelta(51 + 20 / 60, 50, 0, true).text).toBe("+1m 20s");
     });
 
+    it("B-145: a clock card keeps its clock and its seconds: −0:01:12 over two race times past an hour", () => {
+        const now = 136 + 32 / 60;
+        const before = 137 + 44 / 60;
+        expect(formatDelta(now, before, undefined, true, true)).toEqual({ arrow: "▼", text: "−0:01:12", direction: "down" });
+        // The unit form would only see 2h 17m against 2h 18m.
+        expect(formatDelta(now, before, undefined, true).text).toBe("−1m");
+    });
+
+    it("B-145: a clock delta is computed from whole seconds: two averages that both read 0:18:51 are flat", () => {
+        expect(formatDelta(18 + 51.2 / 60, 18 + 50.8 / 60, undefined, true, true))
+            .toEqual({ arrow: "=", text: "0:00:00", direction: "flat" });
+        expect(formatDelta(18 + 51 / 60, 18 + 20 / 60, undefined, true, true).text).toBe("+0:00:31");
+    });
+
     it("computed from the values as displayed: two averages that both read 7h 12m are flat", () => {
         expect(formatDelta(432.4, 431.6, undefined, true)).toEqual({ arrow: "=", text: "0m", direction: "flat" });
     });

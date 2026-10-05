@@ -4,7 +4,7 @@ import {
 } from "../adapters/datetime";
 import { isMobile } from "../adapters/platform";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
-import { classifyValues, type ValueKind } from "../core/aggregate";
+import { classifyValues, type FieldValueKind } from "../core/aggregate";
 import {
     readChart, bucketize, chartFieldStatus, chartCaption, spanText, formatPoint, formatAxis, bucketTooltip,
     type Bucket, type ChartSpec, type ChartFieldStatus, type ValueFormat,
@@ -125,8 +125,8 @@ export function renderChart(ctx: BlockContext, source: string, el: HTMLElement):
     // B-121: a series whose values are all durations reads as durations; the
     // shared y axis and the goal only once every series does. `count`
     // counts notes, never time.
-    const kinds: ValueKind[] = spec.series.map((s) => {
-        if (s.agg === "count") return "plain";
+    const classified: FieldValueKind[] = spec.series.map((s) => {
+        if (s.agg === "count") return { kind: "plain" };
         const kind = classifyValues(notes, s.fields);
         if (kind.kind === "mixed") {
             diags.push({
@@ -136,9 +136,14 @@ export function renderChart(ctx: BlockContext, source: string, el: HTMLElement):
                 }),
             });
         }
-        return kind.kind;
+        return kind;
     });
+    const kinds = classified.map((k) => k.kind);
     const seriesDuration = kinds.map((k) => k === "duration");
+    // B-145: a series of race times written to the second reads `2:16:32` in
+    // its tooltip. The axis and the goal label keep `2h 15m`: their values
+    // are round steps the scale picked, not readings.
+    const seriesClock = classified.map((k) => k.kind === "duration" && k.clock === true);
     const axisDuration = seriesDuration.some(Boolean) && kinds.every((k) => k === "duration" || k === "none");
     if (spec.unit) {
         spec.series.forEach((s, i) => {
@@ -154,12 +159,14 @@ export function renderChart(ctx: BlockContext, source: string, el: HTMLElement):
     diags.push(...bucketDiags);
     renderDiagnostics(el, "chart", diags);
 
-    return drawChart(el, spec, buckets, { seriesDuration, axisDuration });
+    return drawChart(el, spec, buckets, { seriesDuration, seriesClock, axisDuration });
 }
 
 interface DrawOptions {
     /** per series: its tooltip values read as durations */
     seriesDuration: readonly boolean[];
+    /** per series: its tooltip durations read as a clock, `2:16:32` (B-145) */
+    seriesClock: readonly boolean[];
     /** the y axis and the goal label read as durations */
     axisDuration: boolean;
 }
@@ -264,6 +271,7 @@ function drawChart(el: HTMLElement, spec: ChartSpec, buckets: readonly Bucket[],
             parts: spec.series.map((s, i) => {
                 const v = bucket.values[i] ?? null;
                 const format: ValueFormat = { duration: opts.seriesDuration[i] ?? false };
+                if (opts.seriesClock[i]) format.clock = true;
                 if (spec.precision !== undefined) format.precision = spec.precision;
                 if (spec.unit && !format.duration) format.unit = spec.unit;
                 return { label: s.label, value: v === null ? null : formatPoint(v, format) };

@@ -484,18 +484,21 @@ export function chartCaption(spec: ChartSpec, bucketCount: number): string {
 
 export interface ValueFormat {
     duration: boolean;
+    /** with `duration`: read as a clock, `2:16:32` (B-145); `formatPoint` only, an axis keeps `2h 15m` */
+    clock?: boolean;
     precision?: number;
     /** appended after a plain number; never after a duration, which carries its own units */
     unit?: string;
 }
 
 /**
- * A value for a tooltip or the status line: a duration as `7h 30m`, a plain
- * number through `roundedValue` (no digit grouping: its narrow no-break
- * space has no place in a `title`), then the unit.
+ * A value for a tooltip or the status line: a duration as `7h 30m` (or
+ * `2:16:32` with `clock`), a plain number through `roundedValue` (no digit
+ * grouping: its narrow no-break space has no place in a `title`), then the
+ * unit.
  */
 export function formatPoint(value: number, format: ValueFormat): string {
-    if (format.duration) return formatDuration(value);
+    if (format.duration) return formatDuration(value, format.clock);
     const number = String(roundedValue(value, format.precision));
     return format.unit ? t("chart.valueWithUnit", { value: number, unit: format.unit }) : number;
 }
