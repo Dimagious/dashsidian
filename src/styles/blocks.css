@@ -184,6 +184,12 @@
 
 /* today */
 .dashy-today { margin: 0 0 24px; }
+/* Tabular digits: proportional ones make the line shift sideways every
+ * time a 1 ticks over to a 2. */
+.dashy-today-clock {
+  font-size: 2.6em; font-weight: 600; line-height: 1.1;
+  font-variant-numeric: tabular-nums; margin-bottom: 4px;
+}
 .dashy-today-date { font-weight: 600; margin-bottom: 8px; }
 /* A localised date starts lowercase in many languages ("вторник, 22 сентября").
  * Only the first letter is raised: `text-transform: capitalize` would raise

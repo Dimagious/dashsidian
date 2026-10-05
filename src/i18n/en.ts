@@ -137,6 +137,7 @@ export const en = {
     "today.expectFields": "Expected a set of fields, for example `daily: true`.",
     "today.nothingToShow": "Nothing to show: enable `daily`, `weekly` or `monthly`.",
     "today.notBoolean": "`{key}` expects true or false, got \"{value}\". Reading it as {read}.",
+    "today.badClock": "`clock` expects true, false, minutes or seconds, got \"{value}\". The clock is not shown.",
     "today.daily": "Today",
     "today.weekly": "This week",
     "today.monthly": "This month",

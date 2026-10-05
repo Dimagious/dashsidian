@@ -1,4 +1,4 @@
-import { MarkdownRenderChild, Plugin, debounce, type Debouncer } from "obsidian";
+import { Plugin, debounce, type Debouncer } from "obsidian";
 import { DEFAULT_SETTINGS, type DashySettings } from "../types";
 import { applyLocale } from "../adapters/locale";
 import { VaultSnapshot } from "../adapters/vault";
@@ -13,19 +13,12 @@ import { renderStats } from "../blocks/stats";
 import { renderToday } from "../blocks/today";
 import { renderTiles } from "../blocks/tiles";
 import { BlockRefresher } from "./refresh";
+import { DashyBlock, type Draw } from "./block";
 import { fenceName, registerBlocks } from "./register";
 import { isPluginEnabled } from "../adapters/plugins";
 import { t } from "../i18n";
 import { InsertBlockModal } from "../ui/insert-block";
 import { DashySettingTab } from "../ui/settings";
-
-/**
- * A block draws itself and, if it holds onto anything that outlives a single
- * draw (heatmap's `ResizeObserver`), returns a disposer for it. Most blocks
- * return nothing: a `void`-returning function is assignable here regardless,
- * so `renderTiles` and friends need no change to fit this type.
- */
-type Draw = (ctx: BlockContext, source: string, el: HTMLElement) => void | (() => void);
 
 const BLOCKS: Record<string, Draw> = {
     tiles: renderTiles,
@@ -68,9 +61,7 @@ export default class DashyPlugin extends Plugin {
         // that is the expected setup, not something to warn about.
         const { taken, yielded } = registerBlocks(BLOCKS, (name, draw) => {
             this.registerMarkdownCodeBlockProcessor(name, (source, el, ctx) => {
-                ctx.addChild(new DashyBlock(el, this.refresher, () => {
-                    draw(this.context(), source, el);
-                }));
+                ctx.addChild(new DashyBlock(el, this.refresher, draw, () => this.context(), source));
             });
         }, (id) => isPluginEnabled(this.app, id));
         if (taken.length > 0) {
@@ -155,43 +146,4 @@ export default class DashyPlugin extends Plugin {
         this.dayRollover.rearm(this.settings.startDayHour);
         this.refresher.refresh();
     }
-}
-
-/**
- * One rendered block.
- *
- * Tying it to the section through `ctx.addChild` is what gives us an unload
- * hook: without it a block would keep listening after its note is closed, and
- * redrawing would walk elements that are no longer attached to anything.
- */
-class DashyBlock extends MarkdownRenderChild {
-    /** Whatever the last draw handed back to undo on unload (a heatmap's `ResizeObserver`s, most blocks: nothing). */
-    private dispose: (() => void) | undefined;
-
-    constructor(
-        el: HTMLElement,
-        private readonly refresher: BlockRefresher,
-        private readonly draw: () => void | (() => void),
-    ) {
-        super(el);
-    }
-
-    override onload(): void {
-        this.refresher.register(this.redraw);
-        this.redraw();
-    }
-
-    override onunload(): void {
-        this.refresher.unregister(this.redraw);
-        // A redraw already disposes of its own predecessor (heatmap does
-        // this itself, before drawing); this is only for the note closing or
-        // the block being deleted, after which no further redraw would ever
-        // run this block's own cleanup.
-        this.dispose?.();
-        this.dispose = undefined;
-    }
-
-    private readonly redraw = (): void => {
-        this.dispose = this.draw() ?? undefined;
-    };
 }

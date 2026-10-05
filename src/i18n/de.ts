@@ -128,6 +128,7 @@ export const de: Catalog = {
     "today.expectFields": "Erwartet wird eine Menge von Feldern, zum Beispiel `daily: true`.",
     "today.nothingToShow": "Nichts anzuzeigen: aktiviere `daily`, `weekly` oder `monthly`.",
     "today.notBoolean": "`{key}` erwartet true oder false, bekommen „{value}“. Gelesen als {read}.",
+    "today.badClock": "`clock` erwartet true, false, minutes oder seconds, bekommen „{value}“. Die Uhr wird nicht angezeigt.",
     "today.daily": "Heute",
     "today.weekly": "Diese Woche",
     "today.monthly": "Dieser Monat",

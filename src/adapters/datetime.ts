@@ -1,4 +1,5 @@
 import { moment } from "obsidian";
+import type { LocaleTimeFormats } from "../core/clock";
 
 /**
  * Dates and locale, all in one place.
@@ -28,6 +29,7 @@ interface MomentLocaleData {
     firstDayOfWeek(): number;
     weekdaysShort(): string[];
     monthsShort(): string[];
+    longDateFormat(key: string): string;
 }
 
 interface MomentStatic {
@@ -78,6 +80,17 @@ export function weekdayNamesShort(): string[] {
 /** Which day the locale starts its week on: 0 is Sunday, 1 is Monday. */
 export function firstDayOfWeek(): number {
     return data().firstDayOfWeek();
+}
+
+/**
+ * The locale's own time formats, moment's `LT` and `LTS`: `h:mm A` and
+ * `h:mm:ss A` in English, `HH:mm` and `HH:mm:ss` in German. Whether the
+ * `today` clock counts to 12 or to 24 is read from these (B-151), never
+ * assumed.
+ */
+export function timeFormats(): LocaleTimeFormats {
+    const d = data();
+    return { short: d.longDateFormat("LT"), long: d.longDateFormat("LTS") };
 }
 
 /** Short month names, January first. */

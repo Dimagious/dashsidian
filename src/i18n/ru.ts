@@ -126,6 +126,7 @@ export const ru: Catalog = {
     "today.expectFields": "Ожидается набор полей, например `daily: true`.",
     "today.nothingToShow": "Нечего показывать: включи `daily`, `weekly` или `monthly`.",
     "today.notBoolean": "`{key}` ожидает true или false, получено «{value}». Считаю за {read}.",
+    "today.badClock": "`clock` ожидает true, false, minutes или seconds, получено «{value}». Часы не показаны.",
     "today.daily": "Сегодня",
     "today.weekly": "Эта неделя",
     "today.monthly": "Этот месяц",

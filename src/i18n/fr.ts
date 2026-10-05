@@ -128,6 +128,7 @@ export const fr: Catalog = {
     "today.expectFields": "Attendu : un ensemble de champs, par exemple `daily: true`.",
     "today.nothingToShow": "Rien à afficher : activez `daily`, `weekly` ou `monthly`.",
     "today.notBoolean": "`{key}` attend true ou false, reçu « {value} ». Lu comme {read}.",
+    "today.badClock": "`clock` attend true, false, minutes ou seconds, reçu « {value} ». L'horloge n'est pas affichée.",
     "today.daily": "Aujourd'hui",
     "today.weekly": "Cette semaine",
     "today.monthly": "Ce mois-ci",
