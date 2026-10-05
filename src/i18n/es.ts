@@ -35,6 +35,23 @@ export const es: Catalog = {
     "where.emptyList":
         "`where` es una lista vacía, así que el filtro se ignoró y los números de abajo están sin filtrar. Enumera condiciones, por ejemplo `[year = 2026, rating >= 4]`, o quita la clave.",
 
+    "inherit.rootPeriodInvalid":
+        "`period` en la raíz del bloque espera week, month, year o una ventana móvil como 30d, recibido «{value}». Todo lo que lo hereda se dibuja sin la ventana.",
+    "inherit.rootDateFieldUndated":
+        "`date_field` en la raíz del bloque: ninguna de las notas seleccionadas para {cards} tiene fecha en «{field}».",
+    "inherit.blankSourceRoot":
+        "`source` en la raíz del bloque está vacío, así que se lee toda la bóveda. Indica una carpeta, o quita la clave si quieres toda la bóveda.",
+    "inherit.blankTagRoot":
+        "`tag` en la raíz del bloque está vacío, así que no se aplica ningún filtro por etiqueta. Indica una etiqueta, o quita la clave si no quieres filtrar por etiqueta.",
+    "inherit.blankSource":
+        "{card}: `source` está vacío, así que lee toda la bóveda en lugar de la carpeta de la raíz del bloque. Quita la clave para heredar esa carpeta.",
+    "inherit.blankTag":
+        "{card}: `tag` está vacío, así que no filtra por etiqueta en lugar de usar la etiqueta de la raíz del bloque. Quita la clave para heredar esa etiqueta.",
+    "inherit.blankSourceNoRoot":
+        "{card}: `source` está vacío, así que lee toda la bóveda. Indica una carpeta, o quita la clave si quieres toda la bóveda.",
+    "inherit.blankTagNoRoot":
+        "{card}: `tag` está vacío, así que no se aplica ningún filtro por etiqueta. Indica una etiqueta, o quita la clave si no quieres filtrar por etiqueta.",
+
     "tiles.empty": "No hay mosaicos que dibujar. Se espera `items:` o una lista.",
     "tiles.dateFieldUnused": "{card}: `date_field` no tiene efecto sin `period`.",
     "tiles.selectionUnused": "{card}: `tag`, `where`, `period` y `date_field` solo acotan `badge: count`.",

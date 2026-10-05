@@ -37,6 +37,23 @@ export const en = {
     "where.emptyList":
         "`where` is an empty list, so the filter was ignored and the numbers below are unfiltered. List conditions like `[year = 2026, rating >= 4]`, or remove the key.",
 
+    "inherit.rootPeriodInvalid":
+        "`period` at the block root expects week, month, year or a rolling window such as 30d, got \"{value}\". Everything that inherits it is drawn unfiltered.",
+    "inherit.rootDateFieldUndated":
+        "`date_field` at the block root: none of the notes selected for {cards} has a date in \"{field}\".",
+    "inherit.blankSourceRoot":
+        "`source` at the block root is empty, so the whole vault is read. Name a folder, or remove the key if the whole vault is meant.",
+    "inherit.blankTagRoot":
+        "`tag` at the block root is empty, so no tag filter applies. Name a tag, or remove the key if no tag filter is meant.",
+    "inherit.blankSource":
+        "{card}: `source` is empty, so it reads the whole vault instead of the folder at the block root. Remove the key to inherit that folder.",
+    "inherit.blankTag":
+        "{card}: `tag` is empty, so it has no tag filter instead of the tag at the block root. Remove the key to inherit that tag.",
+    "inherit.blankSourceNoRoot":
+        "{card}: `source` is empty, so it reads the whole vault. Name a folder, or remove the key if the whole vault is meant.",
+    "inherit.blankTagNoRoot":
+        "{card}: `tag` is empty, so no tag filter applies. Name a tag, or remove the key if no tag filter is meant.",
+
     "tiles.empty": "No tiles to draw. Expected `items:` or a list.",
     "tiles.dateFieldUnused": "{card}: `date_field` has no effect without `period`.",
     "tiles.selectionUnused": "{card}: `tag`, `where`, `period` and `date_field` only narrow `badge: count`.",

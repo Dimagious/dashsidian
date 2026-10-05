@@ -35,6 +35,23 @@ export const de: Catalog = {
     "where.emptyList":
         "`where` ist eine leere Liste, der Filter wurde ignoriert und die Zahlen unten sind ungefiltert. Liste Bedingungen auf, etwa `[year = 2026, rating >= 4]`, oder entferne den Schlüssel.",
 
+    "inherit.rootPeriodInvalid":
+        "`period` an der Wurzel des Blocks erwartet week, month, year oder ein rollierendes Fenster wie 30d, bekommen „{value}“. Alles, was es erbt, wird ohne das Fenster gezeichnet.",
+    "inherit.rootDateFieldUndated":
+        "`date_field` an der Wurzel des Blocks: keine der für {cards} ausgewählten Notizen hat ein Datum in „{field}“.",
+    "inherit.blankSourceRoot":
+        "`source` an der Wurzel des Blocks ist leer, daher wird der ganze Tresor gelesen. Nenne einen Ordner oder entferne den Schlüssel, wenn der ganze Tresor gemeint ist.",
+    "inherit.blankTagRoot":
+        "`tag` an der Wurzel des Blocks ist leer, daher gilt kein Tag-Filter. Nenne einen Tag oder entferne den Schlüssel, wenn kein Tag-Filter gemeint ist.",
+    "inherit.blankSource":
+        "{card}: `source` ist leer, daher wird der ganze Tresor gelesen statt des Ordners an der Wurzel des Blocks. Entferne den Schlüssel, um diesen Ordner zu erben.",
+    "inherit.blankTag":
+        "{card}: `tag` ist leer, daher gilt kein Tag-Filter statt des Tags an der Wurzel des Blocks. Entferne den Schlüssel, um diesen Tag zu erben.",
+    "inherit.blankSourceNoRoot":
+        "{card}: `source` ist leer, daher wird der ganze Tresor gelesen. Nenne einen Ordner oder entferne den Schlüssel, wenn der ganze Tresor gemeint ist.",
+    "inherit.blankTagNoRoot":
+        "{card}: `tag` ist leer, daher gilt kein Tag-Filter. Nenne einen Tag oder entferne den Schlüssel, wenn kein Tag-Filter gemeint ist.",
+
     "tiles.empty": "Keine Kacheln zu zeichnen. Erwartet wird `items:` oder eine Liste.",
     "tiles.dateFieldUnused": "{card}: `date_field` hat ohne `period` keine Wirkung.",
     "tiles.selectionUnused": "{card}: `tag`, `where`, `period` und `date_field` grenzen nur `badge: count` ein.",

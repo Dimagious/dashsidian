@@ -659,6 +659,86 @@ items:
     });
 });
 
+describe("progress — root problems reported once, blank selection keys warned (B-153, B-154)", () => {
+    // km on the 10 diary days (2026-01-01..10) reads 1..10.
+    afterEach(() => vi.useRealTimers());
+
+    const onTenth = (config: string) => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 0, 10));
+        return bars(config);
+    };
+
+    it("a bad root period is one warning for the block, a bar's own bad one is its own", () => {
+        const el = onTenth(`source: Diary
+period: fortnight
+items:
+  - { label: A, agg: count, goal: 10 }
+  - { label: B, agg: count, goal: 10 }
+  - { label: C, agg: count, goal: 10, period: biweekly }`);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ progress: `period` at the block root expects week, month, year or a rolling window such as 30d, got "fortnight". Everything that inherits it is drawn unfiltered.',
+            '⚠️ progress: "C": `period` expects week, month, year or a rolling window such as 30d, got "biweekly". Drawn unfiltered.',
+        ]);
+        expect(texts(el, ".dashy-progress-percent")).toEqual(["100%", "100%", "100%"]);
+    });
+
+    it("an inherited date_field no note carries is one warning naming the bars", () => {
+        const el = onTenth(`source: Diary
+date_field: day
+period: year
+items:
+  - { label: A, agg: count, goal: 10 }
+  - { label: B, field: km, agg: sum, goal: 100 }`);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ progress: `date_field` at the block root: none of the notes selected for "A", "B" has a date in "day".',
+        ]);
+    });
+
+    it("a bar's own date_field no note carries still warns for that bar", () => {
+        const el = onTenth("source: Diary\nperiod: year\nitems:\n  - { label: A, agg: count, goal: 10, date_field: day }");
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ progress: "A": none of the selected notes has a date in "day".',
+        ]);
+    });
+
+    it("a valid root period and date-named notes warn about nothing", () => {
+        const el = onTenth("source: Diary\nperiod: year\nitems:\n  - { label: A, agg: count, goal: 10 }");
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(texts(el, ".dashy-progress-percent")).toEqual(["100%"]);
+    });
+
+    it("a bar's blank source over the root warns and still reads the whole vault", () => {
+        const wide = mockContext({
+            notes: [...diary("Diary", "2026-01-01", 2, () => ({})), { path: "Other/x.md", frontmatter: {} }],
+        });
+        const el = host();
+        renderProgress(wide, `source: Diary
+items:
+  - { label: Days, agg: count, goal: 4 }
+  - { label: All, source: "", agg: count, goal: 4 }`, el);
+        expect(texts(el, ".dashy-progress-percent")).toEqual(["50%", "75%"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ progress: "All": `source` is empty, so it reads the whole vault instead of the folder at the block root. Remove the key to inherit that folder.',
+        ]);
+    });
+
+    it("a single bar without items: with a blank source warns as a bar", () => {
+        const el = bars("label: All\nsource:\nagg: count\ngoal: 10");
+        expect(texts(el, ".dashy-progress-percent")).toEqual(["100%"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ progress: "All": `source` is empty, so it reads the whole vault. Name a folder, or remove the key if the whole vault is meant.',
+        ]);
+    });
+
+    it("a blank tag at the root is one warning for the block", () => {
+        const el = bars("source: Diary\ntag: \"\"\nitems:\n  - { label: A, agg: count, goal: 10 }\n  - { label: B, agg: count, goal: 10 }");
+        expect(diagnostics(el, "warning")).toEqual([
+            "⚠️ progress: `tag` at the block root is empty, so no tag filter applies. Name a tag, or remove the key if no tag filter is meant.",
+        ]);
+    });
+});
+
 // B-145: race times written to the second read as a clock, the goal with them.
 describe("progress: race times as a clock", () => {
     const raceCtx = mockContext({
