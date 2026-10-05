@@ -412,7 +412,7 @@
         },
         "field": {
           "type": "string|list",
-          "doc": "required unless `layers` is set, and not allowed together with it: exactly one of the two. A numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty; dotted for a nested one like `health.sleep`. Also takes a list, like `[mood_am, mood_pm]`, to collapse several properties from the same note into one day with `per_day`. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: \"field contains ...\"` and `agg: count`. A duration string like `5h 58min` or `7:30` counts as minutes, and tooltips, the caption's average and the legend then read `5h 58m`; `H:MM` is always a duration, never a time of day. A field mixing durations and plain numbers counts both as minutes, shows plain numbers and warns",
+          "doc": "required unless `layers` is set, and not allowed together with it: exactly one of the two. A numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty; dotted for a nested one like `health.sleep`. Also takes a list, like `[mood_am, mood_pm]`, to collapse several properties from the same note into one day with `per_day`. A list of checkboxes, like `[gym, read]`, counts the ticked ones, a box missing from a note counting as unticked: with two, a day with both is full colour and a day with one is paler. A number in any of them turns the count off and warns. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: \"field contains ...\"` and `agg: count`. A duration string like `5h 58min` or `7:30` counts as minutes, and tooltips, the caption's average and the legend then read `5h 58m`; `H:MM` is always a duration, never a time of day. A field mixing durations and plain numbers counts both as minutes, shows plain numbers and warns",
           "aliases": [
             "property",
             "prop"
@@ -445,7 +445,7 @@
         },
         "bands": {
           "type": "list",
-          "doc": "thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band. Without `bands`, each grid (a calendar year, or the one `range` window) shades itself by its own minimum and maximum: a checkbox field or a grid where every painted value is the same still paints one flat colour instead. A threshold may be a duration, `[8h, 7h]` or `{min: 7h}`, read as minutes; a plain number against a field of durations means minutes, and the legend reads as durations"
+          "doc": "thresholds from the top down: [90, 80, 60] or [{min, alpha, label}]; anything below the lowest falls into the bottom band. Without `bands`, each grid (a calendar year, or the one `range` window) shades itself by its own minimum and maximum: a single checkbox field or a grid where every painted value is the same still paints one flat colour instead. A list of checkboxes is shaded by how many are ticked, with all of them ticked as the top even before any day reaches it; with `per_day: avg` by the share of the listed boxes ticked, and with `per_day: max` it stays flat. Two notes on the same day add their ticks up, so such a day can go past the top. A threshold may be a duration, `[8h, 7h]` or `{min: 7h}`, read as minutes; a plain number against a field of durations means minutes, and the legend reads as durations"
         },
         "link": {
           "type": "boolean",

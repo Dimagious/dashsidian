@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
     dayValues, readFields, readPerDay, unusedFields, isPerDay, PER_DAY, heatmapDurationDiagnostics,
+    checkboxCount,
 } from "./day-values";
 import type { NoteRecord } from "./source";
 
@@ -320,5 +321,83 @@ describe("heatmapDurationDiagnostics", () => {
         expect(heatmapDurationDiagnostics({ kind: "duration" }, "sleep", ["8h", 420])).toEqual([]);
         expect(heatmapDurationDiagnostics({ kind: "plain" }, "steps", [10000, 5000])).toEqual([]);
         expect(heatmapDurationDiagnostics({ kind: "plain" }, "steps", undefined)).toEqual([]);
+    });
+});
+
+// B-138: several checkbox fields count the ticked boxes per day.
+describe("checkboxCount", () => {
+    const habits = [
+        note("Diary/2026-01-01.md", { gym: true, read: false }),
+        note("Diary/2026-01-02.md", { gym: true, read: true }),
+        // `read` absent: the same as an unticked box
+        note("Diary/2026-01-03.md", { gym: true }),
+    ];
+    const fields = ["gym", "read"];
+    const run = (notes: NoteRecord[], perDay: "sum" | "avg" | "max", list: string[] = fields) =>
+        checkboxCount(notes, list, perDay, dayValues(notes, list, perDay));
+
+    it("two checkbox fields: the day value is the ticked count, scaled against both ticked", () => {
+        const { count, diagnostics } = run(habits, "sum");
+        expect([...count!.marks.values()].map((m) => m.value)).toEqual([1, 2, 1]);
+        expect(count?.bands.map((b) => b.label)).toEqual(["2", "1"]);
+        expect(diagnostics).toEqual([]);
+    });
+
+    it("the top is the number of fields even when no day reached it", () => {
+        const notes = [note("Diary/2026-01-01.md", { gym: true, read: false, yoga: false })];
+        expect(run(notes, "sum", ["gym", "read", "yoga"]).count?.bands[0]?.min).toBe(3);
+    });
+
+    it("per_day avg: the share of the listed boxes, an absent field counted as unticked", () => {
+        const { count } = run(habits, "avg");
+        expect([...count!.marks.values()].map((m) => m.value)).toEqual([0.5, 1, 0.5]);
+        expect(count?.bands.map((b) => b.label)).toEqual(["1", "0.5"]);
+    });
+
+    it("per_day avg over two notes on one day: the share of every listed box of both", () => {
+        const notes = [
+            note("Diary/2026-01-01.md", { gym: true }),
+            note("Diary/2026-01-01 evening.md", { read: true, gym: false }),
+        ];
+        expect(run(notes, "avg").count?.marks.get("2026-01-01")?.value).toBe(0.5);
+    });
+
+    it("a single checkbox field stays flat", () => {
+        expect(run(habits, "sum", ["gym"])).toEqual({ count: null, diagnostics: [] });
+    });
+
+    it("per_day max stays flat: any ticked box already makes the day 1", () => {
+        expect(run(habits, "max")).toEqual({ count: null, diagnostics: [] });
+    });
+
+    it("a number beside checkboxes keeps the list on its own scale, and says where", () => {
+        const notes = [
+            ...habits,
+            note("Diary/2026-01-05.md", { read: 30 }),
+            note("Diary/2026-01-04.md", { read: 20 }),
+        ];
+        expect(run(notes, "sum")).toEqual({
+            count: null,
+            diagnostics: [{
+                level: "warning",
+                message: '"read" holds a number in "Diary/2026-01-04.md", so the checkboxes in this list are not counted per day: a day with only ticks paints at full colour.',
+            }],
+        });
+    });
+
+    it("a list of numbers only has no checkboxes to count, and nothing to warn about", () => {
+        const notes = [note("Diary/2026-01-01.md", { steps: 100, km: 2 })];
+        expect(run(notes, "sum", ["steps", "km"])).toEqual({ count: null, diagnostics: [] });
+    });
+
+    it("an undated note neither counts nor warns", () => {
+        const notes = [...habits, note("Diary/not-a-date.md", { read: 30 })];
+        const { count, diagnostics } = run(notes, "sum");
+        expect(count?.bands.map((b) => b.label)).toEqual(["2", "1"]);
+        expect(diagnostics).toEqual([]);
+    });
+
+    it("no note at all has no scale", () => {
+        expect(run([], "sum")).toEqual({ count: null, diagnostics: [] });
     });
 });

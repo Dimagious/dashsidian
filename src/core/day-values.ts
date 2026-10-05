@@ -13,7 +13,7 @@
 
 import type { NoteRecord } from "./source";
 import { numberAt, isFalseMark, isBooleanMark, classifyField, type FieldValueKind } from "./aggregate";
-import { durationThresholdIn } from "./bands";
+import { durationThresholdIn, checkboxBands, type Band } from "./bands";
 import { resolveNoteDate } from "./note-date";
 import { describeValue, type Diagnostic } from "../shared/parse";
 import { t } from "../i18n";
@@ -129,6 +129,83 @@ export function dayValues(
         });
     }
     return marks;
+}
+
+/** A `field` list of checkboxes counted per day (B-138), ready to draw. */
+export interface CheckboxCount {
+    /** the marks to draw: `dayValues`' own with `per_day: sum`, each day's share of ticked boxes with `per_day: avg` */
+    marks: Map<string, DayMark>;
+    bands: Band[];
+}
+
+export interface CheckboxCountOutcome {
+    /** null keeps every checkbox day one flat colour, as a single checkbox field always was */
+    count: CheckboxCount | null;
+    diagnostics: Diagnostic[];
+}
+
+/**
+ * Whether a `field` list is drawn as a count of ticked checkboxes (B-138),
+ * and the scale it is drawn on: a day's value is how many boxes were ticked
+ * (`per_day: sum`, the default) or the share of the listed boxes ticked
+ * (`per_day: avg`), shaded against every listed box ticked
+ * (`checkboxBands`). A field absent from a note counts as an unticked box
+ * either way: with `avg`, a note holding only `gym: true` out of
+ * `[gym, read]` is one of two, not one of one. With several notes on one
+ * day, the share is over every listed box of every one of them.
+ *
+ * `count` is null, and checkbox days keep one flat colour, for:
+ *   - a single field, where a ticked day is simply "done";
+ *   - `per_day: max`, where any ticked box makes the day 1 anyway;
+ *   - a selection without a single checkbox in the listed fields;
+ *   - any listed field holding a number or a duration in any dated note:
+ *     a list mixing checkboxes with numbers keeps its own scale, fitted to
+ *     the numbers. Where a checkbox turns up too, that is said in a warning
+ *     naming the field and the note (first by path), since the reader most
+ *     likely meant every field as a checkbox.
+ *
+ * `marks` is `dayValues(notes, fields, perDay, dateField)` as already
+ * computed by the caller; reused as is for `sum`.
+ */
+export function checkboxCount(
+    notes: readonly NoteRecord[],
+    fields: readonly string[],
+    perDay: PerDay,
+    marks: ReadonlyMap<string, DayMark>,
+    dateField?: string,
+): CheckboxCountOutcome {
+    if (fields.length < 2 || perDay === "max") return { count: null, diagnostics: [] };
+
+    let checkbox = false;
+    let numeric: { field: string; note: string } | null = null;
+    for (const n of notes) {
+        if (resolveNoteDate(n, dateField) === null) continue;
+        for (const field of fields) {
+            if (numberAt(n, field) === null) continue;
+            if (isBooleanMark(n, field)) {
+                checkbox = true;
+            } else if (numeric === null || n.path < numeric.note) {
+                numeric = { field, note: n.path };
+            }
+        }
+    }
+    if (numeric !== null) {
+        const diagnostics: Diagnostic[] = checkbox
+            ? [{ level: "warning", message: t("heatmap.checkboxListNumber", numeric) }]
+            : [];
+        return { count: null, diagnostics };
+    }
+    if (!checkbox) return { count: null, diagnostics: [] };
+
+    const bands = checkboxBands(fields.length, perDay === "avg");
+    if (!bands) return { count: null, diagnostics: [] };
+    if (perDay === "sum") return { count: { marks: new Map(marks), bands }, diagnostics: [] };
+
+    const shares = new Map<string, DayMark>();
+    for (const [day, mark] of dayValues(notes, fields, "sum", dateField)) {
+        shares.set(day, { ...mark, value: mark.value / (fields.length * mark.notes.length) });
+    }
+    return { count: { marks: shares, bands }, diagnostics: [] };
 }
 
 export interface FieldsOutcome {

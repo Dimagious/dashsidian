@@ -163,6 +163,7 @@ export const fr: Catalog = {
     "heatmap.cellToday": "{cell}, aujourd'hui",
     "heatmap.legendSkipped": "Jour de congé",
     "heatmap.durationMixed": "« {field} » mélange des durées (« {durationNote} ») et des nombres simples (« {plainNote} »). Tout est compté en minutes et affiché en nombres simples.",
+    "heatmap.checkboxListNumber": "« {field} » contient un nombre dans « {note} », donc les cases de cette liste ne sont pas comptées par jour : un jour avec seulement des cases cochées est coloré en entier.",
     "heatmap.durationThresholdOnPlain": "Le seuil `bands` « {value} » est une durée, mais « {field} » contient des nombres simples. Il est appliqué en minutes.",
 
     "chart.expectFields": "Un ensemble de champs était attendu, par exemple `source:` et `field:`.",

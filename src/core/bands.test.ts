@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readBands, bandFor, autoBands, durationThresholdIn } from "./bands";
+import { readBands, bandFor, autoBands, durationThresholdIn, checkboxBands } from "./bands";
 import { formatDuration } from "./duration";
 
 describe("readBands — short form", () => {
@@ -389,5 +389,57 @@ describe("readBands — durations start where their label's rounding does", () =
 
     it("without duration mode a threshold is compared exactly, as before", () => {
         expect(readBands(["8h", "7h"]).map((b) => b.min)).toEqual([480, 420]);
+    });
+});
+
+// B-138: a `field` list of checkboxes counts ticked boxes per day, shaded
+// against every listed box ticked rather than against the counts present.
+describe("checkboxBands — a fixed scale from one ticked box to all of them", () => {
+    it("two fields: both ticked is the top band, one ticked the next one down", () => {
+        expect(checkboxBands(2, false)).toEqual([
+            { min: 2, alpha: 1, label: "2" },
+            { min: 1, alpha: 0.72, label: "1" },
+        ]);
+    });
+
+    it("three fields: one band per count", () => {
+        const bands = checkboxBands(3, false)!;
+        expect(bands.map((b) => b.label)).toEqual(["3", "2", "1"]);
+        expect([1, 2, 3].map((n) => bandFor(bands, n)?.alpha)).toEqual([0.46, 0.72, 1]);
+    });
+
+    it("four fields: still one band per count, all four alphas used", () => {
+        expect(checkboxBands(4, false)?.map((b) => [b.label, b.alpha])).toEqual([
+            ["4", 1], ["3", 0.72], ["2", 0.46], ["1", 0.22],
+        ]);
+    });
+
+    it("more than four fields: the top is exactly all of them, the rest split evenly in three", () => {
+        expect(checkboxBands(5, false)?.map((b) => b.label)).toEqual(["5", "3–4", "2", "1"]);
+        expect(checkboxBands(6, false)?.map((b) => b.label)).toEqual(["6", "4–5", "2–3", "1"]);
+        expect(checkboxBands(7, false)?.map((b) => b.label)).toEqual(["7", "5–6", "3–4", "1–2"]);
+        expect(checkboxBands(10, false)?.map((b) => b.label)).toEqual(["10", "7–9", "4–6", "1–3"]);
+    });
+
+    it.each([5, 6, 7, 10])("%i fields: one box short of all of them is paler than all of them", (n) => {
+        const counts = checkboxBands(n, false)!;
+        expect(bandFor(counts, n - 1)!.alpha).toBeLessThan(bandFor(counts, n)!.alpha);
+        const shares = checkboxBands(n, true)!;
+        expect(bandFor(shares, (n - 1) / n)!.alpha).toBeLessThan(bandFor(shares, 1)!.alpha);
+    });
+
+    it("per_day avg: the same counts as shares of the listed fields, the top reading 1", () => {
+        const bands = checkboxBands(3, true)!;
+        expect(bands.map((b) => b.label)).toEqual(["1", "0.67", "0.33"]);
+        expect(bandFor(bands, (1 + 1 + 0) / 3)?.alpha).toBe(0.72);
+        expect(bandFor(bands, 1 / 3)?.alpha).toBe(0.46);
+        expect(bandFor(bands, 1)?.alpha).toBe(1);
+        expect(checkboxBands(6, true)?.map((b) => b.label)).toEqual(["1", "0.67–0.83", "0.33–0.5", "0.17"]);
+    });
+
+    it("a single field, or no fields, has nothing to scale", () => {
+        expect(checkboxBands(1, false)).toBeNull();
+        expect(checkboxBands(0, false)).toBeNull();
+        expect(checkboxBands(1, true)).toBeNull();
     });
 });

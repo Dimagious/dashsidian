@@ -229,22 +229,157 @@ describe("heatmap — colours and bands", () => {
         expect(legendOf(grids[0]!)).toEqual(["250+", "200–249", "150–199", "100–149"]);
         expect(legendOf(grids[1]!)).toEqual(["25+", "20–24", "15–19", "10–14"]);
     });
+});
 
-    // B-116: a checkbox field stays flat even when several of them summed
-    // per day (`per_day: sum`) produce more than one distinct painted value
-    // — 1 on a single-habit day, 2 on a day both were ticked. The values
-    // differ, so the "every painted value equal" rule alone would not keep
-    // this flat; it is `isBool` (core/day-values.ts, threaded onto
-    // `Paintable`) that does.
-    it("without bands, summing two checkbox fields still stays flat, not scaled by the sum", () => {
-        const habitsCtx = mockContext({
+// B-138: a `field` list made only of checkboxes counts the ticked boxes per
+// day and shades that count against every listed box ticked. It used to
+// paint every day with at least one tick at full colour (B-116 kept it flat
+// on purpose), so "how many habits today" could not be seen at all.
+describe("heatmap — several checkbox fields count the ticked boxes (B-138)", () => {
+    /** A cell's alpha: jsdom re-serialises a fully opaque rgba() as rgb(), so three components mean 1. */
+    const alphaOn = (el: HTMLElement, date: string): number => {
+        const cell = nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium(date)));
+        const parts = /\(([^)]*)\)/.exec(cell?.style.backgroundColor ?? "")?.[1]?.split(",") ?? [];
+        return parts.length === 4 ? Number(parts[3]) : parts.length === 3 ? 1 : 0;
+    };
+    const habitsCtx = mockContext({
+        notes: [
+            { path: "Diary/2026-01-01.md", frontmatter: { gym: true, yoga: false } }, // 1 of 2
+            { path: "Diary/2026-01-02.md", frontmatter: { gym: true, yoga: true } }, // 2 of 2
+            { path: "Diary/2026-01-03.md", frontmatter: { gym: false, yoga: false } }, // 0 of 2
+        ],
+    });
+
+    it("one ticked of two paints paler than both ticked", () => {
+        const el = map("source: Diary\nfield: [gym, yoga]", habitsCtx);
+        expect(alphaOn(el, "2026-01-01")).toBe(0.72);
+        expect(alphaOn(el, "2026-01-02")).toBe(1);
+        expect(alphaOn(el, "2026-01-03")).toBe(0);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["2", "1"]);
+    });
+
+    it("the scale tops out at every listed field, even when no day reached it", () => {
+        const oneEach = mockContext({
             notes: [
-                { path: "Diary/2026-01-01.md", frontmatter: { gym: true, yoga: false } }, // sum 1
-                { path: "Diary/2026-01-02.md", frontmatter: { gym: true, yoga: true } }, // sum 2
+                { path: "Diary/2026-01-01.md", frontmatter: { gym: true, yoga: false } },
+                { path: "Diary/2026-01-02.md", frontmatter: { gym: false, yoga: true } },
             ],
         });
-        const el = map("source: Diary\nfield: [gym, yoga]\nper_day: sum", habitsCtx);
+        const el = map("source: Diary\nfield: [gym, yoga]", oneEach);
+        expect(alphaOn(el, "2026-01-01")).toBe(0.72);
+        expect(alphaOn(el, "2026-01-02")).toBe(0.72);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["2", "1"]);
+    });
+
+    it("three fields: one, two and three ticked each get their own strength", () => {
+        const three = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { gym: true, yoga: false, read: false } },
+                { path: "Diary/2026-01-02.md", frontmatter: { gym: true, yoga: true, read: false } },
+                { path: "Diary/2026-01-03.md", frontmatter: { gym: true, yoga: true, read: true } },
+            ],
+        });
+        const el = map("source: Diary\nfield: [gym, yoga, read]", three);
+        expect([alphaOn(el, "2026-01-01"), alphaOn(el, "2026-01-02"), alphaOn(el, "2026-01-03")])
+            .toEqual([0.46, 0.72, 1]);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["3", "2", "1"]);
+    });
+
+    it("a field missing from a note counts as not ticked", () => {
+        const missing = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { gym: true } },
+                { path: "Diary/2026-01-02.md", frontmatter: { gym: true, yoga: true } },
+            ],
+        });
+        const el = map("source: Diary\nfield: [gym, yoga]", missing);
+        expect(alphaOn(el, "2026-01-01")).toBe(0.72);
+        expect(alphaOn(el, "2026-01-02")).toBe(1);
+    });
+
+    it("a single checkbox field is unchanged: every ticked day at full colour, one flat legend row", () => {
+        const el = map("source: Diary\nfield: gym", habitsCtx);
+        expect(alphaOn(el, "2026-01-01")).toBe(1);
+        expect(alphaOn(el, "2026-01-02")).toBe(1);
         expect(texts(el, ".dashy-hm-leg")).toEqual(["has data"]);
+        expect(texts(el, ".dashy-hm-title")[0]).not.toContain("average");
+    });
+
+    it("explicit bands still win, and score the ticked count", () => {
+        const el = map("source: Diary\nfield: [gym, yoga]\nbands: [{min: 2, alpha: 0.9, label: Both}, {min: 1, alpha: 0.3, label: One}]", habitsCtx);
+        expect(alphaOn(el, "2026-01-01")).toBe(0.3);
+        expect(alphaOn(el, "2026-01-02")).toBe(0.9);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["Both", "One"]);
+    });
+
+    it("the tooltip says the count and the caption averages it", () => {
+        const el = map("source: Diary\nfield: [gym, yoga]", habitsCtx);
+        const title = (date: string): string | null | undefined =>
+            nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium(date)))?.getAttribute("title");
+        expect(title("2026-01-01")).toBe(`${medium("2026-01-01")}: gym, yoga 1 (2026-01-01)`);
+        expect(title("2026-01-02")).toBe(`${medium("2026-01-02")}: gym, yoga 2 (2026-01-02)`);
+        // (1 + 2 + 0) / 3 recorded days; 2 of them have at least one tick.
+        expect(texts(el, ".dashy-hm-title")[0]).toMatch(/^2026, gym, yoga: average 1, 2 of \d+ days$/);
+    });
+
+    it("per_day avg shades the share of ticked boxes", () => {
+        const el = map("source: Diary\nfield: [gym, yoga]\nper_day: avg", habitsCtx);
+        expect(alphaOn(el, "2026-01-01")).toBe(0.72);
+        expect(alphaOn(el, "2026-01-02")).toBe(1);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["1", "0.5"]);
+    });
+
+    it("per_day avg counts a field missing from a note as unticked, not as a smaller list", () => {
+        const missing = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { gym: true } },
+                { path: "Diary/2026-01-02.md", frontmatter: { gym: true, yoga: true } },
+            ],
+        });
+        const el = map("source: Diary\nfield: [gym, yoga]\nper_day: avg", missing);
+        expect(alphaOn(el, "2026-01-01")).toBe(0.72);
+        expect(alphaOn(el, "2026-01-02")).toBe(1);
+        const title = nodes(el, ".dashy-hm-cell")
+            .find((c) => c.getAttribute("title")?.startsWith(medium("2026-01-01")))?.getAttribute("title");
+        expect(title).toBe(`${medium("2026-01-01")}: gym, yoga 0.5 (2026-01-01)`);
+    });
+
+    it("five fields: four ticked is paler than all five", () => {
+        const five = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { a: true, b: true, c: true, d: true, e: false } },
+                { path: "Diary/2026-01-02.md", frontmatter: { a: true, b: true, c: true, d: true, e: true } },
+            ],
+        });
+        const el = map("source: Diary\nfield: [a, b, c, d, e]", five);
+        expect(alphaOn(el, "2026-01-01")).toBe(0.72);
+        expect(alphaOn(el, "2026-01-02")).toBe(1);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["5", "3–4", "2", "1"]);
+    });
+
+    it("per_day max stays flat: any ticked box makes the day", () => {
+        const el = map("source: Diary\nfield: [gym, yoga]\nper_day: max", habitsCtx);
+        expect(alphaOn(el, "2026-01-01")).toBe(1);
+        expect(alphaOn(el, "2026-01-02")).toBe(1);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["has data"]);
+    });
+
+    it("a checkbox mixed with a number keeps the old behaviour: a ticks-only day paints full", () => {
+        const mixed = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { gym: true } },
+                { path: "Diary/2026-01-02.md", frontmatter: { steps: 100 } },
+                { path: "Diary/2026-01-03.md", frontmatter: { steps: 300 } },
+            ],
+        });
+        const el = map("source: Diary\nfield: [gym, steps]", mixed);
+        expect(alphaOn(el, "2026-01-01")).toBe(1);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ heatmap: "steps" holds a number in "Diary/2026-01-02.md", so the checkboxes in this list are not counted per day: a day with only ticks paints at full colour.',
+        ]);
+        expect(alphaOn(el, "2026-01-02")).toBeLessThan(alphaOn(el, "2026-01-03"));
+        // fitted to the numbers alone, the tick never stretching it
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["250+", "200–249", "150–199", "100–149"]);
     });
 });
 

@@ -173,6 +173,7 @@ export const en = {
     "heatmap.cellToday": "{cell}, today",
     "heatmap.legendSkipped": "Day off",
     "heatmap.durationMixed": "\"{field}\" mixes durations (\"{durationNote}\") and plain numbers (\"{plainNote}\"). All of them are counted as minutes and shown as plain numbers.",
+    "heatmap.checkboxListNumber": "\"{field}\" holds a number in \"{note}\", so the checkboxes in this list are not counted per day: a day with only ticks paints at full colour.",
     "heatmap.durationThresholdOnPlain": "`bands` threshold \"{value}\" is a duration, but \"{field}\" holds plain numbers. It is applied as minutes.",
 
     "chart.expectFields": "Expected a set of fields, for example `source:` and `field:`.",
