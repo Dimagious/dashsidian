@@ -323,6 +323,61 @@ layout: calendar
 skip_field: vacation
 \`\`\`
 `);
+
+    // The weekly review guide (B-163): its two templates, verbatim, in notes
+    // named for last week (ISO, the format Dashy reads without Periodic Notes
+    // settings) and last month, both over, so `compare: true` reads the whole
+    // period before. They read `sleep_score`, `gym`, `steps` and `meditate`,
+    // which the diary already carries.
+    const REVIEW_STATS = `\`\`\`stats
+source: Diary
+period: note
+columns: 2
+items:
+  - { label: Sleep, field: sleep_score, agg: avg, compare: usual, better: up }
+  - { label: Gym days, field: gym, agg: sum, compare: true, better: up }
+  - { label: Steps a day, field: steps, agg: avg, precision: 0, compare: true, better: up }
+  - { label: Meditation in a row, field: meditate, agg: current_streak, unit: days }
+\`\`\``;
+    const lastWeek = shift(-7);
+    write(`Reviews/${isoWeekName(lastWeek)}.md`, `${REVIEW_STATS}
+
+\`\`\`chart
+source: Diary
+field: steps
+label: Steps
+type: bar
+range: note
+goal: 10000
+\`\`\`
+
+## What went well
+
+## What to change
+`);
+    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    write(`Reviews/${key(lastMonth).slice(0, 7)}.md`, `${REVIEW_STATS}
+
+\`\`\`heatmap
+source: Diary
+range: note
+layout: calendar
+layers:
+  - { field: gym, color: orange, label: Gym }
+  - { field: meditate, color: purple, label: Meditation }
+\`\`\`
+
+## The month in a few lines
+`);
+}
+
+/** The ISO week a date falls in, named the way Dashy reads it without settings: `2026-W40`. */
+function isoWeekName(date) {
+    // The Thursday of the date's week decides its ISO year and week.
+    const thursday = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 3 - ((date.getDay() + 6) % 7));
+    const dayOfYear = Math.round((thursday.getTime() - new Date(thursday.getFullYear(), 0, 1).getTime()) / 86_400_000);
+    const week = Math.floor(dayOfYear / 7) + 1;
+    return `${thursday.getFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
 function build() {

@@ -29,6 +29,11 @@ Step-by-step pages, one problem each, with YAML to copy:
   and `layout: calendar`: day numbers, a dot per habit with `layers`;
   `range: week` for one row, `skip_field` for days off):
   https://dimagious.github.io/dashsidian/guides/monthly-habit-calendar/
+- A weekly review in Obsidian without Dataview (`period: note` on `stats`
+  and `range: note` on `chart` and `heatmap` count the week or month the
+  note is named for, like 2026-W40; `compare: true` against the whole
+  week before, `compare: usual` against your usual level):
+  https://dimagious.github.io/dashsidian/guides/weekly-review-without-dataview/
 - A weekly chart without Tracker (`chart` with `bucket: week` and `goal`;
   `dashy-chart` next to Obsidian Charts; frontmatter only):
   https://dimagious.github.io/dashsidian/guides/weekly-chart-tracker-alternative/

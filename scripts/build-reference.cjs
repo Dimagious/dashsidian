@@ -52,7 +52,7 @@ const PAGES = [
                 "  - { label: Great nights, source: Diary, where: \"sleep_score >= 90\", agg: count }",
                 "  - { label: Books read, source: Books, period: year, date_field: finished, agg: count, icon: 📚 }",
             ].join("\n") },
-        guides: ["habit-tracker-without-dataview", "streak-weekdays", "books-per-year", "homepage-dashboard"],
+        guides: ["habit-tracker-without-dataview", "streak-weekdays", "weekly-review-without-dataview", "books-per-year", "homepage-dashboard"],
     },
     {
         block: "chart", tagline: "a number over time", item: "series", items: "series",
@@ -60,14 +60,14 @@ const PAGES = [
         showcase: { image: "chart-weekly", width: 700, height: 223,
             alt: "Weekly bars of running distance over half a year, a dashed goal line at 30 km, the current week drawn lighter",
             yaml: "source: Diary\nfield: run_km\ntype: bar\nbucket: week\nunit: km\ngoal: 30" },
-        guides: ["weekly-chart-tracker-alternative", "books-per-year"],
+        guides: ["weekly-chart-tracker-alternative", "weekly-review-without-dataview", "books-per-year"],
     },
     {
         block: "heatmap", tagline: "the year", item: "layer", items: "layers",
         showcase: { image: "heatmap", width: 700, height: 196,
             alt: "A year of days coloured by sleep score, with a legend",
             yaml: "source: Diary\nfield: sleep_score\ncolor: purple\nbands: [90, 80, 70]\ntitle: Sleep, last twelve months" },
-        guides: ["habit-tracker-without-dataview", "heatmap-two-activities", "monthly-habit-calendar", "streak-weekdays"],
+        guides: ["habit-tracker-without-dataview", "heatmap-two-activities", "monthly-habit-calendar", "streak-weekdays", "weekly-review-without-dataview"],
     },
     {
         block: "progress", tagline: "how far along", item: "bar", items: "bars",
