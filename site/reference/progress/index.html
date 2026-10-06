@@ -76,9 +76,10 @@ items:
         <div class="codeblock" data-code>
           <div class="bar"><span>progress</span><button class="copy" type="button">Copy</button></div>
 <pre><code class="yaml-fenced">```progress
+source: Diary
 items:
-  - { label: Days logged this year, source: Diary, agg: count, period: year, goal: 365 }
-  - { label: Running volume, source: Diary, field: distance_km, agg: sum, goal: 200, unit: km }
+  - { label: Days logged this year, agg: count, period: year, goal: 365 }
+  - { label: Running volume, field: distance_km, agg: sum, goal: 200, unit: km }
 ```</code></pre>
         </div>
 

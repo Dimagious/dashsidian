@@ -42,7 +42,12 @@
 `progress`, `today`, `countdown`, `heatmap`) и седьмой, `chart` (ADR 0005);
 при включённом Obsidian Charts `chart` уступается ему, наш — `dashy-chart`
 (ADR 0007). Схема блоков — 1.8.0. Длительности (`5h 58min`, `7:30`) читаются
-как минуты, `core/duration.ts`.
+как минуты, `core/duration.ts`. В `stats` и `progress` выборка (`source`, `tag`,
+`where`, `period`, `date_field`) пишется раз на корне блока и наследуется
+карточками, `core/inherit.ts` (B-131).
+
+Не выпущено (1.7.0): в `heatmap` — `pick: max` и `layout: calendar` (месяц
+календарём). Новые ключи, поэтому версия схемы поднимается в релизном коммите.
 
 Сайт (`site/`, GitHub Pages) — витрина, гайды под поисковые запросы
 (`site/guides/`) и справочник блоков (`site/reference/`, генерируется из схемы).
@@ -66,13 +71,18 @@ src/
     source.ts            отбор заметок: source/tag/where + микроязык where
     aggregate.ts         count/sum/avg/min/max/latest/streak, series
     stat.ts              разбор и формат карточки числа
+    inherit.ts           выборка с корня stats/progress → карточкам
     sparkline.ts         разбор `trend` и высоты полос
     progress.ts          цель и проценты; надстройка над stat.ts
     countdown.ts         разбор даты и дни до неё
+    clock.ts             часы блока `today`
     duration.ts          длительности: разбор в минуты и формат `6h 12m`
     chart*.ts            корзины, шкала и раскладка графика; без DOM
     agents-file.ts       вставка секции в чужой AGENTS.md
     bands.ts             пороги раскраски и их подписи
+    layers.ts            слои heatmap и `pick`
+    month-calendar.ts    heatmap `layout: calendar`: месяц сеткой по дням недели
+    folder-tile.ts       куда ведёт плитка с папкой
     periodic.ts          папка/формат/путь периодических заметок
     palette.ts           именованные цвета → rgb
     vault-profile.ts     подгонка примера под чужое хранилище
@@ -85,7 +95,7 @@ src/
   blocks/              отрисовка, по файлу на блок
     context.ts           что блок получает: app, снимок, настройки
     schema.json          ЕДИНЫЙ ИСТОЧНИК ПРАВДЫ по ключам блоков
-  preview/             стенд всех состояний блока для `npm run preview`
+  preview/             стенд всех состояний блока для `npm run preview` (пишет в `.preview/`)
   shared/parse.ts      YAML + синонимы ключей + диагностика
   shared/render.ts     вывод диагностики, внутренние ссылки
   ui/settings.ts       настройки + кнопка установки скилла
@@ -243,6 +253,8 @@ Backlog: B-003
 | `npm run build:skill` | пересобрать скилл из схемы |
 | `npm run build:reference` | пересобрать справочник блоков на сайте |
 | `npm run scorecard:check` | зеркало сканера community-plugins |
+| `npm run preview` | стенд состояний блоков в браузере, в `.preview/` |
+| `npm run site:check` / `readme:check` | ссылки, якоря и тире на сайте и в README |
 | `npm run release` | полный гейт + zip |
 | `npm run dev:vault` | сборка в тестовое хранилище с watch |
 | `npm run e2e` | спеки против настоящего Obsidian; в CI не гоняется |
