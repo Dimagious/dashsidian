@@ -182,6 +182,8 @@ export const en = {
     "heatmap.layerNotMap": "Layer {position} must be a map with a `field`, got \"{value}\".",
     "heatmap.layerLabelInvalid": "Layer {position}: `label` expects a name, got \"{value}\".",
     "heatmap.layerAt": "Layer {position}: {message}",
+    "heatmap.pickInvalid": "`pick` expects first or max, got \"{value}\". Using first.",
+    "heatmap.pickWithoutLayers": "`pick` is ignored: it only chooses between `layers`, and this block has a single `field`.",
     "heatmap.rangeInvalid":
         "`range` expects week, month, year or a rolling window such as 30d, got \"{value}\". Drawing a grid per year instead.",
     "heatmap.caption": "{year}, {field}: average {average}, {present} of {total} days",

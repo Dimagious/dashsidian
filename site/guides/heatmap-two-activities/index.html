@@ -121,6 +121,7 @@ title: Gym and reading
           <div class="callout-title"><svg><use href="#i-alert"/></svg>No split cells, no mixed colours</div>
           <p>A day with both never shows both colours. If every overlap has to be visible at a glance, use two grids, one per activity, as in the variations below.</p>
         </div>
+        <p>With numbers rather than checkboxes, such as minutes per sport, add <code>pick: max</code> and the larger value paints the cell instead of the first line. Compare only properties in the same unit, minutes against minutes.</p>
         <p class="muted" style="font-size:14.5px">To see how many were done rather than which, list both under one <code>field</code> instead of <code>layers</code>: <code>field: [gym, read]</code> paints one colour, full when both are ticked and paler when only one is. The tooltip shows the count.</p>
 
         <!-- ============ full ============ -->
@@ -162,7 +163,7 @@ month:
             <thead><tr><th></th><th class="us">Dashy</th><th>Tracker</th></tr></thead>
             <tbody>
               <tr><td>Both on one grid</td><td data-h="Dashy" class="us"><span>Yes, a colour each</span></td><td data-h="Tracker"><span>One at a time, click to switch</span></td></tr>
-              <tr><td>A day with both</td><td data-h="Dashy" class="us"><span>First layer's colour, both in the tooltip</span></td><td data-h="Tracker"><span>Shown in each activity's own view</span></td></tr>
+              <tr><td>A day with both</td><td data-h="Dashy" class="us"><span>First layer's colour, or the larger value with <code>pick: max</code>; both in the tooltip</span></td><td data-h="Tracker"><span>Shown in each activity's own view</span></td></tr>
               <tr><td>Span</td><td data-h="Dashy" class="us"><span>A year, or any <code>range</code></span></td><td data-h="Tracker"><span>A month</span></td></tr>
               <tr><td>What you install</td><td data-h="Dashy" class="us"><span>Dashy</span></td><td data-h="Tracker"><span>Tracker</span></td></tr>
             </tbody>

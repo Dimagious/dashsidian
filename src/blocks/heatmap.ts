@@ -7,7 +7,7 @@ import {
     readFields, readPerDay, dayValues, unusedFields, heatmapDurationDiagnostics, checkboxCount, type DayNote,
 } from "../core/day-values";
 import { formatDuration } from "../core/duration";
-import { readLayers, combineLayers, type Layer } from "../core/layers";
+import { readLayers, readPick, combineLayers, type Layer } from "../core/layers";
 import { readDateField } from "../core/note-date";
 import { specialDays } from "../core/special-days";
 import { formatValue, roundedValue } from "../core/stat";
@@ -144,6 +144,11 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     }
     if (hasLayers && value.color !== undefined) {
         diags.push({ level: "warning", message: t("heatmap.layersColorIgnored") });
+    }
+    if (!hasLayers && value.pick !== undefined) {
+        // `pick` only chooses between layers; with a single `field` there
+        // is nothing to choose between, so say so rather than drop it quietly.
+        diags.push({ level: "warning", message: t("heatmap.pickWithoutLayers") });
     }
     if (hasLayers) return renderLayeredHeatmap(ctx, value, diags, el, restoreByKey);
 
@@ -324,6 +329,8 @@ function renderLayeredHeatmap(
     const range = readRange(value, diags);
     const { perDay, diagnostics: perDayDiags } = readPerDay(value);
     diags.push(...perDayDiags);
+    const { pick, diagnostics: pickDiags } = readPick(value);
+    diags.push(...pickDiags);
 
     const notes = selectConfiguredNotes(ctx, value, diags);
 
@@ -351,7 +358,7 @@ function renderLayeredHeatmap(
     const explicitBands = value.bands !== undefined ? readBands(value.bands, bandsAsDurations) : undefined;
 
     const perLayerMarks = layers.map((layer) => dayValues(notes, layer.fields, perDay, dateField));
-    const marks = combineLayers(perLayerMarks, layers.map((l) => l.label));
+    const marks = combineLayers(perLayerMarks, layers.map((l) => l.label), pick);
     // Block-wide, the same as the plain `field` path: a special day hatches
     // regardless of which layer, if any, painted it.
     const special = skipField ? specialDays(notes, skipField, dateField) : new Set<string>();

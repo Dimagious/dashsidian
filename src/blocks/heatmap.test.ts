@@ -1186,6 +1186,114 @@ describe("heatmap — several activities, each its own colour (B-096)", () => {
     });
 });
 
+describe("heatmap — pick: max chooses the layer with the larger value (B-136)", () => {
+    // 1 Jan: both layers, bike bigger. 2 Jan: a tie. 3 Jan: run alone.
+    const pickCtx = mockContext({
+        notes: [
+            { path: "Diary/2026-01-01.md", frontmatter: { run: 30, bike: 90 } },
+            { path: "Diary/2026-01-02.md", frontmatter: { run: 45, bike: 45 } },
+            { path: "Diary/2026-01-03.md", frontmatter: { run: 20 } },
+        ],
+    });
+    const BLUE = "59, 130, 246";
+    const GREEN = "34, 197, 94";
+    const layers = "layers:\n  - { field: run, color: blue }\n  - { field: bike, color: green }";
+    const cellFor = (el: HTMLElement, date: string) =>
+        nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium(date)));
+
+    it("the second layer wins a day it holds the larger value on: its colour and its link", () => {
+        const el = map(`source: Diary\npick: max\n${layers}`, pickCtx);
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(diagnostics(el, "warning")).toHaveLength(0);
+        const jan1 = cellFor(el, "2026-01-01");
+        expect(jan1?.style.backgroundColor).toContain(GREEN);
+        expect(jan1?.getAttribute("data-href")).toBe("Diary/2026-01-01.md");
+        // The tooltip still lists both layers in list order, not just the winner.
+        expect(jan1?.getAttribute("title")).toBe(`${medium("2026-01-01")}: run 30, bike 90 (2026-01-01)`);
+    });
+
+    it("the winning value is what the shading reads: 90 is the top of the fitted scale", () => {
+        const el = map(`source: Diary\npick: max\n${layers}`, pickCtx);
+        // Winners are 90, 45 and 20: the scale fits 20..90, so 1 Jan is at
+        // full alpha and the top band starts at 72.5, shown as 73+. Under
+        // `first` the winners would be 30, 45 and 20 and the top band 39+.
+        expect(cellFor(el, "2026-01-01")?.style.backgroundColor).toBe(`rgb(${GREEN})`);
+        expect(texts(el, ".dashy-hm-leg").slice(2)[0]).toBe("73+");
+        const firstEl = map(`source: Diary\n${layers}`, pickCtx);
+        expect(texts(firstEl, ".dashy-hm-leg").slice(2)[0]).toBe("39+");
+    });
+
+    it("a tie goes to the first layer in list order", () => {
+        const el = map(`source: Diary\npick: max\n${layers}`, pickCtx);
+        expect(cellFor(el, "2026-01-02")?.style.backgroundColor).toContain(BLUE);
+    });
+
+    it("a day only one layer holds is painted by that layer, as without pick", () => {
+        const el = map(`source: Diary\npick: max\n${layers}`, pickCtx);
+        const jan3 = cellFor(el, "2026-01-03");
+        expect(jan3?.style.backgroundColor).toContain(BLUE);
+        expect(jan3?.getAttribute("title")).toBe(`${medium("2026-01-03")}: run 20 (2026-01-03)`);
+    });
+
+    it("without pick, and with pick: first, the first layer still wins the larger second", () => {
+        for (const config of [`source: Diary\n${layers}`, `source: Diary\npick: first\n${layers}`]) {
+            const el = map(config, pickCtx);
+            expect(diagnostics(el, "warning")).toHaveLength(0);
+            expect(cellFor(el, "2026-01-01")?.style.backgroundColor).toContain(BLUE);
+        }
+    });
+
+    it("an unknown value warns naming it and falls back to first", () => {
+        const el = map(`source: Diary\npick: biggest\n${layers}`, pickCtx);
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(diagnostics(el, "warning")).toEqual(["⚠️ heatmap: `pick` expects first or max, got \"biggest\". Using first."]);
+        expect(cellFor(el, "2026-01-01")?.style.backgroundColor).toContain(BLUE);
+    });
+
+    it("pick without layers warns that it is ignored and renders the field as usual", () => {
+        const el = map("source: Diary\nfield: run\npick: max", pickCtx);
+        expect(diagnostics(el, "error")).toHaveLength(0);
+        expect(diagnostics(el, "warning")).toEqual([
+            "⚠️ heatmap: `pick` is ignored: it only chooses between `layers`, and this block has a single `field`.",
+        ]);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(cellFor(el, "2026-01-01")?.getAttribute("title")).toBe(`${medium("2026-01-01")}: run 30 (2026-01-01)`);
+    });
+
+    it("an unknown pick without layers gives only the ignored warning", () => {
+        const el = map("source: Diary\nfield: run\npick: biggest", pickCtx);
+        expect(diagnostics(el, "warning")).toEqual([
+            "⚠️ heatmap: `pick` is ignored: it only chooses between `layers`, and this block has a single `field`.",
+        ]);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+    });
+
+    it("a ticked checkbox layer counts as 1 against a numeric layer", () => {
+        const mixedCtx = mockContext({
+            notes: [
+                { path: "Diary/2026-01-01.md", frontmatter: { gym: true, stretch: 15 } },
+                { path: "Diary/2026-01-02.md", frontmatter: { gym: true, stretch: 0.5 } },
+            ],
+        });
+        const el = map(
+            "source: Diary\npick: max\nlayers:\n  - { field: gym, color: blue }\n  - { field: stretch, color: green }",
+            mixedCtx,
+        );
+        expect(cellFor(el, "2026-01-01")?.style.backgroundColor).toContain(GREEN);
+        expect(cellFor(el, "2026-01-02")?.style.backgroundColor).toContain(BLUE);
+    });
+
+    it("durations compare as minutes: 1:10 beats 0:40", () => {
+        const durCtx = mockContext({
+            notes: [{ path: "Diary/2026-01-01.md", frontmatter: { run: "0:40", bike: "1:10" } }],
+        });
+        const el = map(`source: Diary\npick: max\n${layers}`, durCtx);
+        const jan1 = cellFor(el, "2026-01-01");
+        expect(jan1?.style.backgroundColor).toContain(GREEN);
+        expect(jan1?.getAttribute("title")).toBe(`${medium("2026-01-01")}: run 40m, bike 1h 10m (2026-01-01)`);
+    });
+});
+
 describe("heatmap — special days, skip_field (B-095)", () => {
     const specialCtx = mockContext({
         notes: [

@@ -174,6 +174,8 @@ export const de: Catalog = {
     "heatmap.layerNotMap": "Ebene {position} muss eine Map mit `field` sein, erhalten „{value}“.",
     "heatmap.layerLabelInvalid": "Ebene {position}: `label` erwartet einen Namen, erhalten „{value}“.",
     "heatmap.layerAt": "Ebene {position}: {message}",
+    "heatmap.pickInvalid": "`pick` erwartet first oder max, erhalten „{value}“. Es wird first verwendet.",
+    "heatmap.pickWithoutLayers": "`pick` wird ignoriert: es wählt nur zwischen `layers`, und dieser Block hat ein einzelnes `field`.",
     "heatmap.rangeInvalid":
         "`range` erwartet week, month, year oder ein rollendes Fenster wie 30d, erhalten „{value}“. Es wird ein Raster pro Jahr gezeichnet.",
     "heatmap.caption": "{year}, {field}: Durchschnitt {average}, {present} von {total} Tagen",
