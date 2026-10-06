@@ -3,6 +3,8 @@
 .dashy-diag { padding: 4px 8px; border-radius: var(--dashy-radius); margin-bottom: 4px; }
 .dashy-diag-error { color: var(--text-error, var(--color-red)); background: var(--background-secondary); }
 .dashy-diag-warning { color: var(--text-muted); background: var(--background-secondary); }
+/* Not a problem with the config: a window that has not started yet (B-129). */
+.dashy-notice { margin: 4px 0 10px; padding: 4px 8px; font-size: 0.85em; color: var(--text-faint); }
 
 /* tiles */
 .dashy-tiles {

@@ -4,7 +4,8 @@ import {
 } from "./inherit";
 import { selectNotes, type NoteRecord } from "./source";
 import { dateFormats } from "./note-date";
-import { parseDateWithFormat } from "../adapters/datetime";
+import { periodNames } from "./period-name";
+import { parseDateWithFormat, parsePeriodStart } from "../adapters/datetime";
 
 const SHARED = ["source", "tag", "where", "period", "date_field"] as const;
 
@@ -126,10 +127,23 @@ describe("readBlockSelection: root problems reported once for the block (B-153, 
     it("an unreadable root period is one block-level warning naming the value", () => {
         const block = readBlockSelection({ period: "fortnight", items: [] }, SHARED);
         expect(block.diagnostics.map((d) => d.message)).toEqual([
-            '`period` at the block root expects week, month, year or a rolling window such as 30d, got "fortnight". Everything that inherits it is drawn unfiltered.',
+            '`period` at the block root expects week, month, year, a rolling window such as 30d, note, a period such as 2026-W40, or from and to dates, got "fortnight". Everything that inherits it is drawn unfiltered.',
         ]);
         // Kept in the defaults: cards still inherit it and read it as no window.
         expect(block.defaults.period).toBe("fortnight");
+    });
+
+    it("a root `period: note` in a note not named for a period is one error for the block (B-129)", () => {
+        const context = { names: periodNames({}, parsePeriodStart), noteName: "Dashboard" };
+        const block = readBlockSelection({ period: "note", items: [] }, SHARED, context);
+        expect(block.diagnostics).toEqual([{
+            level: "error",
+            message: '`period: note` needs a note named like a day, week, month, quarter or year, and this note is "Dashboard". '
+                + "Name it in one of these formats: YYYY-MM-DD, GGGG-[W]WW, YYYY-MM, YYYY-[Q]Q, YYYY.",
+        }]);
+        expect(readBlockSelection({ period: "note", items: [] }, SHARED, { ...context, noteName: "2026-W40" }).diagnostics)
+            .toEqual([]);
+        expect(readBlockSelection({ period: { from: "2026-09-01" }, items: [] }, SHARED, context).diagnostics).toEqual([]);
     });
 
     it("a readable root period, or none at all, warns about nothing", () => {

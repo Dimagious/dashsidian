@@ -122,6 +122,24 @@ describe("canonicalize — a synonym needs its target in scope (B-125)", () => {
     });
 });
 
+describe("canonicalize — a map-typed key's own map is taken as written (B-129)", () => {
+    const STATS = { root: Object.keys(schema.blocks.stats.root), item: Object.keys(schema.blocks.stats.item) };
+    const HEATMAP = { root: Object.keys(schema.blocks.heatmap.root), item: Object.keys(schema.blocks.heatmap.item) };
+
+    it("`from` inside `period` stays `from`, though it is a synonym of `source`", () => {
+        expect(canonicalize({ items: [{ period: { from: "2026-09-01", to: "2026-09-30" }, from: "Diary" }] }, STATS))
+            .toEqual({ items: [{ period: { from: "2026-09-01", to: "2026-09-30" }, source: "Diary" }] });
+        expect(canonicalize({ period: { from: "2026-09-01" }, items: [] }, STATS))
+            .toEqual({ period: { from: "2026-09-01" }, items: [] });
+        expect(canonicalize({ range: { from: "2026-09-01" }, folder: "Diary" }, HEATMAP))
+            .toEqual({ range: { from: "2026-09-01" }, source: "Diary" });
+    });
+
+    it("a text value of the same key is untouched as before", () => {
+        expect(parseConfig("range: note\nfrom: Diary", HEATMAP).value).toEqual({ range: "note", source: "Diary" });
+    });
+});
+
 describe("canonicalize", () => {
     it("rewrites synonyms to canonical keys", () => {
         expect(canonicalize({ folder: "X", title: "Y", emoji: "📥" }))

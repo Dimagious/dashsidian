@@ -122,7 +122,7 @@ const LOCALE_DAY = /(?:^|[^A-Za-z])(?:LL?|ll?)(?![A-Za-z])/;
  * hold folders, `YYYY/MM/YYYY-MM-DD`, and the name is only the part after
  * the last slash.
  */
-function nameFormat(format: string): string {
+export function nameFormat(format: string): string {
     return format.slice(format.lastIndexOf("/") + 1);
 }
 

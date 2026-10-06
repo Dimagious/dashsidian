@@ -19,13 +19,16 @@ import {
     deltaTone,
     compareCaption,
     dateFieldHasEffect,
+    futureStart,
+    windowLastDay,
     type DeltaTone,
 } from "../core/period";
 import { readStatsLayout, inlineLayoutDiagnostics } from "../core/stats-layout";
 import { firstDayOfWeek } from "../adapters/datetime";
-import { noteDateFormats } from "../adapters/periodic";
+import { noteDateFormats, periodContext } from "../adapters/periodic";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
-import { clearBlock, renderDiagnostics } from "../shared/render";
+import { clearBlock, renderDiagnostics, renderNotices } from "../shared/render";
+import { notStartedNotice } from "./window";
 import { t } from "../i18n";
 import schema from "./schema.json";
 
@@ -85,11 +88,16 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
     // Taken once, so every card on the page measures the same window.
     const today = ctx.today();
     const firstDay = firstDayOfWeek();
+    // B-129: how `period: note`, `2026-W40` and `from`/`to` are read.
+    const periodCtx = periodContext(ctx.app, ctx.sourcePath);
     const cards: Card[] = [];
+    // A window that has not started yet is not a mistake, only nothing to count.
+    const notices: string[] = [];
+    let notStarted = 0;
 
     // A selection at the block root is read, and its problems reported, once
     // for the whole block rather than once per card that inherits it.
-    const block = readBlockSelection(value, SHARED);
+    const block = readBlockSelection(value, SHARED, periodCtx);
     diags.push(...block.diagnostics);
     const rootMissing = unmatchedSource(notes, block.source);
     if (rootMissing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: rootMissing }) });
@@ -161,10 +169,20 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
 
         // `trend` keeps its own trailing window and reads `selected`
         // unfiltered — `period` narrows only what the number itself counts.
-        const { spec: periodSpec, diagnostics: periodDiags } = readPeriod(item, label, dateField);
+        const { spec: periodSpec, diagnostics: periodDiags, broken } = readPeriod(item, label, dateField, periodCtx);
         // An inherited `period` that does not read was reported once at the root.
         if (!inherited.has("period")) diags.push(...periodDiags);
-        let counted = selected;
+        // B-129: a window ahead of today draws a dash and says when it starts;
+        // a closed one counts `current_streak` and `trend` up to its last day.
+        const startsOn = periodSpec ? futureStart(periodSpec.period, today) : null;
+        const future = startsOn !== null;
+        if (startsOn !== null) {
+            notices.push(notStartedNotice(startsOn));
+            notStarted++;
+        }
+        const lastDay = windowLastDay(periodSpec?.period, today);
+        // A window that cannot be built counts nothing rather than everything.
+        let counted = broken ? [] : selected;
         if (periodSpec) {
             const windowed = filterByPeriod(selected, periodSpec.period, today, firstDay, periodSpec.dateField, formats);
             // An inherited `date_field` is reported once for the block, below.
@@ -203,11 +221,12 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         // warning for the block; "`compare` needs `period`" on every card
         // would contradict it, since a period was written (B-153).
         const needsPeriod = t("compare.needsPeriod", { card: cardLabel });
-        diags.push(...(inherited.has("period") && periodSpec === null
+        // The same for a window that cannot be built (B-129): its error already says why.
+        diags.push(...((inherited.has("period") || broken) && periodSpec === null
             ? compareDiags.filter((d) => d.message !== needsPeriod)
             : compareDiags));
 
-        const current = spec
+        const current = spec && !broken && !future
             ? aggregate(counted, {
                 agg: spec.agg,
                 field: spec.field,
@@ -217,15 +236,15 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
                 atMost: spec.atMost,
                 days: spec.days,
                 skipField: spec.skipField,
-                today,
+                today: lastDay,
             })
             : null;
 
         const card: Card = {
             label: label || spec?.field || "",
             text: formatReading(current, spec?.precision, duration, clock),
-            trend: layout === "cards" && spec?.trend && spec.field
-                ? sparkBars(series(selected, spec.field, spec.trend, today, dateField, formats))
+            trend: layout === "cards" && spec?.trend && spec.field && !broken && !future
+                ? sparkBars(series(selected, spec.field, spec.trend, lastDay, dateField, formats))
                 : [],
         };
         if (typeof item.icon === "string") card.icon = item.icon;
@@ -252,7 +271,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
                     arrow: format.arrow,
                     text: format.text,
                     tone: deltaTone(format.direction, compareSpec.better),
-                    title: compareCaption(periodSpec.period, formatReading(previous, spec.precision, duration, clock)),
+                    title: compareCaption(periodSpec.period, formatReading(previous, spec.precision, duration, clock), today),
                 };
             }
         }
@@ -265,6 +284,9 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
 
     // Diagnostics before the cards: an error must be seen before a dash is.
     renderDiagnostics(el, "stats", diags);
+    renderNotices(el, notices);
+    // Every card waiting for its window: the notice says it all, a row of dashes would not.
+    if (notStarted === cards.length) return;
 
     if (layout === "inline") {
         renderInline(el, cards);

@@ -1,7 +1,7 @@
 import { describeValue, isRecord, type Diagnostic } from "../shared/parse";
 import { t, type MessageKey } from "../i18n";
 import { isNotText, readSelector, readSource, readWhere, type NoteRecord, type SourceSpec } from "./source";
-import { parsePeriod } from "./period";
+import { readPeriodValue, type PeriodContext } from "./period";
 import { readDateField, unmatchedDateFormat, type DateFormats } from "./note-date";
 
 /**
@@ -35,8 +35,13 @@ const NONE: BlockSelection = { defaults: {}, source: {}, diagnostics: [] };
  * Only the `items:` shape has a root distinct from its cards. A bare list has
  * no root at all, and a single card written as a bare map is its own root:
  * inheriting from it would apply its `where` twice and report a bad one twice.
+ * `periodContext` reads a root `period` the way the cards will (B-129).
  */
-export function readBlockSelection(value: unknown, shared: readonly string[]): BlockSelection {
+export function readBlockSelection(
+    value: unknown,
+    shared: readonly string[],
+    periodContext?: PeriodContext,
+): BlockSelection {
     if (!isRecord(value) || !Array.isArray(value.items)) return NONE;
 
     const defaults: Record<string, unknown> = {};
@@ -52,11 +57,17 @@ export function readBlockSelection(value: unknown, shared: readonly string[]): B
         if (isBlank(value[key])) diagnostics.push({ level: "warning", message: t(BLANK_AT_ROOT[key]) });
     }
     // Checked here, once, so a card that inherits it does not repeat it (B-153).
-    if (shared.includes("period") && value.period !== undefined && parsePeriod(value.period) === null) {
-        diagnostics.push({
-            level: "warning",
-            message: t("inherit.rootPeriodInvalid", { value: describeValue(value.period) }),
-        });
+    // A window that cannot be built (`note` in a note not named for a
+    // period, B-129) is an error; a value that is no window at all warns.
+    if (shared.includes("period") && value.period !== undefined) {
+        const { period, problem } = readPeriodValue(value.period, "period", periodContext);
+        if (problem) diagnostics.push({ level: "error", message: problem });
+        else if (period === null) {
+            diagnostics.push({
+                level: "warning",
+                message: t("inherit.rootPeriodInvalid", { value: describeValue(value.period) }),
+            });
+        }
     }
     return { defaults, source: spec, diagnostics };
 }

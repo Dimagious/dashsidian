@@ -105,6 +105,25 @@ items:
   - { label: без поля, source: Diary, agg: avg }`,
     },
     {
+        block: "stats",
+        title: "stats — закрытая неделя (period: LAST_WEEK), сравнение со всей прошлой",
+        source: `source: Diary
+period: LAST_WEEK
+items:
+  - { label: Дней, agg: count, compare: true }
+  - { label: Шагов, field: steps, agg: sum, compare: true, better: up }
+  - { label: Подряд к концу недели, field: steps, agg: current_streak, at_least: 8000 }`,
+    },
+    {
+        block: "stats",
+        title: "stats — неделя ещё не началась (period: NEXT_WEEK)",
+        source: `source: Diary
+period: NEXT_WEEK
+items:
+  - { label: Дней, agg: count }
+  - { label: Шагов, field: steps, agg: sum }`,
+    },
+    {
         block: "progress",
         title: "progress — длительность к цели 8h",
         source: `items:
@@ -272,6 +291,13 @@ field: sleep_duration
 agg: avg
 bucket: week
 goal: 7h`,
+    },
+    {
+        block: "chart",
+        title: "chart — закрытая неделя (range: LAST_WEEK), без «пока»",
+        source: `source: Diary
+field: steps
+range: LAST_WEEK`,
     },
     {
         block: "chart",

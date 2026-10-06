@@ -53,6 +53,16 @@ describe("preview cases", () => {
         expect(all, "nothing to count").toContain("is-empty");
         expect(all, "a goal already met").toContain("is-complete");
         expect(all, "a note not created yet").toContain("is-missing");
+        expect(all, "a window not started yet (B-129)").toContain("dashy-notice");
+    });
+
+    it("the dated window cases move with the calendar (B-129)", () => {
+        const closed = CASES.find((c) => c.source.includes("LAST_WEEK"))!;
+        expect(withDates(closed.source)).not.toContain("LAST_WEEK");
+        expect(withDates(closed.source)).toMatch(/period: \d{4}-W\d{2}\n/);
+        const html = render(CASES.indexOf(closed)).innerHTML;
+        expect(html).toContain("dashy-stat-delta");
+        expect(html).not.toContain("dashy-diag");
     });
 
     it("the dated cases move with the calendar", () => {

@@ -36,6 +36,15 @@ export function renderDiagnostics(el: HTMLElement, blockName: string, diagnostic
     }
 }
 
+/**
+ * A quiet line inside a block that is not a problem with its config: a
+ * window from a note on next week has nothing to count yet (B-129). Each
+ * text once, however many cards share it.
+ */
+export function renderNotices(el: HTMLElement, notices: Iterable<string>): void {
+    for (const text of new Set(notices)) el.createDiv({ cls: "dashy-notice", text });
+}
+
 /** A link into the vault: Obsidian intercepts clicks on .internal-link. */
 export function internalLink(parent: HTMLElement, path: string, cls: string): HTMLAnchorElement {
     return parent.createEl("a", {

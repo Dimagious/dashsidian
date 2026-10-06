@@ -8,11 +8,12 @@ import { aggregate, classifyField, classifyValues } from "../core/aggregate";
 import { readDateField, readDateFormat, unmatchedDateFormat, type DateFormats } from "../core/note-date";
 import { formatReading, showsDuration, showsClock, durationDiagnostics } from "../core/stat";
 import { readProgress, percentOf, barWidth, type ProgressSpec } from "../core/progress";
-import { readPeriod, filterByPeriod, dateFieldHasEffect } from "../core/period";
+import { readPeriod, filterByPeriod, dateFieldHasEffect, futureStart, windowLastDay } from "../core/period";
 import { firstDayOfWeek } from "../adapters/datetime";
-import { noteDateFormats } from "../adapters/periodic";
+import { noteDateFormats, periodContext } from "../adapters/periodic";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
-import { clearBlock, renderDiagnostics } from "../shared/render";
+import { clearBlock, renderDiagnostics, renderNotices } from "../shared/render";
+import { notStartedNotice } from "./window";
 import { t } from "../i18n";
 import schema from "./schema.json";
 
@@ -58,10 +59,15 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
     // Taken once, so every bar on the page measures the same window.
     const today = ctx.today();
     const firstDay = firstDayOfWeek();
+    // B-129: how `period: note`, `2026-W40` and `from`/`to` are read.
+    const periodCtx = periodContext(ctx.app, ctx.sourcePath);
     const bars: Bar[] = [];
+    // A window that has not started yet is not a mistake, only nothing to count.
+    const notices: string[] = [];
+    let notStarted = 0;
 
     // Same as stats: a root selection is read, and reported on, once.
-    const block = readBlockSelection(value, SHARED);
+    const block = readBlockSelection(value, SHARED, periodCtx);
     diags.push(...block.diagnostics);
     const rootMissing = unmatchedSource(notes, block.source);
     if (rootMissing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: rootMissing }) });
@@ -124,9 +130,15 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
         if (inherited.has("date_format")) rootFormatted.push({ notes: selected, dateField });
         else diags.push(...unmatchedDateFormat(selected, dateField, formats));
 
-        const { spec: periodSpec, diagnostics: periodDiags } = readPeriod(item, label, dateField);
+        const { spec: periodSpec, diagnostics: periodDiags, broken } = readPeriod(item, label, dateField, periodCtx);
         // An inherited `period` that does not read was reported once at the root.
         if (!inherited.has("period")) diags.push(...periodDiags);
+        // B-129: the same as on a stats card.
+        const startsOn = periodSpec ? futureStart(periodSpec.period, today) : null;
+        if (startsOn !== null) {
+            notices.push(notStartedNotice(startsOn));
+            notStarted++;
+        }
         let counted = selected;
         if (periodSpec) {
             const windowed = filterByPeriod(selected, periodSpec.period, today, firstDay, periodSpec.dateField, formats);
@@ -155,7 +167,9 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
             diags.push({ level: "warning", message: t("period.dateFieldUnused", { card: cardLabel }) });
         }
 
-        bars.push(toBar(counted, spec, label, item, today, duration, clock, dateField, formats));
+        const waiting = broken ? "broken" : startsOn !== null ? "future" : null;
+        const lastDay = windowLastDay(periodSpec?.period, today);
+        bars.push(toBar(counted, spec, label, item, lastDay, duration, clock, dateField, formats, waiting));
     }
 
     diags.push(...undatedRootDiagnostics(block, undatedCards));
@@ -163,6 +177,9 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
 
     // Diagnostics before the bars: an error must be seen before an empty track.
     renderDiagnostics(el, "progress", diags);
+    renderNotices(el, notices);
+    // Every bar waiting for its window: the notice says it all.
+    if (notStarted === bars.length) return;
 
     const cols = Math.max(1, Math.min(4, columns));
     // `is-multi` lets a phone narrow a several-column layout to two, the way
@@ -205,6 +222,8 @@ function toBar(
     clock: boolean,
     dateField?: string,
     formats?: DateFormats,
+    /** B-129: a window that cannot be built, or has not started; either way nothing is counted */
+    waiting: "broken" | "future" | null = null,
 ): Bar {
     const bar: Bar = {
         label: label || spec?.field || "",
@@ -212,11 +231,16 @@ function toBar(
         goal: "—",
         percent: null,
         width: 0,
-        broken: spec === null,
+        broken: spec === null || waiting === "broken",
     };
     if (typeof item.icon === "string") bar.icon = item.icon;
     if (typeof item.sub === "string") bar.sub = item.sub;
     if (!spec) return bar;
+    if (waiting) {
+        bar.goal = formatReading(spec.goal, spec.precision, duration, clock);
+        if (spec.unit && !duration) bar.unit = spec.unit;
+        return bar;
+    }
 
     const current = aggregate(selected, {
         agg: spec.agg,

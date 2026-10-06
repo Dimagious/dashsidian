@@ -4,7 +4,7 @@ import {
     monthYearShort,
 } from "../adapters/datetime";
 import { isMobile } from "../adapters/platform";
-import { noteDateFormats } from "../adapters/periodic";
+import { noteDateFormats, periodContext } from "../adapters/periodic";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
 import { readDateFormat, unmatchedDateFormat } from "../core/note-date";
 import { classifyValues, type FieldValueKind } from "../core/aggregate";
@@ -15,9 +15,11 @@ import {
 import { chartDomain, niceTicks } from "../core/chart-scale";
 import { chartLayout, placeXLabel, type ChartLayout } from "../core/chart-layout";
 import { parseDateKey } from "../core/calendar";
+import { futureStart } from "../core/period";
 import { rgba } from "../core/palette";
 import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
-import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
+import { clearBlock, renderDiagnostics, renderNotices, internalLink } from "../shared/render";
+import { notStartedNotice, windowLabel } from "./window";
 import { t } from "../i18n";
 import schema from "./schema.json";
 
@@ -62,7 +64,9 @@ export function renderChart(ctx: BlockContext, source: string, el: HTMLElement):
     }
     diags.push(...unknownKeys(value, KNOWN, HINTS));
 
-    const { spec, diagnostics: specDiags } = readChart(value, KNOWN_ITEM);
+    // B-129: `range: note`, `2026-W40` and `from`/`to`, measured against one today.
+    const today = ctx.today();
+    const { spec, diagnostics: specDiags } = readChart(value, KNOWN_ITEM, periodContext(ctx.app, ctx.sourcePath), today);
     diags.push(...specDiags);
     if (!spec) {
         renderDiagnostics(el, "chart", diags);
@@ -81,8 +85,16 @@ export function renderChart(ctx: BlockContext, source: string, el: HTMLElement):
     const formats = noteDateFormats(ctx.app, dateFormat);
     diags.push(...unmatchedDateFormat(notes, spec.dateField, formats));
 
+    // A window still ahead of today is not a mistake, only nothing to draw yet.
+    const startsOn = futureStart(spec.range, today);
+    if (startsOn !== null) {
+        renderDiagnostics(el, "chart", diags);
+        renderNotices(el, [notStartedNotice(startsOn)]);
+        return;
+    }
+
     const firstDay = firstDayOfWeek();
-    const { buckets, anyDated, diagnostics: bucketDiags } = bucketize(notes, spec, ctx.today(), firstDay, formats);
+    const { buckets, anyDated, diagnostics: bucketDiags } = bucketize(notes, spec, today, firstDay, formats);
 
     if (notes.length && !anyDated) {
         diags.push({
@@ -168,7 +180,7 @@ export function renderChart(ctx: BlockContext, source: string, el: HTMLElement):
     diags.push(...bucketDiags);
     renderDiagnostics(el, "chart", diags);
 
-    return drawChart(el, spec, buckets, { seriesDuration, seriesClock, axisDuration });
+    return drawChart(el, spec, buckets, { seriesDuration, seriesClock, axisDuration, windowText: windowLabel(spec.range, today) });
 }
 
 interface DrawOptions {
@@ -178,6 +190,8 @@ interface DrawOptions {
     seriesClock: readonly boolean[];
     /** the y axis and the goal label read as durations */
     axisDuration: boolean;
+    /** a fixed window's name, "October 2026", said in place of "last 30 days" (B-129) */
+    windowText?: string | undefined;
 }
 
 /** An SVG element appended to `parent`, created in the parent's own document (popout windows). */
@@ -234,8 +248,8 @@ interface TapState {
 }
 
 function drawChart(el: HTMLElement, spec: ChartSpec, buckets: readonly Bucket[], opts: DrawOptions): void | (() => void) {
-    const caption = chartCaption(spec, buckets.length);
-    const span = spanText(spec.bucket, buckets.length);
+    const caption = chartCaption(spec, buckets.length, opts.windowText);
+    const span = opts.windowText ?? spanText(spec.bucket, buckets.length);
     const empty = buckets.every((b) => b.notes.length === 0);
 
     const axisFormat: ValueFormat = { duration: opts.axisDuration };
@@ -272,7 +286,12 @@ function drawChart(el: HTMLElement, spec: ChartSpec, buckets: readonly Bucket[],
         }),
     });
     const hitRow = plot.createDiv({ cls: "dashy-chart-hits" });
-    if (empty) plot.createDiv({ cls: "dashy-chart-empty", text: t("chart.emptyRange", { span }) });
+    if (empty) {
+        plot.createDiv({
+            cls: "dashy-chart-empty",
+            text: opts.windowText ? t("chart.emptyWindow", { window: opts.windowText }) : t("chart.emptyRange", { span }),
+        });
+    }
 
     const mobile = isMobile();
     const tap: TapState = { selected: null, selectedKey: null };

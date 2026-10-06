@@ -44,6 +44,7 @@
             <li><a href="#example">A minimal block</a></li>
             <li><a href="#root-keys">Keys on the block</a></li>
             <li><a href="#item-keys">Keys on each tile</a></li>
+            <li><a href="#how-it-counts">How it behaves</a></li>
             <li><a href="#related">Guides that use it</a></li>
           </ol>
         </nav>
@@ -140,8 +141,8 @@ items:
               </tr>
               <tr id="period">
                 <td class="k"><a class="key" href="#period"><code>period</code></a></td>
-                <td class="d">narrow <code>badge: count</code> to a window ending today: <code>week</code>, <code>month</code>, <code>year</code> (the current calendar one) or a rolling count of days like <code>30d</code>. Notes without a date are left out first. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages</td>
-                <td class="t" data-h="type">text or number</td>
+                <td class="d">narrow <code>badge: count</code> to a window: <code>week</code>, <code>month</code>, <code>year</code> (the current calendar one) or a rolling count of days like <code>30d</code>, all ending today; <code>note</code>, the day, week, month, quarter or year the name of the note this block sits in stands for, like <code>2026-W40</code>; a period written out the same way: <code>2026-10-01</code>, <code>2026-W40</code>, <code>2026-10</code>, <code>2026-Q4</code> or <code>2026</code>; or <code>{ from: 2026-09-01, to: 2026-09-30 }</code>, both days included, <code>from</code> alone running to today. Notes without a date are left out first. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages; a week named like <code>2026-W40</code> is the seven days its name stands for</td>
+                <td class="t" data-h="type">text or number or map</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
               <tr id="date_field">
@@ -183,6 +184,12 @@ items:
             </tbody>
           </table>
         </div>
+
+
+        <h2 id="how-it-counts">How it behaves</h2>
+        <ul class="notes">
+          <li><code>period: note</code> on a <code>badge: count</code> tile counts the notes dated in the day, week, month, quarter or year the name of the note the block sits in stands for: in a note named <code>2026-W40</code>, <code>{ label: Workouts, path: Training, badge: count, period: note }</code> counts that week's workouts. <code>period: 2026-10</code> or <code>period: { from: 2026-09-01, to: 2026-09-30 }</code> names the window outright. A note not named for a period is an error; a window that has not started yet shows no badge and says the day it starts.</li>
+        </ul>
 
 
         <h2 id="related">Guides that use it</h2>

@@ -677,8 +677,8 @@ items:
   - { label: B, agg: count, goal: 10 }
   - { label: C, agg: count, goal: 10, period: biweekly }`);
         expect(diagnostics(el, "warning")).toEqual([
-            '⚠️ progress: `period` at the block root expects week, month, year or a rolling window such as 30d, got "fortnight". Everything that inherits it is drawn unfiltered.',
-            '⚠️ progress: "C": `period` expects week, month, year or a rolling window such as 30d, got "biweekly". Drawn unfiltered.',
+            '⚠️ progress: `period` at the block root expects week, month, year, a rolling window such as 30d, note, a period such as 2026-W40, or from and to dates, got "fortnight". Everything that inherits it is drawn unfiltered.',
+            '⚠️ progress: "C": `period` expects week, month, year, a rolling window such as 30d, note, a period such as 2026-W40, or from and to dates, got "biweekly". Drawn unfiltered.',
         ]);
         expect(texts(el, ".dashy-progress-percent")).toEqual(["100%", "100%", "100%"]);
     });
