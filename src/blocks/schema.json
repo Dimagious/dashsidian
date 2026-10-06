@@ -530,7 +530,12 @@
         },
         "layers": {
           "type": "list",
-          "doc": "several activities on one grid, each in its own colour, instead of one `field`: `[{field, color, label}]`. Not used together with the block's own `field`. The first layer painted on a day colours that cell and supplies its value and link; the tooltip lists every layer with a value that day, in list order. The caption then counts days where any layer painted and drops the average, since averaging different fields together says nothing useful"
+          "doc": "several activities on one grid, each in its own colour, instead of one `field`: `[{field, color, label}]`. Not used together with the block's own `field`. The first layer painted on a day colours that cell and supplies its value and link, or with `pick: max` the one with the largest value that day; the tooltip lists every layer with a value that day, in list order. The caption then counts days where any layer painted and drops the average, since averaging different fields together says nothing useful"
+        },
+        "pick": {
+          "type": "string",
+          "default": "first",
+          "doc": "with `layers`, which layer wins a day several of them painted: `first` (the first in list order) or `max` (the largest value that day, after that layer's own `per_day`; a ticked checkbox counts as 1, a duration as minutes; a tie goes to the first in list order). The winner colours the cell and supplies its link and the value that shading and `bands` read; the tooltip still lists every layer with a value that day. Comparing different fields only makes sense when they share a unit, minutes against minutes for example. An unrecognised value warns and falls back to first; without `layers` it warns and is ignored"
         },
         "bands": {
           "type": "list",
@@ -581,7 +586,7 @@
         "A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 Monday` counts, `2026-01-051` does not), unless `date_field` names a property instead. That is how the block knows which cell it belongs to.",
         "Two or more notes landing on the same day paint one cell, and so does a `field` list on one note: `per_day` (default sum) says how the day's values combine, and a ticked or numeric contributor always outweighs a false one on the same day.",
         "Years are taken from the data, newest first, but never one later than today: a note dated in the future draws nothing extra and counts nowhere in the grid. If every dated note turns out to be in the future, the current year is still drawn, empty.",
-        "`layers` replaces `field` for tracking several activities on one grid, each its own colour: `layers: [{field: gym, color: blue}, {field: run, color: green, label: Running}]`. When two layers land on the same day, the first one in the list colours the cell; the tooltip still lists every layer that has a value that day.",
+        "`layers` replaces `field` for tracking several activities on one grid, each its own colour: `layers: [{field: gym, color: blue}, {field: run, color: green, label: Running}]`. When two layers land on the same day, the first one in the list colours the cell, or with `pick: max` the one with the larger value; the tooltip still lists every layer that has a value that day.",
         "`skip_field` marks special days, vacation or sick for example: they still show a hatched cell, keeping any painted colour underneath, and their count in the caption is unchanged (a special day with no value is still not present).",
         "`range` draws one grid over a window ending today instead of a grid per year: `range: 365d` is a rolling year that crosses 1 January in a single grid rather than splitting into two. Everything else works the same over that one grid: bands, layers, skip_field and its legend row, the caption's count and average, tooltips and links."
       ]

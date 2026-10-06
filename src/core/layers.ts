@@ -128,6 +128,39 @@ export function readLayers(
     return { layers, diagnostics };
 }
 
+/**
+ * Which layer wins a day several layers painted (B-136): `first` in list
+ * order (the default, and the only behaviour before `pick` existed), or the
+ * one with the largest value that day.
+ */
+export const LAYER_PICKS = ["first", "max"] as const;
+export type LayerPick = (typeof LAYER_PICKS)[number];
+
+function isLayerPick(v: unknown): v is LayerPick {
+    return typeof v === "string" && (LAYER_PICKS as readonly string[]).includes(v);
+}
+
+export interface PickOutcome {
+    pick: LayerPick;
+    diagnostics: Diagnostic[];
+}
+
+/**
+ * Reads `pick` off a layered heatmap config. Absent is silent; an
+ * unrecognised value warns and falls back to `first`, the same shape
+ * `readPerDay` (day-values.ts) takes for `per_day`. Whether `pick` makes
+ * sense at all without `layers` is the caller's call, not this one's.
+ */
+export function readPick(value: Record<string, unknown>): PickOutcome {
+    const raw = value.pick;
+    if (raw === undefined) return { pick: "first", diagnostics: [] };
+    if (isLayerPick(raw)) return { pick: raw, diagnostics: [] };
+    return {
+        pick: "first",
+        diagnostics: [{ level: "warning", message: t("heatmap.pickInvalid", { value: describeValue(raw) }) }],
+    };
+}
+
 /** One day's combined reading across every layer — what a heatmap cell actually paints. */
 export interface LayeredMark {
     /** the winning layer's value; meaningless (0) when nothing painted */
@@ -164,9 +197,12 @@ export interface LayeredMark {
  * day: the FIRST layer in list order that is painted that day colours the
  * cell and supplies its value and link, exactly the way `dayValues` itself
  * already picks the first-by-path note among several contributing to one
- * day. A day where every contributing layer is false-only still gets an
- * entry (`painted: false`) rather than none, the same "field exists, just
- * not painted" reading `dayValues` gives a single false mark.
+ * day. With `pick: "max"` (B-136) the painted layer with the largest
+ * collapsed value wins instead; a tie still goes to the first in list
+ * order, and an unpainted (false-only) layer never competes. A day where
+ * every contributing layer is false-only still gets an entry
+ * (`painted: false`) rather than none, the same "field exists, just not
+ * painted" reading `dayValues` gives a single false mark.
  *
  * `parts` carries every layer that has ANY mark that day (painted or not),
  * in list order, for the tooltip — a false-only layer still says so there,
@@ -175,6 +211,7 @@ export interface LayeredMark {
 export function combineLayers(
     perLayerMarks: readonly ReadonlyMap<string, DayMark>[],
     labels: readonly string[],
+    pick: LayerPick = "first",
 ): Map<string, LayeredMark> {
     const days = new Set<string>();
     for (const marks of perLayerMarks) for (const day of marks.keys()) days.add(day);
@@ -184,14 +221,19 @@ export function combineLayers(
         const parts: { label: string; value: number; layer: number }[] = [];
         const notes = new Map<string, DayNote>();
         let winner = -1;
+        let winning: DayMark | undefined;
         for (let i = 0; i < perLayerMarks.length; i++) {
             const mark = perLayerMarks[i]?.get(day);
             if (!mark) continue;
             parts.push({ label: labels[i] ?? "", value: mark.value, layer: i });
             for (const note of mark.notes) notes.set(note.path, note);
-            if (winner === -1 && mark.painted) winner = i;
+            if (!mark.painted) continue;
+            // Strictly greater, so a tie keeps the earlier layer.
+            if (!winning || (pick === "max" && mark.value > winning.value)) {
+                winner = i;
+                winning = mark;
+            }
         }
-        const winning = winner === -1 ? undefined : perLayerMarks[winner]?.get(day);
         combined.set(day, {
             value: winning?.value ?? 0,
             path: winning?.path ?? "",

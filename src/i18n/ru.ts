@@ -172,6 +172,8 @@ export const ru: Catalog = {
     "heatmap.layerNotMap": "Слой {position} должен быть картой с `field`, получено «{value}».",
     "heatmap.layerLabelInvalid": "Слой {position}: `label` ожидает имя, получено «{value}».",
     "heatmap.layerAt": "Слой {position}: {message}",
+    "heatmap.pickInvalid": "`pick` принимает first или max, получено «{value}». Используется first.",
+    "heatmap.pickWithoutLayers": "`pick` игнорируется: он выбирает только между `layers`, а у этого блока один `field`.",
     "heatmap.rangeInvalid":
         "`range` ожидает week, month, year или скользящее окно вроде 30d, получено «{value}». Рисуется сетка по годам.",
     "heatmap.titleYear": "{title} ({year})",

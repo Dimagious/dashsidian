@@ -23,7 +23,7 @@ Step-by-step pages, one problem each, with YAML to copy:
   `current_streak` and `streak`):
   https://dimagious.github.io/dashsidian/guides/streak-weekdays/
 - Two activities on one heatmap (`layers`, one colour each; on a day with
-  both, the first layer's colour shows):
+  both, the first layer's colour shows, or the larger value with `pick: max`):
   https://dimagious.github.io/dashsidian/guides/heatmap-two-activities/
 - A weekly chart without Tracker (`chart` with `bucket: week` and `goal`;
   `dashy-chart` next to Obsidian Charts; frontmatter only):

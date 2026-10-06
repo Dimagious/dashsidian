@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readLayers, combineLayers, type LayeredMark } from "./layers";
+import { readLayers, readPick, combineLayers, type LayeredMark } from "./layers";
 import { dayValues, type DayMark } from "./day-values";
 import type { NoteRecord } from "./source";
 
@@ -281,5 +281,124 @@ describe("combineLayers — isBool", () => {
         ];
         const combined = combineLayers(perLayer, ["steps"]);
         expect(typeof combined.get("2026-01-01")?.isBool).toBe("boolean");
+    });
+});
+
+describe("readPick", () => {
+    it("absent is silent and defaults to first", () => {
+        expect(readPick({})).toEqual({ pick: "first", diagnostics: [] });
+    });
+
+    it("reads first and max as written", () => {
+        expect(readPick({ pick: "first" })).toEqual({ pick: "first", diagnostics: [] });
+        expect(readPick({ pick: "max" })).toEqual({ pick: "max", diagnostics: [] });
+    });
+
+    it("an unknown string warns naming it and falls back to first", () => {
+        const { pick, diagnostics } = readPick({ pick: "biggest" });
+        expect(pick).toBe("first");
+        expect(diagnostics).toEqual([
+            { level: "warning", message: "`pick` expects first or max, got \"biggest\". Using first." },
+        ]);
+    });
+
+    it("a value of the wrong shape (a number, a differently cased word) also warns and falls back", () => {
+        expect(readPick({ pick: 1 }).pick).toBe("first");
+        expect(readPick({ pick: 1 }).diagnostics).toHaveLength(1);
+        expect(readPick({ pick: "Max" }).pick).toBe("first");
+        expect(readPick({ pick: "Max" }).diagnostics[0]?.message).toContain("\"Max\"");
+    });
+});
+
+describe("combineLayers — pick: max (B-136)", () => {
+    it("the layer with the larger value wins the cell, its value and its link", () => {
+        const perLayer = [
+            new Map([["2026-01-01", mark({ value: 30, path: "a.md" })]]),
+            new Map([["2026-01-01", mark({ value: 90, path: "b.md" })]]),
+        ];
+        const combined = combineLayers(perLayer, ["run", "bike"], "max");
+        expect(combined.get("2026-01-01")).toMatchObject({ value: 90, path: "b.md", painted: true, layer: 1 });
+        // The tooltip parts are unchanged: every layer, in list order.
+        expect(combined.get("2026-01-01")?.parts).toEqual([
+            { label: "run", value: 30, layer: 0 },
+            { label: "bike", value: 90, layer: 1 },
+        ]);
+    });
+
+    it("the same marks under the default still go to the first layer", () => {
+        const perLayer = [
+            new Map([["2026-01-01", mark({ value: 30, path: "a.md" })]]),
+            new Map([["2026-01-01", mark({ value: 90, path: "b.md" })]]),
+        ];
+        expect(combineLayers(perLayer, ["run", "bike"]).get("2026-01-01")?.layer).toBe(0);
+        expect(combineLayers(perLayer, ["run", "bike"], "first").get("2026-01-01")?.layer).toBe(0);
+    });
+
+    it("a tie goes to the first layer in list order", () => {
+        const perLayer = [
+            new Map([["2026-01-01", mark({ value: 45, path: "a.md" })]]),
+            new Map([["2026-01-01", mark({ value: 45, path: "b.md" })]]),
+            new Map([["2026-01-01", mark({ value: 45, path: "c.md" })]]),
+        ];
+        const combined = combineLayers(perLayer, ["run", "bike", "swim"], "max");
+        expect(combined.get("2026-01-01")).toMatchObject({ value: 45, path: "a.md", layer: 0 });
+    });
+
+    it("the largest of three wins even when it sits in the middle", () => {
+        const perLayer = [
+            new Map([["2026-01-01", mark({ value: 10, path: "a.md" })]]),
+            new Map([["2026-01-01", mark({ value: 70, path: "b.md" })]]),
+            new Map([["2026-01-01", mark({ value: 40, path: "c.md" })]]),
+        ];
+        const combined = combineLayers(perLayer, ["run", "bike", "swim"], "max");
+        expect(combined.get("2026-01-01")).toMatchObject({ value: 70, layer: 1 });
+    });
+
+    it("a day only one layer has stays that layer's, whatever its value", () => {
+        const perLayer = [
+            new Map([["2026-01-01", mark({ value: 5, path: "a.md" })]]),
+            new Map([["2026-01-02", mark({ value: -3, path: "b.md" })]]),
+        ];
+        const combined = combineLayers(perLayer, ["run", "bike"], "max");
+        expect(combined.get("2026-01-01")).toMatchObject({ value: 5, layer: 0 });
+        expect(combined.get("2026-01-02")).toMatchObject({ value: -3, layer: 1, painted: true });
+    });
+
+    it("an unpainted (false-only) layer never competes, even when it would compare larger", () => {
+        const perLayer = [
+            new Map([["2026-01-01", mark({ value: 0, path: "a.md" })]]),
+            // A false mark with a stray larger value must still not win.
+            new Map([["2026-01-01", mark({ value: 5, path: "", painted: false })]]),
+        ];
+        const combined = combineLayers(perLayer, ["run", "gym"], "max");
+        expect(combined.get("2026-01-01")).toMatchObject({ value: 0, path: "a.md", layer: 0, painted: true });
+    });
+
+    it("a ticked checkbox counts as 1: it loses to more minutes and wins over less than 1", () => {
+        const notes = [
+            note("Diary/2026-01-01.md", { gym: true, run: 40 }),
+            note("Diary/2026-01-02.md", { gym: true, run: 0.5 }),
+        ];
+        const gymLayer = dayValues(notes, ["gym"], "sum");
+        const runLayer = dayValues(notes, ["run"], "sum");
+        const combined = combineLayers([gymLayer, runLayer], ["gym", "run"], "max");
+        expect(combined.get("2026-01-01")).toMatchObject({ value: 40, layer: 1, isBool: false });
+        expect(combined.get("2026-01-02")).toMatchObject({ value: 1, layer: 0, isBool: true });
+    });
+
+    it("compares each layer after its own per_day, not its raw values", () => {
+        const notes = [
+            note("Diary/2026-01-01.md", { run: 30 }),
+            note("Diary/2026-01-01 evening.md", { run: 30, bike: 50 }),
+        ];
+        // sum: run 60 beats bike 50; max: run 30 loses to bike 50.
+        const sum = combineLayers(
+            [dayValues(notes, ["run"], "sum"), dayValues(notes, ["bike"], "sum")], ["run", "bike"], "max",
+        );
+        expect(sum.get("2026-01-01")).toMatchObject({ value: 60, layer: 0 });
+        const max = combineLayers(
+            [dayValues(notes, ["run"], "max"), dayValues(notes, ["bike"], "max")], ["run", "bike"], "max",
+        );
+        expect(max.get("2026-01-01")).toMatchObject({ value: 50, layer: 1 });
     });
 });
