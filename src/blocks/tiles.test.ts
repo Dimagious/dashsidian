@@ -740,3 +740,22 @@ describe("tiles: a blank path and a selection that is not text (B-160)", () => {
     });
 });
 
+describe("tiles — a period over daily notes named another way (B-120)", () => {
+    it("the Daily notes day format decides which notes fall in the window", () => {
+        const notes = [
+            { path: "Diary/05.10.2026.md" },
+            { path: "Diary/06.10.2026.md" },
+            { path: "Diary/01.09.2026.md" },
+        ];
+        const config = "items:\n  - { label: Diary, path: Diary, period: week, badge: count }";
+        const today = () => new Date(2026, 9, 6);
+        const withSettings = host();
+        renderTiles({ ...mockContext({ notes, dailyNotes: { format: "DD.MM.YYYY" } }), today }, config, withSettings);
+        expect(texts(withSettings, ".dashy-tile-badge")).toEqual(["2"]);
+        // Without it, no name is a date, and the tile says so rather than counting zero silently.
+        const without = host();
+        renderTiles({ ...mockContext({ notes }), today }, config, without);
+        expect(texts(without, ".dashy-tile-badge")).toEqual(["0"]);
+        expect(diagnostics(without, "warning")[0]).toContain("none of the selected notes has a name starting with a date");
+    });
+});

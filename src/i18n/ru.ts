@@ -103,10 +103,16 @@ export const ru: Catalog = {
     "stats.trendNeedsField": "{card}: `trend` нужно `field:`. У счёта заметок нет формы.",
     "stats.trendInvalid": "{card}: `trend` ожидает число дней, например 30d, получено «{value}».",
 
+    "dateFormat.invalid": "`date_format` ожидает формат даты вроде DD.MM.YYYY, получено «{value}». Пропущено.",
+    "dateFormat.notADay":
+        "В `date_format: {format}` нет года, месяца и дня, такой формат не называет день. Пропущено. Пишите вроде DD.MM.YYYY.",
+    "dateFormat.unmatched":
+        "`date_format: {format}` не подходит ни к одной выбранной заметке: например, «{example}» записано иначе.",
+
     "period.invalid":
         "{card}: `period` ожидает week, month, year или скользящее окно вроде 30d, получено «{value}». Рисуется без окна.",
     "period.noDatedNotes":
-        "{card}: ни у одной выбранной заметки нет имени, начинающегося с даты вида YYYY-MM-DD. Добавьте `date_field:`, если дата лежит в свойстве.",
+        "{card}: ни у одной выбранной заметки нет имени, начинающегося с даты вида YYYY-MM-DD. Задайте `date_format:`, если в именах дата записана иначе, например DD.MM.YYYY, или добавьте `date_field:`, если дата лежит в свойстве.",
     "period.noDatedNotesField": "{card}: ни у одной выбранной заметки нет даты в «{field}».",
     "period.dateFieldUnused":
         "{card}: `date_field` здесь ни на что не влияет. Он управляет только `period`, `streak`, `current_streak`, `latest` и `trend`.",
@@ -131,7 +137,7 @@ export const ru: Catalog = {
     "countdown.dateAndField": "{card}: заданы и `date:`, и `field:`. Оставьте что-то одно: дату здесь или свойство из заметки.",
     "countdown.fieldInvalid": "{card}: `field` ожидает имя свойства, получено «{value}».",
     "countdown.fieldMissing": "{card}: ни в одной заметке выборки не заполнено «{field}». Проверьте имя, `source`, `tag` и `where`.",
-    "countdown.fieldNotDate": "{card}: «{field}» в заметке «{note}» равно «{value}», это не дата. Ожидается YYYY-MM-DD.",
+    "countdown.fieldNotDate": "{card}: «{field}» в заметке «{note}» равно «{value}», это не дата. Ожидается YYYY-MM-DD или другой формат, заданный через `date_format:` рядом с `items:`.",
     "countdown.repeatInvalid": "{card}: `repeat` ожидает `yearly`, получено «{value}».",
     "countdown.selectionUnused": "{card}: `source`, `tag` и `where` выбирают заметку, из которой читается `field`. Рядом с `date:` они не действуют.",
     "countdown.today": "Сегодня",
@@ -160,7 +166,7 @@ export const ru: Catalog = {
     "heatmap.expectFields": "Ожидается набор полей, например `source:` и `field:`.",
     "heatmap.fieldRequired": "Не задано `field`. Какое число из frontmatter красить.",
     "heatmap.noData":
-        "Нет заметок с определяемой датой и числом, длительностью вроде `7h 30m` или чекбоксом в поле «{field}». Проверь `source`, или `date_field`, если дата лежит в свойстве.",
+        "Нет заметок с определяемой датой и числом, длительностью вроде `7h 30m` или чекбоксом в поле «{field}». Проверь `source`, `date_format`, если в именах дата записана иначе, например DD.MM.YYYY, или `date_field`, если дата лежит в свойстве.",
     "heatmap.fieldMissing":
         "Ни у одной заметки в выборке нет «{field}». Проверьте имя и `source`.",
     "heatmap.fieldNotNumeric":
@@ -241,9 +247,9 @@ export const ru: Catalog = {
     "chart.durationMixed": "В «{field}» смешаны длительности («{durationNote}») и простые числа («{plainNote}»). Всё посчитано в минутах и показано простыми числами.",
     "chart.fieldMissing": "Ни у одной заметки в выборке нет «{field}». Проверьте имя и `source`.",
     "chart.fieldNotNumeric": "В «{field}» текст или другое значение, которое не число, не длительность вроде `7h 30m` и не флажок, так что рисовать нечего.",
-    "chart.noData": "Числа в «{field}» есть только у заметок без даты. Называйте ежедневные заметки YYYY-MM-DD или добавьте `date_field:`, если дата лежит в свойстве.",
+    "chart.noData": "Числа в «{field}» есть только у заметок без даты. Называйте ежедневные заметки YYYY-MM-DD, задайте `date_format:`, если они названы иначе, например DD.MM.YYYY, или добавьте `date_field:`, если дата лежит в свойстве.",
     "chart.fieldUnused": "«{field}» ни разу не дало значения. Проверьте имя или что там действительно число, длительность вроде `7h 30m` или флажок.",
-    "chart.noDatedNotes": "Ни одна выбранная заметка не называется датой вида YYYY-MM-DD. Добавьте `date_field:`, если дата лежит в свойстве.",
+    "chart.noDatedNotes": "Ни одна выбранная заметка не называется датой вида YYYY-MM-DD. Задайте `date_format:`, если в именах дата записана иначе, например DD.MM.YYYY, или добавьте `date_field:`, если дата лежит в свойстве.",
     "chart.noDatedNotesField": "Ни у одной выбранной заметки нет даты в «{field}».",
     "chart.caption": "{label}: {agg} {per}, {span}",
     "chart.captionMixed": "{label}: {per}, {span}",

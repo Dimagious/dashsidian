@@ -31,7 +31,7 @@
         <div class="props" aria-label="Properties">
           <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
           <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>code block</div><div class="v"><code>countdown</code></div></div>
-          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">2 on the block, 9 on each date</div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">3 on the block, 9 on each date</div></div>
           <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
         </div>
 
@@ -87,7 +87,7 @@ items:
 
 
         <h2 id="root-keys">Keys on the block</h2>
-        <div class="keys"><a href="#columns"><code>columns</code></a><a href="#items"><code>items</code></a></div>
+        <div class="keys"><a href="#columns"><code>columns</code></a><a href="#date_format"><code>date_format</code></a><a href="#items"><code>items</code></a></div>
         <div class="keytab-wrap">
           <table class="keytab">
             <thead><tr><th>Key</th><th>What it does</th><th>Type</th><th>Default</th></tr></thead>
@@ -97,6 +97,12 @@ items:
                 <td class="d">columns in the grid, 1 to 6</td>
                 <td class="t" data-h="type">number</td>
                 <td class="v" data-h="default"><code>3</code></td>
+              </tr>
+              <tr id="date_format">
+                <td class="k"><a class="key" href="#date_format"><code>date_format</code></a></td>
+                <td class="d">a date format for <code>field</code> values and for the note names that pick the newest note, when they are not written as <code>YYYY-MM-DD</code>, in moment notation like <code>DD.MM.YYYY</code>. Applies to every card, read the way a <code>stats</code> card reads it; a written <code>date</code> stays <code>YYYY-MM-DD</code>. Month and weekday names (<code>MMMM</code>, <code>dddd</code>) are read in Obsidian's language, or in the Plugin language setting when one is picked</td>
+                <td class="t" data-h="type">text</td>
+                <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
               <tr id="items">
                 <td class="k"><a class="key" href="#items"><code>items</code></a> <span class="req">required</span></td>
@@ -129,7 +135,7 @@ items:
               </tr>
               <tr id="field">
                 <td class="k"><a class="key" href="#field"><code>field</code></a><span class="also">also <code>property</code>, <code>prop</code></span></td>
-                <td class="d">a date property to read the date from instead of writing it: <code>2026-03-02</code>, with or without a time after it, or an Obsidian date property; dotted for a nested one like <code>meta.expires</code>. Read from the newest note in the selection that has it filled in, the way <code>agg: latest</code> picks one: by the date in the note's name, and a note without one, like <code>Passport.md</code>, after every dated note. A value that is not a date, or no note having the property at all, is an error on the card that names it</td>
+                <td class="d">a date property to read the date from instead of writing it: <code>2026-03-02</code>, with or without a time after it, one in the block's <code>date_format</code>, or an Obsidian date property; dotted for a nested one like <code>meta.expires</code>. Read from the newest note in the selection that has it filled in, the way <code>agg: latest</code> picks one: by the date in the note's name, and a note without one, like <code>Passport.md</code>, after every dated note. A value that is not a date, or no note having the property at all, is an error on the card that names it</td>
                 <td class="t" data-h="type">text</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
@@ -179,6 +185,7 @@ items:
           <li>A date that has passed is shown too, counting up instead of down. What happened yesterday is still worth seeing.</li>
           <li>The day count is whole days, so a daylight saving switch cannot shift it.</li>
           <li>A birthday or an anniversary repeats with <code>repeat: yearly</code>. A date kept in a note, like a passport's expiry, is read with <code>field</code> and stays current when the note changes: <code>{ label: Passport, field: expires, where: &quot;type = passport&quot; }</code>.</li>
+          <li>A <code>field</code> written as <code>15.11.2026</code> is read once the block names its format: <code>date_format: DD.MM.YYYY</code> next to <code>items:</code>.</li>
         </ul>
 
 

@@ -1,5 +1,7 @@
 import type { BlockContext } from "./context";
 import { formatDate } from "../adapters/datetime";
+import { noteDateFormats } from "../adapters/periodic";
+import { readDateFormat } from "../core/note-date";
 import { readCountdown, daysUntil, countdownTarget, type CountdownSpec } from "../core/countdown";
 import { dateKey } from "../core/calendar";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
@@ -45,7 +47,13 @@ export function renderCountdown(ctx: BlockContext, source: string, el: HTMLEleme
         renderDiagnostics(el, "countdown", diags);
         return;
     }
-    if (isRecord(value) && Array.isArray(value.items)) diags.push(...unknownKeys(value, KNOWN_ROOT));
+    const root = isRecord(value) && Array.isArray(value.items) ? value : null;
+    if (root) diags.push(...unknownKeys(root, KNOWN_ROOT));
+    // B-120: a format other than ISO for the `field` values and the note
+    // names that order them, set once for the block.
+    const { format: dateFormat, diagnostics: formatDiags } = readDateFormat(root ?? {});
+    diags.push(...formatDiags);
+    const formats = noteDateFormats(ctx.app, dateFormat);
 
     const columns = isRecord(value) && typeof value.columns === "number" ? value.columns : 3;
     const today = dateKey(ctx.today());
@@ -55,7 +63,7 @@ export function renderCountdown(ctx: BlockContext, source: string, el: HTMLEleme
         diags.push(...unknownKeys(item, KNOWN_ITEM));
 
         const label = typeof item.label === "string" ? item.label : "";
-        const { spec, diagnostics: cardDiags } = readCountdown(item, label, () => ctx.notes());
+        const { spec, diagnostics: cardDiags } = readCountdown(item, label, () => ctx.notes(), formats);
         diags.push(...cardDiags);
 
         cards.push(toCard(item, spec, label, today));

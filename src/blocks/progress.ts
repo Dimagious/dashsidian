@@ -1,13 +1,16 @@
 import type { NoteRecord } from "../core/source";
 import type { BlockContext } from "./context";
 import { selectNotes, unmatchedSource } from "../core/source";
-import { readBlockSelection, inheritSelection, blankSelectionDiagnostics, undatedRootDiagnostics } from "../core/inherit";
+import {
+    readBlockSelection, inheritSelection, blankSelectionDiagnostics, undatedRootDiagnostics, unmatchedRootDateFormat,
+} from "../core/inherit";
 import { aggregate, classifyField, classifyValues } from "../core/aggregate";
-import { readDateField } from "../core/note-date";
+import { readDateField, readDateFormat, unmatchedDateFormat, type DateFormats } from "../core/note-date";
 import { formatReading, showsDuration, showsClock, durationDiagnostics } from "../core/stat";
 import { readProgress, percentOf, barWidth, type ProgressSpec } from "../core/progress";
 import { readPeriod, filterByPeriod, dateFieldHasEffect } from "../core/period";
 import { firstDayOfWeek } from "../adapters/datetime";
+import { noteDateFormats } from "../adapters/periodic";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics } from "../shared/render";
 import { t } from "../i18n";
@@ -63,8 +66,14 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
     const rootMissing = unmatchedSource(notes, block.source);
     if (rootMissing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: rootMissing }) });
 
+    // A root `date_format` that does not read is reported once, not per bar.
+    const rootFormat = readDateFormat(block.defaults);
+    diags.push(...rootFormat.diagnostics);
+
     // Cards whose inherited `date_field` found no dated note, named in one warning.
     const undatedCards: string[] = [];
+    // What the bars inheriting the root's `date_format` select, judged together once.
+    const rootFormatted: { notes: readonly NoteRecord[]; dateField?: string }[] = [];
     for (const own of items) {
         diags.push(...unknownKeys(own, KNOWN_ITEM));
         const { item, source, diagnostics: sourceDiags, inherited } = inheritSelection(own, block);
@@ -107,13 +116,20 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
         // Steers `period`'s window below and, inside `aggregate`, `streak`,
         // `current_streak` and `latest` too — whether or not `period` is even set.
         const dateField = readDateField(item);
+        // B-120: the same as on a stats card.
+        const { format: dateFormat, diagnostics: formatDiags } = readDateFormat(item);
+        // An inherited one that does not read was reported once at the root.
+        if (!inherited.has("date_format")) diags.push(...formatDiags);
+        const formats = noteDateFormats(ctx.app, dateFormat);
+        if (inherited.has("date_format")) rootFormatted.push({ notes: selected, dateField });
+        else diags.push(...unmatchedDateFormat(selected, dateField, formats));
 
         const { spec: periodSpec, diagnostics: periodDiags } = readPeriod(item, label, dateField);
         // An inherited `period` that does not read was reported once at the root.
         if (!inherited.has("period")) diags.push(...periodDiags);
         let counted = selected;
         if (periodSpec) {
-            const windowed = filterByPeriod(selected, periodSpec.period, today, firstDay, periodSpec.dateField);
+            const windowed = filterByPeriod(selected, periodSpec.period, today, firstDay, periodSpec.dateField, formats);
             // An inherited `date_field` is reported once for the block, below.
             const rootDateField = periodSpec.dateField !== undefined && inherited.has("date_field");
             if (selected.length && !windowed.anyDated && rootDateField) {
@@ -139,10 +155,11 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
             diags.push({ level: "warning", message: t("period.dateFieldUnused", { card: cardLabel }) });
         }
 
-        bars.push(toBar(counted, spec, label, item, today, duration, clock, dateField));
+        bars.push(toBar(counted, spec, label, item, today, duration, clock, dateField, formats));
     }
 
     diags.push(...undatedRootDiagnostics(block, undatedCards));
+    diags.push(...unmatchedRootDateFormat(rootFormatted, noteDateFormats(ctx.app, rootFormat.format)));
 
     // Diagnostics before the bars: an error must be seen before an empty track.
     renderDiagnostics(el, "progress", diags);
@@ -187,6 +204,7 @@ function toBar(
     duration: boolean,
     clock: boolean,
     dateField?: string,
+    formats?: DateFormats,
 ): Bar {
     const bar: Bar = {
         label: label || spec?.field || "",
@@ -204,6 +222,7 @@ function toBar(
         agg: spec.agg,
         field: spec.field,
         dateField,
+        formats,
         atLeast: spec.atLeast,
         atMost: spec.atMost,
         days: spec.days,

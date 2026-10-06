@@ -1,8 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
-    readBlockSelection, inheritSelection, blankSelectionDiagnostics, undatedRootDiagnostics,
+    readBlockSelection, inheritSelection, blankSelectionDiagnostics, undatedRootDiagnostics, unmatchedRootDateFormat,
 } from "./inherit";
 import { selectNotes, type NoteRecord } from "./source";
+import { dateFormats } from "./note-date";
+import { parseDateWithFormat } from "../adapters/datetime";
 
 const SHARED = ["source", "tag", "where", "period", "date_field"] as const;
 
@@ -285,5 +287,36 @@ describe("undatedRootDiagnostics (B-153)", () => {
     it("no card falling short, or no root date_field, is no warning", () => {
         expect(undatedRootDiagnostics(block, [])).toEqual([]);
         expect(undatedRootDiagnostics(readBlockSelection({ items: [] }, SHARED), ['"A"'])).toEqual([]);
+    });
+});
+
+describe("unmatchedRootDateFormat (B-120)", () => {
+    const formats = dateFormats("DD.MM.YYYY", undefined, parseDateWithFormat);
+
+    it("one card's fitting notes clear the warning for every card reading names", () => {
+        const fits = [note("Diary", "05.10.2026", {})];
+        const misses = [note("Other", "x", {})];
+        expect(unmatchedRootDateFormat([{ notes: misses }, { notes: fits }], formats)).toEqual([]);
+    });
+
+    it("cards reading a date_field are judged apart from cards reading names", () => {
+        const names = [note("Diary", "05.10.2026", {})];
+        const values = [note("Log", "a", { day: "2026/10/05" })];
+        const out = unmatchedRootDateFormat([{ notes: names }, { notes: values, dateField: "day" }], formats);
+        expect(out.map((d) => d.message)).toEqual([
+            "`date_format: DD.MM.YYYY` fits none of the selected notes: \"2026/10/05\", for one, is not written that way.",
+        ]);
+    });
+
+    it("a card whose date_field ISO already reads does not trip the root's format", () => {
+        const iso = [note("Log", "a", { day: "2026-10-05" })];
+        expect(unmatchedRootDateFormat([{ notes: iso, dateField: "day" }], formats)).toEqual([]);
+    });
+
+    it("a note two cards share is judged once, and nothing selected is silent", () => {
+        const shared = note("Diary", "x", {});
+        expect(unmatchedRootDateFormat([{ notes: [shared] }, { notes: [shared] }], formats)).toHaveLength(1);
+        expect(unmatchedRootDateFormat([], formats)).toEqual([]);
+        expect(unmatchedRootDateFormat([{ notes: [shared] }], undefined)).toEqual([]);
     });
 });

@@ -3156,3 +3156,52 @@ describe("heatmap: a source or tag that is not text is an error (B-160)", () => 
     });
 });
 
+describe("heatmap — dates not written as YYYY-MM-DD (B-120)", () => {
+    const notes = [
+        { path: "Diary/05.01.2026.md", frontmatter: { sleep_score: 88 } },
+        { path: "Diary/06.01.2026 Tuesday.md", frontmatter: { sleep_score: 70 } },
+    ];
+    const cellOn = (el: HTMLElement, date: string) =>
+        nodes(el, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium(date)));
+
+    it("without a format the names are not dates, and the block says so", () => {
+        const el = map("field: sleep_score", mockContext({ notes }));
+        expect(nodes(el, ".dashy-hm-cell")).toHaveLength(0);
+        expect(diagnostics(el, "error")[0]).toContain("No notes with a resolvable date");
+    });
+
+    it("the Daily notes day format paints the cells, trailing text included", () => {
+        const el = map("field: sleep_score", mockContext({ notes, dailyNotes: { format: "DD.MM.YYYY" } }));
+        expect(cellOn(el, "2026-01-05")?.getAttribute("title")).toContain("sleep_score 88");
+        expect(cellOn(el, "2026-01-06")?.getAttribute("title")).toContain("sleep_score 70");
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("date_format beats the settings format", () => {
+        // Under MM.DD.YYYY, 05.01.2026 would be 1 May.
+        const el = map("field: sleep_score\ndate_format: DD.MM.YYYY", mockContext({ notes, dailyNotes: { format: "MM.DD.YYYY" } }));
+        expect(cellOn(el, "2026-01-05")?.getAttribute("title")).toContain("sleep_score 88");
+        expect(cellOn(el, "2026-05-01")?.getAttribute("title") ?? "").not.toContain("sleep_score");
+    });
+
+    it("layers read the same dates", () => {
+        const layered = [{ path: "Diary/05.01.2026.md", frontmatter: { gym: true, run: false } }];
+        const el = map("layers:\n  - { field: gym }\n  - { field: run }\ndate_format: DD.MM.YYYY", mockContext({ notes: layered }));
+        expect(cellOn(el, "2026-01-05")?.style.backgroundColor).not.toBe("");
+    });
+
+    it("a date_format no note fits warns, naming it and the first note", () => {
+        const el = map("field: sleep_score\ndate_format: YYYYMMDD", mockContext({ notes, dailyNotes: { format: "DD.MM.YYYY" } }));
+        expect(diagnostics(el, "warning")).toContain(
+            "⚠️ heatmap: `date_format: YYYYMMDD` fits none of the selected notes: \"05.01.2026\", for one, is not written that way.",
+        );
+        // The settings format still reads them: the warning is not a blank grid.
+        expect(cellOn(el, "2026-01-05")?.getAttribute("title")).toContain("sleep_score 88");
+    });
+
+    it("a date_field value in date_format is read", () => {
+        const props = [{ path: "Log/a.md", frontmatter: { day: "1/5/2026", steps: 4000 } }];
+        const el = map("field: steps\ndate_field: day\ndate_format: M/D/YYYY", mockContext({ notes: props }));
+        expect(cellOn(el, "2026-01-05")?.getAttribute("title")).toContain("steps 4000");
+    });
+});
