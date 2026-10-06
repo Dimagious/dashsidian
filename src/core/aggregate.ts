@@ -4,7 +4,7 @@
 
 import type { NoteRecord } from "./source";
 import { longestStreak, currentStreak, isWeekend, dateKey } from "./calendar";
-import { resolveNoteDate } from "./note-date";
+import { resolveNoteDate, type DateFormats } from "./note-date";
 import { readField, hasField } from "./field";
 import { specialDays } from "./special-days";
 import { readDuration } from "./duration";
@@ -189,6 +189,8 @@ export interface AggregateSpec {
     field?: string;
     /** a date frontmatter property to resolve a note's date from, instead of its name */
     dateField?: string;
+    /** the formats besides ISO a date is read in (core/note-date.ts) */
+    formats?: DateFormats;
     /**
      * `agg: current_streak` only: the day the run has to reach, the caller's
      * `ctx.today()` (already shifted by the day-start hour). Required for
@@ -262,12 +264,12 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
 
         const hasThreshold = spec.atLeast !== undefined || spec.atMost !== undefined;
         const dates = spec.field && hasThreshold
-            ? thresholdDates(notes, spec.field, spec.dateField, spec.atLeast, spec.atMost)
+            ? thresholdDates(notes, spec.field, spec.dateField, spec.atLeast, spec.atMost, spec.formats)
             : notes
                 .filter((n) => (spec.field
                     ? numberAt(n, spec.field) !== null && !isFalseMark(n, spec.field)
                     : true))
-                .map((n) => resolveNoteDate(n, spec.dateField))
+                .map((n) => resolveNoteDate(n, spec.dateField, spec.formats))
                 .filter((d): d is string => d !== null);
 
         // A day with a threshold outside what any day can reach (`at_least`
@@ -282,7 +284,7 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
         // `dates` itself — `longestStreak`'s own gap-bridging (core/calendar.ts)
         // walks every calendar day in the gap, not only the ones a caller
         // singled out.
-        const special = spec.skipField ? specialDays(notes, spec.skipField, spec.dateField) : null;
+        const special = spec.skipField ? specialDays(notes, spec.skipField, spec.dateField, spec.formats) : null;
         const weekdaysOnly = spec.days === "weekdays";
         const transparent = weekdaysOnly || special
             ? (day: string) => (weekdaysOnly && isWeekend(day)) || (special?.has(day) ?? false)
@@ -296,7 +298,7 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
     if (!spec.field) return null;
 
     if (spec.agg === "latest") {
-        for (const n of newestFirst(notes, spec.dateField)) {
+        for (const n of newestFirst(notes, spec.dateField, spec.formats)) {
             const v = numberAt(n, spec.field);
             if (v !== null) return v;
         }
@@ -335,9 +337,9 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
  * whichever sorts first wins, regardless of the order the vault happened to
  * hand the notes in.
  */
-export function newestFirst(notes: readonly NoteRecord[], dateField?: string): NoteRecord[] {
+export function newestFirst(notes: readonly NoteRecord[], dateField?: string, formats?: DateFormats): NoteRecord[] {
     return notes
-        .map((n) => ({ n, date: resolveNoteDate(n, dateField) }))
+        .map((n) => ({ n, date: resolveNoteDate(n, dateField, formats) }))
         .filter((x): x is { n: NoteRecord; date: string } => x.date !== null)
         .sort((a, b) => {
             if (a.date !== b.date) return a.date < b.date ? 1 : -1;
@@ -363,10 +365,11 @@ function thresholdDates(
     dateField: string | undefined,
     atLeast: number | undefined,
     atMost: number | undefined,
+    formats: DateFormats | undefined,
 ): string[] {
     const sums = new Map<string, number>();
     for (const n of notes) {
-        const day = resolveNoteDate(n, dateField);
+        const day = resolveNoteDate(n, dateField, formats);
         if (day === null) continue;
         const v = numberAt(n, field);
         if (v === null) continue;
@@ -396,6 +399,7 @@ export function series(
     days: number,
     today: Date,
     dateField?: string,
+    formats?: DateFormats,
 ): number[] {
     // Not named `window`: it shadows the global, and both the scanner and a
     // reader take `window.has(...)` for a call on the browser object.
@@ -410,7 +414,7 @@ export function series(
     // than one silently overwriting the other.
     const sums = new Map<string, number>();
     for (const n of notes) {
-        const day = resolveNoteDate(n, dateField);
+        const day = resolveNoteDate(n, dateField, formats);
         if (day === null || !wanted.has(day)) continue;
         const v = numberAt(n, field);
         if (v === null) continue;

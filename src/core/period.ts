@@ -8,7 +8,7 @@
 import type { NoteRecord } from "./source";
 import { dateKey, weekdayRow } from "./calendar";
 import { isStreakAgg, type Agg } from "./aggregate";
-import { resolveNoteDate } from "./note-date";
+import { resolveNoteDate, type DateFormats } from "./note-date";
 import { formatValue, roundedValue } from "./stat";
 import { formatDuration, roundedDuration } from "./duration";
 import { describeValue, type Diagnostic } from "../shared/parse";
@@ -158,11 +158,12 @@ export function filterByWindow(
     notes: readonly NoteRecord[],
     bounds: DateWindow,
     dateField?: string,
+    formats?: DateFormats,
 ): PeriodFilter {
     let anyDated = false;
     const out: NoteRecord[] = [];
     for (const note of notes) {
-        const key = noteDate(note, dateField);
+        const key = noteDate(note, dateField, formats);
         if (key === null) continue;
         anyDated = true;
         if (inWindow(key, bounds)) out.push(note);
@@ -177,8 +178,9 @@ export function filterByPeriod(
     today: Date,
     firstDay: number,
     dateField?: string,
+    formats?: DateFormats,
 ): PeriodFilter {
-    return filterByWindow(notes, periodWindow(period, today, firstDay), dateField);
+    return filterByWindow(notes, periodWindow(period, today, firstDay), dateField, formats);
 }
 
 export interface PeriodSpec {

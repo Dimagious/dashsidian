@@ -1,8 +1,10 @@
 import type { BlockContext } from "./context";
-import { selectNotes, unmatchedSource } from "../core/source";
-import { readBlockSelection, inheritSelection, blankSelectionDiagnostics, undatedRootDiagnostics } from "../core/inherit";
+import { selectNotes, unmatchedSource, type NoteRecord } from "../core/source";
+import {
+    readBlockSelection, inheritSelection, blankSelectionDiagnostics, undatedRootDiagnostics, unmatchedRootDateFormat,
+} from "../core/inherit";
 import { aggregate, series, classifyField, classifyValues } from "../core/aggregate";
-import { readDateField } from "../core/note-date";
+import { readDateField, readDateFormat, unmatchedDateFormat } from "../core/note-date";
 import { sparkBars } from "../core/sparkline";
 import {
     readStat, formatReading, showsDuration, showsClock, durationDiagnostics, valueLengthClass, GROUP_SEPARATOR,
@@ -21,6 +23,7 @@ import {
 } from "../core/period";
 import { readStatsLayout, inlineLayoutDiagnostics } from "../core/stats-layout";
 import { firstDayOfWeek } from "../adapters/datetime";
+import { noteDateFormats } from "../adapters/periodic";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics } from "../shared/render";
 import { t } from "../i18n";
@@ -91,8 +94,14 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
     const rootMissing = unmatchedSource(notes, block.source);
     if (rootMissing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: rootMissing }) });
 
+    // A root `date_format` that does not read is reported once, not per card.
+    const rootFormat = readDateFormat(block.defaults);
+    diags.push(...rootFormat.diagnostics);
+
     // Cards whose inherited `date_field` found no dated note, named in one warning.
     const undatedCards: string[] = [];
+    // What the cards inheriting the root's `date_format` select, judged together once.
+    const rootFormatted: { notes: readonly NoteRecord[]; dateField?: string }[] = [];
     for (const own of items) {
         diags.push(...unknownKeys(own, KNOWN_ITEM));
         const { item, source, diagnostics: sourceDiags, inherited } = inheritSelection(own, block);
@@ -140,6 +149,15 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         // `period`'s window below, and `streak`/`latest`/`trend` inside
         // `aggregate`/`series`, whether or not `period` is even set.
         const dateField = readDateField(item);
+        // B-120: a format other than ISO for the same readings, and the
+        // Daily notes day format after it. A root `date_format` is checked
+        // against its cards' notes once, after the loop.
+        const { format: dateFormat, diagnostics: formatDiags } = readDateFormat(item);
+        // An inherited one that does not read was reported once at the root.
+        if (!inherited.has("date_format")) diags.push(...formatDiags);
+        const formats = noteDateFormats(ctx.app, dateFormat);
+        if (inherited.has("date_format")) rootFormatted.push({ notes: selected, dateField });
+        else diags.push(...unmatchedDateFormat(selected, dateField, formats));
 
         // `trend` keeps its own trailing window and reads `selected`
         // unfiltered — `period` narrows only what the number itself counts.
@@ -148,7 +166,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         if (!inherited.has("period")) diags.push(...periodDiags);
         let counted = selected;
         if (periodSpec) {
-            const windowed = filterByPeriod(selected, periodSpec.period, today, firstDay, periodSpec.dateField);
+            const windowed = filterByPeriod(selected, periodSpec.period, today, firstDay, periodSpec.dateField, formats);
             // An inherited `date_field` is reported once for the block, below.
             const rootDateField = periodSpec.dateField !== undefined && inherited.has("date_field");
             if (selected.length && !windowed.anyDated && rootDateField) {
@@ -194,6 +212,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
                 agg: spec.agg,
                 field: spec.field,
                 dateField,
+                formats,
                 atLeast: spec.atLeast,
                 atMost: spec.atMost,
                 days: spec.days,
@@ -206,7 +225,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
             label: label || spec?.field || "",
             text: formatReading(current, spec?.precision, duration, clock),
             trend: layout === "cards" && spec?.trend && spec.field
-                ? sparkBars(series(selected, spec.field, spec.trend, today, dateField))
+                ? sparkBars(series(selected, spec.field, spec.trend, today, dateField, formats))
                 : [],
         };
         if (typeof item.icon === "string") card.icon = item.icon;
@@ -223,9 +242,9 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         // window has notes but none carrying the field.
         if (compareSpec && periodSpec && spec && counted.length && current !== null) {
             const previousBounds = previousPeriodWindow(periodSpec.period, today, firstDay);
-            const previousFiltered = filterByWindow(selected, previousBounds, periodSpec.dateField);
+            const previousFiltered = filterByWindow(selected, previousBounds, periodSpec.dateField, formats);
             const previous = previousFiltered.notes.length
-                ? aggregate(previousFiltered.notes, { agg: spec.agg, field: spec.field, dateField })
+                ? aggregate(previousFiltered.notes, { agg: spec.agg, field: spec.field, dateField, formats })
                 : null;
             if (previous !== null) {
                 const format = formatDelta(current, previous, spec.precision, duration, clock);
@@ -242,6 +261,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
     }
 
     diags.push(...undatedRootDiagnostics(block, undatedCards));
+    diags.push(...unmatchedRootDateFormat(rootFormatted, noteDateFormats(ctx.app, rootFormat.format)));
 
     // Diagnostics before the cards: an error must be seen before a dash is.
     renderDiagnostics(el, "stats", diags);

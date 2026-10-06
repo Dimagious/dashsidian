@@ -1,6 +1,8 @@
 import type { App } from "obsidian";
 import { PERIODS, type Period, type PeriodConfig } from "../core/periodic";
+import { dateFormats, type DateFormats } from "../core/note-date";
 import { isRecord } from "../shared/parse";
+import { parseDateWithFormat } from "./datetime";
 
 /**
  * Where periodic notes live, according to the neighbouring plugins.
@@ -57,4 +59,22 @@ function pick(cfg: Record<string, unknown>): Partial<PeriodConfig> | null {
     const folder = typeof cfg.folder === "string" ? cfg.folder : "";
     const format = typeof cfg.format === "string" ? cfg.format : "";
     return folder || format ? { folder, format } : null;
+}
+
+/**
+ * The day format of the Periodic Notes or core Daily notes settings, the
+ * same one `today` builds the daily note's path with, or undefined when
+ * neither plugin names one. Blocks read note dates in it after ISO (B-120).
+ */
+export function dailyNoteFormat(app: App): string | undefined {
+    return discoverPeriodics(app).daily?.format?.trim() || undefined;
+}
+
+/**
+ * The formats a block reads note dates in after ISO: its own `date_format`
+ * first, then `dailyNoteFormat`. Undefined when there is neither, which
+ * leaves the block reading ISO dates only.
+ */
+export function noteDateFormats(app: App, own?: string): DateFormats | undefined {
+    return dateFormats(own, dailyNoteFormat(app), parseDateWithFormat);
 }

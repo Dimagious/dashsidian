@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderStats } from "./stats";
-import { mockContext, diary, recentDiary, host, texts, nodes, diagnostics } from "../test/vault";
+import { mockContext, diary, recentDiary, host, texts, nodes, diagnostics, type FakeNote, type FakeVault } from "../test/vault";
 import { DEFAULT_SETTINGS } from "../types";
+import { GROUP_SEPARATOR } from "../core/stat";
 import { setLocale } from "../i18n";
 
 // 10 days, sleep_score 70..79, steps 1000..1900, two of them tagged.
@@ -2086,5 +2087,127 @@ describe("stats — layout: inline (B-150)", () => {
             expect(texts(el, ".dashy-stat-inline")).toEqual(["500 steps = 0"]);
             expect(nodes(el, ".dashy-stat-delta")[0]?.className).toContain("dashy-stat-delta-neutral");
         });
+    });
+});
+
+describe("stats — dates not written as YYYY-MM-DD (B-120)", () => {
+    // 2026-10-06 is a Tuesday; the English week starts on Sunday the 4th.
+    const TODAY = new Date(2026, 9, 6);
+    const dotted = (): FakeNote[] => [
+        ...Array.from({ length: 6 }, (_, i) => ({
+            path: `Diary/0${i + 1}.10.2026.md`,
+            frontmatter: { gym: true, steps: 1000 * (i + 1) },
+        })),
+        { path: "Diary/Template.md", frontmatter: { gym: true, steps: 99 } },
+    ];
+    const vault = (extra: Partial<FakeVault> = {}, notes: FakeNote[] = dotted()) =>
+        ({ ...mockContext({ notes, ...extra }), today: () => TODAY });
+    const render = (config: string, context = vault()) => {
+        const el = host();
+        renderStats(context, config, el);
+        return el;
+    };
+    const CARDS = `source: Diary
+items:
+  - { label: Week, field: gym, agg: sum, period: week }
+  - { label: Streak, field: gym, agg: streak }
+  - { label: Latest, field: steps, agg: latest }`;
+
+    it("without a format, 01.10.2026 is not guessed to be a date", () => {
+        const el = render(CARDS);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["—", "0", "—"]);
+        expect(diagnostics(el, "warning")[0]).toContain("none of the selected notes has a name starting with a date");
+    });
+
+    it("the Daily notes day format is read with no key at all", () => {
+        const el = render(CARDS, vault({ dailyNotes: { folder: "Diary", format: "DD.MM.YYYY" } }));
+        expect(texts(el, ".dashy-stat-value")).toEqual(["3", "6", "6000"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("Periodic Notes' day format is read the same way", () => {
+        const el = render(CARDS, vault({ periodicNotes: { daily: { folder: "Diary", format: "DD.MM.YYYY" } } }));
+        expect(texts(el, ".dashy-stat-value")).toEqual(["3", "6", "6000"]);
+    });
+
+    it("a root date_format reaches every card", () => {
+        const el = render(`date_format: DD.MM.YYYY\n${CARDS}`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["3", "6", "6000"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("a card's own date_format replaces the root's", () => {
+        const notes = [...dotted(), { path: "Log/20261005.md", frontmatter: { gym: true } }, { path: "Log/20261006.md", frontmatter: { gym: true } }];
+        const el = render(`date_format: DD.MM.YYYY
+source: Diary
+items:
+  - { label: Diary, field: gym, agg: sum, period: week }
+  - { label: Log, source: Log, field: gym, agg: sum, period: week, date_format: YYYYMMDD }`, vault({}, notes));
+        expect(texts(el, ".dashy-stat-value")).toEqual(["3", "2"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("date_format beats the settings format where the two read a name differently", () => {
+        // Under MM.DD.YYYY, 06.10.2026 is 10 June and 01.10.2026 is 10 January: nothing this week.
+        const settings = vault({ dailyNotes: { format: "MM.DD.YYYY" } });
+        expect(texts(render(CARDS, settings), ".dashy-stat-value")[0]).toBe("—");
+        expect(texts(render(`date_format: DD.MM.YYYY\n${CARDS}`, settings), ".dashy-stat-value"))
+            .toEqual(["3", "6", "6000"]);
+    });
+
+    it("a date_field value is read in date_format too", () => {
+        const notes = [
+            { path: "Log/a.md", frontmatter: { day: "05/10/2026", gym: true } },
+            { path: "Log/b.md", frontmatter: { day: "06/10/2026 14:30", gym: true } },
+            { path: "Log/c.md", frontmatter: { day: "01/09/2026", gym: true } },
+        ];
+        const el = render("source: Log\nfield: gym\nagg: sum\nperiod: week\ndate_field: day\ndate_format: DD/MM/YYYY", vault({}, notes));
+        expect(texts(el, ".dashy-stat-value")).toEqual(["2"]);
+    });
+
+    it("compare and trend read the same dates", () => {
+        const notes = Array.from({ length: 14 }, (_, i) => {
+            const day = new Date(2026, 8, 23 + i);
+            const name = `${String(day.getDate()).padStart(2, "0")}.${String(day.getMonth() + 1).padStart(2, "0")}.2026`;
+            return { path: `Diary/${name}.md`, frontmatter: { steps: i < 7 ? 1000 : 2000 } };
+        });
+        const el = render("source: Diary\nfield: steps\nagg: sum\nperiod: 7d\ncompare: true\ntrend: 14d\ndate_format: DD.MM.YYYY", vault({}, notes));
+        expect(texts(el, ".dashy-stat-value")).toEqual([`14${GROUP_SEPARATOR}000`]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +7000"]);
+        expect(nodes(el, ".dashy-stat-bar")).toHaveLength(14);
+    });
+
+    it("a card's date_format that no note fits warns, naming it and one note", () => {
+        const el = render("source: Diary\nfield: gym\nagg: sum\nperiod: week\ndate_format: YYYYMMDD");
+        expect(diagnostics(el, "warning")).toContain(
+            "⚠️ stats: `date_format: YYYYMMDD` fits none of the selected notes: \"01.10.2026\", for one, is not written that way.",
+        );
+    });
+
+    it("a root date_format no card's notes fit is one warning for the block, judged over all of them", () => {
+        const notes = [...dotted(), { path: "Alpha/x.md", frontmatter: { gym: true } }];
+        const el = render(`date_format: YYYYMMDD
+items:
+  - { label: Diary, source: Diary, field: gym, agg: sum }
+  - { label: Alpha, source: Alpha, field: gym, agg: sum }`, vault({}, notes));
+        const unmatched = diagnostics(el, "warning").filter((w) => w.includes("date_format"));
+        expect(unmatched).toEqual([
+            "⚠️ stats: `date_format: YYYYMMDD` fits none of the selected notes: \"x\", for one, is not written that way.",
+        ]);
+    });
+
+    it("a root date_format that some card's notes fit does not warn", () => {
+        const notes = [...dotted(), { path: "Alpha/x.md", frontmatter: { gym: true } }];
+        const el = render(`date_format: DD.MM.YYYY
+items:
+  - { label: Diary, source: Diary, field: gym, agg: sum }
+  - { label: Alpha, source: Alpha, field: gym, agg: sum }`, vault({}, notes));
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("a date_format that names no day warns once, even inherited by several cards", () => {
+        const el = render(`date_format: YYYY-MM\n${CARDS}`);
+        const bad = diagnostics(el, "warning").filter((w) => w.includes("cannot name a day"));
+        expect(bad).toHaveLength(1);
     });
 });

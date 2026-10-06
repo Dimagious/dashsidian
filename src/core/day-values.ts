@@ -14,7 +14,7 @@
 import type { NoteRecord } from "./source";
 import { numberAt, isFalseMark, isBooleanMark, classifyField, type FieldValueKind } from "./aggregate";
 import { durationThresholdIn, checkboxBands, type Band } from "./bands";
-import { resolveNoteDate } from "./note-date";
+import { resolveNoteDate, type DateFormats } from "./note-date";
 import { describeValue, type Diagnostic } from "../shared/parse";
 import { t } from "../i18n";
 
@@ -99,10 +99,11 @@ export function dayValues(
     fields: readonly string[],
     perDay: PerDay,
     dateField?: string,
+    formats?: DateFormats,
 ): Map<string, DayMark> {
     const groups = new Map<string, DayGroup>();
     for (const n of notes) {
-        const day = resolveNoteDate(n, dateField);
+        const day = resolveNoteDate(n, dateField, formats);
         if (day === null) continue;
         for (const field of fields) {
             const v = numberAt(n, field);
@@ -142,10 +143,11 @@ export function paintedNotesPerDay(
     notes: readonly NoteRecord[],
     fields: readonly string[],
     dateField?: string,
+    formats?: DateFormats,
 ): Map<string, number> {
     const counts = new Map<string, number>();
     for (const n of notes) {
-        const day = resolveNoteDate(n, dateField);
+        const day = resolveNoteDate(n, dateField, formats);
         if (day === null) continue;
         const painted = fields.some((field) => numberAt(n, field) !== null && !isFalseMark(n, field));
         if (painted) counts.set(day, (counts.get(day) ?? 0) + 1);
@@ -195,13 +197,14 @@ export function checkboxCount(
     perDay: PerDay,
     marks: ReadonlyMap<string, DayMark>,
     dateField?: string,
+    formats?: DateFormats,
 ): CheckboxCountOutcome {
     if (fields.length < 2 || perDay === "max") return { count: null, diagnostics: [] };
 
     let checkbox = false;
     let numeric: { field: string; note: string } | null = null;
     for (const n of notes) {
-        if (resolveNoteDate(n, dateField) === null) continue;
+        if (resolveNoteDate(n, dateField, formats) === null) continue;
         for (const field of fields) {
             if (numberAt(n, field) === null) continue;
             if (isBooleanMark(n, field)) {
@@ -224,7 +227,7 @@ export function checkboxCount(
     if (perDay === "sum") return { count: { marks: new Map(marks), bands }, diagnostics: [] };
 
     const shares = new Map<string, DayMark>();
-    for (const [day, mark] of dayValues(notes, fields, "sum", dateField)) {
+    for (const [day, mark] of dayValues(notes, fields, "sum", dateField, formats)) {
         shares.set(day, { ...mark, value: mark.value / (fields.length * mark.notes.length) });
     }
     return { count: { marks: shares, bands }, diagnostics: [] };

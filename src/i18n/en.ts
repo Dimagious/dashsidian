@@ -107,10 +107,16 @@ export const en = {
     "stats.trendNeedsField": "{card}: `trend` needs a `field:` to plot. Counting notes has no shape.",
     "stats.trendInvalid": "{card}: `trend` expects a number of days such as 30d, got \"{value}\".",
 
+    "dateFormat.invalid": "`date_format` expects a date format such as DD.MM.YYYY, got \"{value}\". Ignored.",
+    "dateFormat.notADay":
+        "`date_format: {format}` has no year, month and day in it, so it cannot name a day. Ignored. Write it like DD.MM.YYYY.",
+    "dateFormat.unmatched":
+        "`date_format: {format}` fits none of the selected notes: \"{example}\", for one, is not written that way.",
+
     "period.invalid":
         "{card}: `period` expects week, month, year or a rolling window such as 30d, got \"{value}\". Drawn unfiltered.",
     "period.noDatedNotes":
-        "{card}: none of the selected notes has a name starting with a date like YYYY-MM-DD. Add `date_field:` if the date lives in a property instead.",
+        "{card}: none of the selected notes has a name starting with a date like YYYY-MM-DD. Set `date_format:` if the names write it another way, like DD.MM.YYYY, or add `date_field:` if the date lives in a property instead.",
     "period.noDatedNotesField": "{card}: none of the selected notes has a date in \"{field}\".",
     "period.dateFieldUnused":
         "{card}: `date_field` has no effect here. It only steers `period`, `streak`, `current_streak`, `latest` and `trend`.",
@@ -135,7 +141,7 @@ export const en = {
     "countdown.dateAndField": "{card}: both `date:` and `field:` are set. Keep one of them: a date written here, or a property read from a note.",
     "countdown.fieldInvalid": "{card}: `field` expects a property name, got \"{value}\".",
     "countdown.fieldMissing": "{card}: no note in the selection has \"{field}\" filled in. Check the name, `source`, `tag` and `where`.",
-    "countdown.fieldNotDate": "{card}: \"{field}\" in \"{note}\" is \"{value}\", not a date. Expected YYYY-MM-DD.",
+    "countdown.fieldNotDate": "{card}: \"{field}\" in \"{note}\" is \"{value}\", not a date. Expected YYYY-MM-DD, or another format named with `date_format:` next to `items:`.",
     "countdown.repeatInvalid": "{card}: `repeat` expects `yearly`, got \"{value}\".",
     "countdown.selectionUnused": "{card}: `source`, `tag` and `where` only choose the note `field` is read from. With `date:` they are ignored.",
     "countdown.today": "Today",
@@ -171,7 +177,7 @@ export const en = {
     "heatmap.expectFields": "Expected a set of fields, for example `source:` and `field:`.",
     "heatmap.fieldRequired": "No `field` given. There is no number to colour by.",
     "heatmap.noData":
-        "No notes with a resolvable date and a number, a duration like `7h 30m` or a checkbox in \"{field}\". Check `source`, or `date_field` if the date lives in a property.",
+        "No notes with a resolvable date and a number, a duration like `7h 30m` or a checkbox in \"{field}\". Check `source`, `date_format` if the names write dates another way, like DD.MM.YYYY, or `date_field` if the date lives in a property.",
     "heatmap.fieldMissing":
         "No note in the selection has \"{field}\". Check the name and `source`.",
     "heatmap.fieldNotNumeric":
@@ -256,9 +262,9 @@ export const en = {
     "chart.durationMixed": "\"{field}\" mixes durations (\"{durationNote}\") and plain numbers (\"{plainNote}\"). All of them are counted as minutes and shown as plain numbers.",
     "chart.fieldMissing": "No note in the selection has \"{field}\". Check the name and `source`.",
     "chart.fieldNotNumeric": "\"{field}\" holds text or another value that is not a number, a duration like `7h 30m` or a checkbox, so there is nothing to plot.",
-    "chart.noData": "\"{field}\" holds numbers only on notes without a date. Name daily notes YYYY-MM-DD, or add `date_field:` if the date lives in a property.",
+    "chart.noData": "\"{field}\" holds numbers only on notes without a date. Name daily notes YYYY-MM-DD, set `date_format:` if they are named another way, like DD.MM.YYYY, or add `date_field:` if the date lives in a property.",
     "chart.fieldUnused": "\"{field}\" never contributed a value here. Check the name, or that it actually holds a number, a duration like `7h 30m` or a checkbox.",
-    "chart.noDatedNotes": "None of the selected notes has a name starting with a date like YYYY-MM-DD. Add `date_field:` if the date lives in a property instead.",
+    "chart.noDatedNotes": "None of the selected notes has a name starting with a date like YYYY-MM-DD. Set `date_format:` if the names write it another way, like DD.MM.YYYY, or add `date_field:` if the date lives in a property instead.",
     "chart.noDatedNotesField": "None of the selected notes has a date in \"{field}\".",
     "chart.caption": "{label}: {agg} {per}, {span}",
     "chart.captionMixed": "{label}: {per}, {span}",

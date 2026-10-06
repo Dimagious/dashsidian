@@ -1,8 +1,8 @@
 import { describeValue, isRecord, type Diagnostic } from "../shared/parse";
 import { t, type MessageKey } from "../i18n";
-import { isNotText, readSelector, readSource, readWhere, type SourceSpec } from "./source";
+import { isNotText, readSelector, readSource, readWhere, type NoteRecord, type SourceSpec } from "./source";
 import { parsePeriod } from "./period";
-import { readDateField } from "./note-date";
+import { readDateField, unmatchedDateFormat, type DateFormats } from "./note-date";
 
 /**
  * Selection written once at the block root and inherited by every card under
@@ -161,6 +161,27 @@ export function undatedRootDiagnostics(block: BlockSelection, cards: readonly st
         level: "warning",
         message: t("inherit.rootDateFieldUndated", { field, cards: cards.join(", ") }),
     }];
+}
+
+/**
+ * The warning for a root `date_format` that fits none of the notes the cards
+ * inheriting it select (B-120), judged once over all of them together rather
+ * than once per card. Cards are grouped by the `date_field` they read, since
+ * a name and a property value are different texts to fit. `formats` is what
+ * the root's `date_format` builds; empty when it has none.
+ */
+export function unmatchedRootDateFormat(
+    selections: readonly { notes: readonly NoteRecord[]; dateField?: string }[],
+    formats: DateFormats | undefined,
+): Diagnostic[] {
+    const groups = new Map<string, Set<NoteRecord>>();
+    for (const { notes, dateField } of selections) {
+        const key = dateField ?? "";
+        const group = groups.get(key) ?? new Set<NoteRecord>();
+        for (const note of notes) group.add(note);
+        groups.set(key, group);
+    }
+    return [...groups].flatMap(([field, notes]) => unmatchedDateFormat([...notes], field || undefined, formats));
 }
 
 /**

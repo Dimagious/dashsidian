@@ -13,7 +13,7 @@
 
 import type { NoteRecord } from "./source";
 import { readField } from "./field";
-import { resolveNoteDate } from "./note-date";
+import { resolveNoteDate, type DateFormats } from "./note-date";
 
 /**
  * Whether a single note's `skip_field` value marks its day as special.
@@ -44,11 +44,12 @@ export function specialDays(
     notes: readonly NoteRecord[],
     skipField: string,
     dateField?: string,
+    formats?: DateFormats,
 ): Set<string> {
     const days = new Set<string>();
     for (const note of notes) {
         if (!isSpecialMark(readField(note.frontmatter, skipField))) continue;
-        const day = resolveNoteDate(note, dateField);
+        const day = resolveNoteDate(note, dateField, formats);
         if (day !== null) days.add(day);
     }
     return days;

@@ -31,7 +31,7 @@
         <div class="props" aria-label="Properties">
           <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
           <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>code block</div><div class="v"><code>progress</code></div></div>
-          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">7 on the block, 17 on each bar</div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">8 on the block, 18 on each bar</div></div>
           <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
         </div>
 
@@ -85,7 +85,7 @@ items:
 
 
         <h2 id="root-keys">Keys on the block</h2>
-        <div class="keys"><a href="#columns"><code>columns</code></a><a href="#items"><code>items</code></a><a href="#source"><code>source</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#period"><code>period</code></a><a href="#date_field"><code>date_field</code></a></div>
+        <div class="keys"><a href="#columns"><code>columns</code></a><a href="#items"><code>items</code></a><a href="#source"><code>source</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#period"><code>period</code></a><a href="#date_field"><code>date_field</code></a><a href="#date_format"><code>date_format</code></a></div>
         <div class="keytab-wrap">
           <table class="keytab">
             <thead><tr><th>Key</th><th>What it does</th><th>Type</th><th>Default</th></tr></thead>
@@ -132,13 +132,19 @@ items:
                 <td class="t" data-h="type">text</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
+              <tr id="date_format">
+                <td class="k"><a class="key" href="#date_format"><code>date_format</code></a></td>
+                <td class="d">date format for every bar that sets none of its own, written like a bar's <code>date_format</code>. A bar's own <code>date_format</code> replaces it</td>
+                <td class="t" data-h="type">text</td>
+                <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
             </tbody>
           </table>
         </div>
 
         <h2 id="item-keys">Keys on each bar</h2>
         <p>Each entry under <code>items</code> is one bar.</p>
-        <div class="keys"><a href="#label"><code>label</code></a><a href="#goal"><code>goal</code></a><a href="#bar-source"><code>source</code></a><a href="#bar-tag"><code>tag</code></a><a href="#bar-where"><code>where</code></a><a href="#bar-period"><code>period</code></a><a href="#bar-date_field"><code>date_field</code></a><a href="#field"><code>field</code></a><a href="#agg"><code>agg</code></a><a href="#at_least"><code>at_least</code></a><a href="#at_most"><code>at_most</code></a><a href="#days"><code>days</code></a><a href="#skip_field"><code>skip_field</code></a><a href="#unit"><code>unit</code></a><a href="#precision"><code>precision</code></a><a href="#icon"><code>icon</code></a><a href="#sub"><code>sub</code></a></div>
+        <div class="keys"><a href="#label"><code>label</code></a><a href="#goal"><code>goal</code></a><a href="#bar-source"><code>source</code></a><a href="#bar-tag"><code>tag</code></a><a href="#bar-where"><code>where</code></a><a href="#bar-period"><code>period</code></a><a href="#bar-date_field"><code>date_field</code></a><a href="#bar-date_format"><code>date_format</code></a><a href="#field"><code>field</code></a><a href="#agg"><code>agg</code></a><a href="#at_least"><code>at_least</code></a><a href="#at_most"><code>at_most</code></a><a href="#days"><code>days</code></a><a href="#skip_field"><code>skip_field</code></a><a href="#unit"><code>unit</code></a><a href="#precision"><code>precision</code></a><a href="#icon"><code>icon</code></a><a href="#sub"><code>sub</code></a></div>
         <div class="keytab-wrap">
           <table class="keytab">
             <thead><tr><th>Key</th><th>What it does</th><th>Type</th><th>Default</th></tr></thead>
@@ -181,7 +187,13 @@ items:
               </tr>
               <tr id="bar-date_field">
                 <td class="k"><a class="key" href="#bar-date_field"><code>date_field</code></a></td>
-                <td class="d">a date frontmatter property to read instead of the note name: <code>2026-03-02</code> or <code>2026-03-02T10:30</code>, or a dotted path into a nested property like <code>meta.date</code>. Feeds <code>period</code>'s window and the <code>streak</code>, <code>current_streak</code> and <code>latest</code> readings; has no effect on <code>count</code>, <code>sum</code>, <code>avg</code>, <code>min</code> or <code>max</code> without <code>period</code></td>
+                <td class="d">a date frontmatter property to read instead of the note name: <code>2026-03-02</code> or <code>2026-03-02T10:30</code>, or in <code>date_format</code>, or a dotted path into a nested property like <code>meta.date</code>. Feeds <code>period</code>'s window and the <code>streak</code>, <code>current_streak</code> and <code>latest</code> readings; has no effect on <code>count</code>, <code>sum</code>, <code>avg</code>, <code>min</code> or <code>max</code> without <code>period</code></td>
+                <td class="t" data-h="type">text</td>
+                <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
+              <tr id="bar-date_format">
+                <td class="k"><a class="key" href="#bar-date_format"><code>date_format</code></a></td>
+                <td class="d">a date format for note names and <code>date_field</code> values not written as <code>YYYY-MM-DD</code>, in moment notation: <code>DD.MM.YYYY</code>, <code>MM/DD/YYYY</code>, <code>YYYYMMDD</code>. Tried after <code>YYYY-MM-DD</code> and before the day format of the Daily notes or Periodic Notes settings, which is read without this key. A name or a value only has to start with the date (<code>05.10.2026 Monday</code> and <code>05.10.2026 14:30</code> count); the match is strict, so <code>5.10.2026</code> and <code>31.02.2026</code> are no date under <code>DD.MM.YYYY</code>. Needs a year, a month and a day, and warns when no selected note fits it. Steers the same readings <code>date_field</code> does. Month and weekday names (<code>MMMM</code>, <code>dddd</code>) are read in Obsidian's language, or in the Plugin language setting when one is picked</td>
                 <td class="t" data-h="type">text</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
@@ -255,9 +267,10 @@ items:
           <li>Going past the goal is shown as it is, 125% stays 125%; only the bar itself stops at full.</li>
           <li><code>count</code> over nothing reads a plain <code>0</code> and an empty bar; every other aggregate, and <code>streak</code> or <code>current_streak</code> with a <code>field</code> set, shows a dash instead: &quot;no data&quot; and &quot;zero&quot; are different answers.</li>
           <li><code>streak</code> counts the longest run of consecutive days on record; label the bar &quot;Best streak&quot; or &quot;Longest streak&quot;. <code>current_streak</code> counts the run going on now, label it &quot;Current streak&quot; or &quot;Days in a row&quot;: today never breaks it, a day not filled yet leaves the run counted up to yesterday, and only a gap on yesterday or earlier resets it. It counts within the selection after <code>period</code>, <code>where</code>, <code>tag</code> and <code>source</code>, so <code>period: month</code> stops it at the first of the month.</li>
-          <li><code>period</code> narrows to a calendar week, month, year or a rolling <code>Nd</code>, always ending today. A note's date is its name, as long as it starts with <code>YYYY-MM-DD</code> (<code>2026-03-02 Monday</code> counts, <code>2026-03-021</code> does not), unless <code>date_field</code> names a property instead; a note with no date under either rule is left out before counting.</li>
+          <li><code>period</code> narrows to a calendar week, month, year or a rolling <code>Nd</code>, always ending today. A note's date is its name, as long as it starts with <code>YYYY-MM-DD</code> (<code>2026-03-02 Monday</code> counts, <code>2026-03-021</code> does not) or with a date in <code>date_format</code> or in the Daily notes day format, unless <code>date_field</code> names a property instead; a note with no date under either rule is left out before counting.</li>
           <li><code>at_least</code>/<code>at_most</code> turn <code>streak</code> into a threshold: a day counts only when its notes' <code>field</code> values, summed for that day, satisfy the bound, <code>at_least: 5000</code> on steps for example. <code>days: weekdays</code> makes Saturday and Sunday transparent for <code>streak</code> and <code>current_streak</code>: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. <code>skip_field</code> does the same for a day any note marks special, <code>vacation: true</code> or <code>sick: flu</code> for example, and combines with <code>days: weekdays</code>. All three keys apply to <code>agg: streak</code> and <code>agg: current_streak</code> only and are ignored on every other aggregate.</li>
-          <li><code>source</code>, <code>tag</code>, <code>where</code>, <code>period</code> and <code>date_field</code> written at the block root, next to <code>items:</code>, apply to every bar, so a folder shared by the whole block is written once. A bar's own <code>source</code>, <code>tag</code>, <code>period</code> or <code>date_field</code> replaces the root's for that bar; <code>where</code> is the exception: the root's conditions and the bar's own both hold. A root folder that does not exist, a root <code>where</code> or <code>period</code> that cannot be read, a blank root <code>source</code> or <code>tag</code>, or a root <code>date_field</code> that no note selected under <code>period</code> has a date in is reported once for the block, not once per bar. A bar's own <code>source:</code> or <code>tag:</code> left empty still replaces the root's, so the bar reads the whole vault or drops the tag filter, and it warns: to inherit the root's value, remove the key. Without <code>items:</code> the block is a single bar and these keys are simply its own.</li>
+          <li><code>source</code>, <code>tag</code>, <code>where</code>, <code>period</code>, <code>date_field</code> and <code>date_format</code> written at the block root, next to <code>items:</code>, apply to every bar, so a folder shared by the whole block is written once. A bar's own <code>source</code>, <code>tag</code>, <code>period</code>, <code>date_field</code> or <code>date_format</code> replaces the root's for that bar; <code>where</code> is the exception: the root's conditions and the bar's own both hold. A root folder that does not exist, a root <code>where</code> or <code>period</code> that cannot be read, a blank root <code>source</code> or <code>tag</code>, a root <code>date_field</code> that no note selected under <code>period</code> has a date in, or a root <code>date_format</code> that none of the notes its bars select fits is reported once for the block, not once per bar. A bar's own <code>source:</code> or <code>tag:</code> left empty still replaces the root's, so the bar reads the whole vault or drops the tag filter, and it warns: to inherit the root's value, remove the key. Without <code>items:</code> the block is a single bar and these keys are simply its own.</li>
+          <li>Daily notes named another way, like <code>05.10.2026</code>, are read in the day format set in the Daily notes or Periodic Notes settings, with no key at all. Without that setting, name the format: <code>date_format: DD.MM.YYYY</code>. A time after the date is fine (<code>2026-10-05-14:30</code>), but an order that could be read two ways, like <code>05-10-2026</code>, is never guessed: without a format it is not a date.</li>
         </ul>
 
 

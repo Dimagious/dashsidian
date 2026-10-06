@@ -9,7 +9,7 @@ import type { NoteRecord } from "./source";
 import type { DayNote } from "./day-values";
 import { readFields } from "./day-values";
 import { numberAt, classifyField, type FieldStatus } from "./aggregate";
-import { resolveNoteDate, readDateField } from "./note-date";
+import { resolveNoteDate, readDateField, type DateFormats } from "./note-date";
 import { bucketStart, eachBucket, dateKey, parseDateKey, type BucketSize } from "./calendar";
 import { parsePeriod, periodWindow, type Period } from "./period";
 import { assignLayerColors, toRgb, type Rgb } from "./palette";
@@ -302,10 +302,15 @@ export type ChartFieldStatus = FieldStatus | "undated";
  * holds numbers, but only on notes without a resolvable date, can never
  * land in a bucket.
  */
-export function chartFieldStatus(notes: readonly NoteRecord[], field: string, dateField?: string): ChartFieldStatus {
+export function chartFieldStatus(
+    notes: readonly NoteRecord[],
+    field: string,
+    dateField?: string,
+    formats?: DateFormats,
+): ChartFieldStatus {
     const status = classifyField(notes, field);
     if (status !== "ok") return status;
-    const dated = notes.some((n) => numberAt(n, field) !== null && resolveNoteDate(n, dateField) !== null);
+    const dated = notes.some((n) => numberAt(n, field) !== null && resolveNoteDate(n, dateField, formats) !== null);
     return dated ? "ok" : "undated";
 }
 
@@ -368,6 +373,7 @@ export function bucketize(
     spec: ChartSpec,
     today: Date,
     firstDay: number,
+    formats?: DateFormats,
 ): BucketOutcome {
     const diagnostics: Diagnostic[] = [];
     const bounds = periodWindow(spec.range, today, firstDay);
@@ -390,7 +396,7 @@ export function bucketize(
     let anyDated = false;
 
     for (const note of notes) {
-        const day = resolveNoteDate(note, spec.dateField);
+        const day = resolveNoteDate(note, spec.dateField, formats);
         if (day === null) continue;
         anyDated = true;
         if (day < first || day > bounds.end) continue;

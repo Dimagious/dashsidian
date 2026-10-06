@@ -294,7 +294,7 @@ describe("countdown: a date read from a note (B-148)", () => {
             { path: "Docs/Passport.md", frontmatter: { expires: "soon" } },
         ]);
         expect(diagnostics(el, "error")).toEqual([
-            '⛔ countdown: "Passport": "expires" in "Passport" is "soon", not a date. Expected YYYY-MM-DD.',
+            '⛔ countdown: "Passport": "expires" in "Passport" is "soon", not a date. Expected YYYY-MM-DD, or another format named with `date_format:` next to `items:`.',
         ]);
         expect(nodes(el, ".dashy-countdown-card")[0]?.className).toContain("is-broken");
     });
@@ -328,5 +328,45 @@ describe("countdown: a date read from a note (B-148)", () => {
         expect(diagnostics(el, "error")).toEqual([
             '⛔ countdown: `tag` must be one tag name in text, got `["a","b"]`, so it was ignored and the tag filter is dropped. Name one tag, like `tag: book`.',
         ]);
+    });
+});
+
+describe("countdown — a field date not written as YYYY-MM-DD (B-120)", () => {
+    const TODAY = new Date(2026, 9, 6);
+    const notes = [
+        { path: "Docs/01.10.2026.md", frontmatter: { expires: "15.11.2026" } },
+        { path: "Docs/05.10.2026.md", frontmatter: { expires: "20.11.2026" } },
+    ];
+    const render = (config: string) => {
+        const el = host();
+        renderCountdown({ ...mockContext({ notes }), today: () => TODAY }, config, el);
+        return el;
+    };
+
+    it("a field value is read in the block's date_format, from the newest note by its formatted name", () => {
+        // 20 November is 45 days after 6 October; 15 November (the older note) would be 40.
+        const el = render("date_format: DD.MM.YYYY\nitems:\n  - { label: Passport, field: expires, source: Docs }");
+        expect(texts(el, ".dashy-countdown-value")).toEqual(["45"]);
+        expect(nodes(el, ".dashy-countdown-link")[0]?.getAttribute("data-href")).toBe("Docs/05.10.2026.md");
+        expect(diagnostics(el, "error")).toEqual([]);
+    });
+
+    it("without a format the value is an error naming it, not a guess", () => {
+        const el = render("items:\n  - { label: Passport, field: expires, source: Docs }");
+        expect(texts(el, ".dashy-countdown-value")).toEqual(["—"]);
+        expect(diagnostics(el, "error")[0]).toContain("\"15.11.2026\", not a date");
+    });
+
+    it("a date_format the values do not fit warns, naming one", () => {
+        const el = render("date_format: MM/DD/YYYY\nitems:\n  - { label: Passport, field: expires, source: Docs }");
+        expect(diagnostics(el, "warning")).toEqual([
+            "⚠️ countdown: `date_format: MM/DD/YYYY` fits none of the selected notes: \"15.11.2026\", for one, is not written that way.",
+        ]);
+    });
+
+    it("a date_format that names no day warns and is ignored", () => {
+        const el = render("date_format: MM.YYYY\nitems:\n  - { label: Race, date: 2026-11-15 }");
+        expect(texts(el, ".dashy-countdown-value")).toEqual(["40"]);
+        expect(diagnostics(el, "warning")[0]).toContain("`date_format: MM.YYYY` has no year, month and day");
     });
 });

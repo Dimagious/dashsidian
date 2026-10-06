@@ -44,7 +44,7 @@
         },
         "date_field": {
           "type": "string",
-          "doc": "a date frontmatter property to read instead of the note name for `period`: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`; has no effect without `period`"
+          "doc": "a date frontmatter property to read instead of the note name for `period`: `2026-03-02` or `2026-03-02T10:30`, or in the Daily notes day format, or a dotted path into a nested property like `meta.date`; has no effect without `period`"
         },
         "icon": {
           "type": "string",
@@ -113,6 +113,10 @@
         "date_field": {
           "type": "string",
           "doc": "date property for every card that sets none of its own, written like a card's `date_field`. A card's own `date_field` replaces it"
+        },
+        "date_format": {
+          "type": "string",
+          "doc": "date format for every card that sets none of its own, written like a card's `date_format`. A card's own `date_format` replaces it"
         }
       },
       "item": {
@@ -147,7 +151,11 @@
         },
         "date_field": {
           "type": "string",
-          "doc": "a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`. Feeds `period`'s window and the `streak`, `current_streak`, `latest` and `trend` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period`"
+          "doc": "a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or in `date_format`, or a dotted path into a nested property like `meta.date`. Feeds `period`'s window and the `streak`, `current_streak`, `latest` and `trend` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period`"
+        },
+        "date_format": {
+          "type": "string",
+          "doc": "a date format for note names and `date_field` values not written as `YYYY-MM-DD`, in moment notation: `DD.MM.YYYY`, `MM/DD/YYYY`, `YYYYMMDD`. Tried after `YYYY-MM-DD` and before the day format of the Daily notes or Periodic Notes settings, which is read without this key. A name or a value only has to start with the date (`05.10.2026 Monday` and `05.10.2026 14:30` count); the match is strict, so `5.10.2026` and `31.02.2026` are no date under `DD.MM.YYYY`. Needs a year, a month and a day, and warns when no selected note fits it. Steers the same readings `date_field` does. Month and weekday names (`MMMM`, `dddd`) are read in Obsidian's language, or in the Plugin language setting when one is picked"
         },
         "compare": {
           "type": "boolean",
@@ -219,11 +227,12 @@
         "`streak` counts the longest run of consecutive days and `latest` takes the value from the newest note, a tie on the same date broken by path. Both resolve a note's date the same way `period` does, below, and two or more notes landing on the same day count as one day. With a `field:` set, `streak` is a field aggregate like `sum` or `avg`: nothing to count shows a dash, even over an empty selection. Without a `field:` it counts every selected note's own date instead, and reads a plain `0` when there is nothing, the same as `count`. `streak` is the best run on record: label the card \"Best streak\" or \"Longest streak\". `current_streak` is the run going on now, counted back from today by the same rules: label the card \"Current streak\" or \"Days in a row\". Today never breaks it: a day not filled yet leaves the run counted up to yesterday, and only a gap on yesterday or earlier resets it to `0`. It counts within the selection after `period`, `where`, `tag` and `source`, so `period: month` stops it at the first of the month.",
         "`count` over nothing reads a plain `0`, the number of notes found; every other aggregate, and `streak` or `current_streak` with a `field` set, shows a dash instead: \"no data\" and \"zero\" are different answers.",
         "`trend` sketches the days of a trailing window ending today, scaled between the smallest and largest value in that window rather than from zero. A day without a note is left out, not drawn as a zero, and two or more notes on the same day are summed into that one day's bar.",
-        "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting.",
+        "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not) or with a date in `date_format` or in the Daily notes day format, unless `date_field` names a property instead; a note with no date under either rule is left out before counting.",
         "`compare` needs a note in both windows; when either the current or the previous stretch has none at all, the card shows its number alone with no delta. `streak` and `current_streak` have no value of their own to compare and refuse `compare` outright, the way `trend` refuses `count`.",
         "`at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak` and `current_streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. `skip_field` does the same for a day any note marks special, `vacation: true` or `sick: flu` for example, and combines with `days: weekdays`. All three keys apply to `agg: streak` and `agg: current_streak` only and are ignored on every other aggregate.",
-        "`source`, `tag`, `where`, `period` and `date_field` written at the block root, next to `items:`, apply to every card, so a folder shared by the whole block is written once. A card's own `source`, `tag`, `period` or `date_field` replaces the root's for that card; `where` is the exception: the root's conditions and the card's own both hold. A root folder that does not exist, a root `where` or `period` that cannot be read, a blank root `source` or `tag`, or a root `date_field` that no note selected under `period` has a date in is reported once for the block, not once per card. A card's own `source:` or `tag:` left empty still replaces the root's, so the card reads the whole vault or drops the tag filter, and it warns: to inherit the root's value, remove the key. Without `items:` the block is a single card and these keys are simply its own.",
-        "`layout: inline` draws every card as one item of a single line, its number first and its label after, joined by a middle dot: `items: [{ label: notes, agg: count }, { label: journal entries, source: Journal, agg: count }]` with `layout: inline` reads `1001 notes · 188 journal entries`, so a lowercase label reads best there. A `compare` delta follows the label, coloured the way it is on a card. A narrow pane wraps the line between items, never inside one. A card whose number cannot be computed shows a dash in its place and the rest of the line still draws."
+        "`source`, `tag`, `where`, `period`, `date_field` and `date_format` written at the block root, next to `items:`, apply to every card, so a folder shared by the whole block is written once. A card's own `source`, `tag`, `period`, `date_field` or `date_format` replaces the root's for that card; `where` is the exception: the root's conditions and the card's own both hold. A root folder that does not exist, a root `where` or `period` that cannot be read, a blank root `source` or `tag`, a root `date_field` that no note selected under `period` has a date in, or a root `date_format` that none of the notes its cards select fits is reported once for the block, not once per card. A card's own `source:` or `tag:` left empty still replaces the root's, so the card reads the whole vault or drops the tag filter, and it warns: to inherit the root's value, remove the key. Without `items:` the block is a single card and these keys are simply its own.",
+        "`layout: inline` draws every card as one item of a single line, its number first and its label after, joined by a middle dot: `items: [{ label: notes, agg: count }, { label: journal entries, source: Journal, agg: count }]` with `layout: inline` reads `1001 notes · 188 journal entries`, so a lowercase label reads best there. A `compare` delta follows the label, coloured the way it is on a card. A narrow pane wraps the line between items, never inside one. A card whose number cannot be computed shows a dash in its place and the rest of the line still draws.",
+        "Daily notes named another way, like `05.10.2026`, are read in the day format set in the Daily notes or Periodic Notes settings, with no key at all. Without that setting, name the format: `date_format: DD.MM.YYYY`. A time after the date is fine (`2026-10-05-14:30`), but an order that could be read two ways, like `05-10-2026`, is never guessed: without a format it is not a date."
       ]
     },
     "progress": {
@@ -262,6 +271,10 @@
         "date_field": {
           "type": "string",
           "doc": "date property for every bar that sets none of its own, written like a bar's `date_field`. A bar's own `date_field` replaces it"
+        },
+        "date_format": {
+          "type": "string",
+          "doc": "date format for every bar that sets none of its own, written like a bar's `date_format`. A bar's own `date_format` replaces it"
         }
       },
       "item": {
@@ -304,7 +317,11 @@
         },
         "date_field": {
           "type": "string",
-          "doc": "a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`. Feeds `period`'s window and the `streak`, `current_streak` and `latest` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period`"
+          "doc": "a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or in `date_format`, or a dotted path into a nested property like `meta.date`. Feeds `period`'s window and the `streak`, `current_streak` and `latest` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period`"
+        },
+        "date_format": {
+          "type": "string",
+          "doc": "a date format for note names and `date_field` values not written as `YYYY-MM-DD`, in moment notation: `DD.MM.YYYY`, `MM/DD/YYYY`, `YYYYMMDD`. Tried after `YYYY-MM-DD` and before the day format of the Daily notes or Periodic Notes settings, which is read without this key. A name or a value only has to start with the date (`05.10.2026 Monday` and `05.10.2026 14:30` count); the match is strict, so `5.10.2026` and `31.02.2026` are no date under `DD.MM.YYYY`. Needs a year, a month and a day, and warns when no selected note fits it. Steers the same readings `date_field` does. Month and weekday names (`MMMM`, `dddd`) are read in Obsidian's language, or in the Plugin language setting when one is picked"
         },
         "field": {
           "type": "string",
@@ -364,9 +381,10 @@
         "Going past the goal is shown as it is, 125% stays 125%; only the bar itself stops at full.",
         "`count` over nothing reads a plain `0` and an empty bar; every other aggregate, and `streak` or `current_streak` with a `field` set, shows a dash instead: \"no data\" and \"zero\" are different answers.",
         "`streak` counts the longest run of consecutive days on record; label the bar \"Best streak\" or \"Longest streak\". `current_streak` counts the run going on now, label it \"Current streak\" or \"Days in a row\": today never breaks it, a day not filled yet leaves the run counted up to yesterday, and only a gap on yesterday or earlier resets it. It counts within the selection after `period`, `where`, `tag` and `source`, so `period: month` stops it at the first of the month.",
-        "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not), unless `date_field` names a property instead; a note with no date under either rule is left out before counting.",
+        "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not) or with a date in `date_format` or in the Daily notes day format, unless `date_field` names a property instead; a note with no date under either rule is left out before counting.",
         "`at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak` and `current_streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. `skip_field` does the same for a day any note marks special, `vacation: true` or `sick: flu` for example, and combines with `days: weekdays`. All three keys apply to `agg: streak` and `agg: current_streak` only and are ignored on every other aggregate.",
-        "`source`, `tag`, `where`, `period` and `date_field` written at the block root, next to `items:`, apply to every bar, so a folder shared by the whole block is written once. A bar's own `source`, `tag`, `period` or `date_field` replaces the root's for that bar; `where` is the exception: the root's conditions and the bar's own both hold. A root folder that does not exist, a root `where` or `period` that cannot be read, a blank root `source` or `tag`, or a root `date_field` that no note selected under `period` has a date in is reported once for the block, not once per bar. A bar's own `source:` or `tag:` left empty still replaces the root's, so the bar reads the whole vault or drops the tag filter, and it warns: to inherit the root's value, remove the key. Without `items:` the block is a single bar and these keys are simply its own."
+        "`source`, `tag`, `where`, `period`, `date_field` and `date_format` written at the block root, next to `items:`, apply to every bar, so a folder shared by the whole block is written once. A bar's own `source`, `tag`, `period`, `date_field` or `date_format` replaces the root's for that bar; `where` is the exception: the root's conditions and the bar's own both hold. A root folder that does not exist, a root `where` or `period` that cannot be read, a blank root `source` or `tag`, a root `date_field` that no note selected under `period` has a date in, or a root `date_format` that none of the notes its bars select fits is reported once for the block, not once per bar. A bar's own `source:` or `tag:` left empty still replaces the root's, so the bar reads the whole vault or drops the tag filter, and it warns: to inherit the root's value, remove the key. Without `items:` the block is a single bar and these keys are simply its own.",
+        "Daily notes named another way, like `05.10.2026`, are read in the day format set in the Daily notes or Periodic Notes settings, with no key at all. Without that setting, name the format: `date_format: DD.MM.YYYY`. A time after the date is fine (`2026-10-05-14:30`), but an order that could be read two ways, like `05-10-2026`, is never guessed: without a format it is not a date."
       ]
     },
     "today": {
@@ -413,6 +431,10 @@
           "default": 3,
           "doc": "columns in the grid, 1 to 6"
         },
+        "date_format": {
+          "type": "string",
+          "doc": "a date format for `field` values and for the note names that pick the newest note, when they are not written as `YYYY-MM-DD`, in moment notation like `DD.MM.YYYY`. Applies to every card, read the way a `stats` card reads it; a written `date` stays `YYYY-MM-DD`. Month and weekday names (`MMMM`, `dddd`) are read in Obsidian's language, or in the Plugin language setting when one is picked"
+        },
         "items": {
           "type": "list",
           "required": true,
@@ -435,7 +457,7 @@
         },
         "field": {
           "type": "string",
-          "doc": "a date property to read the date from instead of writing it: `2026-03-02`, with or without a time after it, or an Obsidian date property; dotted for a nested one like `meta.expires`. Read from the newest note in the selection that has it filled in, the way `agg: latest` picks one: by the date in the note's name, and a note without one, like `Passport.md`, after every dated note. A value that is not a date, or no note having the property at all, is an error on the card that names it",
+          "doc": "a date property to read the date from instead of writing it: `2026-03-02`, with or without a time after it, one in the block's `date_format`, or an Obsidian date property; dotted for a nested one like `meta.expires`. Read from the newest note in the selection that has it filled in, the way `agg: latest` picks one: by the date in the note's name, and a note without one, like `Passport.md`, after every dated note. A value that is not a date, or no note having the property at all, is an error on the card that names it",
           "aliases": [
             "property",
             "prop"
@@ -477,7 +499,8 @@
       "notes": [
         "A date that has passed is shown too, counting up instead of down. What happened yesterday is still worth seeing.",
         "The day count is whole days, so a daylight saving switch cannot shift it.",
-        "A birthday or an anniversary repeats with `repeat: yearly`. A date kept in a note, like a passport's expiry, is read with `field` and stays current when the note changes: `{ label: Passport, field: expires, where: \"type = passport\" }`."
+        "A birthday or an anniversary repeats with `repeat: yearly`. A date kept in a note, like a passport's expiry, is read with `field` and stays current when the note changes: `{ label: Passport, field: expires, where: \"type = passport\" }`.",
+        "A `field` written as `15.11.2026` is read once the block names its format: `date_format: DD.MM.YYYY` next to `items:`."
       ]
     },
     "heatmap": {
@@ -514,7 +537,11 @@
         },
         "date_field": {
           "type": "string",
-          "doc": "a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`"
+          "doc": "a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or in `date_format`, or a dotted path into a nested property like `meta.date`"
+        },
+        "date_format": {
+          "type": "string",
+          "doc": "a date format for note names and `date_field` values not written as `YYYY-MM-DD`, in moment notation: `DD.MM.YYYY`, `MM/DD/YYYY`, `YYYYMMDD`. Tried after `YYYY-MM-DD` and before the day format of the Daily notes or Periodic Notes settings, which is read without this key. A name or a value only has to start with the date (`05.10.2026 Monday` and `05.10.2026 14:30` count); the match is strict, so `5.10.2026` and `31.02.2026` are no date under `DD.MM.YYYY`. Needs a year, a month and a day, and warns when no selected note fits it. Month and weekday names (`MMMM`, `dddd`) are read in Obsidian's language, or in the Plugin language setting when one is picked"
         },
         "skip_field": {
           "type": "string",
@@ -588,13 +615,14 @@
       },
       "example": "source: 01-Areas/Personal/Diary\nfield: sleep_score\ncolor: purple\nbands: [90, 80, 60]",
       "notes": [
-        "A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 Monday` counts, `2026-01-051` does not), unless `date_field` names a property instead. That is how the block knows which cell it belongs to.",
+        "A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 Monday` counts, `2026-01-051` does not) or with a date in `date_format` or in the Daily notes day format, unless `date_field` names a property instead. That is how the block knows which cell it belongs to.",
         "Two or more notes landing on the same day paint one cell, and so does a `field` list on one note: `per_day` (default sum) says how the day's values combine, and a ticked or numeric contributor always outweighs a false one on the same day.",
         "Years are taken from the data, newest first, but never one later than today: a note dated in the future draws nothing extra and counts nowhere in the grid. If every dated note turns out to be in the future, the current year is still drawn, empty.",
         "`layers` replaces `field` for tracking several activities on one grid, each its own colour: `layers: [{field: gym, color: blue}, {field: run, color: green, label: Running}]`. When two layers land on the same day, the first one in the list colours the cell, or with `pick: max` the one with the larger value; the tooltip still lists every layer that has a value that day. Minutes per sport, coloured by the sport that took the longest: `layers: [{field: run_min, color: green, label: Running}, {field: bike_min, color: blue, label: Cycling}]` with `pick: max`. Compare layers in the same unit only.",
         "`skip_field` marks special days, vacation or sick for example: they still show a hatched cell, keeping any painted colour underneath, and their count in the caption is unchanged (a special day with no value is still not present).",
         "`range` draws one grid over a window ending today instead of a grid per year: `range: 365d` is a rolling year that crosses 1 January in a single grid rather than splitting into two. Everything else works the same over that one grid: bands, layers, skip_field and its legend row, the caption's count and average, tooltips and links.",
-        "`layout: calendar` with `range: month` draws a month calendar of a habit inside the note: `range: month`, `layout: calendar` and `field: gym`, or a few `layers`. Each day shows its number and a dot per note or layer that painted it; the days still ahead are dimmed."
+        "`layout: calendar` with `range: month` draws a month calendar of a habit inside the note: `range: month`, `layout: calendar` and `field: gym`, or a few `layers`. Each day shows its number and a dot per note or layer that painted it; the days still ahead are dimmed.",
+        "Daily notes named another way, like `05.10.2026`, are read in the day format set in the Daily notes or Periodic Notes settings, with no key at all. Without that setting, name the format: `date_format: DD.MM.YYYY`. A time after the date is fine (`2026-10-05-14:30`), but an order that could be read two ways, like `05-10-2026`, is never guessed: without a format it is not a date."
       ]
     },
     "chart": {
@@ -618,7 +646,11 @@
         },
         "date_field": {
           "type": "string",
-          "doc": "a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or a dotted path into a nested property like `meta.date`"
+          "doc": "a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or in `date_format`, or a dotted path into a nested property like `meta.date`"
+        },
+        "date_format": {
+          "type": "string",
+          "doc": "a date format for note names and `date_field` values not written as `YYYY-MM-DD`, in moment notation: `DD.MM.YYYY`, `MM/DD/YYYY`, `YYYYMMDD`. Tried after `YYYY-MM-DD` and before the day format of the Daily notes or Periodic Notes settings, which is read without this key. A name or a value only has to start with the date (`05.10.2026 Monday` and `05.10.2026 14:30` count); the match is strict, so `5.10.2026` and `31.02.2026` are no date under `DD.MM.YYYY`. Needs a year, a month and a day, and warns when no selected note fits it. Month and weekday names (`MMMM`, `dddd`) are read in Obsidian's language, or in the Plugin language setting when one is picked"
         },
         "field": {
           "type": "string",
@@ -736,13 +768,14 @@
       "example": "source: 01-Areas/Personal/Diary\nfield: sleep_score\nagg: avg",
       "notes": [
         "With the Obsidian Charts plugin enabled, write the block as `dashy-chart`: Dashy then leaves the `chart` language to Charts, so a `chart` block is drawn by Charts. `dashy-chart` takes the same keys and always works. Turned Charts on while Obsidian was open? Restart Obsidian once.",
-        "A note's date is its name, as long as it starts with `YYYY-MM-DD`, unless `date_field` names a property instead. Notes without a date are left out, and a selection where none has one warns. Notes dated after today are never drawn.",
+        "A note's date is its name, as long as it starts with `YYYY-MM-DD` or with a date in `date_format` or in the Daily notes day format, unless `date_field` names a property instead. Notes without a date are left out, and a selection where none has one warns. Notes dated after today are never drawn.",
         "A week starts on the locale's first day, the same day `period: week` and the heatmap grid use, and a week's tooltip names it: `Week of Sun Sep 27, 2026`.",
         "A bucket with no data is a gap in the line and no bar, never a zero: a missing day is not a day of zero. An unticked checkbox (`false`) is a real 0, and `count` over an empty bucket is a plain 0.",
         "`avg` is over values, not days: two notes on one day both count, so a week's average matches a stats card with `agg: avg` and `period: week`. `sum` of a checkbox counts the ticked days.",
         "The last bucket is usually still running (this week, this month, this year): it is drawn lighter, or as a hollow point on a line, and its tooltip ends with `so far`.",
         "A list in the block's own `field` is an error rather than a guess: write `series:` for several lines, or `series: [{field: [a, b]}]` to fold several properties into one.",
-        "Not in this block, on purpose: pie, doughnut, radar and scatter charts, stacked bars, cumulative sums, a second y axis, smoothing and trend lines, zoom, tick and axis settings, annotations, and a height key (the height is the `--dashy-chart-height` CSS variable, which a CSS snippet can change). Steps and sleep on one chart are two chart blocks."
+        "Not in this block, on purpose: pie, doughnut, radar and scatter charts, stacked bars, cumulative sums, a second y axis, smoothing and trend lines, zoom, tick and axis settings, annotations, and a height key (the height is the `--dashy-chart-height` CSS variable, which a CSS snippet can change). Steps and sleep on one chart are two chart blocks.",
+        "Daily notes named another way, like `05.10.2026`, are read in the day format set in the Daily notes or Periodic Notes settings, with no key at all. Without that setting, name the format: `date_format: DD.MM.YYYY`. A time after the date is fine (`2026-10-05-14:30`), but an order that could be read two ways, like `05-10-2026`, is never guessed: without a format it is not a date."
       ]
     }
   },

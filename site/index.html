@@ -1192,7 +1192,7 @@ layers: [sleep_score]
         </details>
         <details class="callout">
           <summary class="callout-title"><svg><use href="#i-help"/></svg>How does a block know a note's date?<svg class="chev"><use href="#i-right"/></svg></summary>
-          <p>From the note's name, as long as it starts with <code>YYYY-MM-DD</code>: <code>2026-03-02 Monday</code> and <code>2026-03-02_standup</code> both count. <code>date_field</code> can name a frontmatter date property instead on any block that counts by day, which is how a book note counts by the day it was finished. Notes without a date are left out of anything that counts by day.</p>
+          <p>From the note's name, as long as it starts with <code>YYYY-MM-DD</code>: <code>2026-03-02 Monday</code> and <code>2026-03-02_standup</code> both count. A name written another way, like <code>02.03.2026</code>, is read in the day format set in the Daily notes or Periodic Notes settings, or in one the block names with <code>date_format: DD.MM.YYYY</code>. <code>date_field</code> can name a frontmatter date property instead on any block that counts by day, which is how a book note counts by the day it was finished. Notes without a date are left out of anything that counts by day.</p>
         </details>
         <details class="callout">
           <summary class="callout-title"><svg><use href="#i-help"/></svg>Does a time zone shift my dates?<svg class="chev"><use href="#i-right"/></svg></summary>

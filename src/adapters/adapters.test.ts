@@ -1,10 +1,10 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { Platform, type App } from "obsidian";
 import { snapshot, noteExists, VaultSnapshot, pathKind, revealFolder } from "./vault";
-import { discoverPeriodics } from "./periodic";
+import { discoverPeriodics, dailyNoteFormat, noteDateFormats } from "./periodic";
 import {
     formatDate, currentLocale, weekdayNamesShort, monthNamesShort, firstDayOfWeek, monthYearShort, formatDayMedium,
-    formatYear, timeFormats,
+    formatYear, timeFormats, parseDateWithFormat,
 } from "./datetime";
 import { applyObsidianLocale, applyLocale } from "./locale";
 import { isMobile } from "./platform";
@@ -191,6 +191,68 @@ describe("periodic notes discovery", () => {
             dailyNotes: { folder: "Core", format: "DD-MM-YYYY" },
         });
         expect(discoverPeriodics(app).daily?.folder).toBe("PN");
+    });
+});
+
+describe("the daily note format (B-120)", () => {
+    it("is the day format of Periodic Notes, trimmed", () => {
+        expect(dailyNoteFormat(mockApp({ periodicNotes: { daily: { folder: "D", format: " DD.MM.YYYY " } } })))
+            .toBe("DD.MM.YYYY");
+    });
+
+    it("falls back to the core Daily notes plugin", () => {
+        expect(dailyNoteFormat(mockApp({ dailyNotes: { folder: "Core", format: "DD-MM-YYYY" } }))).toBe("DD-MM-YYYY");
+    });
+
+    it("is undefined when neither plugin names one", () => {
+        expect(dailyNoteFormat(mockApp())).toBeUndefined();
+        expect(dailyNoteFormat(mockApp({ dailyNotes: { folder: "Core", format: "" } }))).toBeUndefined();
+    });
+
+    it("noteDateFormats puts the block's own format before it", () => {
+        const app = mockApp({ dailyNotes: { format: "DD.MM.YYYY" } });
+        expect(noteDateFormats(app, "YYYYMMDD")?.names).toEqual(["YYYYMMDD", "DD.MM.YYYY"]);
+        expect(noteDateFormats(app)?.names).toEqual(["DD.MM.YYYY"]);
+        expect(noteDateFormats(mockApp())).toBeUndefined();
+    });
+});
+
+describe("parseDateWithFormat (B-120)", () => {
+    it.each([
+        ["05.10.2026", "DD.MM.YYYY"],
+        ["05-10-2026", "DD-MM-YYYY"],
+        ["10/05/2026", "MM/DD/YYYY"],
+        ["20261005", "YYYYMMDD"],
+        ["2026-10-05-14:30", "YYYY-MM-DD-HH:mm"],
+        ["5 October 2026", "D MMMM YYYY"],
+        ["Monday, October 5th 2026", "dddd, MMMM Do YYYY"],
+    ])("%s in %s is 5 October 2026", (text, format) => {
+        expect(parseDateWithFormat(text, format)).toBe("2026-10-05");
+    });
+
+    it("is strict: a missing pad, trailing text or a day that does not exist is null", () => {
+        expect(parseDateWithFormat("5.10.2026", "DD.MM.YYYY")).toBeNull();
+        expect(parseDateWithFormat("05.10.2026 Monday", "DD.MM.YYYY")).toBeNull();
+        expect(parseDateWithFormat("31.02.2026", "DD.MM.YYYY")).toBeNull();
+        expect(parseDateWithFormat("13/05/2026", "MM/DD/YYYY")).toBeNull();
+    });
+
+    it("a weekday that does not match the date is not that date", () => {
+        expect(parseDateWithFormat("Tuesday, October 5th 2026", "dddd, MMMM Do YYYY")).toBeNull();
+    });
+
+    it("an early year keeps four digits", () => {
+        expect(parseDateWithFormat("05.10.0999", "DD.MM.YYYY")).toBe("0999-10-05");
+    });
+
+    it("reads month names in the language dates are drawn in, and caches per language", () => {
+        expect(parseDateWithFormat("5 Oktober 2026", "D MMMM YYYY")).toBeNull();
+        applyLocale("de");
+        expect(parseDateWithFormat("5 Oktober 2026", "D MMMM YYYY")).toBe("2026-10-05");
+        expect(parseDateWithFormat("5 October 2026", "D MMMM YYYY")).toBeNull();
+        applyLocale("");
+        expect(parseDateWithFormat("5 Oktober 2026", "D MMMM YYYY")).toBeNull();
+        expect(parseDateWithFormat("5 October 2026", "D MMMM YYYY")).toBe("2026-10-05");
     });
 });
 
