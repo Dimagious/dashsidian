@@ -40,8 +40,8 @@ const { name: PLUGIN_NAME } = JSON.parse(fs.readFileSync(path.join(ROOT, "manife
  * a catalogue entry where the reader has already stopped to look. A card is
  * read in a feed, at a glance.
  */
-const TAGLINE = "Dashboards for your notes,<br>written in YAML";
-const FOOTNOTE = "An Obsidian plugin · no JavaScript";
+const TAGLINE = "Describe the dashboard.<br>Your agent builds it<br>in your note.";
+const FOOTNOTE = "An Obsidian plugin · plain YAML";
 
 function html() {
     // Inlined rather than linked: the page is loaded via setContent, so it has

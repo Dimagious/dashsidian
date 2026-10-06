@@ -18,12 +18,12 @@ Plain YAML you can read and edit. No JavaScript, no Dataview, works on your phon
 [Website](https://dimagious.github.io/dashsidian/) · [Build one with your agent](https://dimagious.github.io/dashsidian/guides/ai-agent-dashboard/) · [Every block and key](https://dimagious.github.io/dashsidian/reference/) · [Guides](https://dimagious.github.io/dashsidian/guides/) · [Changelog](https://github.com/Dimagious/dashsidian/blob/master/CHANGELOG.md)
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/hero-dark.png">
-  <img alt="One Obsidian note: four cards (sleep this week, days in a row, run this week, gym days), weekly running bars against a 30 km goal line, and six months of nights as a heatmap"
-       src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/hero-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/agent-hero-dark.png">
+  <img alt="Left, a request to an AI agent: a running dashboard with weekly distance as bars against a 40 km goal, this week's distance, the current streak and a countdown to a marathon on May 17. Right, the Obsidian note it wrote: a countdown with 223 days left, two cards for this week's 20.8 km and the current streak, and weekly bars under a dashed 40 km line."
+       src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/agent-hero-light.png">
 </picture>
 
-That page is one note and three blocks: `stats`, `chart` and `heatmap`. An agent can write all three; you open the note and check, and a block that can't draw says why.
+One request on the left, the note it wrote on the right: three blocks, `countdown`, `stats` and `chart`, in a demo vault. You open the note and check; a block that can't draw says why.
 
 ## Install
 

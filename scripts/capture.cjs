@@ -61,4 +61,7 @@ for (const reel of fs.existsSync(frames) ? fs.readdirSync(frames) : []) {
     }
 }
 
+// The 2.0 hero puts the prompt beside the note the agent wrote (B-184).
+run("node", ["scripts/agent-hero.cjs"]);
+
 console.log("\n[capture] docs/screens/");

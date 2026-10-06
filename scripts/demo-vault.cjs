@@ -595,6 +595,38 @@ title: Sleep
 \`\`\`
 `);
 
+    // The 2.0 hero (B-184): what an agent wrote, given only the Dashy skill and
+    // the prompt in scripts/agent-hero.cjs, run against this vault on
+    // 2026-10-06. The blocks are its output word for word; only the marathon's
+    // year follows the vault's dates, by the agent's own rule: this year's
+    // 17 May if it is still ahead, else next year's.
+    // Re-run the agent rather than editing this by hand: the picture claims
+    // the agent wrote it.
+    const marathon = today < new Date(year, 4, 17) ? year : year + 1;
+    fs.writeFileSync(path.join(out, "Running.md"), `\`\`\`countdown
+items:
+  - { label: Marathon, date: ${marathon}-05-17, icon: 🏅 }
+\`\`\`
+
+\`\`\`stats
+source: Diary
+columns: 2
+items:
+  - { label: This week, field: run_km, agg: sum, period: week, compare: true, better: up, unit: km, icon: 🏃 }
+  - { label: Current streak, field: run_km, agg: current_streak, unit: days, icon: 🔥 }
+\`\`\`
+
+\`\`\`chart
+source: Diary
+field: run_km
+type: bar
+bucket: week
+unit: km
+goal: 40
+title: Weekly distance
+\`\`\`
+`);
+
     // Blocks photographed one at a time, each YAML exactly as the site prints it.
     fs.writeFileSync(path.join(out, "Charts.md"), `\`\`\`chart
 source: Diary
