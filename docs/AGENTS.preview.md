@@ -205,7 +205,7 @@ monthly: true
 ```
 ````
 
-- Takes the folder and the name format from the Periodic Notes plugin when installed; for the day it also picks up the core "Daily notes". A folder set in the Dashy settings wins over both.
+- Takes the folder and the name format from the Periodic Notes plugin when installed, 1.0 beta included. The day comes from Periodic Notes only when it is switched on there, otherwise from the core "Daily notes", as the Calendar plugin does. A folder set in the Dashy settings wins over both.
 - With none of `daily`, `weekly` and `monthly` given, only the daily note is shown. With at least one given, exactly those apply.
 - The clock only changes its own digits, on the minute (or the second), and does not reread the vault. The date under it changes when the day does, at the hour set by "New day starts at" in the Dashy settings: with the day starting at 4:00, a clock that reads 01:30 still sits above yesterday's date.
 - If the note does not exist yet the link is still drawn, dimmed: clicking it creates the note.

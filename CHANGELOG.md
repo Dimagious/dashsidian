@@ -53,6 +53,22 @@ removed public export.
   Without a `label` it is skipped, the same as a tile with neither; with one,
   it is drawn without a link instead of linking to the spaces. Spaces around
   a real path, like `path: " Tasks "`, are trimmed.
+- **`today` links the same daily note Periodic Notes and the Calendar
+  plugin open.** With the day switched on in Periodic Notes and no format saved
+  there, the link took the format of the core Daily notes plugin, say
+  `DD.MM.YYYY`, while Periodic Notes names the note `YYYY-MM-DD`. And with
+  the day switched off in Periodic Notes, its leftover folder was used and
+  the core Daily notes settings were never read. The day now follows the
+  rule those plugins share: Periodic Notes when the day is switched on
+  there, a blank format being `YYYY-MM-DD`, otherwise the core Daily notes
+  folder and format.
+- **Periodic Notes 1.0 beta settings are read.** It keeps them in calendar
+  sets instead of under `daily`, `weekly` and `monthly`, and `today` found
+  none of them. Now the active set is read, or the first one when none is
+  marked active. A settings file can hold both shapes after an upgrade or a
+  downgrade; then the installed version decides, the sets for 1.0 and the
+  old keys for 0.0.x. The same settings reach the day format and the period
+  names that blocks read dates and `period: note` with.
 
 ### Added
 
@@ -95,7 +111,8 @@ removed public export.
   does an unknown `layout` value.
 - **Dates not written as `YYYY-MM-DD`.** A note named `05.10.2026` or
   `20261005` is now dated by the day format set in the Daily notes or
-  Periodic Notes settings, with no key at all, and a block can name its own
+  Periodic Notes settings (the one `today` links the daily note with), with
+  no key at all, and a block can name its own
   with `date_format: DD.MM.YYYY` (moment notation, matched strictly). It reads
   note names and `date_field` values alike, on `stats` and `progress` (at the
   root for every card, or on one card), `heatmap`, `chart` and `countdown`;

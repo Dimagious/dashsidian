@@ -151,7 +151,7 @@ describe("periodic notes discovery", () => {
     it("reads folder and format per period", () => {
         const app = mockApp({
             periodicNotes: {
-                daily: { folder: "PN/Daily", format: "YYYY-MM-DD" },
+                daily: { enabled: true, folder: "PN/Daily", format: "YYYY-MM-DD" },
                 weekly: { folder: "PN/Weekly", format: "gggg-[W]ww" },
             },
         });
@@ -166,8 +166,8 @@ describe("periodic notes discovery", () => {
         expect(discoverPeriodics(app).monthly).toEqual({ folder: "M", format: "YYYY-MM" });
     });
 
-    it("a period with neither folder nor format is not reported at all", () => {
-        const app = mockApp({ periodicNotes: { daily: { enabled: true } } });
+    it("a week or month with neither folder nor format is not reported at all", () => {
+        const app = mockApp({ periodicNotes: { weekly: { enabled: true }, monthly: { enabled: false, folder: "", format: "" } } });
         expect(discoverPeriodics(app)).toEqual({});
     });
 
@@ -186,18 +186,173 @@ describe("periodic notes discovery", () => {
         expect(discoverPeriodics(app).daily).toEqual({ folder: "Core", format: "DD-MM-YYYY" });
     });
 
-    it("Periodic Notes wins over the core plugin for the day", () => {
+    it("Periodic Notes wins over the core plugin for the day it has switched on", () => {
         const app = mockApp({
-            periodicNotes: { daily: { folder: "PN", format: "YYYY-MM-DD" } },
+            periodicNotes: { daily: { enabled: true, folder: "PN", format: "YYYY-MM-DD" } },
             dailyNotes: { folder: "Core", format: "DD-MM-YYYY" },
         });
-        expect(discoverPeriodics(app).daily?.folder).toBe("PN");
+        expect(discoverPeriodics(app).daily).toEqual({ folder: "PN", format: "YYYY-MM-DD" });
+    });
+
+    it("a day switched on with nothing saved is Periodic Notes' default, not the core plugin's format (B-172)", () => {
+        const app = mockApp({
+            periodicNotes: { daily: { enabled: true, folder: "", format: "" } },
+            dailyNotes: { folder: "Core", format: "DD.MM.YYYY" },
+        });
+        expect(discoverPeriodics(app).daily).toEqual({ folder: "", format: "" });
+        expect(dailyNoteFormat(app)).toBeUndefined();
+        expect(noteDateFormats(app)).toBeUndefined();
+    });
+
+    it("a day switched off yields to the core plugin, even with a folder of its own (B-172)", () => {
+        const app = mockApp({
+            periodicNotes: { daily: { enabled: false, folder: "PN/Daily", format: "" } },
+            dailyNotes: { folder: "Core", format: "DD.MM.YYYY" },
+        });
+        expect(discoverPeriodics(app).daily).toEqual({ folder: "Core", format: "DD.MM.YYYY" });
+        expect(dailyNoteFormat(app)).toBe("DD.MM.YYYY");
+        expect(noteDateFormats(app)?.names).toEqual(["DD.MM.YYYY"]);
+    });
+
+    it("a day switched off with no core plugin set up lands nowhere in particular (B-172)", () => {
+        const app = mockApp({ periodicNotes: { daily: { enabled: false, folder: "PN/Daily", format: "DD.MM.YYYY" } } });
+        expect(discoverPeriodics(app).daily).toBeUndefined();
+        expect(dailyNoteFormat(app)).toBeUndefined();
+    });
+});
+
+describe("Periodic Notes 1.x calendar sets (B-176)", () => {
+    const sets = (extra: Record<string, unknown> = {}): Record<string, unknown> => ({
+        activeCalendarSet: "Default",
+        calendarSets: [{
+            id: "Default",
+            day: { enabled: true, folder: "Sets/Daily", format: "DD.MM.YYYY" },
+            week: { enabled: true, folder: "Sets/Weekly", format: "" },
+            month: { enabled: false, folder: "Sets/Monthly", format: "MMMM YYYY" },
+            quarter: { enabled: true, format: "YYYY-[Q]Q" },
+            year: { enabled: false },
+        }],
+        ...extra,
+    });
+    const flat = {
+        daily: { enabled: true, folder: "Flat/Daily", format: "YYYYMMDD" },
+        weekly: { enabled: true, folder: "Flat/Weekly", format: "GGGG-[W]WW" },
+    };
+
+    it("reads the calendar set when it is the only shape there", () => {
+        const app = mockApp({ periodicNotes: sets(), periodicNotesVersion: "1.0.0-beta.3" });
+        expect(discoverPeriodics(app)).toEqual({
+            daily: { folder: "Sets/Daily", format: "DD.MM.YYYY" },
+            weekly: { folder: "Sets/Weekly", format: "" },
+            monthly: { folder: "Sets/Monthly", format: "MMMM YYYY" },
+        });
+        expect(dailyNoteFormat(app)).toBe("DD.MM.YYYY");
+        expect(periodNameFormats(app)).toEqual({
+            day: "DD.MM.YYYY", week: "gggg-[W]ww", month: "MMMM YYYY", quarter: "YYYY-[Q]Q",
+        });
+    });
+
+    it("reads the calendar set with no manifest to go by, when there is no flat shape", () => {
+        expect(dailyNoteFormat(mockApp({ periodicNotes: sets() }))).toBe("DD.MM.YYYY");
+    });
+
+    it("with both shapes, 1.x reads the calendar set and 0.0.x the flat keys", () => {
+        const beta = mockApp({ periodicNotes: sets(flat), periodicNotesVersion: "1.0.0-beta.3" });
+        expect(discoverPeriodics(beta).daily).toEqual({ folder: "Sets/Daily", format: "DD.MM.YYYY" });
+        expect(periodNameFormats(beta).week).toBe("gggg-[W]ww");
+
+        const legacy = mockApp({ periodicNotes: sets(flat), periodicNotesVersion: "0.0.17" });
+        expect(discoverPeriodics(legacy)).toEqual({
+            daily: { folder: "Flat/Daily", format: "YYYYMMDD" },
+            weekly: { folder: "Flat/Weekly", format: "GGGG-[W]WW" },
+        });
+        expect(periodNameFormats(legacy)).toEqual({ day: "YYYYMMDD", week: "GGGG-[W]WW" });
+    });
+
+    it("with both shapes and no readable version, the flat keys win", () => {
+        for (const periodicNotesVersion of [undefined, "", "beta"]) {
+            const app = mockApp({ periodicNotes: sets(flat), periodicNotesVersion });
+            expect(dailyNoteFormat(app)).toBe("YYYYMMDD");
+        }
+    });
+
+    it("takes the version from the plugin instance when the manifest list has none", () => {
+        const app = { plugins: { plugins: { "periodic-notes": { settings: sets(flat), manifest: { version: "1.0.0" } } } } } as unknown as App;
+        expect(dailyNoteFormat(app)).toBe("DD.MM.YYYY");
+    });
+
+    it("reads the set activeCalendarSet names, else the first one", () => {
+        const two = (active: unknown): Record<string, unknown> => ({
+            activeCalendarSet: active,
+            calendarSets: [
+                { id: "Work", day: { enabled: true, format: "DD.MM.YYYY" } },
+                "rubbish",
+                { id: "Home", day: { enabled: true, format: "YYYYMMDD" } },
+            ],
+        });
+        expect(dailyNoteFormat(mockApp({ periodicNotes: two("Home"), periodicNotesVersion: "1.0.0" }))).toBe("YYYYMMDD");
+        expect(dailyNoteFormat(mockApp({ periodicNotes: two("Gone"), periodicNotesVersion: "1.0.0" }))).toBe("DD.MM.YYYY");
+        expect(dailyNoteFormat(mockApp({ periodicNotes: two(undefined), periodicNotesVersion: "1.0.0" }))).toBe("DD.MM.YYYY");
+    });
+
+    it("a day switched off in the set yields to the core plugin", () => {
+        const app = mockApp({
+            periodicNotes: { calendarSets: [{ id: "Default", day: { enabled: false, folder: "Sets/Daily", format: "" } }] },
+            periodicNotesVersion: "1.0.0",
+            dailyNotes: { folder: "Core", format: "DD-MM-YYYY" },
+        });
+        expect(discoverPeriodics(app).daily).toEqual({ folder: "Core", format: "DD-MM-YYYY" });
+    });
+
+    it("no set to read falls back to the flat keys, and rubbish is survived", () => {
+        expect(dailyNoteFormat(mockApp({ periodicNotes: { calendarSets: [], ...flat }, periodicNotesVersion: "1.0.0" })))
+            .toBe("YYYYMMDD");
+        for (const calendarSets of ["text", 42, null, [null, 1], [{ day: "wrong" }]]) {
+            const app = mockApp({ periodicNotes: { calendarSets }, periodicNotesVersion: "1.0.0" });
+            expect(discoverPeriodics(app)).toEqual({});
+            expect(periodNameFormats(app)).toEqual({});
+        }
+    });
+
+    it("reads the active set out of a Svelte store, as Periodic Notes 1.x keeps it", () => {
+        const app = mockApp({ periodicNotes: sets(flat), periodicNotesStore: true, periodicNotesVersion: "1.0.0-beta.3" });
+        expect(discoverPeriodics(app)).toEqual({
+            daily: { folder: "Sets/Daily", format: "DD.MM.YYYY" },
+            weekly: { folder: "Sets/Weekly", format: "" },
+            monthly: { folder: "Sets/Monthly", format: "MMMM YYYY" },
+        });
+        expect(periodNameFormats(app)).toEqual({
+            day: "DD.MM.YYYY", week: "gggg-[W]ww", month: "MMMM YYYY", quarter: "YYYY-[Q]Q",
+        });
+    });
+
+    it("a store that throws, or holds rubbish, is no settings at all", () => {
+        const throwing = { subscribe: () => { throw new Error("boom"); }, set: () => undefined, update: () => undefined };
+        const app = mockApp({ periodicNotes: throwing, periodicNotesVersion: "1.0.0", dailyNotes: { folder: "Core", format: "DD-MM-YYYY" } });
+        expect(discoverPeriodics(app)).toEqual({ daily: { folder: "Core", format: "DD-MM-YYYY" } });
+        expect(periodNameFormats(app)).toEqual({ day: "DD-MM-YYYY" });
+        expect(discoverPeriodics(mockApp({ periodicNotes: "text", periodicNotesStore: true }))).toEqual({});
+    });
+
+    it("a bare major version counts", () => {
+        expect(dailyNoteFormat(mockApp({ periodicNotes: sets(flat), periodicNotesVersion: "1" }))).toBe("DD.MM.YYYY");
+        expect(dailyNoteFormat(mockApp({ periodicNotes: sets(flat), periodicNotesVersion: "0" }))).toBe("YYYYMMDD");
+    });
+
+    it("a week format from the set reaches `period: note`", () => {
+        const app = mockApp({
+            periodicNotes: { calendarSets: [{ id: "Default", week: { enabled: true, format: "" } }] },
+            periodicNotesVersion: "1.0.0-beta.3",
+        });
+        const context = periodContext(app, "Weekly/2026-W40.md");
+        expect(readPeriodName(context.noteName ?? "", context.names))
+            .toEqual({ unit: "week", start: "2026-09-27", end: "2026-10-03" });
     });
 });
 
 describe("the daily note format (B-120)", () => {
     it("is the day format of Periodic Notes, trimmed", () => {
-        expect(dailyNoteFormat(mockApp({ periodicNotes: { daily: { folder: "D", format: " DD.MM.YYYY " } } })))
+        expect(dailyNoteFormat(mockApp({ periodicNotes: { daily: { enabled: true, folder: "D", format: " DD.MM.YYYY " } } })))
             .toBe("DD.MM.YYYY");
     });
 
