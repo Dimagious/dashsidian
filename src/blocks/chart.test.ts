@@ -560,7 +560,7 @@ describe("chart: every diagnostic reaches the note, under the block's name", () 
         expect(diagnostics(many, "warning")[0]).toMatch(/only the most recent 400 are drawn/);
         expect(hits(many)).toHaveLength(400);
         const one = chart("source: Diary\nfield: steps\nbucket: month\nrange: week");
-        expect(diagnostics(one, "warning")[0]).toMatch(/single bucket/);
+        expect(diagnostics(one, "warning")[0]).toMatch(/no longer than one `bucket`/);
         expect(hits(one)).toHaveLength(1);
     });
 

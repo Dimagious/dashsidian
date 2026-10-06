@@ -186,6 +186,25 @@ items:
         // Sunday 27 September (n = 1) to Saturday 3 October (n = 7); the ISO week would be 2 to 8.
         expect(texts(el, ".dashy-stat-value")).toEqual(["7", "1", "7"]);
     });
+
+    it("a weekly note Periodic Notes made with no format saved is its locale week, not the ISO one (B-171)", () => {
+        const notes = daily("2026-09-26", 9);
+        const vault: FakeVault = { notes, periodicNotes: { weekly: { enabled: true, folder: "Weekly", format: "" } } };
+        const el = draw(renderStats, at(vault, "Weekly/2026-W40.md"), `source: Diary
+period: note
+items:
+  - { label: First, field: n, agg: min }
+  - { label: Last, field: n, agg: max }`);
+        // The plugin's default `gggg-[W]ww` under English: Sunday 27 September (n = 1) to Saturday 3 October (n = 7).
+        expect(texts(el, ".dashy-stat-value")).toEqual(["1", "7"]);
+        // Without the plugin the same name is the ISO week, Monday 28 September (n = 2) to Sunday 4 October (n = 8).
+        const iso = draw(renderStats, at({ notes }, "Weekly/2026-W40.md"), `source: Diary
+period: note
+items:
+  - { label: First, field: n, agg: min }
+  - { label: Last, field: n, agg: max }`);
+        expect(texts(iso, ".dashy-stat-value")).toEqual(["2", "8"]);
+    });
 });
 
 describe("progress over a window from the note (B-129)", () => {
@@ -331,6 +350,18 @@ describe("chart over a window from the note (B-129)", () => {
         expect(nodes(el, ".dashy-chart-hit")).toHaveLength(7);
         expect(nodes(el, ".is-partial")).toHaveLength(0);
         expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("`range: note` in this week's note on its first day draws that day and does not warn (B-171)", () => {
+        // Monday 19 October, the first day of ISO week 43.
+        const el = draw(renderChart, at(vault, "Reviews/2026-W43.md", new Date(2026, 9, 19)), "source: Diary\nfield: steps\nrange: note");
+        expect(texts(el, ".dashy-chart-title")).toEqual(["steps: sum per day, Oct 19, 2026 to Oct 25, 2026"]);
+        expect(nodes(el, ".dashy-chart-hit")).toHaveLength(1);
+        expect(diagnostics(el, "warning")).toEqual([]);
+        // A day's note is a single bucket as a whole, and still says so.
+        const day = draw(renderChart, at(vault, "Reviews/2026-10-19.md", new Date(2026, 9, 19)), "source: Diary\nfield: steps\nrange: note");
+        expect(diagnostics(day, "warning")).toHaveLength(1);
+        expect(diagnostics(day, "warning")[0]).toMatch(/no longer than one `bucket`/);
     });
 
     it("without `bucket` a quarter draws weeks and a year months; a written `bucket` wins", () => {
