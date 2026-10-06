@@ -112,6 +112,15 @@ export function monthYearShort(date: Date): string {
     return formatDate(date, "MMM YYYY");
 }
 
+/**
+ * A full month name plus its year, e.g. "October 2026": the heading of a
+ * heatmap drawn as a calendar (B-133, `layout: calendar`). moment's own
+ * `MMMM YYYY`, so the locale decides the order and the month's form.
+ */
+export function monthYearLong(date: Date): string {
+    return formatDate(date, "MMMM YYYY");
+}
+
 /** The year alone, e.g. "2024": a `bucket: year` chart's x label and tooltip date. */
 export function formatYear(date: Date): string {
     return formatDate(date, "YYYY");

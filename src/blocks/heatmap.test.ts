@@ -7,6 +7,7 @@ import { DEFAULT_SETTINGS } from "../types";
 import { setDateLocale, formatDayMedium } from "../adapters/datetime";
 import { parseDateKey } from "../core/calendar";
 import { setLocale } from "../i18n";
+import { toRgb, rgba } from "../core/palette";
 
 /**
  * The same locale-medium rendering a cell's tooltip itself uses (B-092), so
@@ -2865,5 +2866,271 @@ describe("heatmap — durations", () => {
         expect(titleOf(el, "2026-09-23")).toContain("sleep 5\u00A0ч 58\u00A0мин");
         expect(texts(el, ".dashy-hm-title")[0]).toContain("6\u00A0ч 47\u00A0мин");
         expect(texts(el, ".dashy-hm-leg")).toEqual(["8\u00A0ч+", "7\u00A0ч–7\u00A0ч 59\u00A0мин"]);
+    });
+});
+
+describe("heatmap — layout: calendar, a month of days with dots (B-133)", () => {
+    // 2026-10-06 is a Tuesday; 1 October 2026 is a Thursday.
+    const TODAY = new Date(2026, 9, 6);
+
+    afterEach(() => {
+        vi.useRealTimers();
+        setDateLocale(null);
+        Platform.isMobile = false;
+    });
+
+    const at = (run: () => HTMLElement): HTMLElement => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        return run();
+    };
+
+    /** The day cell showing `day` (its number), pads excluded. */
+    const dayCell = (el: HTMLElement, day: number) =>
+        nodes(el, ".dashy-hm-cal-day:not(.dashy-hm-pad)").find((c) => c.querySelector(".dashy-hm-cal-num")?.textContent === String(day));
+    const dotsOf = (el: HTMLElement, day: number) => Array.from(dayCell(el, day)?.querySelectorAll<HTMLElement>(".dashy-hm-dot") ?? []);
+    /** How jsdom reports a colour once written through `style.backgroundColor`. */
+    const css = (name: string): string => {
+        const probe = document.createElement("div");
+        probe.style.backgroundColor = rgba(toRgb(name), 1);
+        return probe.style.backgroundColor;
+    };
+
+    const monthNotes = [
+        { path: "Diary/2026-09-30.md", frontmatter: { gym: true } }, // last month, not drawn
+        // 1 October: nothing. 2 October: one note.
+        { path: "Diary/2026-10-02.md", frontmatter: { gym: true } },
+        // 3 October: three notes.
+        ...["a", "b", "c"].map((f) => ({ path: `Diary/${f}/2026-10-03.md`, frontmatter: { gym: true } })),
+        // 4 October: five notes, still three dots.
+        ...["a", "b", "c", "d", "e"].map((f) => ({ path: `Diary/${f}/2026-10-04.md`, frontmatter: { gym: true } })),
+        // 5 October: only an unticked box, which paints nothing.
+        { path: "Diary/2026-10-05.md", frontmatter: { gym: false } },
+        { path: "Diary/2026-10-06.md", frontmatter: { gym: true } }, // today
+        { path: "Diary/2026-10-08.md", frontmatter: { gym: true } }, // ahead of today
+    ];
+    const monthCtx = mockContext({ notes: monthNotes });
+    const CALENDAR = "source: Diary\nfield: gym\ncolor: green\nrange: month\nlayout: calendar";
+
+    it("draws the whole month as a calendar: heading, weekday row, every day, and no grid", () => {
+        const el = at(() => map(CALENDAR, monthCtx));
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(diagnostics(el, "error")).toEqual([]);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-scroll")).toHaveLength(0);
+        expect(texts(el, ".dashy-hm-cal-month")).toEqual(["October 2026"]);
+        // English starts its week on Sunday.
+        expect(texts(el, ".dashy-hm-cal-wd")).toEqual(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
+        expect(texts(el, ".dashy-hm-cal-num")).toEqual(Array.from({ length: 31 }, (_, i) => String(i + 1)));
+        // Thursday the 1st: four pads before it, and 4 + 31 fills five rows exactly.
+        expect(nodes(el, ".dashy-hm-cal-day.dashy-hm-pad")).toHaveLength(4);
+    });
+
+    it("a Monday-first locale moves the weekday row and the padding", () => {
+        const el = at(() => {
+            setDateLocale("ru");
+            return map(CALENDAR, monthCtx);
+        });
+        expect(texts(el, ".dashy-hm-cal-wd")[0]).toBe("пн");
+        expect(texts(el, ".dashy-hm-cal-month")).toEqual(["октябрь 2026"]);
+        // Thursday the 1st, Monday first: three pads before, one after the 31st.
+        expect(nodes(el, ".dashy-hm-cal-day.dashy-hm-pad")).toHaveLength(4);
+        const slots = nodes(el, ".dashy-hm-cal-day");
+        expect(slots.slice(0, 4).map((s) => s.classList.contains("dashy-hm-pad"))).toEqual([true, true, true, false]);
+        expect(slots.at(-1)?.classList.contains("dashy-hm-pad")).toBe(true);
+    });
+
+    it("one dot per note that painted the day, at most three, in the block's colour", () => {
+        const el = at(() => map(CALENDAR, monthCtx));
+        expect([1, 2, 3, 4, 5].map((d) => dotsOf(el, d).length)).toEqual([0, 1, 3, 3, 0]);
+        expect(dotsOf(el, 3).map((d) => d.style.backgroundColor)).toEqual([css("green"), css("green"), css("green")]);
+        // No shading: the day itself carries no fill of its own.
+        expect(dayCell(el, 3)?.style.backgroundColor).toBe("");
+    });
+
+    it("days after today are dimmed, with no dots and no link, even when a note is there", () => {
+        const el = at(() => map(CALENDAR, monthCtx));
+        const ahead = dayCell(el, 8);
+        expect(ahead?.classList.contains("is-future")).toBe(true);
+        expect(ahead?.tagName).toBe("DIV");
+        expect(dotsOf(el, 8)).toHaveLength(0);
+        expect(ahead?.getAttribute("title")).toBe(medium("2026-10-08"));
+        expect(dayCell(el, 6)?.classList.contains("is-future")).toBe(false);
+        expect(nodes(el, ".is-future")).toHaveLength(25);
+    });
+
+    it("the caption counts the days up to today, exactly as the range grid does", () => {
+        const calendar = at(() => map(CALENDAR, monthCtx));
+        const grid = map("source: Diary\nfield: gym\ncolor: green\nrange: month", monthCtx);
+        const caption = texts(calendar, ".dashy-hm-title")[0];
+        expect(caption).toBe("gym: 4 of 6 days");
+        expect(caption).toBe(texts(grid, ".dashy-hm-title")[0]);
+    });
+
+    it("tooltip and link are the grid's own, day by day", () => {
+        const calendar = at(() => map(CALENDAR, monthCtx));
+        const grid = map("source: Diary\nfield: gym\ncolor: green\nrange: month", monthCtx);
+        const gridCell = (date: string) =>
+            nodes(grid, ".dashy-hm-cell").find((c) => c.getAttribute("title")?.startsWith(medium(date)));
+        for (const [day, date] of [[2, "2026-10-02"], [4, "2026-10-04"], [1, "2026-10-01"], [5, "2026-10-05"]] as const) {
+            expect(dayCell(calendar, day)?.getAttribute("title")).toBe(gridCell(date)?.getAttribute("title"));
+            expect(dayCell(calendar, day)?.getAttribute("data-href")).toBe(gridCell(date)?.getAttribute("data-href") ?? null);
+        }
+        expect(dayCell(calendar, 2)?.getAttribute("data-href")).toBe("Diary/2026-10-02.md");
+        expect(dayCell(calendar, 4)?.getAttribute("title")).toBe(`${medium("2026-10-04")}: gym 5 (5 notes)`);
+        expect(dayCell(calendar, 2)?.getAttribute("aria-label")).toBe(dayCell(calendar, 2)?.getAttribute("title"));
+    });
+
+    it("link: false keeps every day a plain cell", () => {
+        const el = at(() => map(`${CALENDAR}\nlink: false`, monthCtx));
+        expect(nodes(el, "a.dashy-hm-cal-day")).toHaveLength(0);
+        expect(dotsOf(el, 2)).toHaveLength(1);
+    });
+
+    it("rings today and no other day", () => {
+        const el = at(() => map(CALENDAR, monthCtx));
+        expect(nodes(el, ".is-today")).toHaveLength(1);
+        expect(dayCell(el, 6)?.classList.contains("is-today")).toBe(true);
+        expect(dayCell(el, 6)?.getAttribute("title")).toBe(`${medium("2026-10-06")}: gym 1 (2026-10-06), today`);
+    });
+
+    it("skip_field hatches special days, ahead of today too, and earns the legend row", () => {
+        const notes = [
+            { path: "Diary/2026-10-02.md", frontmatter: { gym: true, vacation: true } },
+            { path: "Diary/2026-10-20.md", frontmatter: { vacation: true } }, // a planned day off
+        ];
+        const el = at(() => map(`${CALENDAR}\nskip_field: vacation`, mockContext({ notes })));
+        expect(dayCell(el, 2)?.classList.contains("is-skipped")).toBe(true);
+        expect(dotsOf(el, 2)).toHaveLength(1);
+        expect(dayCell(el, 20)?.classList.contains("is-skipped")).toBe(true);
+        expect(dayCell(el, 20)?.getAttribute("title")).toBe(`${medium("2026-10-20")}: day off`);
+        expect(dayCell(el, 3)?.classList.contains("is-skipped")).toBe(false);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["Day off"]);
+    });
+
+    it("without layers or special days, draws no legend at all", () => {
+        const el = at(() => map(CALENDAR, monthCtx));
+        expect(nodes(el, ".dashy-hm-legend")).toHaveLength(0);
+    });
+
+    it("with layers, one dot per painted layer in its own colour and list order, whatever pick says", () => {
+        const notes = [
+            { path: "Diary/2026-10-02.md", frontmatter: { gym: true, run: false, read: 20 } },
+            { path: "Diary/2026-10-03.md", frontmatter: { run: 5 } },
+        ];
+        const config = [
+            "source: Diary", "range: month", "layout: calendar", "pick: max",
+            "layers:", "  - {field: gym, color: blue}", "  - {field: run, color: red}", "  - {field: read, color: purple}",
+        ].join("\n");
+        const el = at(() => map(config, mockContext({ notes })));
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(dotsOf(el, 2).map((d) => d.style.backgroundColor)).toEqual([css("blue"), css("purple")]);
+        expect(dotsOf(el, 3).map((d) => d.style.backgroundColor)).toEqual([css("red")]);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["gym", "run", "read"]);
+        expect(dayCell(el, 2)?.getAttribute("title")).toBe(`${medium("2026-10-02")}: gym 1, run 0, read 20 (2026-10-02)`);
+    });
+
+    it("with layers, at most four dots, the first four painted", () => {
+        const fields = ["a", "b", "c", "d", "e"];
+        const notes = [{ path: "Diary/2026-10-02.md", frontmatter: Object.fromEntries(fields.map((f) => [f, true])) }];
+        const config = ["source: Diary", "range: month", "layout: calendar", "layers:", ...fields.map((f) => `  - field: ${f}`)].join("\n");
+        const el = at(() => map(config, mockContext({ notes })));
+        expect(dotsOf(el, 2)).toHaveLength(4);
+        expect(texts(el, ".dashy-hm-leg")).toHaveLength(5);
+    });
+
+    it("range: week draws one row of the current week, the days ahead dimmed", () => {
+        const el = at(() => map("source: Diary\nfield: gym\nrange: week\nlayout: calendar", monthCtx));
+        // Sunday 4 to Saturday 10 October, today Tuesday the 6th.
+        expect(texts(el, ".dashy-hm-cal-num")).toEqual(["4", "5", "6", "7", "8", "9", "10"]);
+        expect(nodes(el, ".dashy-hm-cal-day.dashy-hm-pad")).toHaveLength(0);
+        expect(nodes(el, ".is-future")).toHaveLength(4);
+        expect(texts(el, ".dashy-hm-title")[0]).toBe("gym: 2 of 3 days");
+    });
+
+    it("range: week heading names the month, or both months when the week crosses into the next", () => {
+        const WEEK = "source: Diary\nfield: gym\nrange: week\nlayout: calendar";
+        const heading = (today: Date): string[] => {
+            vi.useFakeTimers();
+            vi.setSystemTime(today);
+            return texts(map(WEEK, monthCtx), ".dashy-hm-cal-month");
+        };
+        // Sunday-first weeks: 4 to 10 October; 27 September to 3 October; 27 December to 2 January.
+        expect(heading(new Date(2026, 9, 6))).toEqual(["October 2026"]);
+        expect(heading(new Date(2026, 8, 30))).toEqual(["Sep 2026 to Oct 2026"]);
+        expect(heading(new Date(2026, 11, 30))).toEqual(["Dec 2026 to Jan 2027"]);
+    });
+
+    it("bands warn that they are ignored, and draw no bands legend", () => {
+        const el = at(() => map(`${CALENDAR}\nbands: [1]`, monthCtx));
+        expect(diagnostics(el, "warning")).toEqual(["⚠️ heatmap: `bands` is ignored with `layout: calendar`: a day shows dots, not a shade."]);
+        expect(nodes(el, ".dashy-hm-legend")).toHaveLength(0);
+        expect(nodes(el, ".dashy-hm-cal")).toHaveLength(1);
+    });
+
+    it("an unknown layout warns and draws the grid", () => {
+        const el = at(() => map("source: Diary\nfield: gym\nrange: month\nlayout: dots", monthCtx));
+        expect(diagnostics(el, "warning")).toEqual(["⚠️ heatmap: `layout` expects grid or calendar, got \"dots\". Using grid."]);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(nodes(el, ".dashy-hm-cal")).toHaveLength(0);
+    });
+
+    it("calendar with range: year, or no range, warns and draws the grid", () => {
+        const message = "`layout: calendar` needs `range: month` or `range: week`. Drawing the grid instead.";
+        for (const config of ["source: Diary\nfield: gym\nrange: year\nlayout: calendar", "source: Diary\nfield: gym\nlayout: calendar"]) {
+            const el = at(() => map(config, monthCtx));
+            expect(diagnostics(el, "warning")).toEqual([`⚠️ heatmap: ${message}`]);
+            expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+            expect(nodes(el, ".dashy-hm-cal")).toHaveLength(0);
+        }
+    });
+
+    it("the layout warning shows even when the block then errors on its field", () => {
+        const el = at(() => map("source: Diary\nfield: nope\nlayout: calendar", monthCtx));
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+        expect(diagnostics(el, "error")).toHaveLength(1);
+    });
+
+    it("a redraw replaces the calendar rather than adding a second one", () => {
+        const el = at(() => {
+            const target = host();
+            renderHeatmap(monthCtx, CALENDAR, target);
+            renderHeatmap(monthCtx, CALENDAR, target);
+            return target;
+        });
+        expect(nodes(el, ".dashy-hm-cal")).toHaveLength(1);
+        expect(nodes(el, ".dashy-hm-cal-month")).toHaveLength(1);
+        expect(nodes(el, ".dashy-hm-cal-day:not(.dashy-hm-pad)")).toHaveLength(31);
+    });
+
+    it("mobile: a day still ahead answers a tap too, and takes the selection from the previous day", () => {
+        Platform.isMobile = true;
+        const notes = [
+            { path: "Diary/2026-10-02.md", frontmatter: { gym: true } },
+            { path: "Diary/2026-10-20.md", frontmatter: { vacation: true } }, // a planned day off
+        ];
+        const el = at(() => map(`${CALENDAR}\nskip_field: vacation`, mockContext({ notes })));
+        const past = dayCell(el, 2);
+        past?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+        expect(past?.classList.contains("is-selected")).toBe(true);
+
+        const ahead = dayCell(el, 20);
+        const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+        ahead?.dispatchEvent(event);
+        expect(event.defaultPrevented).toBe(true);
+        expect(ahead?.classList.contains("is-selected")).toBe(true);
+        expect(past?.classList.contains("is-selected")).toBe(false);
+        expect(texts(el, ".dashy-hm-status")).toEqual([`${medium("2026-10-20")}: day off`]);
+    });
+
+    it("mobile: the first tap on a day shows its tooltip on the status line instead of opening it", () => {
+        Platform.isMobile = true;
+        const el = at(() => map(CALENDAR, monthCtx));
+        const cell = dayCell(el, 2);
+        const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+        cell?.dispatchEvent(event);
+        expect(event.defaultPrevented).toBe(true);
+        expect(cell?.classList.contains("is-selected")).toBe(true);
+        expect(texts(el, ".dashy-hm-status")).toEqual([cell?.getAttribute("title")]);
     });
 });
