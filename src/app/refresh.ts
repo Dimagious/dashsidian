@@ -1,11 +1,12 @@
 /**
  * Keeping drawn blocks in step with the vault.
  *
- * A block draws from a snapshot taken once. On a cold start Obsidian lists the
- * files long before it has parsed their frontmatter, so that first snapshot is
- * half empty and the reader is shown wrong numbers — an average over two notes
- * where the vault holds ten — with nothing to tell them so. Blocks therefore
- * subscribe here and redraw when the data underneath them changes.
+ * A block draws from a snapshot taken once, so it subscribes here and redraws
+ * when the data underneath it changes: a note added, edited, renamed or
+ * deleted. The half-read vault of a cold start, where Obsidian lists the files
+ * long before it has parsed their frontmatter, is held back by `IndexGate`
+ * (`indexing.ts`, B-179); the redraw that follows indexing still comes
+ * through here.
  *
  * No Obsidian imports: what to listen to is the plugin's business, this only
  * keeps the list and calls it.

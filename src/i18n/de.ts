@@ -15,6 +15,7 @@ export const de: Catalog = {
     "parse.unknownKeyHint": "Unbekannter Schlüssel „{key}“. In diesem Block heißt er „{hint}“.",
 
     "render.line": "Zeile {line}",
+    "render.indexing": "Obsidian indexiert den Vault noch. Der Block erscheint, sobald das fertig ist.",
 
     "bands.hasData": "mit Daten",
     "bands.from": "ab {min}",

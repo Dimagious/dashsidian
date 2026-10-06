@@ -17,6 +17,7 @@ export const en = {
     "parse.unknownKeyHint": "Unknown key \"{key}\". In this block it is called \"{hint}\".",
 
     "render.line": "line {line}",
+    "render.indexing": "Obsidian is still indexing the vault. The block will appear when it is done.",
 
     "bands.hasData": "has data",
     "bands.from": "from {min}",

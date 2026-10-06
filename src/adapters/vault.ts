@@ -36,6 +36,39 @@ export class VaultSnapshot {
     }
 }
 
+/**
+ * The private part of `MetadataCache` that says whether Obsidian is still
+ * parsing notes: absent from the public types. `inProgressTaskCount` is the
+ * number of notes queued to parse; on a cold start (a vault opened for the
+ * first time, a cleared cache) that is every note, and their frontmatter is
+ * empty until each is read. `onCleanCache` calls back once nothing is queued
+ * and the links are resolved, or at once when that is already so.
+ */
+interface IndexingCache {
+    inProgressTaskCount: number;
+    onCleanCache: (callback: () => void) => void;
+}
+
+function isIndexingCache(value: unknown): value is IndexingCache {
+    return isRecord(value) && typeof value.inProgressTaskCount === "number" && typeof value.onCleanCache === "function";
+}
+
+/**
+ * Whether Obsidian still has notes queued to parse (B-179). False when its
+ * internals are not the expected shape, so the blocks draw as they always did.
+ */
+export function notesPending(app: App): boolean {
+    const cache: unknown = app.metadataCache;
+    return isIndexingCache(cache) && cache.inProgressTaskCount > 0;
+}
+
+/** Calls `callback` once Obsidian has parsed every queued note; at once when it cannot tell. */
+export function whenIndexed(app: App, callback: () => void): void {
+    const cache: unknown = app.metadataCache;
+    if (isIndexingCache(cache)) cache.onCleanCache(callback);
+    else callback();
+}
+
 /** Whether such a note exists. Needed by blocks that link to what is not there yet. */
 export function noteExists(app: App, path: string): boolean {
     return app.vault.getAbstractFileByPath(path) !== null;
