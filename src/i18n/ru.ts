@@ -13,6 +13,7 @@ export const ru: Catalog = {
     "parse.unknownKeyHint": "Ключ «{key}» неизвестен. В этом блоке он называется «{hint}».",
 
     "render.line": "строка {line}",
+    "render.indexing": "Obsidian ещё индексирует хранилище. Блок появится, когда индексация закончится.",
 
     "bands.hasData": "есть данные",
     "bands.from": "от {min}",
