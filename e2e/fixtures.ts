@@ -24,10 +24,16 @@ const PRISTINE = process.env.DASHY_VAULT
 /**
  * Obsidian keeps writing while it shuts down — the config, the workspace, its
  * own caches — so a plain remove races it and throws ENOTEMPTY, failing a test
- * whose assertions already passed. Retry instead of guessing how long to wait.
+ * whose assertions already passed. Retry instead of guessing how long to wait,
+ * and if Chromium is still filling its cache after that, leave the leftovers
+ * in the temp dir: cleanup must never fail a test (B-182).
  */
 function removeTree(dir: string): void {
-    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+    try {
+        fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+    } catch (error) {
+        console.warn(`[e2e] could not remove ${dir}, left for the OS temp cleanup:`, error);
+    }
 }
 
 interface Fixtures {
