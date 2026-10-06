@@ -2,12 +2,15 @@
 name: dashy
 description: >-
   Build a dashboard inside an Obsidian note with Dashy blocks: a grid of
-  navigation tiles, number cards computed from frontmatter, a day row linking
-  to the daily, weekly and monthly notes, a year heatmap, and a line or bar
-  chart of a number per day, week, month or year. Use it when asked for a
-  dashboard, a home page, a tile grid, cards with counters or averages, a
-  link to today's note, a day calendar, a heatmap, a habit tracker, a chart
-  or graph of a number over time, or a visual entry point into the vault.
+  navigation tiles, number cards computed from frontmatter, progress bars
+  towards a goal, countdowns to a date, a day row linking to the daily,
+  weekly and monthly notes, a year heatmap or a month habit calendar, and a
+  line or bar chart of a number per day, week, month or year. Use it when
+  asked for a dashboard, a home page, a tile grid, cards with counters or
+  averages, a goal or progress bar, days until a date or the next birthday,
+  a link to today's note, a day calendar, a heatmap, a habit tracker, a
+  chart or graph of a number over time, or a visual entry point into the
+  vault.
 version: 1.8.0
 ---
 
@@ -163,9 +166,10 @@ Bars towards a goal: how far a number has come against a target.
 
 ````markdown
 ```progress
+source: Diary
 items:
-  - { label: Days logged this year, source: Diary, agg: count, period: year, goal: 365 }
-  - { label: Running volume, source: Diary, field: distance_km, agg: sum, goal: 200, unit: km }
+  - { label: Days logged this year, agg: count, period: year, goal: 365 }
+  - { label: Running volume, field: distance_km, agg: sum, goal: 200, unit: km }
 ```
 ````
 
@@ -249,7 +253,7 @@ items:
 
 ### `heatmap`
 
-A year by days: one cell per day, coloured by a number from frontmatter.
+A year by days, or a month as a calendar: one cell per day, coloured by a number from frontmatter.
 
 **Block root**
 
@@ -293,7 +297,7 @@ bands: [90, 80, 60]
 - A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-01-05 Monday` counts, `2026-01-051` does not), unless `date_field` names a property instead. That is how the block knows which cell it belongs to.
 - Two or more notes landing on the same day paint one cell, and so does a `field` list on one note: `per_day` (default sum) says how the day's values combine, and a ticked or numeric contributor always outweighs a false one on the same day.
 - Years are taken from the data, newest first, but never one later than today: a note dated in the future draws nothing extra and counts nowhere in the grid. If every dated note turns out to be in the future, the current year is still drawn, empty.
-- `layers` replaces `field` for tracking several activities on one grid, each its own colour: `layers: [{field: gym, color: blue}, {field: run, color: green, label: Running}]`. When two layers land on the same day, the first one in the list colours the cell, or with `pick: max` the one with the larger value; the tooltip still lists every layer that has a value that day.
+- `layers` replaces `field` for tracking several activities on one grid, each its own colour: `layers: [{field: gym, color: blue}, {field: run, color: green, label: Running}]`. When two layers land on the same day, the first one in the list colours the cell, or with `pick: max` the one with the larger value; the tooltip still lists every layer that has a value that day. Minutes per sport, coloured by the sport that took the longest: `layers: [{field: run_min, color: green, label: Running}, {field: bike_min, color: blue, label: Cycling}]` with `pick: max`. Compare layers in the same unit only.
 - `skip_field` marks special days, vacation or sick for example: they still show a hatched cell, keeping any painted colour underneath, and their count in the caption is unchanged (a special day with no value is still not present).
 - `range` draws one grid over a window ending today instead of a grid per year: `range: 365d` is a rolling year that crosses 1 January in a single grid rather than splitting into two. Everything else works the same over that one grid: bands, layers, skip_field and its legend row, the caption's count and average, tooltips and links.
 - `layout: calendar` with `range: month` draws a month calendar of a habit inside the note: `range: month`, `layout: calendar` and `field: gym`, or a few `layers`. Each day shows its number and a dot per note or layer that painted it; the days still ahead are dimmed.

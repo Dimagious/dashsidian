@@ -26,12 +26,21 @@ and tag that lead up to it.
   that rots silently, which is why the sync writes it even when the manifest
   needed nothing.
 - Tag format is bare `X.Y.Z`, no `v` prefix. The workflow trigger is
-  `tags: ['*.*.*']`. This repository has no historical tags at all, so there is
-  no prefix legacy to work around.
+  `tags: ['*.*.*']`. Every tag so far is bare, so there is no prefix legacy to
+  work around.
 - The long-lived branch is **`master`**, not `main`.
 - `CHANGELOG.md` is curated by hand in Keep a Changelog format. `[Unreleased]`
   is where in-flight items accumulate; this skill promotes it to
-  `[X.Y.Z] — YYYY-MM-DD` and re-opens an empty `[Unreleased]`.
+  `[X.Y.Z] - YYYY-MM-DD` and re-opens an empty `[Unreleased]`.
+- The block schema has its own version, `version` in `src/blocks/schema.json`.
+  It is what the settings tab compares with the installed agent skill, by
+  string, so without a bump an installed skill never learns about the change.
+  Policy from 1.7.0 on: a new key or value, or changed behaviour, moves the
+  minor digit; a wording-only change to `doc`, `notes` or `example` moves the
+  patch digit. (1.5.1 and 1.5.2 shipped note edits without a bump and left
+  installed skills stale.) Then rebuild with `npm run build:skill` and
+  `npm run build:reference`.
+  The release commit also updates "Состояние" in `CLAUDE.md`.
 - The end-to-end suite never runs in CI: it drives a real Obsidian through a
   project-local Electron. Before a release, run it locally (`npm run e2e`) — it
   is the only thing that proves the built bundle works in the app.
@@ -162,8 +171,16 @@ The assertion does not read the lockfile, but `npm ci` does, and it refuses a
 lockfile whose version disagrees with `package.json` — so the lockfile belongs
 in the release commit with the rest.
 
+If the schema changed since the last tag (`git diff $LAST_TAG..HEAD -- src/blocks/schema.json`),
+raise its `version` (minor for keys, values or behaviour; patch for wording
+only, see the mental model), then:
+
+```bash
+npm run build:skill && npm run build:reference
+```
+
 Then edit `CHANGELOG.md` by hand (not `sed`): insert
-`## [X.Y.Z] — YYYY-MM-DD` under `[Unreleased]`, move the entries beneath it,
+`## [X.Y.Z] - YYYY-MM-DD` under `[Unreleased]`, move the entries beneath it,
 leave `[Unreleased]` empty. Use the date from the session context rather than
 `date` on the host — the host's timezone has bitten this repository before.
 
@@ -182,7 +199,8 @@ git diff -- package.json manifest.json versions.json CHANGELOG.md
 ## Step 5 — Commit and tag
 
 ```bash
-git add package.json package-lock.json manifest.json versions.json CHANGELOG.md
+git add package.json package-lock.json manifest.json versions.json CHANGELOG.md CLAUDE.md
+git add src/blocks/schema.json src/skill/skill-content.ts docs/SKILL.preview.md docs/AGENTS.preview.md docs/dashy.schema.json   # when the schema version moved
 git commit -m "chore(release): $NEW_VERSION"   # body: why, if the bump was overridden
 git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
 ```
@@ -202,11 +220,9 @@ git push --follow-tags
 
 1. The workflow builds, attests and publishes the Release with the three files.
    Watch it: https://github.com/Dimagious/dashsidian/actions
-2. **Until the plugin is accepted into the catalogue, that is the whole story.**
-   There is no listing to refresh and no update notice for anyone; the README's
-   Install section describes the future, not the present.
-3. Once listed, the catalogue re-reads `manifest.json` from `master` on its own
-   schedule, and `versions.json` decides what an older Obsidian is offered.
+2. The plugin is listed in the catalogue: it re-reads `manifest.json` from
+   `master` on its own schedule and offers the update, and `versions.json`
+   decides what an older Obsidian is offered.
 
 ## Common pitfalls
 

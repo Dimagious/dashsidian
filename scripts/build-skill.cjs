@@ -102,12 +102,15 @@ const markdown = `---
 name: dashy
 description: >-
   Build a dashboard inside an Obsidian note with Dashy blocks: a grid of
-  navigation tiles, number cards computed from frontmatter, a day row linking
-  to the daily, weekly and monthly notes, a year heatmap, and a line or bar
-  chart of a number per day, week, month or year. Use it when asked for a
-  dashboard, a home page, a tile grid, cards with counters or averages, a
-  link to today's note, a day calendar, a heatmap, a habit tracker, a chart
-  or graph of a number over time, or a visual entry point into the vault.
+  navigation tiles, number cards computed from frontmatter, progress bars
+  towards a goal, countdowns to a date, a day row linking to the daily,
+  weekly and monthly notes, a year heatmap or a month habit calendar, and a
+  line or bar chart of a number per day, week, month or year. Use it when
+  asked for a dashboard, a home page, a tile grid, cards with counters or
+  averages, a goal or progress bar, days until a date or the next birthday,
+  a link to today's note, a day calendar, a heatmap, a habit tracker, a
+  chart or graph of a number over time, or a visual entry point into the
+  vault.
 version: ${schema.version}
 ---
 
