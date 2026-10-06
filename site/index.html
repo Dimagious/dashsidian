@@ -718,12 +718,13 @@ monthly: true
           <div class="codeblock" data-code>
             <div class="bar"><span>Habits.md</span><button class="copy" type="button">Copy</button></div>
 <pre><code class="yaml-fenced">```stats
+source: Diary
 columns: 4
 items:
-  - { label: Gym days, source: Diary, field: gym, agg: sum, icon: 🏋️ }
-  - { label: Longest gym streak, source: Diary, field: gym, agg: streak, unit: days, icon: 🔥 }
-  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, icon: 📅, compare: true, better: up }
-  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month, icon: 🗓 }
+  - { label: Gym days, field: gym, agg: sum, icon: 🏋️ }
+  - { label: Longest gym streak, field: gym, agg: streak, unit: days, icon: 🔥 }
+  - { label: Gym this week, field: gym, agg: sum, period: week, icon: 📅, compare: true, better: up }
+  - { label: Gym this month, field: gym, agg: sum, period: month, icon: 🗓 }
 ```
 
 ```heatmap
@@ -752,10 +753,11 @@ title: Gym
           <div class="codeblock" data-code>
             <div class="bar"><span>Habits.md</span><button class="copy" type="button">Copy</button></div>
 <pre><code class="yaml-fenced">```stats
+source: Diary
 columns: 2
 items:
-  - { label: Days in a row, source: Diary, field: meditate, agg: current_streak, unit: days, icon: 🔥 }
-  - { label: Best streak, source: Diary, field: meditate, agg: streak, unit: days }
+  - { label: Days in a row, field: meditate, agg: current_streak, unit: days, icon: 🔥 }
+  - { label: Best streak, field: meditate, agg: streak, unit: days }
 ```</code></pre>
           </div>
           <div>
@@ -782,11 +784,12 @@ items:
           <div class="codeblock" data-code>
             <div class="bar"><span>Sleep.md</span><button class="copy" type="button">Copy</button></div>
 <pre><code class="yaml-fenced">```stats
+source: Diary
 columns: 3
 items:
-  - { label: Sleep this week, source: Diary, field: sleep, agg: avg, period: week, compare: true, better: up }
-  - { label: Shortest night, source: Diary, field: sleep, agg: min, period: month }
-  - { label: 7h+ nights in a row, source: Diary, field: sleep, agg: current_streak, at_least: 7h }
+  - { label: Sleep this week, field: sleep, agg: avg, period: week, compare: true, better: up }
+  - { label: Shortest night, field: sleep, agg: min, period: month }
+  - { label: 7h+ nights in a row, field: sleep, agg: current_streak, at_least: 7h }
 ```
 
 ```chart
@@ -894,20 +897,21 @@ items:
       <section class="file" id="stats" data-title="stats" data-path="Blocks / stats">
         <div class="crumb">Blocks/stats.md</div>
         <h2><code class="h-code">stats</code>: the numbers</h2>
-        <p>One card per number, counted over the notes you select by <code>source</code>, <code>tag</code> or <code>where</code>. <code>agg</code> is one of <code>count</code>, <code>sum</code>, <code>avg</code>, <code>min</code>, <code>max</code>, <code>latest</code>, <code>streak</code>, <code>current_streak</code>. <code>trend: 30d</code> draws the last thirty days next to the number, scaled between their own lowest and highest value.</p>
+        <p>One card per number, counted over the notes you select by <code>source</code>, <code>tag</code> or <code>where</code>. Written once above <code>items</code>, <code>source</code>, <code>tag</code>, <code>where</code>, <code>period</code>, <code>date_field</code> and <code>date_format</code> apply to every card. A card's own value replaces the root's, as <code>source: Books</code> does on "Books read"; a card's own <code>where</code> narrows the root's instead of replacing it. <code>agg</code> is one of <code>count</code>, <code>sum</code>, <code>avg</code>, <code>min</code>, <code>max</code>, <code>latest</code>, <code>streak</code>, <code>current_streak</code>. <code>trend: 30d</code> draws the last thirty days next to the number, scaled between their own lowest and highest value.</p>
         <div class="pair">
           <div class="codeblock" data-code>
             <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
 <pre><code class="yaml-fenced">```stats
+source: Diary
 columns: 4
 items:
-  - { label: Days logged, source: Diary, agg: count, icon: 📔 }
-  - { label: Average sleep, source: Diary, field: sleep_score, agg: avg, precision: 1, trend: 30d }
-  - { label: Steps this week, source: Diary, field: steps, agg: sum, unit: steps, period: week }
-  - { label: Best night, source: Diary, field: sleep_score, agg: max, trend: 90d }
-  - { label: Longest streak, source: Diary, field: sleep_score, agg: streak, unit: days }
-  - { label: Latest steps, source: Diary, field: steps, agg: latest, sub: most recent note }
-  - { label: Great nights, source: Diary, where: "sleep_score >= 90", agg: count }
+  - { label: Days logged, agg: count, icon: 📔 }
+  - { label: Average sleep, field: sleep_score, agg: avg, precision: 1, trend: 30d }
+  - { label: Steps this week, field: steps, agg: sum, unit: steps, period: week }
+  - { label: Best night, field: sleep_score, agg: max, trend: 90d }
+  - { label: Longest streak, field: sleep_score, agg: streak, unit: days }
+  - { label: Latest steps, field: steps, agg: latest, sub: most recent note }
+  - { label: Great nights, where: "sleep_score >= 90", agg: count }
   - { label: Books read, source: Books, period: year, date_field: finished, agg: count, icon: 📚 }
 ```</code></pre>
           </div>
@@ -940,10 +944,11 @@ items:
           <div class="codeblock" data-code>
             <div class="bar"><span>progress</span><button class="copy" type="button">Copy</button></div>
 <pre><code class="yaml-fenced">```progress
+source: Diary
 items:
-  - { label: Days logged this year, source: Diary, agg: count, goal: 365, icon: 📔 }
+  - { label: Days logged this year, agg: count, goal: 365, icon: 📔 }
   - { label: Books this year, source: Books, period: year, date_field: finished, agg: count, goal: 24, icon: 📚 }
-  - { label: Steps, source: Diary, field: steps, agg: sum, goal: 3000000, unit: steps, sub: three million }
+  - { label: Steps, field: steps, agg: sum, goal: 3000000, unit: steps, sub: three million }
 ```</code></pre>
           </div>
           <div>
@@ -1109,9 +1114,10 @@ feild: sleep_score
 ```
 
 ```stats
+source: Diary
 items:
-  - { label: Average sleep, source: Diary, agg: avgg, field: sleep_score }
-  - { label: Great nights, source: Diary, where: "sleep_score >= 90 or steps > 10000", agg: count }
+  - { label: Average sleep, agg: avgg, field: sleep_score }
+  - { label: Great nights, where: "sleep_score >= 90 or steps > 10000", agg: count }
 ```
 
 ```chart

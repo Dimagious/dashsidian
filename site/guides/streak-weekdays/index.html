@@ -97,11 +97,12 @@ vacation: true
         <div class="codeblock" data-code>
           <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Workdays.md</span></span><button class="copy" type="button">Copy</button></div>
 <pre><code class="yaml-fenced">```stats
+source: Diary
 columns: 3
 items:
-  - { label: Workdays in a row, source: Diary, field: deep_work, agg: current_streak, days: weekdays, skip_field: vacation, unit: days, icon: 💻 }
-  - { label: With weekends, source: Diary, field: deep_work, agg: current_streak, unit: days }
-  - { label: Best run of workdays, source: Diary, field: deep_work, agg: streak, days: weekdays, skip_field: vacation, unit: days }
+  - { label: Workdays in a row, field: deep_work, agg: current_streak, days: weekdays, skip_field: vacation, unit: days, icon: 💻 }
+  - { label: With weekends, field: deep_work, agg: current_streak, unit: days }
+  - { label: Best run of workdays, field: deep_work, agg: streak, days: weekdays, skip_field: vacation, unit: days }
 ```</code></pre>
         </div>
         <ul class="keynotes">
@@ -138,11 +139,12 @@ title: Deep work
         <div class="codeblock" data-code>
           <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Workdays.md</span></span><button class="copy" type="button">Copy</button></div>
 <pre><code class="yaml-fenced">```stats
+source: Diary
 columns: 3
 items:
-  - { label: Workdays in a row, source: Diary, field: deep_work, agg: current_streak, days: weekdays, skip_field: vacation, unit: days, icon: 💻 }
-  - { label: With weekends, source: Diary, field: deep_work, agg: current_streak, unit: days }
-  - { label: Best run of workdays, source: Diary, field: deep_work, agg: streak, days: weekdays, skip_field: vacation, unit: days }
+  - { label: Workdays in a row, field: deep_work, agg: current_streak, days: weekdays, skip_field: vacation, unit: days, icon: 💻 }
+  - { label: With weekends, field: deep_work, agg: current_streak, unit: days }
+  - { label: Best run of workdays, field: deep_work, agg: streak, days: weekdays, skip_field: vacation, unit: days }
 ```
 
 ```heatmap
