@@ -12,8 +12,10 @@ import { numberAt, classifyField, type FieldStatus } from "./aggregate";
 import { resolveNoteDate, readDateField, type DateFormats } from "./note-date";
 import { bucketStart, eachBucket, dateKey, daysBetween, parseDateKey, type BucketSize } from "./calendar";
 import {
-    periodWindow, readPeriodValue, windowFirstDay, windowTense, type FixedWindow, type Period, type PeriodContext,
+    periodWindow, readPeriodValue, windowFirstDay, windowTense,
+    type DateWindow, type FixedWindow, type Period, type PeriodContext,
 } from "./period";
+import { periodEnd } from "./period-name";
 import { assignLayerColors, toRgb, type Rgb } from "./palette";
 import { readThreshold, formatDuration, type Threshold } from "./duration";
 import { roundedValue, formatValue, MAX_PRECISION } from "./stat";
@@ -384,6 +386,26 @@ function collapse(values: readonly number[], agg: Exclude<ChartAgg, "count">): n
     }
 }
 
+/** The fewest days a bucket covers: a window shorter than this is shorter than any one bucket. */
+const BUCKET_DAYS: Readonly<Record<BucketSize, number>> = { day: 1, week: 7, month: 28, year: 365 };
+
+/**
+ * Whether the whole window, today or not, holds a single bucket or is
+ * shorter than one (B-171): a running fixed window counted to its own last
+ * day, `week`, `month` and `year` to the end of the calendar period. Not
+ * the part already past: a week on its first day is one day point so far,
+ * not a short range. A rolling `30d` and `from` alone end today anyway.
+ */
+function windowHoldsOneBucket(spec: ChartSpec, bounds: DateWindow, weekStart: number, drawn: number): boolean {
+    const range = spec.range;
+    let end = bounds.end;
+    if (range.kind === "fixed") end = range.end ?? bounds.end;
+    else if (range.kind !== "days") end = periodEnd(range.kind, bounds.start);
+    if (daysBetween(bounds.start, end) + 1 < BUCKET_DAYS[spec.bucket]) return true;
+    if (drawn >= 2) return false;
+    return eachBucket(bucketStart(bounds.start, spec.bucket, weekStart), end, spec.bucket).length < 2;
+}
+
 /**
  * Folds the selected notes into the chart's buckets, one pass over the
  * notes. The window is `range` ending `today`, its start moved back to the
@@ -418,7 +440,9 @@ export function bucketize(
         const next = spec.bucket === "day" ? "week" : "month";
         diagnostics.push({ level: "warning", message: t("chart.tooManyBuckets", { max: MAX_BUCKETS, next }) });
     }
-    if (keys.length < 2) diagnostics.push({ level: "warning", message: t("chart.rangeShorterThanBucket") });
+    if (windowHoldsOneBucket(spec, bounds, weekStart, keys.length)) {
+        diagnostics.push({ level: "warning", message: t("chart.rangeShorterThanBucket") });
+    }
 
     const index = new Map(keys.map((k, i) => [k, i]));
     const first = fixed ? bounds.start : keys[0] ?? bounds.end;

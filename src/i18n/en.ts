@@ -269,7 +269,7 @@ export const en = {
     "chart.countLabel": "notes",
     "chart.rangeInvalid": "`range` expects week, month, year, a rolling window such as 30d, note, a period such as 2026-W40, or from and to dates, got \"{value}\". Using the default for the bucket.",
     "chart.tooManyBuckets": "The window holds more than {max} buckets, so only the most recent {max} are drawn. Try `bucket: {next}`.",
-    "chart.rangeShorterThanBucket": "The window holds a single bucket, so there is no trend to see. Widen `range` or pick a smaller `bucket`.",
+    "chart.rangeShorterThanBucket": "The window is no longer than one `bucket`, so there is no trend to see. Widen `range` or pick a smaller `bucket`.",
     "chart.goalInvalid": "`goal` expects a number or a duration like `7h 30m`, got \"{value}\". Ignored.",
     "chart.goalDurationOnPlain": "`goal: {value}` is a duration, but the chart holds plain numbers. It is applied as minutes.",
     "chart.unitInvalid": "`unit` expects text, got \"{value}\". Ignored.",

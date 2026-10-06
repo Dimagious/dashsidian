@@ -254,7 +254,7 @@ export const ru: Catalog = {
     "chart.countLabel": "заметки",
     "chart.rangeInvalid": "`range` ожидает week, month, year, скользящее окно вроде 30d, note, период вроде 2026-W40 или даты from и to, получено «{value}». Беру окно по умолчанию для корзины.",
     "chart.tooManyBuckets": "В окне больше {max} корзин. Нарисованы только последние {max}. Попробуйте `bucket: {next}`.",
-    "chart.rangeShorterThanBucket": "В окне всего одна корзина, тренда не видно. Расширьте `range` или возьмите `bucket` помельче.",
+    "chart.rangeShorterThanBucket": "Окно не длиннее одного `bucket`, тренда не видно. Расширьте `range` или возьмите `bucket` помельче.",
     "chart.goalInvalid": "`goal` ожидает число или длительность вроде `7h 30m`, получено «{value}». Пропущено.",
     "chart.goalDurationOnPlain": "`goal: {value}` задан длительностью, а на графике простые числа. Применено как минуты.",
     "chart.unitInvalid": "`unit` ожидает текст, получено «{value}». Пропущено.",

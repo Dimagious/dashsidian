@@ -256,7 +256,7 @@ export const de: Catalog = {
     "chart.countLabel": "Notizen",
     "chart.rangeInvalid": "`range` erwartet week, month, year, ein gleitendes Fenster wie 30d, note, einen Zeitraum wie 2026-W40 oder die Daten from und to, erhalten: „{value}“. Es wird der Standard für den Bucket verwendet.",
     "chart.tooManyBuckets": "Mehr als {max} Buckets im Fenster. Nur die letzten {max} werden gezeichnet. Versuch es mit `bucket: {next}`.",
-    "chart.rangeShorterThanBucket": "Das Fenster enthält nur einen Bucket, ein Verlauf ist so nicht zu sehen. Erweitere `range` oder wähle einen kleineren `bucket`.",
+    "chart.rangeShorterThanBucket": "Das Fenster ist nicht länger als ein `bucket`, ein Verlauf ist so nicht zu sehen. Erweitere `range` oder wähle einen kleineren `bucket`.",
     "chart.goalInvalid": "`goal` erwartet eine Zahl oder eine Dauer wie `7h 30m`, erhalten: „{value}“. Ignoriert.",
     "chart.goalDurationOnPlain": "`goal: {value}` ist eine Dauer, das Diagramm enthält aber einfache Zahlen. Es wird als Minuten angewendet.",
     "chart.unitInvalid": "`unit` erwartet Text, erhalten: „{value}“. Ignoriert.",
