@@ -174,6 +174,8 @@ export const es: Catalog = {
     "heatmap.layerNotMap": "La capa {position} debe ser un mapa con `field`, se obtuvo «{value}».",
     "heatmap.layerLabelInvalid": "Capa {position}: `label` espera un nombre, se obtuvo «{value}».",
     "heatmap.layerAt": "Capa {position}: {message}",
+    "heatmap.pickInvalid": "`pick` espera first o max, se obtuvo «{value}». Se usará first.",
+    "heatmap.pickWithoutLayers": "`pick` se ignora: solo elige entre `layers`, y este bloque tiene un único `field`.",
     "heatmap.rangeInvalid":
         "`range` espera week, month, year o una ventana móvil como 30d, se obtuvo «{value}». Se dibuja una cuadrícula por año.",
     "heatmap.caption": "{year}, {field}: media {average}, {present} de {total} días",

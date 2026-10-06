@@ -31,7 +31,7 @@
         <div class="props" aria-label="Properties">
           <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
           <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>code block</div><div class="v"><code>heatmap</code></div></div>
-          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">13 on the block, 3 on each layer</div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">14 on the block, 3 on each layer</div></div>
           <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
         </div>
 
@@ -86,7 +86,7 @@ bands: [90, 80, 60]
 
 
         <h2 id="root-keys">Keys on the block</h2>
-        <div class="keys"><a href="#source"><code>source</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#field"><code>field</code></a><a href="#per_day"><code>per_day</code></a><a href="#date_field"><code>date_field</code></a><a href="#skip_field"><code>skip_field</code></a><a href="#color"><code>color</code></a><a href="#layers"><code>layers</code></a><a href="#bands"><code>bands</code></a><a href="#link"><code>link</code></a><a href="#range"><code>range</code></a><a href="#title"><code>title</code></a></div>
+        <div class="keys"><a href="#source"><code>source</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#field"><code>field</code></a><a href="#per_day"><code>per_day</code></a><a href="#date_field"><code>date_field</code></a><a href="#skip_field"><code>skip_field</code></a><a href="#color"><code>color</code></a><a href="#layers"><code>layers</code></a><a href="#pick"><code>pick</code></a><a href="#bands"><code>bands</code></a><a href="#link"><code>link</code></a><a href="#range"><code>range</code></a><a href="#title"><code>title</code></a></div>
         <div class="keytab-wrap">
           <table class="keytab">
             <thead><tr><th>Key</th><th>What it does</th><th>Type</th><th>Default</th></tr></thead>
@@ -141,9 +141,15 @@ bands: [90, 80, 60]
               </tr>
               <tr id="layers">
                 <td class="k"><a class="key" href="#layers"><code>layers</code></a></td>
-                <td class="d">several activities on one grid, each in its own colour, instead of one <code>field</code>: <code>[{field, color, label}]</code>. Not used together with the block's own <code>field</code>. The first layer painted on a day colours that cell and supplies its value and link; the tooltip lists every layer with a value that day, in list order. The caption then counts days where any layer painted and drops the average, since averaging different fields together says nothing useful</td>
+                <td class="d">several activities on one grid, each in its own colour, instead of one <code>field</code>: <code>[{field, color, label}]</code>. Not used together with the block's own <code>field</code>. The first layer painted on a day colours that cell and supplies its value and link, or with <code>pick: max</code> the one with the largest value that day; the tooltip lists every layer with a value that day, in list order. The caption then counts days where any layer painted and drops the average, since averaging different fields together says nothing useful</td>
                 <td class="t" data-h="type">list</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
+              <tr id="pick">
+                <td class="k"><a class="key" href="#pick"><code>pick</code></a></td>
+                <td class="d">with <code>layers</code>, which layer wins a day several of them painted: <code>first</code> (the first in list order) or <code>max</code> (the largest value that day, after that layer's own <code>per_day</code>; a ticked checkbox counts as 1, a duration as minutes; a tie goes to the first in list order). The winner colours the cell and supplies its link and the value that shading and <code>bands</code> read; the tooltip still lists every layer with a value that day. Comparing different fields only makes sense when they share a unit, minutes against minutes for example. An unrecognised value warns and falls back to first; without <code>layers</code> it warns and is ignored</td>
+                <td class="t" data-h="type">text</td>
+                <td class="v" data-h="default"><code>first</code></td>
               </tr>
               <tr id="bands">
                 <td class="k"><a class="key" href="#bands"><code>bands</code></a></td>
@@ -208,7 +214,7 @@ bands: [90, 80, 60]
           <li>A note's date is its name, as long as it starts with <code>YYYY-MM-DD</code> (<code>2026-01-05 Monday</code> counts, <code>2026-01-051</code> does not), unless <code>date_field</code> names a property instead. That is how the block knows which cell it belongs to.</li>
           <li>Two or more notes landing on the same day paint one cell, and so does a <code>field</code> list on one note: <code>per_day</code> (default sum) says how the day's values combine, and a ticked or numeric contributor always outweighs a false one on the same day.</li>
           <li>Years are taken from the data, newest first, but never one later than today: a note dated in the future draws nothing extra and counts nowhere in the grid. If every dated note turns out to be in the future, the current year is still drawn, empty.</li>
-          <li><code>layers</code> replaces <code>field</code> for tracking several activities on one grid, each its own colour: <code>layers: [{field: gym, color: blue}, {field: run, color: green, label: Running}]</code>. When two layers land on the same day, the first one in the list colours the cell; the tooltip still lists every layer that has a value that day.</li>
+          <li><code>layers</code> replaces <code>field</code> for tracking several activities on one grid, each its own colour: <code>layers: [{field: gym, color: blue}, {field: run, color: green, label: Running}]</code>. When two layers land on the same day, the first one in the list colours the cell, or with <code>pick: max</code> the one with the larger value; the tooltip still lists every layer that has a value that day.</li>
           <li><code>skip_field</code> marks special days, vacation or sick for example: they still show a hatched cell, keeping any painted colour underneath, and their count in the caption is unchanged (a special day with no value is still not present).</li>
           <li><code>range</code> draws one grid over a window ending today instead of a grid per year: <code>range: 365d</code> is a rolling year that crosses 1 January in a single grid rather than splitting into two. Everything else works the same over that one grid: bands, layers, skip_field and its legend row, the caption's count and average, tooltips and links.</li>
         </ul>

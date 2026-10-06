@@ -28,6 +28,18 @@ removed public export.
   or under the middle of its bars on `type: bar`. Only a label too long to fit
   centred, like a dated first day on a long `range`, is pinned to the edge of
   the chart.
+### Added
+
+- **`pick: max` on a `heatmap` with `layers`.** On a day several layers
+  painted, the layer with the largest value that day colours the cell, links
+  to its note and sets the value that the shading and `bands` read, instead of
+  the first layer in the list: the sport that took the most minutes, say. Each
+  layer is compared after its own `per_day`, a ticked checkbox counts as 1 and
+  a duration as minutes; a tie goes to the layer listed first. The tooltip
+  still lists every layer. This only makes sense for fields in the same unit.
+  `pick: first`, the default, keeps the old behaviour. Any other value warns
+  and falls back to `first`, and `pick` on a heatmap without `layers` warns
+  that it is ignored.
 
 ## [1.6.0] - 2026-10-05
 
