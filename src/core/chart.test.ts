@@ -317,7 +317,7 @@ describe("bucketize: boundaries", () => {
         const out = bucketize([], spec("field: v\nbucket: month\nrange: week"), WED, 1);
         expect(out.buckets.map((b) => b.key)).toEqual(["2026-09-01"]);
         expect(out.diagnostics.map((d) => d.message)).toEqual([
-            "The window holds a single bucket, so there is no trend to see. Widen `range` or pick a smaller `bucket`.",
+            "The window is no longer than one `bucket`, so there is no trend to see. Widen `range` or pick a smaller `bucket`.",
         ]);
     });
 });
@@ -359,7 +359,7 @@ describe("bucket: year (B-147)", () => {
         const single = bucketize([], spec("field: v\nbucket: year\nrange: year"), OCT5, 1);
         expect(single.buckets.map((b) => b.key)).toEqual(["2026-01-01"]);
         expect(single.diagnostics.map((d) => d.message)).toEqual([
-            "The window holds a single bucket, so there is no trend to see. Widen `range` or pick a smaller `bucket`.",
+            "The window is no longer than one `bucket`, so there is no trend to see. Widen `range` or pick a smaller `bucket`.",
         ]);
     });
 

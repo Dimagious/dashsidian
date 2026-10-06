@@ -127,11 +127,54 @@ describe("bucketize over a fixed window", () => {
         expect(buckets.map((b) => [b.key, b.values[0]])).toEqual([["2026-09-27", 3]]);
     });
 
+    it("a week still on its first day is one day point so far, and does not warn (B-171)", () => {
+        // Monday 5 October 2026, the first day of ISO week 41.
+        const monday = new Date(2026, 9, 5);
+        const fromNote = bucketize([], spec("field: steps\nrange: note", "2026-W41"), monday, 1);
+        expect(fromNote.buckets.map((b) => b.key)).toEqual(["2026-10-05"]);
+        expect(fromNote.diagnostics).toEqual([]);
+        expect(bucketize([], spec("field: steps\nrange: 2026-W41"), monday, 1).diagnostics).toEqual([]);
+    });
+
+    it("a calendar `week` or `month` on its first day does not warn either (B-171)", () => {
+        const week = bucketize([], spec("field: steps\nrange: week"), new Date(2026, 9, 5), 1);
+        expect(week.buckets).toHaveLength(1);
+        expect(week.diagnostics).toEqual([]);
+        const month = bucketize([], spec("field: steps\nrange: month"), new Date(2026, 9, 1), 1);
+        expect(month.buckets).toHaveLength(1);
+        expect(month.diagnostics).toEqual([]);
+    });
+
+    it("a window that is one bucket as a whole still warns, running or not (B-171)", () => {
+        const message = "The window is no longer than one `bucket`, so there is no trend to see. Widen `range` or pick a smaller `bucket`.";
+        // A running week by week: one bucket however many days are left.
+        expect(bucketize([], spec("field: steps\nrange: 2026-W41\nbucket: week"), new Date(2026, 9, 5), 1)
+            .diagnostics.map((d) => d.message)).toEqual([message]);
+        // `from` alone ends today: started today, it is a single day.
+        expect(bucketize([], spec("field: steps\nrange: { from: 2026-10-06 }"), TODAY, 1)
+            .diagnostics.map((d) => d.message)).toEqual([message]);
+    });
+
+    it("a bucket longer than the window warns even when the window straddles two of them (B-171)", () => {
+        const message = "The window is no longer than one `bucket`, so there is no trend to see. Widen `range` or pick a smaller `bucket`.";
+        // ISO week 40 runs from Monday 28 September into October: two month buckets of a few days each.
+        const out = bucketize([], spec("field: steps\nrange: 2026-W40\nbucket: month"), TODAY, 1);
+        expect(out.buckets.map((b) => b.key)).toEqual(["2026-09-01", "2026-10-01"]);
+        expect(out.diagnostics.map((d) => d.message)).toEqual([message]);
+        // So does a rolling week by month on a day it spans two months: 27 September to 3 October.
+        const rolling = bucketize([], spec("field: steps\nrange: 7d\nbucket: month"), new Date(2026, 9, 3), 1);
+        expect(rolling.buckets).toHaveLength(2);
+        expect(rolling.diagnostics.map((d) => d.message)).toEqual([message]);
+        // A window of exactly one shortest month is not shorter than the bucket.
+        expect(bucketize([], spec("field: steps\nrange: { from: 2026-02-15, to: 2026-03-14 }\nbucket: month"), TODAY, 1)
+            .diagnostics).toEqual([]);
+    });
+
     it("a single day is one bucket and warns", () => {
         const out = bucketize([], spec("field: steps\nrange: note", "2026-10-01"), TODAY, 1);
         expect(out.buckets.map((b) => b.key)).toEqual(["2026-10-01"]);
         expect(out.diagnostics.map((d) => d.message)).toEqual([
-            "The window holds a single bucket, so there is no trend to see. Widen `range` or pick a smaller `bucket`.",
+            "The window is no longer than one `bucket`, so there is no trend to see. Widen `range` or pick a smaller `bucket`.",
         ]);
     });
 });

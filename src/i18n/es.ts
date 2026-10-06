@@ -256,7 +256,7 @@ export const es: Catalog = {
     "chart.countLabel": "notas",
     "chart.rangeInvalid": "`range` espera week, month, year, una ventana móvil como 30d, note, un periodo como 2026-W40 o las fechas from y to, se recibió «{value}». Se usa la predeterminada del agrupamiento.",
     "chart.tooManyBuckets": "Más de {max} agrupamientos en la ventana. Solo se dibujan los {max} más recientes. Prueba `bucket: {next}`.",
-    "chart.rangeShorterThanBucket": "La ventana contiene un solo agrupamiento, así que no se ve ninguna tendencia. Amplía `range` o elige un `bucket` más pequeño.",
+    "chart.rangeShorterThanBucket": "La ventana no es más larga que un `bucket`, así que no se ve ninguna tendencia. Amplía `range` o elige un `bucket` más pequeño.",
     "chart.goalInvalid": "`goal` espera un número o una duración como `7h 30m`, se recibió «{value}». Se ignora.",
     "chart.goalDurationOnPlain": "`goal: {value}` es una duración, pero el gráfico contiene números simples. Se aplica como minutos.",
     "chart.unitInvalid": "`unit` espera texto, se recibió «{value}». Se ignora.",

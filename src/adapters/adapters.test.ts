@@ -11,6 +11,7 @@ import { isMobile } from "./platform";
 import { isPluginEnabled } from "./plugins";
 import { setLocale, getLocale } from "../i18n";
 import { mockApp, countingContext, diary } from "../test/vault";
+import { readPeriodName } from "../core/period-name";
 
 afterEach(() => {
     applyLocale("");
@@ -297,6 +298,42 @@ describe("period name formats (B-129)", () => {
         const app = mockApp({ periodicNotes: { quarterly: { format: "  " }, yearly: { format: 2026 }, weekly: "nope" } });
         expect(periodNameFormats(app)).toEqual({});
         expect(periodNameFormats(mockApp())).toEqual({});
+    });
+
+    it("a period switched on with no format saved reads in the Periodic Notes default (B-171)", () => {
+        const app = mockApp({
+            periodicNotes: {
+                daily: { enabled: true, format: "" },
+                weekly: { enabled: true, format: "" },
+                monthly: { enabled: true },
+                quarterly: { enabled: true, format: "  " },
+                yearly: { enabled: true, format: "" },
+            },
+        });
+        expect(periodNameFormats(app)).toEqual({
+            week: "gggg-[W]ww", month: "YYYY-MM", quarter: "YYYY-[Q]Q", year: "YYYY",
+        });
+    });
+
+    it("a saved format wins over the default, and a period switched off gets none (B-171)", () => {
+        const app = mockApp({
+            periodicNotes: {
+                weekly: { enabled: true, format: "GGGG-[W]WW" },
+                monthly: { enabled: false, format: "" },
+                quarterly: { enabled: false, format: "YYYY-[Q]Q" },
+                yearly: { enabled: "yes" },
+            },
+        });
+        expect(periodNameFormats(app)).toEqual({ week: "GGGG-[W]WW", quarter: "YYYY-[Q]Q" });
+    });
+
+    it("an empty weekly format reads `2026-W40` as a locale week, Sunday to Saturday under English; ISO without the plugin (B-171)", () => {
+        const withPlugin = periodContext(mockApp({ periodicNotes: { weekly: { enabled: true, format: "" } } }), "2026-W40.md");
+        expect(readPeriodName("2026-W40", withPlugin.names)).toEqual({ unit: "week", start: "2026-09-27", end: "2026-10-03" });
+        const without = periodContext(mockApp(), "2026-W40.md");
+        expect(readPeriodName("2026-W40", without.names)).toEqual({ unit: "week", start: "2026-09-28", end: "2026-10-04" });
+        const switchedOff = periodContext(mockApp({ periodicNotes: { weekly: { enabled: false, format: "" } } }));
+        expect(readPeriodName("2026-W40", switchedOff.names)).toEqual({ unit: "week", start: "2026-09-28", end: "2026-10-04" });
     });
 
     it("periodContext names the note from its path, and reads a name in those formats", () => {

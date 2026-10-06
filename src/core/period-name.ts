@@ -14,10 +14,23 @@ import { isDayFormat, nameFormat, type ParseDate } from "./note-date";
 export const PERIOD_UNITS = ["day", "week", "month", "quarter", "year"] as const;
 export type PeriodUnit = (typeof PERIOD_UNITS)[number];
 
-/** What a name is read as when the Periodic Notes settings say nothing, or the name does not fit them. */
+/** What a name is read as when no plugin names the period's notes, or the name does not fit the format one does. */
 export const ISO_PERIOD_FORMATS: Readonly<Record<PeriodUnit, string>> = {
     day: "YYYY-MM-DD",
     week: "GGGG-[W]WW",
+    month: "YYYY-MM",
+    quarter: "YYYY-[Q]Q",
+    year: "YYYY",
+};
+
+/**
+ * What Periodic Notes (0.0.17) names a period's notes when that period is
+ * switched on but its format was never saved (B-171). Only the week differs
+ * from ISO: a locale week, Sunday to Saturday under English.
+ */
+export const PERIODIC_NOTES_FORMATS: Readonly<Record<PeriodUnit, string>> = {
+    day: "YYYY-MM-DD",
+    week: "gggg-[W]ww",
     month: "YYYY-MM",
     quarter: "YYYY-[Q]Q",
     year: "YYYY",

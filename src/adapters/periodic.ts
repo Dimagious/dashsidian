@@ -1,7 +1,7 @@
 import type { App } from "obsidian";
 import { PERIODS, type Period, type PeriodConfig } from "../core/periodic";
 import { dateFormats, type DateFormats } from "../core/note-date";
-import { noteNameFromPath, periodNames, type PeriodUnit } from "../core/period-name";
+import { noteNameFromPath, periodNames, PERIODIC_NOTES_FORMATS, type PeriodUnit } from "../core/period-name";
 import type { PeriodContext } from "../core/period";
 import { isRecord } from "../shared/parse";
 import { parseDateWithFormat, parsePeriodStart } from "./datetime";
@@ -91,23 +91,28 @@ export function noteDateFormats(app: App, own?: string): DateFormats | undefined
  * The name format of each period, as Periodic Notes has it set, the day
  * falling back to the core Daily notes one (B-129). Quarter and year are
  * read here only: no other part of Dashy has a use for their folders.
+ * A period Periodic Notes has switched on with no format saved names its
+ * notes in the plugin's own default (B-171), so a weekly `2026-W40` is a
+ * locale week there, not an ISO one. The day needs no such default: the
+ * plugin's, like the core Daily notes one, is ISO, which is always read.
  */
 export function periodNameFormats(app: App): Partial<Record<PeriodUnit, string>> {
-    const found = discoverPeriodics(app);
     const settings = periodicNotesSettings(app);
-    const formatOf = (key: string): string | undefined => {
+    const formatOf = (key: string, unit: PeriodUnit): string | undefined => {
         const cfg = settings?.[key];
-        return isRecord(cfg) && typeof cfg.format === "string" ? cfg.format : undefined;
+        if (!isRecord(cfg)) return undefined;
+        const saved = typeof cfg.format === "string" ? cfg.format : "";
+        return saved.trim() || (cfg.enabled === true ? PERIODIC_NOTES_FORMATS[unit] : undefined);
     };
     const out: Partial<Record<PeriodUnit, string>> = {};
     const add = (unit: PeriodUnit, format: string | undefined): void => {
         if (format?.trim()) out[unit] = format.trim();
     };
-    add("day", found.daily?.format);
-    add("week", found.weekly?.format);
-    add("month", found.monthly?.format);
-    add("quarter", formatOf("quarterly"));
-    add("year", formatOf("yearly"));
+    add("day", discoverPeriodics(app).daily?.format);
+    add("week", formatOf("weekly", "week"));
+    add("month", formatOf("monthly", "month"));
+    add("quarter", formatOf("quarterly", "quarter"));
+    add("year", formatOf("yearly", "year"));
     return out;
 }
 

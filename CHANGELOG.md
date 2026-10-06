@@ -12,6 +12,14 @@ removed public export.
 
 ### Fixed
 
+- **`chart` no longer warns about a single bucket on the first day of the
+  week or month.** `range: week` or `range: month` by day warned "The window
+  holds a single bucket" whenever only one day of it had passed, though the
+  window itself is seven or thirty-odd days. The warning now looks at the
+  whole window: it stays for a window that is one bucket as a whole, like
+  `range: week` with `bucket: week`, and for one shorter than its bucket,
+  like `range: 7d` with `bucket: month`, which now warns every day, not only
+  while its days fit in one month.
 - **A `source` or `tag` of only spaces no longer counts nothing in silence.**
   `source: " "` matched no folder and `tag: " "` no tag, so the card showed
   0 with no warning. Such a value now means the same as an empty one in
@@ -112,9 +120,11 @@ removed public export.
   on `heatmap` and `chart`, count the day, week, month, quarter or year the
   name of the note the block sits in stands for: in a note named `2026-W40`
   that week and no other, however late the note is opened. The name is read
-  in the formats set in Periodic Notes for each period, the day falling back
-  to Daily notes, then as `YYYY-MM-DD`, `GGGG-[W]WW`, `YYYY-MM`, `YYYY-[Q]Q`
-  or `YYYY`, strictly and the day first, so `2026` never takes `2026-10`. A
+  in the formats set in Periodic Notes for each period (one switched on there
+  with no format saved, in the plugin's own default, `gggg-[W]ww` for a
+  week), the day falling back to Daily notes, then as `YYYY-MM-DD`,
+  `GGGG-[W]WW`, `YYYY-MM`, `YYYY-[Q]Q` or `YYYY`, strictly and the day
+  first, so `2026` never takes `2026-10`. A
   locale week like `gggg-[W]ww` is the seven days Periodic Notes named, even
   when the interface language starts its weeks on another day. A note named
   otherwise is an error listing those formats, and its cards and bars show a
