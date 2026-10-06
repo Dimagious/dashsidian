@@ -20,9 +20,10 @@ three in for you.
 
 Dashy renders dashboard blocks from YAML written inside a note. It reads the
 vault through Obsidian's metadata cache, builds its output with DOM APIs, and
-makes no network requests of any kind. It writes exactly two files, each only
-on an explicit click in settings: the agent skill under `.claude/skills/`, and
-a fenced section inside `AGENTS.md` at the vault root.
+makes no network requests of any kind. It writes files only on an explicit
+click in settings: the agent skill (`SKILL.md` and `reference.md` under
+`.claude/skills/dashy/`), and a fenced section inside `AGENTS.md` at the vault
+root.
 
 So the interesting reports are:
 

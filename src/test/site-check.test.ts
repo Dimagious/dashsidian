@@ -187,9 +187,13 @@ describe("site-check — findClaudePathMentions", () => {
         expect(findClaudePathMentions(`<p>Dashy reads frontmatter.</p>`)).toEqual([]);
     });
 
-    it("does not flag the one allowed mention: the vault path Dashy itself writes", () => {
-        const html = `<code>.claude/skills/dashy/SKILL.md</code>`;
+    it("does not flag the allowed mentions: the two vault paths Dashy itself writes", () => {
+        const html = `<code>.claude/skills/dashy/SKILL.md</code> <code>.claude/skills/dashy/reference.md</code>`;
         expect(findClaudePathMentions(html)).toEqual([]);
+    });
+
+    it("flags another file in the dashy skill folder: only the two files Dashy writes are allowed", () => {
+        expect(findClaudePathMentions(`<code>.claude/skills/dashy/notes.md</code>`)).toEqual([".claude/skills/dashy/notes.md"]);
     });
 
     it("still flags a different .claude path next to the allowed one", () => {

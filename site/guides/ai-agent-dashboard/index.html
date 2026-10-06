@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build an Obsidian dashboard with an AI agent · Dashy</title>
+<meta name="description" content="Build an Obsidian dashboard with an AI agent: describe it in plain words, and Claude Code, Codex or Cursor reads your vault and writes Dashy blocks you can check and edit. Setup, six prompts to copy, and what to do when a block shows an error.">
+<link rel="canonical" href="https://dimagious.github.io/dashsidian/guides/ai-agent-dashboard/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%238b6cef'/%3E%3Crect x='7' y='7.5' width='11' height='3' rx='1.5' fill='%23fff'/%3E%3Crect x='7' y='13' width='8.5' height='7' rx='2' fill='%23fff' fill-opacity='.55'/%3E%3Crect x='16.5' y='13' width='8.5' height='7' rx='2' fill='%23fff'/%3E%3Crect x='7' y='22.5' width='18' height='3' rx='1.5' fill='%23fff' fill-opacity='.35'/%3E%3Crect x='7' y='22.5' width='12' height='3' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Dashy">
+<meta property="og:url" content="https://dimagious.github.io/dashsidian/guides/ai-agent-dashboard/">
+<meta property="og:title" content="Build an Obsidian dashboard with an AI agent">
+<meta property="og:description" content="Describe the dashboard in plain words. The agent reads your vault, writes Dashy blocks, and you open the note and check.">
+<meta property="og:image" content="https://dimagious.github.io/dashsidian/img/dashboard-light.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="../../assets/site.css">
+<link rel="stylesheet" href="../../assets/guides.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"HowTo","name":"Build an Obsidian dashboard with an AI agent","step":[
+{"@type":"HowToStep","name":"Install Dashy and its skill"},
+{"@type":"HowToStep","name":"Open the vault in your agent"},
+{"@type":"HowToStep","name":"Ask for what you want to see"}]}
+</script>
+</head>
+<body>
+<!--shell:top tab="AI agent dashboard"-->
+
+    <main class="note guide" id="note">
+      <article class="file" style="padding-top:34px">
+        <div class="crumb">Guides/AI agent dashboard.md</div>
+        <h1 class="inline-title">Build an Obsidian dashboard with an AI agent</h1>
+
+        <div class="props" aria-label="Properties">
+          <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
+          <div class="prop"><div class="k"><svg><use href="#i-tag"/></svg>blocks</div><div class="v"><span class="pill">progress</span><span class="pill">stats</span><span class="pill">chart</span><span class="pill">heatmap</span><span class="pill">today</span><span class="pill">tiles</span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>agents</div><div class="v"><code>Claude Code</code><code>Codex</code><code>Cursor</code></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>needs dataview</div><div class="v"><span class="check off" aria-label="no"></span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
+        </div>
+
+        <p class="lede">You say what you want to see: books this year against a goal, a habit calendar, a home page. The agent looks at your vault, the property names, the daily notes folder and how the notes are named, and writes Dashy blocks into the note. You open the note and check. The blocks stay plain YAML, so you can read them and change them by hand later.</p>
+
+        <figure class="shot">
+          <picture>
+            <source data-dark srcset="../../img/dashboard-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="../../img/dashboard-light.png" width="1280" height="900" alt="A Dashy dashboard in Obsidian: a day row, four navigation tiles, eight number cards and three progress bars">
+          </picture>
+          <figcaption>A dashboard made of Dashy blocks, from a demo vault. Each part of it is a few lines an agent can write.</figcaption>
+        </figure>
+
+        <nav class="toc" aria-label="On this page">
+          <b>ON THIS PAGE</b>
+          <ol>
+            <li><a href="#setup">Install Dashy and its skill</a></li>
+            <li><a href="#where">Open the vault in your agent</a></li>
+            <li><a href="#prompts">Ask for what you want to see</a></li>
+            <li><a href="#missing">When the data is not there</a></li>
+            <li><a href="#errors">If a block shows an error</a></li>
+            <li><a href="#privacy">What the agent reads</a></li>
+            <li><a href="#related">Related guides</a></li>
+          </ol>
+        </nav>
+
+        <!-- ============ 1 ============ -->
+        <h2 class="step" id="setup" data-short="Install Dashy and its skill"><span class="n">1</span>Install Dashy and its skill</h2>
+        <p>Install Dashy from Obsidian's community plugins: search for <b>Dashy</b>, then <b>Install</b> and <b>Enable</b>. Then open <b>Settings → Dashy</b> and scroll to <b>AI agent skill</b>. Each button writes a file only when you press it.</p>
+        <ul class="keynotes">
+          <li><b>Skill file in this vault</b><span><b>Install</b> writes <code>.claude/skills/dashy/SKILL.md</code> and <code>.claude/skills/dashy/reference.md</code>. Claude Code finds the skill there on its own: <code>SKILL.md</code> tells it how to work, <code>reference.md</code> lists every key of every block.</span></li>
+          <li><b>AGENTS.md in the vault root</b><span><b>Install</b> writes the same text into <code>AGENTS.md</code>, the file Codex, Cursor and other agents read. Only the fenced Dashy section is Dashy's; the rest of the file stays as it was.</span></li>
+          <li><b>Copy markdown</b><span>Copies the same text to the clipboard, for a chat app that cannot open your files. Paste it at the start of the chat, then paste the frontmatter of a few notes so it knows your property names.</span></li>
+        </ul>
+        <p>Once a file is written, its button reads <b>Update</b>. Press it after updating Dashy, so the agent learns the new keys.</p>
+        <figure class="shot" style="max-width:560px">
+          <img src="../../img/settings-dark.png" width="1350" height="1340" loading="lazy" alt="Dashy settings: periodic note folders, and buttons that install the agent skill and AGENTS.md">
+          <figcaption>Dashy's settings tab.</figcaption>
+        </figure>
+
+        <!-- ============ 2 ============ -->
+        <h2 class="step" id="where" data-short="Open the vault in your agent"><span class="n">2</span>Open the vault in your agent</h2>
+        <p>The agent needs the vault folder as its working folder, the way it would open a code project.</p>
+        <ul class="keynotes">
+          <li>In a terminal or an editor<span>Open the vault folder in Claude Code, Codex or Cursor. Keep Obsidian open next to it: each block redraws as soon as the agent saves the note.</span></li>
+          <li>Inside Obsidian<span>The community plugin <a href="https://github.com/YishenTu/claudian">Claudian</a> runs Claude Code and other agents in an Obsidian pane, with the vault as the working folder, and loads the skills in the vault.</span></li>
+        </ul>
+
+        <!-- ============ 3 ============ -->
+        <h2 class="step" id="prompts" data-short="Ask for what you want to see"><span class="n">3</span>Ask for what you want to see</h2>
+        <p>Write the request the way you would say it. No key names: finding the right ones is the agent's job. Say which note the blocks go into, or let the agent ask. Six requests, from one card to a whole page:</p>
+
+        <h3 id="books">Books this year against a goal</h3>
+        <div class="codeblock" data-code>
+          <div class="bar"><span>Prompt</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">Count the books I finished this year against a goal of 24.</code></pre>
+        </div>
+        <p>What you get: a <code>progress</code> bar. The agent first finds how a book note says when you finished it, here a <code>finished</code> date property in the notes under <code>Books</code>.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span>progress</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```progress
+source: Books
+date_field: finished
+period: year
+items:
+  - { label: Books this year, agg: count, goal: 24 }
+```</code></pre>
+        </div>
+
+        <h3 id="sleep">Average sleep and a chart by week</h3>
+        <div class="codeblock" data-code>
+          <div class="bar"><span>Prompt</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">Show my average sleep over the last 30 days and a chart of it by week.</code></pre>
+        </div>
+        <p>What you get: a <code>stats</code> card for the last 30 days and a <code>chart</code> with a bar per week. With the Obsidian Charts plugin turned on, the second block is written as <code>dashy-chart</code>, because <code>chart</code> then belongs to Charts.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span>stats and chart</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+source: Diary
+items:
+  - { label: Sleep, field: sleep_hours, agg: avg, period: 30d, precision: 1, unit: h }
+```
+
+```chart
+source: Diary
+field: sleep_hours
+agg: avg
+bucket: week
+type: bar
+```</code></pre>
+        </div>
+
+        <h3 id="training">A training year in two colours</h3>
+        <div class="codeblock" data-code>
+          <div class="bar"><span>Prompt</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">A heatmap of my training year: running and cycling in different colours.</code></pre>
+        </div>
+        <p>What you get: a <code>heatmap</code> with one layer per sport, each in its own colour. More on layers in <a href="../heatmap-two-activities/">two activities on one heatmap</a>.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span>heatmap</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+layers:
+  - { field: run_km, color: green, label: Running }
+  - { field: bike_km, color: blue, label: Cycling }
+title: Training
+```</code></pre>
+        </div>
+
+        <h3 id="home">A home page</h3>
+        <div class="codeblock" data-code>
+          <div class="bar"><span>Prompt</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">Make this note my home page: today's date with links to my daily and weekly notes, tiles for my main folders, and a couple of counters.</code></pre>
+        </div>
+        <p>What you get: <code>today</code> for the date and the links, <code>tiles</code> with a note count on each folder, and a <code>stats</code> line of counts. <code>today</code> takes the folder and the name format from your Daily notes or Periodic Notes settings, so its links open the notes you already have.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span>Home.md</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```today
+daily: true
+weekly: true
+```
+
+```tiles
+items:
+  - { label: Inbox, path: Inbox, badge: count }
+  - { label: Projects, path: Projects, badge: count }
+  - { label: Diary, path: Diary, badge: count }
+```
+
+```stats
+layout: inline
+items:
+  - { label: notes, agg: count }
+  - { label: diary days this month, source: Diary, agg: count, period: month }
+```</code></pre>
+        </div>
+
+        <h3 id="habits">A habit calendar for this month</h3>
+        <div class="codeblock" data-code>
+          <div class="bar"><span>Prompt</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">A habit calendar for this month: workout, meditation, reading.</code></pre>
+        </div>
+        <p>What you get: a <code>heatmap</code> drawn as this month's calendar, a dot in each habit's colour under every day you kept it. More in <a href="../monthly-habit-calendar/">a monthly habit calendar</a>.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span>heatmap</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+range: month
+layout: calendar
+layers:
+  - { field: workout, color: orange, label: Workout }
+  - { field: meditation, color: purple, label: Meditation }
+  - { field: reading, color: green, label: Reading }
+```</code></pre>
+        </div>
+
+        <h3 id="review">A weekly review that counts its own week</h3>
+        <div class="codeblock" data-code>
+          <div class="bar"><span>Prompt</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">In my weekly review note, count this week's runs against last week, and show whether I slept as much as usual.</code></pre>
+        </div>
+        <p>What you get: <code>stats</code> with <code>period: note</code> written once at the top, so both cards count the week the note is named for, like <code>2026-W40</code>, however late you open it. Runs are compared with the week before; sleep with your usual level, the average of every earlier note. More in <a href="../weekly-review-without-dataview/">a weekly review without Dataview</a>.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span>Reviews/2026-W40.md</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+source: Diary
+period: note
+items:
+  - { label: Runs, field: run, agg: sum, compare: true, better: up }
+  - { label: Sleep, field: sleep_hours, agg: avg, precision: 1, compare: usual, better: up }
+```</code></pre>
+        </div>
+        <div class="callout tip">
+          <div class="callout-title"><svg><use href="#i-info"/></svg>The usual level is an average</div>
+          <p>Dashy compares a card with your usual level only when the card is an average. A count of runs against a usual week is not something it draws, so a good agent says that and offers last week instead, as above.</p>
+        </div>
+
+        <!-- ============ missing ============ -->
+        <h2 id="missing" data-short="When the data is not there">When the data is not there</h2>
+        <p>Dashy counts properties your notes already hold. If they are not there, a good agent says so instead of writing a block that shows dashes. In our tests, asked for a habit calendar in a vault whose daily notes had no habit properties, it said the fields were missing and proposed the lines to add to the daily note template.</p>
+        <ul>
+          <li><b>No DataviewJS.</b> The skill tells the agent not to improvise DataviewJS for what Dashy does. Everything on this page is Dashy blocks.</li>
+          <li><b>What Dashy does not do, it says.</b> Ask for a pie chart, a table or a kanban board and the agent should say Dashy does not draw it and name what does: Obsidian Charts for the pie, Bases for the table.</li>
+        </ul>
+
+        <!-- ============ errors ============ -->
+        <h2 id="errors" data-short="If a block shows an error">If a block shows an error</h2>
+        <p>The agent cannot see the note as Obsidian draws it. Open the note in Reading view. A block that cannot draw what was asked says why, in place: an unknown key with the one it probably meant, a field no note has, a line of YAML that does not parse. Copy that text and paste it to the agent; it fixes the block from the message instead of guessing. More on these messages on the <a href="../../#errors">home page</a>.</p>
+
+        <!-- ============ privacy ============ -->
+        <h2 id="privacy" data-short="What the agent reads">What the agent reads</h2>
+        <p>The agent reads the notes and settings files it opens and sends them to its model provider, as it does with any file it works on. Check what your agent is allowed to open before you point it at a vault with private notes. Dashy itself sends nothing anywhere: it makes no network requests of its own, and it writes the skill files only when you press their buttons. The one thing a block loads from the internet is a tile <code>image</code> you set to an <code>https://</code> address, the way Obsidian loads an image in a note.</p>
+
+        <!-- ============ related ============ -->
+        <h2 id="related" data-short="Related guides">Related guides</h2>
+        <div class="cards small">
+          <a class="card" href="../homepage-dashboard/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/homepage-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/homepage-light.png" width="700" height="532" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">An Obsidian homepage dashboard without code</span><p class="card-promise">A clock, today's notes, a line of counts, folder tiles and the dates coming up.</p></div>
+          </a>
+          <a class="card" href="../habit-tracker-without-dataview/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/habits-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/habits-light.png" width="700" height="369" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A habit tracker without Dataview</span><p class="card-promise">Counts, streaks and a year of days from daily note checkboxes.</p></div>
+          </a>
+          <a class="card" href="../weekly-review-without-dataview/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/weekly-review-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/weekly-review-light.png" width="700" height="493" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A weekly review without Dataview</span><p class="card-promise">A weekly note that counts the week it is named for.</p></div>
+          </a>
+        </div>
+
+        <div class="next">
+          <p>Dashy is in Obsidian's community plugins. Search for <b>Dashy</b>, install, enable, then press <b>Install</b> under <b>AI agent skill</b> in its settings.</p>
+          <div class="actions">
+            <a class="btn primary" href="../../#install"><svg><use href="#i-plug"/></svg>Install Dashy</a>
+            <a class="btn" href="../../reference/">Every block and key</a>
+          </div>
+        </div>
+
+        <footer class="note-foot">
+          <span>MIT © Dmitriy Yurkin</span>
+          <a href="../../guides/">All guides</a>
+          <a href="https://github.com/Dimagious/dashsidian">GitHub</a>
+          <a href="https://community.obsidian.md/plugins/dashsidian">Plugin listing</a>
+          <a href="https://github.com/Dimagious/dashsidian/issues">Something wrong on this page?</a>
+        </footer>
+      </article>
+    </main>
+<!--shell:bottom-->

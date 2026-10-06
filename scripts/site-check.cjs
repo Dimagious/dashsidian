@@ -60,11 +60,11 @@ const IMAGE_RENAME_MAP = {
     "firstrun-picker.png": "firstrun/1-picker.png",
 };
 
-// The one legitimate `.claude` mention on the page: the real path Dashy's
-// "Skill file in this vault" button writes, inside a READER's vault, not
-// this repository. Everything else under `.claude` is this repo's private
-// working notes and must never end up in a published file.
-const ALLOWED_CLAUDE_MENTIONS = new Set([".claude/skills/dashy/SKILL.md"]);
+// The legitimate `.claude` mentions on the page: the two real paths Dashy's
+// "Skill file in this vault" button writes (B-164), inside a READER's vault,
+// not this repository. Everything else under `.claude` is this repo's
+// private working notes and must never end up in a published file.
+const ALLOWED_CLAUDE_MENTIONS = new Set([".claude/skills/dashy/SKILL.md", ".claude/skills/dashy/reference.md"]);
 
 // The explorer, ribbon, tab bar, command palette and icon sprite every guide
 // shares. A page that wants it holds two placeholders, `<!--shell:top

@@ -544,12 +544,14 @@ footer.note-foot a { color: var(--muted); }
     <ul class="tree" id="tree">
       <li><a href="#dashy"><svg width="14" height="14"><use href="#i-file"/></svg>Dashy<span class="ext">.md</span></a></li>
       <li><a href="#install"><svg width="14" height="14"><use href="#i-file"/></svg>Install<span class="ext">.md</span></a></li>
+      <li><a href="#agents"><svg width="14" height="14"><use href="#i-file"/></svg>AI agents<span class="ext">.md</span></a></li>
       <li><a href="#habits"><svg width="14" height="14"><use href="#i-file"/></svg>Habit tracker<span class="ext">.md</span></a></li>
       <li><a href="#sleep"><svg width="14" height="14"><use href="#i-file"/></svg>Sleep log<span class="ext">.md</span></a></li>
       <li>
         <div class="folder" data-folder><svg><use href="#i-chev"/></svg>Guides</div>
         <ul>
           <li><a href="guides/"><svg width="14" height="14"><use href="#i-file"/></svg>All guides<span class="ext">.md</span></a></li>
+          <li><a href="guides/ai-agent-dashboard/"><svg width="14" height="14"><use href="#i-file"/></svg>AI agent dashboard<span class="ext">.md</span></a></li>
           <li><a href="guides/habit-tracker-without-dataview/"><svg width="14" height="14"><use href="#i-file"/></svg>Habits, no Dataview<span class="ext">.md</span></a></li>
           <li><a href="guides/streak-weekdays/"><svg width="14" height="14"><use href="#i-file"/></svg>Weekday streaks<span class="ext">.md</span></a></li>
           <li><a href="guides/heatmap-two-activities/"><svg width="14" height="14"><use href="#i-file"/></svg>Two on one heatmap<span class="ext">.md</span></a></li>
@@ -591,7 +593,6 @@ footer.note-foot a { color: var(--muted); }
         <ul>
           <li><a href="#live"><svg width="14" height="14"><use href="#i-file"/></svg>Live redraw<span class="ext">.md</span></a></li>
           <li><a href="#errors"><svg width="14" height="14"><use href="#i-file"/></svg>Config errors<span class="ext">.md</span></a></li>
-          <li><a href="#agents"><svg width="14" height="14"><use href="#i-file"/></svg>AI agents<span class="ext">.md</span></a></li>
           <li><a href="#languages"><svg width="14" height="14"><use href="#i-file"/></svg>Languages<span class="ext">.md</span></a></li>
         </ul>
       </li>
@@ -633,6 +634,7 @@ footer.note-foot a { color: var(--muted); }
         </div>
 
         <p class="lede">A dashboard inside an Obsidian note, built from seven markdown blocks. Each block is a few lines of YAML. No JavaScript, and no Dataview.</p>
+        <p>Or describe it to your AI agent: Dashy ships a skill and an <code>AGENTS.md</code> that teach Claude Code, Codex and Cursor its blocks. <a href="guides/ai-agent-dashboard/">Build a dashboard with an agent</a>.</p>
 
         <div class="actions">
           <a class="btn primary" href="#install"><svg><use href="#i-plug"/></svg>Get it from Community plugins</a>
@@ -706,6 +708,31 @@ monthly: true
           <img src="img/firstrun-picker.png" width="700" height="484" loading="lazy" alt="Obsidian's own command palette open on Dashy: Insert block, listing the seven blocks to pick from">
           <figcaption>The real picker, in Obsidian.</figcaption>
         </figure>
+      </section>
+
+      <!-- ============ AI agents.md ============ -->
+      <section class="file" id="agents" data-title="AI agents" data-path="AI agents">
+        <div class="crumb">AI agents.md</div>
+        <h2>An AI agent can write the blocks for you</h2>
+        <div class="two" style="align-items:start">
+          <div>
+            <p>Describe the dashboard in plain words. The agent reads your property names and how your daily notes are named, writes the blocks, and you open the note and check. Dashy's settings, under <b>AI agent skill</b>, teach it the blocks. Each button writes only when you press it.</p>
+            <ul>
+              <li><b>Skill file in this vault</b> writes <code>.claude/skills/dashy/SKILL.md</code>, how to work, and <code>.claude/skills/dashy/reference.md</code>, every key of every block. Claude Code picks the skill up on its own. <b>Copy markdown</b> next to it copies the same text for a chat app.</li>
+              <li><b>AGENTS.md in the vault root</b> writes the same text where Codex, Cursor and others look for it. Only the fenced Dashy section is Dashy's; the rest of that file stays as it was.</li>
+            </ul>
+            <p>The key tables are generated from <code>schema.json</code>, the file the plugin validates against, so the reference an agent reads matches what the plugin accepts.</p>
+            <div class="callout quote">
+              <div class="callout-title"><svg><use href="#i-quote"/></svg>Then you can ask</div>
+              <p>Make me a dashboard for my training log: weekly distance as bars with a 40 km goal, cards for this week's volume and my current streak, and a countdown to the marathon in May.</p>
+            </div>
+            <p><a href="guides/ai-agent-dashboard/">Setup, six requests to copy, and what to do when a block shows an error</a>.</p>
+          </div>
+          <figure class="shot">
+            <img src="img/settings-dark.png" width="1350" height="1340" loading="lazy" alt="Dashy settings: periodic note folders, and buttons that install the agent skill and AGENTS.md">
+            <figcaption>Dashy's settings tab.</figcaption>
+          </figure>
+        </div>
       </section>
 
       <!-- ============ Habit tracker.md ============ -->
@@ -1133,30 +1160,6 @@ layers: [sleep_score]
           <figure class="shot">
             <img src="img/diagnostics-dark.png" width="700" height="608" loading="lazy" alt="Messages inside the note: an unknown key with a suggestion, a missing field, an unknown aggregate with the list of valid ones, a where clause using or, and a chart key borrowed from another block">
             <figcaption>What that note shows, dark theme.</figcaption>
-          </figure>
-        </div>
-      </section>
-
-      <!-- ============ Behaviour/AI agents.md ============ -->
-      <section class="file" id="agents" data-title="AI agents" data-path="Behaviour / AI agents">
-        <div class="crumb">Behaviour/AI agents.md</div>
-        <h2>An AI agent can write the blocks for you</h2>
-        <div class="two" style="align-items:start">
-          <div>
-            <p>Two buttons in Dashy's settings. Each writes a file only when you press it.</p>
-            <ul>
-              <li><b>Skill file in this vault</b> writes <code>.claude/skills/dashy/SKILL.md</code>, which Claude Code picks up on its own.</li>
-              <li><b>AGENTS.md in the vault root</b> writes the same reference where Cursor, Codex and others look for it. Only the fenced Dashy section is Dashy's; the rest of that file stays as it was.</li>
-            </ul>
-            <p>Both are generated from <code>schema.json</code>, the file the plugin validates against, so the reference an agent reads matches what the plugin accepts.</p>
-            <div class="callout quote">
-              <div class="callout-title"><svg><use href="#i-quote"/></svg>Then you can ask</div>
-              <p>Make me a dashboard for my training log: weekly distance as bars with a 40 km goal, cards for this week's volume and my current streak, and a countdown to the marathon in May.</p>
-            </div>
-          </div>
-          <figure class="shot">
-            <img src="img/settings-dark.png" width="1350" height="1340" loading="lazy" alt="Dashy settings: periodic note folders, and buttons that install the agent skill and AGENTS.md">
-            <figcaption>Dashy's settings tab.</figcaption>
           </figure>
         </div>
       </section>
