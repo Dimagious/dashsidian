@@ -25,6 +25,10 @@ Step-by-step pages, one problem each, with YAML to copy:
 - Two activities on one heatmap (`layers`, one colour each; on a day with
   both, the first layer's colour shows, or the larger value with `pick: max`):
   https://dimagious.github.io/dashsidian/guides/heatmap-two-activities/
+- A monthly habit calendar without Dataview (`heatmap` with `range: month`
+  and `layout: calendar`: day numbers, a dot per habit with `layers`;
+  `range: week` for one row, `skip_field` for days off):
+  https://dimagious.github.io/dashsidian/guides/monthly-habit-calendar/
 - A weekly chart without Tracker (`chart` with `bucket: week` and `goal`;
   `dashy-chart` next to Obsidian Charts; frontmatter only):
   https://dimagious.github.io/dashsidian/guides/weekly-chart-tracker-alternative/

@@ -299,6 +299,30 @@ items:
   - { label: Passport, field: expires, where: "type = passport", icon: 🛂 }
 \`\`\`
 `);
+
+    // The monthly habit calendar guide (B-161): its whole note, verbatim.
+    // It reads the `gym`, `read`, `meditate` and `vacation` properties the
+    // diary already carries, so it adds no note of its own beyond this one
+    // (which, like every note here, the homepage's whole-vault count sees).
+    write("Habit calendar.md", `\`\`\`heatmap
+source: Diary
+range: month
+layout: calendar
+layers:
+  - { field: gym, color: orange, label: Gym }
+  - { field: read, color: green, label: Reading }
+  - { field: meditate, color: purple, label: Meditation }
+\`\`\`
+
+\`\`\`heatmap
+source: Diary
+field: gym
+color: orange
+range: week
+layout: calendar
+skip_field: vacation
+\`\`\`
+`);
 }
 
 function build() {

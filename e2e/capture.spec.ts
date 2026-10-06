@@ -273,6 +273,28 @@ for (const theme of ["obsidian", "moonstone"] as const) {
 }
 
 /**
+ * The picture for the monthly habit calendar guide (B-161): the first block
+ * of `Habit calendar.md`, this month with gym, reading and meditation as
+ * dots, shot as one element the way the layers heatmap is. The note comes
+ * from `guideNotes` in scripts/demo-vault.cjs.
+ */
+for (const theme of ["obsidian", "moonstone"] as const) {
+    const suffix = theme === "obsidian" ? "dark" : "light";
+
+    test(`guides: monthly habit calendar, ${suffix}`, async ({ win }) => {
+        await setUp(win, theme);
+        const view = win.locator(READING_VIEW);
+        await openNote(win, "Habit calendar.md", ".dashy-hm-cal");
+        const month = view.locator(".block-language-heatmap").first().locator(".dashy-hm-calendar").first();
+        await month.scrollIntoViewIfNeeded();
+        await month.screenshot({ path: path.join(SHOTS, `habit-calendar-${suffix}.png`) });
+
+        // Back where `setUp` expects to find the next test.
+        await openNote(win, "Dashboard.md", ".dashy-hm-cell");
+    });
+}
+
+/**
  * The same weekly chart from a `dataviewjs` script and from a Dashy block.
  * Dataview and Obsidian Charts are switched on for this shot only and off
  * again after it, so no other picture is drawn with them loaded. Skipped when
