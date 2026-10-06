@@ -47,6 +47,12 @@ body {
      instead of overlapping today's own outline — see `.is-today.is-selected`
      in blocks.css. */
   --dashy-hm-selected: var(--interactive-accent);
+  /* A heatmap drawn as a calendar (B-133): a dot per note or layer under
+     the day's number, the days still ahead dimmed by an opacity rather than
+     a colour, and a width past which a week stops stretching. */
+  --dashy-dot: 5px;
+  --dashy-hm-future: 0.4;
+  --dashy-cal-width: 420px;
 
   /* The chart block (ADR 0005). Its height is the only size a reader can
      change, from a CSS snippet: there is no `height` key on purpose. */

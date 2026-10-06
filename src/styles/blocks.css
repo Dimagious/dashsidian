@@ -300,7 +300,8 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
    inline by heatmap.ts. Drawn as a second layer, `background-image` over
    `background-color`, so a painted cell keeps its own colour showing through
    the gaps rather than being replaced by the hatch. */
-.dashy-hm-cell.is-skipped {
+.dashy-hm-cell.is-skipped,
+.dashy-hm-cal-day.is-skipped {
   background-image: repeating-linear-gradient(
     45deg,
     var(--dashy-hm-skip) 0,
@@ -313,7 +314,8 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
    is-skipped hatch stays visible inside it. Drawn inset: today is always the
    grid's last column, and an outer ring would be clipped by the scroller's
    overflow on the right (and top or bottom on the first and last row). */
-.dashy-hm-cell.is-today {
+.dashy-hm-cell.is-today,
+.dashy-hm-cal-day.is-today {
   outline: 2px solid var(--dashy-hm-today);
   outline-offset: -2px;
 }
@@ -321,7 +323,8 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
    outline, so it paints in its own layer rather than replacing `is-today`'s
    outline outright. On its own this still sits in the same 2px band as that
    outline, which the more specific rule below accounts for. */
-.dashy-hm-cell.is-selected {
+.dashy-hm-cell.is-selected,
+.dashy-hm-cal-day.is-selected {
   box-shadow: inset 0 0 0 2px var(--dashy-hm-selected);
 }
 /* Today's own cell, tapped: outline and box-shadow would otherwise land on
@@ -330,7 +333,8 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
    selected band inward instead keeps both visible at once — today's ring
    as the outer edge, the accent band just inside it — while a `--dashy-cell:
    13px` cell still keeps a 5px fill/hatch visible at the centre. */
-.dashy-hm-cell.is-today.is-selected {
+.dashy-hm-cell.is-today.is-selected,
+.dashy-hm-cal-day.is-today.is-selected {
   box-shadow: inset 0 0 0 4px var(--dashy-hm-selected);
 }
 .dashy-hm-legend {
@@ -382,6 +386,49 @@ a.dashy-hm-cell:hover { outline: 1px solid var(--text-normal); outline-offset: 1
     transparent 4px
   );
 }
+
+/* heatmap as a calendar (B-133, `layout: calendar`): seven columns that
+   share whatever width the note has, `minmax(0, 1fr)` so they shrink below
+   their content instead of pushing the block wider, which keeps a 320px
+   phone free of horizontal scroll. Capped in width so a wide note does not
+   stretch a week into a strip of far-apart days. The hatch, today's ring
+   and the tapped band are the grid's own rules above. */
+.dashy-hm-cal-month { font-size: 0.85em; color: var(--text-muted); margin-bottom: 6px; }
+.dashy-hm-cal {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--dashy-cell-gap);
+  max-width: var(--dashy-cal-width);
+}
+.dashy-hm-cal-wd {
+  font-size: 0.65em; color: var(--text-muted); text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dashy-hm-cal-day {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  min-width: 0; padding: 4px 0; border-radius: 4px;
+  font-size: 0.8em; line-height: 1.2; color: var(--text-normal);
+  background-color: var(--dashy-surface);
+}
+.dashy-hm-cal-day.dashy-hm-pad { background: transparent; }
+.dashy-hm-cal-day.is-future { opacity: var(--dashy-hm-future); }
+a.dashy-hm-cal-day { cursor: pointer; text-decoration: none; color: inherit; }
+a.dashy-hm-cal-day:hover { outline: 1px solid var(--text-normal); outline-offset: -1px; }
+/* A linked day is also Obsidian's `.internal-link`, whose colour and
+   underline (`.markdown-rendered .internal-link.is-unresolved:hover`, up to
+   0,4,0) beat the rule above, the same trap as a tile's link. Same weight,
+   loaded later, wins: a day number stays plain text. */
+.dashy-hm-calendar .dashy-hm-cal .dashy-hm-cal-day.internal-link,
+.dashy-hm-calendar .dashy-hm-cal .dashy-hm-cal-day.internal-link:hover {
+  color: inherit;
+  text-decoration-line: none;
+}
+/* Always there, even with no dots, so every row keeps the same height. */
+.dashy-hm-cal-dots {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 2px;
+  min-height: var(--dashy-dot); max-width: 100%;
+}
+.dashy-hm-dot { width: var(--dashy-dot); height: var(--dashy-dot); border-radius: 50%; }
 
 /* chart (ADR 0005) */
 /* `min-width: 0` so a flex or grid parent cannot push the chart wider than

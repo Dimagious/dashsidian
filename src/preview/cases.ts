@@ -205,6 +205,30 @@ color: green
 range: month`,
     },
     {
+        block: "heatmap",
+        title: "heatmap — layout: calendar, месяц с точками, отпуск штрихом",
+        source: `source: Diary
+field: steps
+color: green
+range: month
+layout: calendar
+skip_field: vacation`,
+    },
+    {
+        block: "heatmap",
+        title: "heatmap — layout: calendar со слоями, точка на слой",
+        source: `source: Diary
+range: month
+layout: calendar
+layers:
+  - field: steps
+    color: green
+    label: Steps
+  - field: sleep_score
+    color: purple
+    label: Sleep`,
+    },
+    {
         block: "chart",
         title: "chart — линия по дням, всё по умолчанию, пропуски",
         source: `source: Diary

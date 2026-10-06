@@ -40,6 +40,19 @@ removed public export.
   `pick: first`, the default, keeps the old behaviour. Any other value warns
   and falls back to `first`, and `pick` on a heatmap without `layers` warns
   that it is ignored.
+- **`layout: calendar` on a `heatmap`** draws `range: month` as a month
+  calendar of the habit inside the note: the month name and year on top,
+  weekday columns starting on the locale's first day of the week, and every
+  day of the month, from the 1st to the last, with its number and dots under
+  it. One dot per note that painted the day, at most three; with `layers`,
+  one dot per layer painted that day in its colour, at most four, whatever
+  `pick` says. Days after today are dimmed and get no dots. `range: week`
+  draws the current week as one such row, headed by both months when it
+  crosses into the next. Tooltips, links, today's ring,
+  `skip_field` hatching and the caption stay as on the grid. `bands` has
+  nothing to shade there and warns that it is ignored. With any other
+  `range`, or none, `layout: calendar` warns and the grid is drawn, and so
+  does an unknown `layout` value.
 
 ## [1.6.0] - 2026-10-05
 
