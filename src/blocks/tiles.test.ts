@@ -759,3 +759,117 @@ describe("tiles — a period over daily notes named another way (B-120)", () => 
         expect(diagnostics(without, "warning")[0]).toContain("none of the selected notes has a name starting with a date");
     });
 });
+
+describe("tiles: a badge's own date_format (B-174)", () => {
+    // Tuesday, 6 Oct 2026; in English the week runs Sunday 4 to Saturday 10 October.
+    const today = (): Date => new Date(2026, 9, 6);
+    const diary = [
+        { path: "Diary/05.10.2026.md" },
+        { path: "Diary/06.10.2026.md" },
+        { path: "Diary/01.09.2026.md" },
+    ];
+    const render = (config: string, vault: Parameters<typeof mockContext>[0] = { notes: diary }): HTMLElement => {
+        const el = host();
+        renderTiles({ ...mockContext(vault), today }, config, el);
+        return el;
+    };
+
+    it("date_format reads DD.MM.YYYY names with no settings format, where the tile alone counted 0", () => {
+        const withFormat = render(
+            "items:\n  - { label: Diary, path: Diary, period: week, date_format: DD.MM.YYYY, badge: count }",
+        );
+        expect(texts(withFormat, ".dashy-tile-badge")).toEqual(["2"]);
+        expect(diagnostics(withFormat, "warning")).toEqual([]);
+
+        const without = render("items:\n  - { label: Diary, path: Diary, period: week, badge: count }");
+        expect(texts(without, ".dashy-tile-badge")).toEqual(["0"]);
+        expect(diagnostics(without, "warning")).toHaveLength(1);
+        expect(diagnostics(without, "warning")[0]).toContain("Set `date_format:`");
+    });
+
+    it("the tile's own format is tried before the settings one", () => {
+        // Under MM.DD.YYYY, 05.10.2026 is 10 May and 06.10.2026 is 10 June: outside this week.
+        const vault = { notes: diary, dailyNotes: { format: "MM.DD.YYYY" } };
+        const own = render(
+            "items:\n  - { label: Diary, path: Diary, period: week, date_format: DD.MM.YYYY, badge: count }", vault,
+        );
+        expect(texts(own, ".dashy-tile-badge")).toEqual(["2"]);
+        const settingsOnly = render("items:\n  - { label: Diary, path: Diary, period: week, badge: count }", vault);
+        expect(texts(settingsOnly, ".dashy-tile-badge")).toEqual(["0"]);
+    });
+
+    it("reads date_field values in the format, and counts a fixed window to its own last day", () => {
+        const notes = [
+            { path: "Log/a.md", frontmatter: { day: "01.10.2026" } },
+            { path: "Log/b.md", frontmatter: { day: "03.10.2026" } },
+            { path: "Log/c.md", frontmatter: { day: "06.10.2026" } },
+        ];
+        const el = render(
+            "items:\n  - { label: Log, path: Log, date_field: day, date_format: DD.MM.YYYY, " +
+                "period: { from: 2026-10-01, to: 2026-10-03 }, badge: count }",
+            { notes },
+        );
+        expect(texts(el, ".dashy-tile-badge")).toEqual(["2"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("a window that has not started yet shows no badge, and a fitting format adds no warning", () => {
+        const el = render(
+            "items:\n  - { label: Diary, path: Diary, period: { from: 2026-11-01, to: 2026-11-30 }, " +
+                "date_format: DD.MM.YYYY, badge: count }",
+        );
+        expect(nodes(el, ".dashy-tile-badge")).toHaveLength(0);
+        expect(nodes(el, ".dashy-notice")).toHaveLength(1);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("a format that fits none of the selected notes warns, naming the first name by path", () => {
+        const el = render("items:\n  - { label: Diary, path: Diary, period: week, date_format: YYYYMMDD, badge: count }");
+        expect(texts(el, ".dashy-tile-badge")).toEqual(["0"]);
+        const warnings = diagnostics(el, "warning");
+        expect(warnings).toContain(
+            '⚠️ tiles: `date_format: YYYYMMDD` fits none of the selected notes: "01.09.2026", for one, is not written that way.',
+        );
+        expect(warnings).toHaveLength(2);
+    });
+
+    it("a date_format that is not text, or names no day, warns and the tile counts as without it", () => {
+        const notText = render("items:\n  - { label: Diary, path: Diary, period: week, date_format: 5, badge: count }");
+        expect(diagnostics(notText, "warning")).toContain(
+            '⚠️ tiles: `date_format` expects a date format such as DD.MM.YYYY, got "5". Ignored.',
+        );
+        expect(texts(notText, ".dashy-tile-badge")).toEqual(["0"]);
+
+        // The settings format still reads the names once the tile's own is ignored.
+        const noDay = render(
+            "items:\n  - { label: Diary, path: Diary, period: week, date_format: MM.YYYY, badge: count }",
+            { notes: diary, dailyNotes: { format: "DD.MM.YYYY" } },
+        );
+        expect(diagnostics(noDay, "warning")).toEqual([
+            "⚠️ tiles: `date_format: MM.YYYY` has no year, month and day in it, so it cannot name a day. Ignored. Write it like DD.MM.YYYY.",
+        ]);
+        expect(texts(noDay, ".dashy-tile-badge")).toEqual(["2"]);
+    });
+
+    it("date_format without period warns like date_field does, and the count runs over the whole folder", () => {
+        const el = render("items:\n  - { label: Diary, path: Diary, date_format: DD.MM.YYYY, badge: count }");
+        expect(diagnostics(el, "warning")).toEqual(['⚠️ tiles: "Diary": `date_format` has no effect without `period`.']);
+        expect(texts(el, ".dashy-tile-badge")).toEqual(["3"]);
+    });
+
+    it("an unreadable date_format without period warns only that it is ignored", () => {
+        const el = render("items:\n  - { label: Diary, path: Diary, date_format: 5, badge: count }");
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ tiles: `date_format` expects a date format such as DD.MM.YYYY, got "5". Ignored.',
+        ]);
+        expect(texts(el, ".dashy-tile-badge")).toEqual(["3"]);
+    });
+
+    it("date_format on a custom badge warns that it only serves badge: count, and the badge shows as given", () => {
+        const el = render("items:\n  - { label: Diary, path: Diary, date_format: DD.MM.YYYY, badge: soon }");
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ tiles: "Diary": `tag`, `where`, `period`, `date_field` and `date_format` only apply to `badge: count`.',
+        ]);
+        expect(texts(el, ".dashy-tile-badge")).toEqual(["soon"]);
+    });
+});

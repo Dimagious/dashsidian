@@ -280,7 +280,7 @@ items:
           <li><b>Nothing is filed under <code>Inbox</code>.</b> A counted tile's <code>path</code> or a card's <code>source</code> names a folder with no notes in your vault. Use your own folder names.</li>
           <li><b><code>trend</code> is not drawn with <code>layout: inline</code>.</b> Inline has no room for a sparkline. Remove <code>trend</code>, or switch back to cards.</li>
           <li><b><code>clock</code> expects true, false, minutes or seconds.</b> Something like <code>clock: yes</code> was written. No clock is shown until you fix it.</li>
-          <li><b>None of the selected notes has a name starting with a date like YYYY-MM-DD.</b> A <code>period</code> needs dated notes. If the names write the date another way, add <code>date_format: DD.MM.YYYY</code> on a <code>stats</code> card; a tile reads the day format set in the Daily notes or Periodic Notes settings. Add <code>date_field</code> if the date lives in a property.</li>
+          <li><b>None of the selected notes has a name starting with a date like YYYY-MM-DD.</b> A <code>period</code> needs dated notes. If the names write the date another way, add <code>date_format: DD.MM.YYYY</code> on the <code>stats</code> card or the tile that counts them. Without it, both read the day format set in the Daily notes or Periodic Notes settings. Add <code>date_field</code> if the date lives in a property.</li>
         </ul>
 
         <!-- ============ related ============ -->

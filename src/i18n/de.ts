@@ -62,7 +62,8 @@ export const de: Catalog = {
 
     "tiles.empty": "Keine Kacheln zu zeichnen. Erwartet wird `items:` oder eine Liste.",
     "tiles.dateFieldUnused": "{card}: `date_field` hat ohne `period` keine Wirkung.",
-    "tiles.selectionUnused": "{card}: `tag`, `where`, `period` und `date_field` grenzen nur `badge: count` ein.",
+    "tiles.dateFormatUnused": "{card}: `date_format` hat ohne `period` keine Wirkung.",
+    "tiles.selectionUnused": "{card}: `tag`, `where`, `period`, `date_field` und `date_format` gelten nur für `badge: count`.",
     "tiles.imageMissing": "{card}: Bild „{path}“ wurde nicht gefunden.",
     "tiles.imageUnsupported":
         "{card}: `image` erwartet einen Pfad im Tresor, einen `[[Wikilink]]` oder eine `https://`-URL, erhalten „{value}“.",
