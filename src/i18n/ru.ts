@@ -176,6 +176,10 @@ export const ru: Catalog = {
     "heatmap.pickWithoutLayers": "`pick` игнорируется: он выбирает только между `layers`, а у этого блока один `field`.",
     "heatmap.rangeInvalid":
         "`range` ожидает week, month, year или скользящее окно вроде 30d, получено «{value}». Рисуется сетка по годам.",
+    "heatmap.layoutInvalid": "`layout` ожидает grid или calendar, получено «{value}». Используется grid.",
+    "heatmap.calendarNeedsRange": "`layout: calendar` работает только с `range: month` или `range: week`. Рисуется обычная сетка.",
+    "heatmap.calendarBandsIgnored": "`bands` игнорируется при `layout: calendar`: день показывает точки, а не оттенок.",
+    "heatmap.calendarSpan": "с {from} по {to}",
     "heatmap.titleYear": "{title} ({year})",
     "heatmap.caption": "{year}, {field}: среднее {average}, {present} из {total} дн.",
     "heatmap.captionMarks": "{year}, {field}: {present} из {total} дн.",

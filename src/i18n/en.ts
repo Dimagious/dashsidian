@@ -186,6 +186,10 @@ export const en = {
     "heatmap.pickWithoutLayers": "`pick` is ignored: it only chooses between `layers`, and this block has a single `field`.",
     "heatmap.rangeInvalid":
         "`range` expects week, month, year or a rolling window such as 30d, got \"{value}\". Drawing a grid per year instead.",
+    "heatmap.layoutInvalid": "`layout` expects grid or calendar, got \"{value}\". Using grid.",
+    "heatmap.calendarNeedsRange": "`layout: calendar` needs `range: month` or `range: week`. Drawing the grid instead.",
+    "heatmap.calendarBandsIgnored": "`bands` is ignored with `layout: calendar`: a day shows dots, not a shade.",
+    "heatmap.calendarSpan": "{from} to {to}",
     "heatmap.caption": "{year}, {field}: average {average}, {present} of {total} days",
     "heatmap.captionMarks": "{year}, {field}: {present} of {total} days",
     "heatmap.captionRange": "{field}: average {average}, {present} of {total} days",

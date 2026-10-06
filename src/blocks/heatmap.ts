@@ -1,10 +1,13 @@
 import type { BlockContext } from "./context";
-import { weekdayNamesShort, monthNamesShort, monthYearShort, firstDayOfWeek, formatDayMedium } from "../adapters/datetime";
+import {
+    weekdayNamesShort, monthNamesShort, monthYearShort, monthYearLong, firstDayOfWeek, formatDayMedium,
+} from "../adapters/datetime";
 import { isMobile } from "../adapters/platform";
 import { selectNotes, readSource, unmatchedSource, type NoteRecord } from "../core/source";
 import { classifyField, classifyValues } from "../core/aggregate";
 import {
-    readFields, readPerDay, dayValues, unusedFields, heatmapDurationDiagnostics, checkboxCount, type DayNote,
+    readFields, readPerDay, dayValues, unusedFields, heatmapDurationDiagnostics, checkboxCount, paintedNotesPerDay,
+    type DayMark, type DayNote,
 } from "../core/day-values";
 import { formatDuration } from "../core/duration";
 import { readLayers, readPick, combineLayers, type Layer } from "../core/layers";
@@ -15,7 +18,8 @@ import {
     layoutYear, layoutRange, eachDay, eachDayBetween, yearsOf, rotateWeekdays, weekdayRow, dateKey, parseDateKey,
     type MonthLabel,
 } from "../core/calendar";
-import { parsePeriod, periodWindow, type Period } from "../core/period";
+import { parsePeriod, periodWindow, type Period, type DateWindow } from "../core/period";
+import { readLayout, calendarWindow, calendarMonths, layoutCalendar, noteDots, layerDots } from "../core/month-calendar";
 import { toRgb, rgba, DEFAULT_COLOR, PALETTE, type Rgb } from "../core/palette";
 import { readBands, bandFor, autoBands, durationThresholdIn, type Band } from "../core/bands";
 import { scrollEdges, resolveScrollRestore, isEndClamp, type ScrollSnapshot } from "../core/scroll";
@@ -173,6 +177,8 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     const dateField = readDateField(value);
     const skipField = readSkipField(value, diags);
     const range = readRange(value, diags);
+    const { layout, diagnostics: layoutDiags } = readLayout(value, range);
+    diags.push(...layoutDiags);
     const { perDay, diagnostics: perDayDiags } = readPerDay(value);
     diags.push(...perDayDiags);
 
@@ -245,9 +251,14 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     renderDiagnostics(el, "heatmap", diags);
 
     const firstDay = firstDayOfWeek();
+    // B-133: a calendar day shows a dot per note that painted it, which
+    // `marks` (one collapsed value per day) no longer knows.
+    const dots: CalendarDots | undefined = layout === "calendar"
+        ? { kind: "notes", counts: paintedNotesPerDay(notes, fields, dateField) }
+        : undefined;
     return drawHeatmap(el, ctx, count?.marks ?? marks, {
         color, explicitBands, checkboxBands, field: fieldLabel, linkable, title: value.title, firstDay, special, duration, clock,
-    }, restoreByKey, range);
+    }, restoreByKey, range, dots);
 }
 
 /** `readSource` + `unmatchedSource` + `selectNotes`, in the order every block runs them. */
@@ -327,6 +338,8 @@ function renderLayeredHeatmap(
     const dateField = readDateField(value);
     const skipField = readSkipField(value, diags);
     const range = readRange(value, diags);
+    const { layout, diagnostics: layoutDiags } = readLayout(value, range);
+    diags.push(...layoutDiags);
     const { perDay, diagnostics: perDayDiags } = readPerDay(value);
     diags.push(...perDayDiags);
     const { pick, diagnostics: pickDiags } = readPick(value);
@@ -424,7 +437,9 @@ function renderLayeredHeatmap(
         duration,
         layerDurations,
         layerClocks,
-    }, restoreByKey, range);
+        // B-133: every layer painted that day gets its own dot, whichever
+        // one `pick` let win the cell.
+    }, restoreByKey, range, layout === "calendar" ? { kind: "layers", perLayer: perLayerMarks } : undefined);
 }
 
 /**
@@ -460,12 +475,22 @@ function drawHeatmap(
     opts: GridSharedOptions,
     restoreByKey: Map<string, ScrollSnapshot>,
     range: Period | undefined,
+    dots: CalendarDots | undefined,
 ): void | (() => void) {
     const full: GridSharedOptions & Pick<DrawOptions, "mobile" | "tap"> = {
         ...opts,
         mobile: isMobile(),
         tap: { selectedCell: null, selectedDate: null, status: undefined },
     };
+    // `dots` is only ever set once `readLayout` has settled on a calendar,
+    // which it does only for `range: month` or `range: week`.
+    if (range && dots) {
+        const bounds = calendarWindow(range, ctx.today(), opts.firstDay);
+        if (bounds) {
+            drawCalendar(el, ctx, marks, bounds, dots, full);
+            return;
+        }
+    }
     return range
         ? drawRangeGrid(el, ctx, marks, range, full, restoreByKey)
         : drawYears(el, ctx, marks, full, restoreByKey);
@@ -674,11 +699,7 @@ function drawRangeGrid(
     const dayKeys = eachDayBetween(dateWindow.start, dateWindow.end);
     const stats = captionStats(dayKeys, marks, opts);
 
-    const caption = typeof opts.title === "string"
-        ? opts.title
-        : stats.showAverage
-            ? t("heatmap.captionRange", { field: opts.field, average: stats.average, present: stats.present, total: stats.total })
-            : t("heatmap.captionRangeMarks", { field: opts.field, present: stats.present, total: stats.total });
+    const caption = rangeCaption(opts, stats);
 
     // B-116: the one grid this draws gets its own scale, fitted only to
     // what it itself paints — the same rule a per-year grid follows.
@@ -696,6 +717,119 @@ function drawRangeGrid(
         observers.set(el, [observer]);
         return () => disconnectObservers(el);
     }
+}
+
+/**
+ * A `range` window's caption, the grid's (B-093) and the calendar's (B-133)
+ * alike: the reader's own `title` when given, never with a year suffix,
+ * otherwise the field with its count of days and, where it says something,
+ * the average.
+ */
+function rangeCaption(opts: Pick<DrawOptions, "title" | "field">, stats: CaptionStats): string {
+    if (typeof opts.title === "string") return opts.title;
+    return stats.showAverage
+        ? t("heatmap.captionRange", { field: opts.field, average: stats.average, present: stats.present, total: stats.total })
+        : t("heatmap.captionRangeMarks", { field: opts.field, present: stats.present, total: stats.total });
+}
+
+/**
+ * What a calendar day's dots are counted from (B-133): how many notes
+ * painted each day with a single `field`, or each layer's own marks with
+ * `layers`, so every layer painted that day shows, not only the one that
+ * won the cell.
+ */
+type CalendarDots =
+    | { kind: "notes"; counts: ReadonlyMap<string, number> }
+    | { kind: "layers"; perLayer: readonly ReadonlyMap<string, DayMark>[] };
+
+/**
+ * `layout: calendar` (B-133): the whole current month, or week, as a
+ * calendar. A heading with the month and year, a row of weekday names
+ * starting on the locale's first day, then one cell per day with its number
+ * and a dot per note (or layer) that painted it. Which day sits where, which
+ * days are still ahead and how many dots each gets come from
+ * `core/month-calendar.ts`; this only draws.
+ *
+ * A day up to today behaves as a grid cell does: the same tooltip, the same
+ * link to its note, today's ring, the `skip_field` hatch. A day still ahead
+ * is dimmed and stays a plain cell, no dots and no link: whatever a note
+ * dated there holds has not happened yet. It still hatches, a planned day
+ * off being worth seeing in advance. The caption counts only the days up to
+ * today, the same window and so the same numbers a `range` grid shows.
+ * There is nothing to scroll, so no scroller and no `ResizeObserver`.
+ */
+function drawCalendar(
+    el: HTMLElement,
+    ctx: BlockContext,
+    marks: ReadonlyMap<string, Paintable>,
+    bounds: DateWindow,
+    dots: CalendarDots,
+    opts: GridSharedOptions & Pick<DrawOptions, "mobile" | "tap">,
+): void {
+    const today = ctx.today();
+    const todayKey = dateKey(today);
+    const layout = layoutCalendar(bounds, today, opts.firstDay);
+
+    const wrap = el.createDiv({ cls: "dashy-hm-wrap dashy-hm-calendar" });
+    wrap.createDiv({ cls: "dashy-hm-title", text: rangeCaption(opts, captionStats(layout.pastKeys, marks, opts)) });
+    const months = calendarMonths(bounds);
+    wrap.createDiv({
+        cls: "dashy-hm-cal-month",
+        text: months.to
+            ? t("heatmap.calendarSpan", { from: monthYearShort(months.from), to: monthYearShort(months.to) })
+            : monthYearLong(months.from),
+    });
+
+    const grid = wrap.createDiv({ cls: "dashy-hm-cal" });
+    for (const name of rotateWeekdays(weekdayNamesShort(), opts.firstDay)) {
+        grid.createDiv({ cls: "dashy-hm-cal-wd", text: name });
+    }
+
+    let specialInCalendar = false;
+    for (const slot of layout.weeks.flat()) {
+        if (!slot) {
+            grid.createDiv({ cls: "dashy-hm-cal-day dashy-hm-pad" });
+            continue;
+        }
+        const date = slot.key;
+        const hit = marks.get(date);
+        const paintable = !slot.future && hit?.painted ? hit : undefined;
+        const special = opts.special.has(date);
+        if (special) specialInCalendar = true;
+        const isToday = date === todayKey;
+        const cell = paintable && opts.linkable
+            ? internalLink(grid, paintable.path, "dashy-hm-cal-day")
+            : grid.createDiv({ cls: "dashy-hm-cal-day" });
+        cell.classList.toggle("is-skipped", special);
+        cell.classList.toggle("is-today", isToday);
+        cell.classList.toggle("is-future", slot.future);
+        cell.createDiv({ cls: "dashy-hm-cal-num", text: String(slot.day) });
+
+        const dotColors = dots.kind === "notes"
+            ? Array.from({ length: noteDots(dots.counts.get(date) ?? 0, slot.future) }, () => opts.color)
+            : layerDots(dots.perLayer, date, slot.future).map((i) => opts.layers?.[i]?.color ?? opts.color);
+        const dotRow = cell.createDiv({ cls: "dashy-hm-cal-dots" });
+        for (const rgb of dotColors) dotRow.createSpan({ cls: "dashy-hm-dot" }).style.backgroundColor = rgba(rgb, 1);
+
+        // A day still ahead is not "no data": it simply has not come yet,
+        // so it reads as its date alone, or as a planned day off.
+        const futureLabel = formatDayMedium(parseDateKey(date));
+        const tooltip = slot.future
+            ? (special ? t("heatmap.cellEmptySkipped", { date: futureLabel }) : futureLabel)
+            : cellTooltip(date, paintable, special, isToday, opts);
+        if (paintable) cell.setAttr("aria-label", tooltip);
+        cell.setAttr("title", tooltip);
+        if (opts.mobile) attachTap(cell, date, tooltip, opts);
+    }
+
+    // The grid's own legend rows, less the bands: a calendar day has no
+    // shade for them to explain (`readLayout` already warned about them).
+    if (opts.layers || specialInCalendar) {
+        const legend = wrap.createDiv({ cls: "dashy-hm-legend" });
+        if (opts.layers) drawLayersLegend(legend, opts.layers);
+        if (specialInCalendar) drawSkippedLegend(legend);
+    }
+    attachStatusLine(el, opts);
 }
 
 /**
@@ -847,6 +981,109 @@ function attachStatusLine(el: HTMLElement, opts: Pick<DrawOptions, "mobile" | "t
     opts.tap.status = status;
 }
 
+/** What a cell's tooltip reads besides the day itself: shared by the grid and the calendar (B-133). */
+type TooltipOptions = Pick<DrawOptions, "field" | "duration" | "clock" | "layerDurations" | "layerClocks">;
+
+/**
+ * A day's tooltip, the same text whether the day is a grid cell or a
+ * calendar day (B-133): the locale's medium date (B-092), "Sep 25, 2026"
+ * rather than the bare `YYYY-MM-DD` key, a reader taps or hovers a cell, not
+ * a machine parsing it; then the value(s) and note(s) when the day painted,
+ * "no data" when it did not, and the day-off and today markers.
+ */
+function cellTooltip(
+    date: string,
+    paintable: Paintable | undefined,
+    special: boolean,
+    isToday: boolean,
+    opts: TooltipOptions,
+): string {
+    const dateLabel = formatDayMedium(parseDateKey(date));
+    let tooltip: string;
+    if (paintable) {
+        // Rounded the same way a card would (`roundedValue`, not
+        // `formatValue`): an integer stays exactly as is (a sum of
+        // whole numbers reads "8000", not "8 000"), and a fraction from
+        // `per_day: avg` gets one decimal instead of the sixteen a raw
+        // JS float division produces. `formatValue`'s own digit
+        // grouping is left out on purpose — its narrow no-break space
+        // has no business inside a `title` attribute.
+        let baseTooltip = paintable.parts
+            ? t("heatmap.cellLayers", {
+                date: dateLabel,
+                // Each layer's own "label value" piece goes through
+                // `t()` on its own (`heatmap.cellPart`), same as any
+                // other user-facing text; only the plain ", " between
+                // them is bare punctuation, the same list separator
+                // `fieldLabel`/`fields.join(", ")` already uses above.
+                parts: paintable.parts
+                    .map((p) => t("heatmap.cellPart", {
+                        label: p.label, value: cellValue(
+                            p.value, opts.layerDurations?.[p.layer] ?? false, opts.layerClocks?.[p.layer] ?? false,
+                        ),
+                    }))
+                    .join(", "),
+            })
+            : t("heatmap.cell", { date: dateLabel, field: opts.field, value: cellValue(paintable.value, opts.duration, opts.clock) });
+        // B-092: which note(s) this day's value came from — its name
+        // when there was exactly one, "N notes" when several. Folded
+        // into `baseTooltip` itself, before the day-off/today wrapping
+        // below, so it stays "date: field value (note), day off, today"
+        // rather than landing after them.
+        const note = noteSuffix(paintable.notes);
+        if (note) baseTooltip = t("heatmap.cellWithNote", { cell: baseTooltip, note });
+        // Both markers wrap the same way, applied in this fixed order:
+        // "day off" (B-095) reads as a property of the day's data, the
+        // more immediate fact, and "today" (B-099) as a note about the
+        // day itself, so it comes last — "…, day off, today" rather than
+        // the other way round.
+        tooltip = special ? t("heatmap.cellSkipped", { cell: baseTooltip }) : baseTooltip;
+    } else {
+        tooltip = special ? t("heatmap.cellEmptySkipped", { date: dateLabel }) : t("heatmap.cellEmpty", { date: dateLabel });
+    }
+    if (isToday) tooltip = t("heatmap.cellToday", { cell: tooltip });
+    return tooltip;
+}
+
+/**
+ * B-092: on a phone there is no hover, so the same tooltip text needs a
+ * tap-reachable home. The first tap on a cell shows it on the block's own
+ * status line (`opts.tap`, shared by every grid this render draws — see
+ * `drawHeatmap`) and marks the cell `is-selected`, intercepting the click so
+ * it does not also open the note; a second tap on the SAME cell is left
+ * alone, and Obsidian's own `.internal-link` handling opens it exactly as a
+ * desktop click already does. Called only when `opts.mobile`: on desktop
+ * nothing here runs, and the interaction is unchanged.
+ */
+function attachTap(cell: HTMLElement, date: string, tooltip: string, opts: Pick<DrawOptions, "tap">): void {
+    cell.addEventListener("click", (evt) => {
+        if (opts.tap.selectedDate === date) return;
+        evt.preventDefault();
+        evt.stopPropagation();
+        opts.tap.selectedCell?.classList.remove("is-selected");
+        cell.classList.add("is-selected");
+        opts.tap.selectedCell = cell;
+        opts.tap.selectedDate = date;
+        opts.tap.status?.setText(tooltip);
+    });
+}
+
+/** One legend row per layer, its colour and its label. */
+function drawLayersLegend(legend: HTMLElement, layers: readonly Layer[]): void {
+    for (const layer of layers) {
+        const row = legend.createDiv({ cls: "dashy-hm-leg" });
+        row.createDiv({ cls: "dashy-hm-swatch" }).style.backgroundColor = rgba(layer.color, 1);
+        row.createSpan({ text: layer.label });
+    }
+}
+
+/** The hatch's own legend row (B-095), for a grid or calendar that has a hatched day. */
+function drawSkippedLegend(legend: HTMLElement): void {
+    const row = legend.createDiv({ cls: "dashy-hm-leg" });
+    row.createDiv({ cls: "dashy-hm-swatch is-skipped" });
+    row.createSpan({ text: t("heatmap.legendSkipped") });
+}
+
 function drawGrid(
     el: HTMLElement,
     layout: GridLayout,
@@ -941,14 +1178,10 @@ function drawGrid(
         // paints or hatches exactly as any other day would; only an outline
         // class is added on top.
         cell.classList.toggle("is-today", isToday);
-        // B-092: a locale-appropriate date, "Sep 25, 2026" rather than the
-        // bare `YYYY-MM-DD` key — a reader taps or hovers a cell, not a
-        // machine parsing it. Built once, shared by every branch below.
-        const dateLabel = formatDayMedium(parseDateKey(date));
-        // Hoisted out of the branches below (rather than declared separately
-        // in each, as before) so the mobile tap handling further down can
-        // reuse the exact text a hover already shows, painted or empty.
-        let tooltip: string;
+        // Built once, before the fill below, so the mobile tap handling
+        // further down can reuse the exact text a hover already shows,
+        // painted or empty.
+        const tooltip = cellTooltip(date, paintable, special, isToday, opts);
         if (paintable) {
             // A checkbox winner is always exactly 1, never a real "how
             // much" (B-116, checker round 1): `opts.bands` is fitted from
@@ -969,83 +1202,15 @@ function drawGrid(
             const rgb = opts.layers && paintable.layer !== undefined
                 ? (opts.layers[paintable.layer]?.color ?? opts.color)
                 : opts.color;
-            // Rounded the same way a card would (`roundedValue`, not
-            // `formatValue`): an integer stays exactly as is (a sum of
-            // whole numbers reads "8000", not "8 000"), and a fraction from
-            // `per_day: avg` gets one decimal instead of the sixteen a raw
-            // JS float division produces. `formatValue`'s own digit
-            // grouping is left out on purpose — its narrow no-break space
-            // has no business inside a `title` attribute.
-            let baseTooltip = paintable.parts
-                ? t("heatmap.cellLayers", {
-                    date: dateLabel,
-                    // Each layer's own "label value" piece goes through
-                    // `t()` on its own (`heatmap.cellPart`), same as any
-                    // other user-facing text; only the plain ", " between
-                    // them is bare punctuation, the same list separator
-                    // `fieldLabel`/`fields.join(", ")` already uses above.
-                    parts: paintable.parts
-                        .map((p) => t("heatmap.cellPart", {
-                            label: p.label, value: cellValue(
-                                p.value, opts.layerDurations?.[p.layer] ?? false, opts.layerClocks?.[p.layer] ?? false,
-                            ),
-                        }))
-                        .join(", "),
-                })
-                : t("heatmap.cell", { date: dateLabel, field: opts.field, value: cellValue(paintable.value, opts.duration, opts.clock) });
-            // B-092: which note(s) this day's value came from — its name
-            // when there was exactly one, "N notes" when several. Folded
-            // into `baseTooltip` itself, before the day-off/today wrapping
-            // below, so it stays "date: field value (note), day off, today"
-            // rather than landing after them.
-            const note = noteSuffix(paintable.notes);
-            if (note) baseTooltip = t("heatmap.cellWithNote", { cell: baseTooltip, note });
-            // Both markers wrap the same way, applied in this fixed order:
-            // "day off" (B-095) reads as a property of the day's data, the
-            // more immediate fact, and "today" (B-099) as a note about the
-            // day itself, so it comes last — "…, day off, today" rather than
-            // the other way round.
-            tooltip = special ? t("heatmap.cellSkipped", { cell: baseTooltip }) : baseTooltip;
-            if (isToday) tooltip = t("heatmap.cellToday", { cell: tooltip });
             cell.style.backgroundColor = rgba(rgb, alpha);
             cell.setAttr("aria-label", tooltip);
-            cell.setAttr("title", tooltip);
-        } else {
-            tooltip = special ? t("heatmap.cellEmptySkipped", { date: dateLabel }) : t("heatmap.cellEmpty", { date: dateLabel });
-            if (isToday) tooltip = t("heatmap.cellToday", { cell: tooltip });
-            cell.setAttr("title", tooltip);
         }
-        // B-092: on a phone there is no hover, so the same tooltip text
-        // needs a tap-reachable home. The first tap on a cell shows it on
-        // the block's own status line (`opts.tap`, shared by every grid
-        // this render draws — see `drawHeatmap`) and marks the cell
-        // `is-selected`, intercepting the click so it does not also open
-        // the note; a second tap on the SAME cell is left alone, and
-        // Obsidian's own `.internal-link` handling opens it exactly as a
-        // desktop click already does. Gated on `opts.mobile` alone: on
-        // desktop nothing here runs, and the interaction is unchanged.
-        if (opts.mobile) {
-            cell.addEventListener("click", (evt) => {
-                if (opts.tap.selectedDate === date) return;
-                evt.preventDefault();
-                evt.stopPropagation();
-                opts.tap.selectedCell?.classList.remove("is-selected");
-                cell.classList.add("is-selected");
-                opts.tap.selectedCell = cell;
-                opts.tap.selectedDate = date;
-                opts.tap.status?.setText(tooltip);
-            });
-        }
+        cell.setAttr("title", tooltip);
+        if (opts.mobile) attachTap(cell, date, tooltip, opts);
     }
 
     const legend = wrap.createDiv({ cls: "dashy-hm-legend" });
-    if (opts.layers) {
-        for (const layer of opts.layers) {
-            const row = legend.createDiv({ cls: "dashy-hm-leg" });
-            row.createDiv({ cls: "dashy-hm-swatch" }).style.backgroundColor = rgba(layer.color, 1);
-            row.createSpan({ text: layer.label });
-        }
-    }
+    if (opts.layers) drawLayersLegend(legend, opts.layers);
     if (opts.showBandsLegend) {
         // In `layers` mode `bands` scores whichever layer happens to win
         // each cell, not any one layer in particular — painting this row in
@@ -1063,11 +1228,7 @@ function drawGrid(
     // Only earns its row on a grid that actually has a hatched cell: a
     // `skip_field` set but never triggered anywhere in this grid's window
     // would otherwise add a swatch nothing on the grid explains.
-    if (specialInGrid) {
-        const row = legend.createDiv({ cls: "dashy-hm-leg" });
-        row.createDiv({ cls: "dashy-hm-swatch is-skipped" });
-        row.createSpan({ text: t("heatmap.legendSkipped") });
-    }
+    if (specialInGrid) drawSkippedLegend(legend);
 
     // Where the grid does not fit, open it at the most recent day rather than
     // at its start (9f3db44): on a phone the visible third of a past year is

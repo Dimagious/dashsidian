@@ -178,6 +178,10 @@ export const de: Catalog = {
     "heatmap.pickWithoutLayers": "`pick` wird ignoriert: es wählt nur zwischen `layers`, und dieser Block hat ein einzelnes `field`.",
     "heatmap.rangeInvalid":
         "`range` erwartet week, month, year oder ein rollendes Fenster wie 30d, erhalten „{value}“. Es wird ein Raster pro Jahr gezeichnet.",
+    "heatmap.layoutInvalid": "`layout` erwartet grid oder calendar, erhalten „{value}“. Es wird grid verwendet.",
+    "heatmap.calendarNeedsRange": "`layout: calendar` braucht `range: month` oder `range: week`. Stattdessen wird das Raster gezeichnet.",
+    "heatmap.calendarBandsIgnored": "`bands` wird bei `layout: calendar` ignoriert: ein Tag zeigt Punkte, keine Abstufung.",
+    "heatmap.calendarSpan": "{from} bis {to}",
     "heatmap.caption": "{year}, {field}: Durchschnitt {average}, {present} von {total} Tagen",
     "heatmap.captionMarks": "{year}, {field}: {present} von {total} Tagen",
     "heatmap.captionRange": "{field}: Durchschnitt {average}, {present} von {total} Tagen",

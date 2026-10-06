@@ -131,6 +131,28 @@ export function dayValues(
     return marks;
 }
 
+/**
+ * How many distinct notes painted each day (B-133, a calendar day's dots):
+ * a note counts once it holds at least one of `fields` with a value other
+ * than a boolean `false`, the same rule `dayValues` paints a cell by. A note
+ * whose only contribution is `false` is not counted, unlike `DayMark.notes`,
+ * which lists it. A day with no painting note is absent.
+ */
+export function paintedNotesPerDay(
+    notes: readonly NoteRecord[],
+    fields: readonly string[],
+    dateField?: string,
+): Map<string, number> {
+    const counts = new Map<string, number>();
+    for (const n of notes) {
+        const day = resolveNoteDate(n, dateField);
+        if (day === null) continue;
+        const painted = fields.some((field) => numberAt(n, field) !== null && !isFalseMark(n, field));
+        if (painted) counts.set(day, (counts.get(day) ?? 0) + 1);
+    }
+    return counts;
+}
+
 /** A `field` list of checkboxes counted per day (B-138), ready to draw. */
 export interface CheckboxCount {
     /** the marks to draw: `dayValues`' own with `per_day: sum`, each day's share of ticked boxes with `per_day: avg` */

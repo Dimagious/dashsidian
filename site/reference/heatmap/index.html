@@ -31,7 +31,7 @@
         <div class="props" aria-label="Properties">
           <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
           <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>code block</div><div class="v"><code>heatmap</code></div></div>
-          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">14 on the block, 3 on each layer</div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">15 on the block, 3 on each layer</div></div>
           <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
         </div>
 
@@ -86,7 +86,7 @@ bands: [90, 80, 60]
 
 
         <h2 id="root-keys">Keys on the block</h2>
-        <div class="keys"><a href="#source"><code>source</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#field"><code>field</code></a><a href="#per_day"><code>per_day</code></a><a href="#date_field"><code>date_field</code></a><a href="#skip_field"><code>skip_field</code></a><a href="#color"><code>color</code></a><a href="#layers"><code>layers</code></a><a href="#pick"><code>pick</code></a><a href="#bands"><code>bands</code></a><a href="#link"><code>link</code></a><a href="#range"><code>range</code></a><a href="#title"><code>title</code></a></div>
+        <div class="keys"><a href="#source"><code>source</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#field"><code>field</code></a><a href="#per_day"><code>per_day</code></a><a href="#date_field"><code>date_field</code></a><a href="#skip_field"><code>skip_field</code></a><a href="#color"><code>color</code></a><a href="#layers"><code>layers</code></a><a href="#pick"><code>pick</code></a><a href="#bands"><code>bands</code></a><a href="#link"><code>link</code></a><a href="#range"><code>range</code></a><a href="#layout"><code>layout</code></a><a href="#title"><code>title</code></a></div>
         <div class="keytab-wrap">
           <table class="keytab">
             <thead><tr><th>Key</th><th>What it does</th><th>Type</th><th>Default</th></tr></thead>
@@ -165,9 +165,15 @@ bands: [90, 80, 60]
               </tr>
               <tr id="range">
                 <td class="k"><a class="key" href="#range"><code>range</code></a></td>
-                <td class="d">one grid over a window ending today, instead of a grid per calendar year: <code>week</code>, <code>month</code>, <code>year</code> (1 January of the current year to today) or a rolling count of days like <code>365d</code>. Columns still align to the week the same way; a day outside the window is neither drawn nor counted. An unrecognised value warns and falls back to a grid per year</td>
+                <td class="d">one grid over a window ending today, instead of a grid per calendar year: <code>week</code>, <code>month</code>, <code>year</code> (1 January of the current year to today) or a rolling count of days like <code>365d</code>. Columns still align to the week the same way; a day outside the window is neither drawn nor counted. With <code>layout: calendar</code>, <code>month</code> and <code>week</code> draw the whole month or week as a calendar instead. An unrecognised value warns and falls back to a grid per year</td>
                 <td class="t" data-h="type">text or number</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
+              <tr id="layout">
+                <td class="k"><a class="key" href="#layout"><code>layout</code></a></td>
+                <td class="d"><code>grid</code> (the default) or <code>calendar</code>. <code>calendar</code> works with <code>range: month</code> or <code>range: week</code> only and draws the whole current month (1st to last day) or week as a calendar: weekday columns starting on the locale's first day of the week, the month name and year above (both months for a week that crosses into the next), each day its number with dots under it. Without <code>layers</code>, one dot per note that painted that day, at most 3; with <code>layers</code>, one dot per layer painted that day in its colour, in list order, at most 4, whatever <code>pick</code> says. Days after today are dimmed, with no dots. Tooltips, links, today's ring, <code>skip_field</code> hatching and the caption work as on the grid. <code>bands</code> has nothing to shade there and is ignored with a warning. With any other <code>range</code>, or none, <code>calendar</code> warns and the grid is drawn; an unrecognised value warns and falls back to grid</td>
+                <td class="t" data-h="type">text</td>
+                <td class="v" data-h="default"><code>grid</code></td>
               </tr>
               <tr id="title">
                 <td class="k"><a class="key" href="#title"><code>title</code></a></td>
@@ -217,6 +223,7 @@ bands: [90, 80, 60]
           <li><code>layers</code> replaces <code>field</code> for tracking several activities on one grid, each its own colour: <code>layers: [{field: gym, color: blue}, {field: run, color: green, label: Running}]</code>. When two layers land on the same day, the first one in the list colours the cell, or with <code>pick: max</code> the one with the larger value; the tooltip still lists every layer that has a value that day.</li>
           <li><code>skip_field</code> marks special days, vacation or sick for example: they still show a hatched cell, keeping any painted colour underneath, and their count in the caption is unchanged (a special day with no value is still not present).</li>
           <li><code>range</code> draws one grid over a window ending today instead of a grid per year: <code>range: 365d</code> is a rolling year that crosses 1 January in a single grid rather than splitting into two. Everything else works the same over that one grid: bands, layers, skip_field and its legend row, the caption's count and average, tooltips and links.</li>
+          <li><code>layout: calendar</code> with <code>range: month</code> draws a month calendar of a habit inside the note: <code>range: month</code>, <code>layout: calendar</code> and <code>field: gym</code>, or a few <code>layers</code>. Each day shows its number and a dot per note or layer that painted it; the days still ahead are dimmed.</li>
         </ul>
 
 

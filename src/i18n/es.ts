@@ -178,6 +178,10 @@ export const es: Catalog = {
     "heatmap.pickWithoutLayers": "`pick` se ignora: solo elige entre `layers`, y este bloque tiene un único `field`.",
     "heatmap.rangeInvalid":
         "`range` espera week, month, year o una ventana móvil como 30d, se obtuvo «{value}». Se dibuja una cuadrícula por año.",
+    "heatmap.layoutInvalid": "`layout` espera grid o calendar, se obtuvo «{value}». Se usa grid.",
+    "heatmap.calendarNeedsRange": "`layout: calendar` necesita `range: month` o `range: week`. Se dibuja la cuadrícula en su lugar.",
+    "heatmap.calendarBandsIgnored": "`bands` se ignora con `layout: calendar`: un día muestra puntos, no un tono.",
+    "heatmap.calendarSpan": "{from} a {to}",
     "heatmap.caption": "{year}, {field}: media {average}, {present} de {total} días",
     "heatmap.captionMarks": "{year}, {field}: {present} de {total} días",
     "heatmap.captionRange": "{field}: media {average}, {present} de {total} días",

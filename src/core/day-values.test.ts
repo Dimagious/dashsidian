@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
     dayValues, readFields, readPerDay, unusedFields, isPerDay, PER_DAY, heatmapDurationDiagnostics,
-    checkboxCount,
+    checkboxCount, paintedNotesPerDay,
 } from "./day-values";
 import type { NoteRecord } from "./source";
 
@@ -175,6 +175,36 @@ describe("dayValues — notes (B-092, for a cell's tooltip)", () => {
             note("Diary/2026-01-01 evening.md", { gym: 1 }),
         ];
         expect(dayValues(notes, ["gym"], "sum").get("2026-01-01")?.notes).toHaveLength(2);
+    });
+});
+
+describe("paintedNotesPerDay (B-133, a calendar day's dots)", () => {
+    it("counts each note that painted a day once, however many of its fields did", () => {
+        const counts = paintedNotesPerDay([
+            note("Diary/2026-10-01.md", { gym: true, run: true }),
+            note("Work/2026-10-01.md", { gym: true }),
+            note("Diary/2026-10-02.md", { gym: 30 }),
+        ], ["gym", "run"]);
+        expect([...counts.entries()]).toEqual([["2026-10-01", 2], ["2026-10-02", 1]]);
+    });
+
+    it("a note whose only value is false paints nothing and is not counted; a 0 paints, as on the grid", () => {
+        const counts = paintedNotesPerDay([
+            note("A/2026-10-01.md", { gym: false }),
+            note("B/2026-10-01.md", { gym: 0 }),
+            note("A/2026-10-02.md", { gym: false }),
+        ], ["gym"]);
+        expect([...counts.entries()]).toEqual([["2026-10-01", 1]]);
+    });
+
+    it("skips a note without a date, text and an absent field; reads the date from date_field", () => {
+        const counts = paintedNotesPerDay([
+            note("Diary/no-date.md", { gym: true }),
+            note("Diary/2026-10-01.md", { gym: "went" }),
+            note("Diary/2026-10-02.md", {}),
+            note("Log/entry.md", { gym: true, when: "2026-10-03" }),
+        ], ["gym"], "when");
+        expect([...counts.entries()]).toEqual([["2026-10-03", 1]]);
     });
 });
 
