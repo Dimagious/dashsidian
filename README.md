@@ -70,7 +70,7 @@ and dataviewjs next to it: [a habit tracker without Dataview](https://dimagious.
 Every block reads frontmatter through Obsidian's own metadata cache. Each name below opens its
 page: a picture, an example, every key.
 
-- [`stats`](https://dimagious.github.io/dashsidian/reference/stats/): number cards, or one line of numbers for a page header. Count, sum, average, best and current streak, this week against last.
+- [`stats`](https://dimagious.github.io/dashsidian/reference/stats/): number cards, or one line of numbers for a page header. Count, sum, average, best and current streak, this week against last or against your usual level.
 - [`chart`](https://dimagious.github.io/dashsidian/reference/chart/): a line or bars of a number by day, week, month or year, with a goal line.
 - [`heatmap`](https://dimagious.github.io/dashsidian/reference/heatmap/): a year of days coloured by a number or a checkbox, several habits on one grid.
 - [`progress`](https://dimagious.github.io/dashsidian/reference/progress/): bars towards a goal, like 24 books this year.

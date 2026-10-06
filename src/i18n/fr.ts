@@ -126,7 +126,7 @@ export const fr: Catalog = {
     "period.noteFuture": "Cette fenêtre commence le {date}, il n'y a encore rien à compter.",
     "period.windowSpan": "du {from} au {to}",
 
-    "compare.notBoolean": "{card} : `compare` attend true ou false, reçu « {value} ». Comparaison ignorée.",
+    "compare.notBoolean": "{card} : `compare` attend true, false ou usual, reçu « {value} ». Comparaison ignorée.",
     "compare.needsPeriod": "{card} : `compare` a besoin de `period`. Il n'y a rien avec quoi comparer.",
     "compare.streakUnsupported":
         "{card} : `compare` ne fonctionne pas avec `streak` ni `current_streak`. Une série n'a pas de valeur propre à la période précédente à comparer.",
@@ -145,6 +145,9 @@ export const fr: Catalog = {
     "compare.vsDays.few": "par rapport aux {count} jours précédents : {value}",
     "compare.vsDays.many": "par rapport aux {count} jours précédents : {value}",
     "compare.vsDays.other": "par rapport aux {count} jours précédents : {value}",
+    "compare.usualNeedsAvg": "{card} : `compare: usual` ne fonctionne qu'avec `agg: avg`. Le niveau habituel est une moyenne, aucun écart n'est donc affiché.",
+    "compare.vsUsual": "par rapport à l'habitude : {value}",
+    "compare.noHistory": "aucun historique avant cette période",
 
     "countdown.empty": "Aucune date à dessiner. Attendu : `items:` ou une liste.",
     "countdown.dateRequired": "{card} : ni `date:` ni `field:` n'est défini. Il n'y a rien à décompter.",

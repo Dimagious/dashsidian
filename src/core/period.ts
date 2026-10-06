@@ -153,7 +153,10 @@ function readBounds(raw: Record<string, unknown>, key: string): PeriodReading {
  * on the browser global.
  */
 export interface DateWindow {
-    /** inclusive, YYYY-MM-DD */
+    /**
+     * inclusive, YYYY-MM-DD; `""` means open at the start (`usualWindow`),
+     * which only `filterByWindow` reads: every key compares after it
+     */
     start: string;
     /** inclusive, YYYY-MM-DD: today, or a fixed window's own end when that comes first */
     end: string;
@@ -336,6 +339,17 @@ function previousFixedWindow(period: FixedWindow, today: Date): DateWindow {
 }
 
 /**
+ * Everything before a window starts, for `compare: usual` (B-135): the
+ * card's history, with the window itself left out so this week is not
+ * measured against an average it is part of. Open at the start: every dated
+ * note before the window counts, however old.
+ */
+export function usualWindow(period: Period, today: Date, firstDay: number): DateWindow {
+    const start = parseDateKey(periodWindow(period, today, firstDay).start);
+    return { start: "", end: dateKey(new Date(start.getFullYear(), start.getMonth(), start.getDate() - 1)) };
+}
+
+/**
  * A note's date under `period`. The single resolver in `core/note-date.ts`,
  * re-exported here under its established name: `streak`, `latest` and
  * `trend` (`core/aggregate.ts`) and the heatmap (`blocks/heatmap.ts`) all
@@ -459,7 +473,15 @@ export function dateFieldHasEffect(hasPeriod: boolean, agg?: Agg, hasTrend?: boo
 
 export type BetterDirection = "up" | "down";
 
+/**
+ * What a delta is taken against: the same stretch of the previous period
+ * (`compare: true`), or the card's usual level before the window (`compare:
+ * usual`, B-135).
+ */
+export type CompareAgainst = "previous" | "usual";
+
 export interface CompareSpec {
+    against: CompareAgainst;
     /** which direction of the delta is the good one; unset stays neutral */
     better?: BetterDirection;
 }
@@ -481,6 +503,9 @@ export interface CompareOutcome {
  * refused, the same way `trend` refuses `count` — a streak has no value of
  * its own for the previous period to sit next to, and a current streak in a
  * window that has already ended is always cut off before today.
+ *
+ * `compare: usual` (B-135) takes the delta against the card's average before
+ * the window (`usualWindow`) instead, and works with `agg: avg` only.
  */
 export function readCompare(
     item: Record<string, unknown>,
@@ -496,10 +521,13 @@ export function readCompare(
     const betterGiven = rawBetter !== undefined;
     const better: BetterDirection | undefined = rawBetter === "up" || rawBetter === "down" ? rawBetter : undefined;
 
+    // `compare: usual` (B-135): the delta against the card's usual level.
+    const usual = typeof rawCompare === "string" && rawCompare.trim().toLowerCase() === "usual";
+
     // A non-boolean `compare` (the `yaml` package hands back "yes", "true" or
     // 1 as-is, none of them `true`) drew nothing and warned about nothing —
     // the config looked like it worked and silently did not.
-    if (rawCompare !== undefined && typeof rawCompare !== "boolean") {
+    if (rawCompare !== undefined && typeof rawCompare !== "boolean" && !usual) {
         diagnostics.push({
             level: "warning",
             message: t("compare.notBoolean", { card, value: describeValue(rawCompare) }),
@@ -507,7 +535,7 @@ export function readCompare(
         return { spec: null, diagnostics };
     }
 
-    if (rawCompare !== true) {
+    if (rawCompare !== true && !usual) {
         // `better` next to a `compare` that is missing or false has nothing
         // to colour — the config author asked for a colour rule the block
         // never gets to apply. `compare: false` on its own stays silent.
@@ -517,6 +545,13 @@ export function readCompare(
 
     if (!hasPeriod) {
         diagnostics.push({ level: "warning", message: t("compare.needsPeriod", { card }) });
+        return { spec: null, diagnostics };
+    }
+
+    // The usual level is an average; a usual sum or count depends on how
+    // long the history is, which says nothing about this week.
+    if (usual && agg !== undefined && agg !== "avg") {
+        diagnostics.push({ level: "warning", message: t("compare.usualNeedsAvg", { card }) });
         return { spec: null, diagnostics };
     }
 
@@ -532,7 +567,7 @@ export function readCompare(
         });
     }
 
-    const spec: CompareSpec = {};
+    const spec: CompareSpec = { against: usual ? "usual" : "previous" };
     if (better) spec.better = better;
     return { spec, diagnostics };
 }
@@ -591,6 +626,11 @@ export type DeltaTone = "good" | "bad" | "neutral";
 export function deltaTone(direction: DeltaDirection, better?: BetterDirection): DeltaTone {
     if (direction === "flat" || !better) return "neutral";
     return direction === better ? "good" : "bad";
+}
+
+/** What a `compare: usual` delta compares with, for a tooltip: "vs usual: 85". */
+export function usualCaption(usualText: string): string {
+    return t("compare.vsUsual", { value: usualText });
 }
 
 /**

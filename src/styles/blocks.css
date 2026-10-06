@@ -112,6 +112,8 @@
 }
 .dashy-stat-delta-good { color: var(--dashy-delta-good); }
 .dashy-stat-delta-bad { color: var(--dashy-delta-bad); }
+/* `compare: usual` with no history before the window: a note, not a number */
+.dashy-stat-delta-hint { font-weight: 400; color: var(--text-faint); }
 /* the shape of the last N days: scaled inside its own window, so the bars say
  * how the run moved, not how far it sits from zero */
 .dashy-stat-trend {
