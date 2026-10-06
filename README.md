@@ -30,6 +30,19 @@ Settings → **Community plugins** → **Browse** → search for **Dashy** → I
 Open a note, run **Dashy: Insert block** from the command palette, pick a block. A working
 example lands at the cursor, already pointed at a folder and a property from your own vault.
 
+## Or let your AI agent write it
+
+In Dashy's settings, under **AI agent skill**, the **Install** button on **Skill file in this
+vault** writes a skill for Claude Code, and the one on **AGENTS.md in the vault root** writes the
+same for Codex, Cursor and other agents. Open the vault
+in your agent and say what you want to see. It reads your property names and folders, writes the
+blocks, and you open the note to check.
+
+> Count the books I finished this year against a goal of 24.
+
+Setup, six prompts to copy, and what to do when a block shows an error:
+[build an Obsidian dashboard with an AI agent](https://dimagious.github.io/dashsidian/guides/ai-agent-dashboard/).
+
 ## A habit tracker in two blocks
 
 Tick `gym: true` in a daily note's Properties. Paste this into any other note:
@@ -107,6 +120,7 @@ YAML line gets its line number.
 
 One problem per page, with the notes, the block, and the Bases, Tracker or dataviewjs version beside it:
 
+- [Build an Obsidian dashboard with an AI agent](https://dimagious.github.io/dashsidian/guides/ai-agent-dashboard/)
 - [A habit tracker without Dataview](https://dimagious.github.io/dashsidian/guides/habit-tracker-without-dataview/)
 - [A habit streak that skips weekends](https://dimagious.github.io/dashsidian/guides/streak-weekdays/)
 - [Two activities on one heatmap](https://dimagious.github.io/dashsidian/guides/heatmap-two-activities/)
@@ -116,14 +130,6 @@ One problem per page, with the notes, the block, and the Bases, Tracker or datav
 - [Countdown to a birthday](https://dimagious.github.io/dashsidian/guides/countdown-birthday/)
 - [Books per year: a reading log chart](https://dimagious.github.io/dashsidian/guides/books-per-year/)
 - [A homepage dashboard without code](https://dimagious.github.io/dashsidian/guides/homepage-dashboard/)
-
-## Your AI agent can write these blocks
-
-Two buttons in Dashy's settings write a skill for your agent: a Claude Code skill, or an
-`AGENTS.md` section for Cursor, Codex and the rest. It tells the agent to read your properties
-and folders before writing, which block fits the request, and how to check its work, with a
-reference of every block and key generated from the schema the plugin validates against. Then ask for "weekly distance as bars with a 40 km goal and my current
-streak". [More on the site](https://dimagious.github.io/dashsidian/#agents).
 
 ## What it leaves out
 

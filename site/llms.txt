@@ -21,11 +21,24 @@ Repository: https://github.com/Dimagious/dashsidian
 Community plugin listing: https://community.obsidian.md/plugins/dashsidian
 Plugin id: dashsidian
 
+## For AI agents
+
+Dashy is meant to be written by an agent: the user describes the dashboard,
+the agent reads the vault and writes the blocks. Read the skill first, then
+the key tables of the block you are writing:
+https://raw.githubusercontent.com/Dimagious/dashsidian/master/docs/SKILL.preview.md
+https://raw.githubusercontent.com/Dimagious/dashsidian/master/docs/reference.preview.md
+(In the skill preview, the link to `reference.md` means this second file.)
+
 ## Guides
 
 Step-by-step pages, one problem each, with YAML to copy:
 
 - All guides: https://dimagious.github.io/dashsidian/guides/
+- Build an Obsidian dashboard with an AI agent (install the skill or
+  AGENTS.md from Dashy's settings, open the vault in Claude Code, Codex or
+  Cursor, and six requests in plain words with the blocks they produce):
+  https://dimagious.github.io/dashsidian/guides/ai-agent-dashboard/
 - A habit tracker in Obsidian without Dataview (checkbox properties in daily
   notes become counts, streaks, this week against last, and a year heatmap):
   https://dimagious.github.io/dashsidian/guides/habit-tracker-without-dataview/

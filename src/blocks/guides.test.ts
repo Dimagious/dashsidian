@@ -874,3 +874,61 @@ describe("guide: weekly-review-without-dataview", () => {
         expect(nodes(monday, ".dashy-chart-hit")).toHaveLength(1);
     });
 });
+
+/* ---------------------------------------------------------------- guide 6 */
+
+/**
+ * The vault the AI agent guide's requests are written against: daily notes
+ * from 1 August to today with sleep, runs, rides and three habits, book notes
+ * dated by a `finished` property, and an inbox and projects to tile. In week
+ * 40 (28 September to 4 October, ISO) there are four runs against three the
+ * week before, and sleep drops to 6.5 hours from a usual 7.
+ */
+const AGENT_DIARY = diary("Diary", "2026-08-01", 66, (i) => ({
+    sleep_hours: i >= 58 && i <= 64 ? 6.5 : 7,
+    run: i % 2 === 0,
+    run_km: i % 2 === 0 ? 5 : 0,
+    bike_km: i % 3 === 0 ? 20 : 0,
+    workout: i % 2 === 0,
+    meditation: i % 3 !== 0,
+    reading: true,
+}));
+const AGENT_VAULT: FakeVault = {
+    notes: [
+        ...AGENT_DIARY,
+        { path: "Books/Dune.md", frontmatter: { finished: "2026-03-02" } },
+        { path: "Books/Piranesi.md", frontmatter: { finished: "2026-07-19" } },
+        { path: "Books/Emma.md", frontmatter: { finished: "2025-11-30" } },
+        { path: "Inbox/Call the bank.md", frontmatter: {} },
+        { path: "Projects/Garden.md", frontmatter: {} },
+    ],
+};
+
+describe("guide: ai-agent-dashboard", () => {
+    it("every Dashy block on the page draws without an error or a warning", () => {
+        const blocks = guideBlocks("ai-agent-dashboard");
+        // books, sleep (2), training, home page (3), habit calendar, weekly review
+        expect(blocks.map((b) => b.lang)).toEqual([
+            "progress", "stats", "chart", "heatmap", "today", "tiles", "stats", "heatmap", "stats",
+        ]);
+        for (const { lang, source } of blocks) expectClean(render(lang, source, AGENT_VAULT, W40));
+    });
+
+    it("books: only this year's finished books count towards the goal", () => {
+        const [books] = guideBlocks("ai-agent-dashboard");
+        const el = render("progress", books?.source ?? "", AGENT_VAULT);
+        // Dune and Piranesi; Emma was finished last year.
+        expect(texts(el, ".dashy-progress-value")[0]).toMatch(/^2 \/ 24\b/);
+    });
+
+    it("weekly review: runs against the week before, sleep against the usual level", () => {
+        const review = guideBlocks("ai-agent-dashboard").at(-1);
+        const el = render("stats", review?.source ?? "", AGENT_VAULT, W40);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["4", "6.5"]);
+        expect(nodes(el, ".dashy-stat-delta").map((d) => d.getAttribute("title"))).toEqual([
+            "vs the week before: 3",
+            // `precision: 1` formats the usual level the way it formats the card.
+            "vs usual: 7.0",
+        ]);
+    });
+});
