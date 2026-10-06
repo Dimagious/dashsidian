@@ -217,7 +217,7 @@ describe("readChart: every row of the diagnostics table", () => {
         expect(out.spec).toMatchObject({ type: "line", bucket: "day", range: { kind: "days", days: 30 } });
         expect(out.diagnostics.map((d) => d.message)).toEqual([
             "`bucket` expects day, week, month or year, got \"quarter\". Using day.",
-            "`range` expects week, month, year or a rolling window such as 30d, got \"fortnight\". Using the default for the bucket.",
+            "`range` expects week, month, year, a rolling window such as 30d, note, a period such as 2026-W40, or from and to dates, got \"fortnight\". Using the default for the bucket.",
             "`type` expects line or bar, got \"pie\". Drawing a line.",
         ]);
     });

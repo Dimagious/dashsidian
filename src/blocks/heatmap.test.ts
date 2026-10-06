@@ -3076,7 +3076,7 @@ describe("heatmap — layout: calendar, a month of days with dots (B-133)", () =
     });
 
     it("calendar with range: year, or no range, warns and draws the grid", () => {
-        const message = "`layout: calendar` needs `range: month` or `range: week`. Drawing the grid instead.";
+        const message = "`layout: calendar` needs a month or a week: `range: month`, `range: week`, or one month or week such as `range: 2026-10` or `range: note` in a weekly note. Drawing the grid instead.";
         for (const config of ["source: Diary\nfield: gym\nrange: year\nlayout: calendar", "source: Diary\nfield: gym\nlayout: calendar"]) {
             const el = at(() => map(config, monthCtx));
             expect(diagnostics(el, "warning")).toEqual([`⚠️ heatmap: ${message}`]);

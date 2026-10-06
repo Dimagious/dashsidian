@@ -1,10 +1,10 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { Platform, type App } from "obsidian";
 import { snapshot, noteExists, VaultSnapshot, pathKind, revealFolder } from "./vault";
-import { discoverPeriodics, dailyNoteFormat, noteDateFormats } from "./periodic";
+import { discoverPeriodics, dailyNoteFormat, noteDateFormats, periodNameFormats, periodContext } from "./periodic";
 import {
     formatDate, currentLocale, weekdayNamesShort, monthNamesShort, firstDayOfWeek, monthYearShort, formatDayMedium,
-    formatYear, timeFormats, parseDateWithFormat,
+    formatYear, timeFormats, parseDateWithFormat, parsePeriodStart,
 } from "./datetime";
 import { applyObsidianLocale, applyLocale } from "./locale";
 import { isMobile } from "./platform";
@@ -253,6 +253,59 @@ describe("parseDateWithFormat (B-120)", () => {
         applyLocale("");
         expect(parseDateWithFormat("5 Oktober 2026", "D MMMM YYYY")).toBeNull();
         expect(parseDateWithFormat("5 October 2026", "D MMMM YYYY")).toBe("2026-10-05");
+    });
+});
+
+describe("parsePeriodStart (B-129)", () => {
+    it("returns the first day of the period a name stands for", () => {
+        expect(parsePeriodStart("2026-W40", "GGGG-[W]WW")).toBe("2026-09-28");
+        expect(parsePeriodStart("2026-W40", "gggg-[W]ww")).toBe("2026-09-27");
+        expect(parsePeriodStart("2026-Q4", "YYYY-[Q]Q")).toBe("2026-10-01");
+        expect(parsePeriodStart("2026-10", "YYYY-MM")).toBe("2026-10-01");
+        expect(parsePeriodStart("2026", "YYYY")).toBe("2026-01-01");
+        expect(parsePeriodStart("2026-W40 x", "GGGG-[W]WW")).toBeNull();
+    });
+
+    it("reads in the app's moment locale, not the language picked in Dashy, unlike parseDateWithFormat", () => {
+        applyLocale("de");
+        // German weeks start on Monday; the app's moment (English) starts them on Sunday.
+        expect(firstDayOfWeek()).toBe(1);
+        expect(parsePeriodStart("2026-W40", "gggg-[W]ww")).toBe("2026-09-27");
+        expect(parsePeriodStart("Oktober 2026", "MMMM YYYY")).toBeNull();
+        expect(parsePeriodStart("October 2026", "MMMM YYYY")).toBe("2026-10-01");
+        expect(parseDateWithFormat("1 Oktober 2026", "D MMMM YYYY")).toBe("2026-10-01");
+    });
+});
+
+describe("period name formats (B-129)", () => {
+    it("reads every period's format from Periodic Notes, trimmed, the day falling back to Daily notes", () => {
+        const app = mockApp({
+            periodicNotes: {
+                weekly: { folder: "W", format: " gggg-[W]ww " },
+                monthly: { format: "YYYY-MM" },
+                quarterly: { format: "YYYY-[Q]Q" },
+                yearly: { format: "YYYY" },
+            },
+            dailyNotes: { folder: "Core", format: "DD.MM.YYYY" },
+        });
+        expect(periodNameFormats(app)).toEqual({
+            day: "DD.MM.YYYY", week: "gggg-[W]ww", month: "YYYY-MM", quarter: "YYYY-[Q]Q", year: "YYYY",
+        });
+    });
+
+    it("leaves out what is missing, blank or not text", () => {
+        const app = mockApp({ periodicNotes: { quarterly: { format: "  " }, yearly: { format: 2026 }, weekly: "nope" } });
+        expect(periodNameFormats(app)).toEqual({});
+        expect(periodNameFormats(mockApp())).toEqual({});
+    });
+
+    it("periodContext names the note from its path, and reads a name in those formats", () => {
+        const app = mockApp({ periodicNotes: { weekly: { format: "gggg-[W]ww" } } });
+        const context = periodContext(app, "Periodic/2026-W40.md");
+        expect(context.noteName).toBe("2026-W40");
+        expect(context.names.formats.slice(1, 3).map((f) => f.format)).toEqual(["gggg-[W]ww", "GGGG-[W]WW"]);
+        expect(context.names.parse("2026-W40", "gggg-[W]ww")).toBe("2026-09-27");
+        expect(periodContext(app).noteName).toBeUndefined();
     });
 });
 

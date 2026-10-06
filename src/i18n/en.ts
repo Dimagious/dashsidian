@@ -46,7 +46,7 @@ export const en = {
         "`tag` must be one tag name in text, got `{value}`, so it was ignored and the tag filter is dropped. Name one tag, like `tag: book`.",
 
     "inherit.rootPeriodInvalid":
-        "`period` at the block root expects week, month, year or a rolling window such as 30d, got \"{value}\". Everything that inherits it is drawn unfiltered.",
+        "`period` at the block root expects week, month, year, a rolling window such as 30d, note, a period such as 2026-W40, or from and to dates, got \"{value}\". Everything that inherits it is drawn unfiltered.",
     "inherit.rootDateFieldUndated":
         "`date_field` at the block root: none of the notes selected for {cards} has a date in \"{field}\".",
     "inherit.blankSourceRoot":
@@ -114,12 +114,19 @@ export const en = {
         "`date_format: {format}` fits none of the selected notes: \"{example}\", for one, is not written that way.",
 
     "period.invalid":
-        "{card}: `period` expects week, month, year or a rolling window such as 30d, got \"{value}\". Drawn unfiltered.",
+        "{card}: `period` expects week, month, year, a rolling window such as 30d, note, a period such as 2026-W40, or from and to dates, got \"{value}\". Drawn unfiltered.",
     "period.noDatedNotes":
         "{card}: none of the selected notes has a name starting with a date like YYYY-MM-DD. Set `date_format:` if the names write it another way, like DD.MM.YYYY, or add `date_field:` if the date lives in a property instead.",
     "period.noDatedNotesField": "{card}: none of the selected notes has a date in \"{field}\".",
     "period.dateFieldUnused":
         "{card}: `date_field` has no effect here. It only steers `period`, `streak`, `current_streak`, `latest` and `trend`.",
+    "period.noteNotAPeriod": "`{key}: note` needs a note named like a day, week, month, quarter or year, and this note is \"{name}\". Name it in one of these formats: {formats}.",
+    "period.boundsInvalid": "`{key}` as a map takes `from` and `to`, each a date like 2026-09-01, got \"{value}\".",
+    "period.boundsNoFrom": "`{key}` has `to` but no `from`. A window needs a start: add `from:` with a date like 2026-09-01.",
+    "period.boundsOrder": "`{key}` starts after it ends: `from: {from}` is later than `to: {to}`. Swap them.",
+    "period.atCard": "{card}: {message}",
+    "period.noteFuture": "This window starts on {date}, so there is nothing to count yet.",
+    "period.windowSpan": "{from} to {to}",
 
     "compare.notBoolean": "{card}: `compare` expects true or false, got \"{value}\". Comparison skipped.",
     "compare.needsPeriod": "{card}: `compare` needs `period` set. There is nothing to compare against.",
@@ -130,6 +137,12 @@ export const en = {
     "compare.vsWeek": "vs the same days last week: {value}",
     "compare.vsMonth": "vs the same days last month: {value}",
     "compare.vsYear": "vs the same days last year: {value}",
+    "compare.vsQuarter": "vs the same days last quarter: {value}",
+    "compare.vsPreviousDay": "vs the day before: {value}",
+    "compare.vsPreviousWeek": "vs the week before: {value}",
+    "compare.vsPreviousMonth": "vs the month before: {value}",
+    "compare.vsPreviousQuarter": "vs the quarter before: {value}",
+    "compare.vsPreviousYear": "vs the year before: {value}",
     "compare.vsDays.one": "vs the day before: {value}",
     "compare.vsDays.few": "vs the {count} days before: {value}",
     "compare.vsDays.many": "vs the {count} days before: {value}",
@@ -199,9 +212,9 @@ export const en = {
     "heatmap.pickInvalid": "`pick` expects first or max, got \"{value}\". Using first.",
     "heatmap.pickWithoutLayers": "`pick` is ignored: it only chooses between `layers`, and this block has a single `field`.",
     "heatmap.rangeInvalid":
-        "`range` expects week, month, year or a rolling window such as 30d, got \"{value}\". Drawing a grid per year instead.",
+        "`range` expects week, month, year, a rolling window such as 30d, note, a period such as 2026-W40, or from and to dates, got \"{value}\". Drawing a grid per year instead.",
     "heatmap.layoutInvalid": "`layout` expects grid or calendar, got \"{value}\". Using grid.",
-    "heatmap.calendarNeedsRange": "`layout: calendar` needs `range: month` or `range: week`. Drawing the grid instead.",
+    "heatmap.calendarNeedsRange": "`layout: calendar` needs a month or a week: `range: month`, `range: week`, or one month or week such as `range: 2026-10` or `range: note` in a weekly note. Drawing the grid instead.",
     "heatmap.calendarBandsIgnored": "`bands` is ignored with `layout: calendar`: a day shows dots, not a shade.",
     "heatmap.calendarSpan": "{from} to {to}",
     "heatmap.caption": "{year}, {field}: average {average}, {present} of {total} days",
@@ -251,7 +264,7 @@ export const en = {
     "chart.aggInvalidGuess": "Unknown aggregate \"{value}\". Did you mean \"{guess}\"? Available: {available}.",
     "chart.countIgnoresField": "`agg: count` counts dated notes and reads no `field`. The field is ignored.",
     "chart.countLabel": "notes",
-    "chart.rangeInvalid": "`range` expects week, month, year or a rolling window such as 30d, got \"{value}\". Using the default for the bucket.",
+    "chart.rangeInvalid": "`range` expects week, month, year, a rolling window such as 30d, note, a period such as 2026-W40, or from and to dates, got \"{value}\". Using the default for the bucket.",
     "chart.tooManyBuckets": "The window holds more than {max} buckets, so only the most recent {max} are drawn. Try `bucket: {next}`.",
     "chart.rangeShorterThanBucket": "The window holds a single bucket, so there is no trend to see. Widen `range` or pick a smaller `bucket`.",
     "chart.goalInvalid": "`goal` expects a number or a duration like `7h 30m`, got \"{value}\". Ignored.",
@@ -306,6 +319,7 @@ export const en = {
     "chart.weekOf": "Week of {date}",
     "chart.goalLabel": "goal {value}",
     "chart.emptyRange": "No data in the {span}",
+    "chart.emptyWindow": "No data for {window}",
     "chart.kindLine": "Line chart",
     "chart.kindBar": "Bar chart",
     "chart.summary": "{kind}: {series}, {span}",

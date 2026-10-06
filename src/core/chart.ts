@@ -10,8 +10,10 @@ import type { DayNote } from "./day-values";
 import { readFields } from "./day-values";
 import { numberAt, classifyField, type FieldStatus } from "./aggregate";
 import { resolveNoteDate, readDateField, type DateFormats } from "./note-date";
-import { bucketStart, eachBucket, dateKey, parseDateKey, type BucketSize } from "./calendar";
-import { parsePeriod, periodWindow, type Period } from "./period";
+import { bucketStart, eachBucket, dateKey, daysBetween, parseDateKey, type BucketSize } from "./calendar";
+import {
+    periodWindow, readPeriodValue, windowFirstDay, windowTense, type FixedWindow, type Period, type PeriodContext,
+} from "./period";
 import { assignLayerColors, toRgb, type Rgb } from "./palette";
 import { readThreshold, formatDuration, type Threshold } from "./duration";
 import { roundedValue, formatValue, MAX_PRECISION } from "./stat";
@@ -69,6 +71,16 @@ export interface ChartSeries {
     /** legend and tooltip name: the written `label`, the field name(s), or "notes" for `count` */
     label: string;
     color: Rgb;
+}
+
+/**
+ * The bucket a fixed window gets when `bucket` is not written (B-129): a day
+ * per point up to a month, a week per point up to half a year, a month
+ * beyond. Measured over the whole window, `from` alone to today.
+ */
+export function windowBucket(range: FixedWindow, today: Date): BucketSize {
+    const days = daysBetween(range.start, range.end ?? dateKey(today)) + 1;
+    return days <= 31 ? "day" : days <= 182 ? "week" : "month";
 }
 
 export interface ChartSpec {
@@ -191,10 +203,17 @@ function readSeries(raw: unknown, itemKeys: readonly string[], rootAgg: ChartAgg
  * Errors (nothing sensible to draw): `field` and `series` together, a root
  * `field` list (it would read as two lines and draw one, ADR 0005 log 2),
  * no `field`/`series` unless `agg: count`, a broken `series`, an unknown
- * `agg`. Everything else that is malformed warns and falls back to its
- * default, so the chart is still drawn.
+ * `agg`, a `range` that names a window which cannot be built (B-129).
+ * Everything else that is malformed warns and falls back to its default,
+ * so the chart is still drawn. `context` and `today` read a fixed `range`
+ * and size its default bucket.
  */
-export function readChart(value: Record<string, unknown>, itemKeys: readonly string[]): ChartOutcome {
+export function readChart(
+    value: Record<string, unknown>,
+    itemKeys: readonly string[],
+    context?: PeriodContext,
+    today?: Date,
+): ChartOutcome {
     const diagnostics: Diagnostic[] = [];
     const warn = (message: string): void => {
         diagnostics.push({ level: "warning", message });
@@ -239,18 +258,25 @@ export function readChart(value: Record<string, unknown>, itemKeys: readonly str
         series = [{ fields: [field], agg: rootAgg, label: readLabel(value.label, field, warn), color: toRgb(value.color) }];
     }
 
-    let bucket: BucketSize = "day";
+    let written: BucketSize | undefined;
     if (value.bucket !== undefined) {
-        if (isBucket(value.bucket)) bucket = value.bucket;
+        if (isBucket(value.bucket)) written = value.bucket;
         else warn(t("chart.bucketInvalid", { value: describeValue(value.bucket) }));
     }
 
-    let range = defaultRange(bucket);
+    let given: Period | undefined;
     if (value.range !== undefined) {
-        const period = parsePeriod(value.range);
-        if (period) range = period;
-        else warn(t("chart.rangeInvalid", { value: describeValue(value.range) }));
+        const { period, problem } = readPeriodValue(value.range, "range", context);
+        if (period) given = period;
+        else if (problem) {
+            diagnostics.push({ level: "error", message: problem });
+            ok = false;
+        } else warn(t("chart.rangeInvalid", { value: describeValue(value.range) }));
     }
+    // A written `bucket` wins; a fixed window picks its own by its length.
+    const bucket = written
+        ?? (given?.kind === "fixed" ? windowBucket(given, today ?? parseDateKey(given.end ?? given.start)) : "day");
+    const range = given ?? defaultRange(bucket);
 
     let type: ChartType = "line";
     if (value.type !== undefined) {
@@ -362,6 +388,9 @@ function collapse(values: readonly number[], agg: Exclude<ChartAgg, "count">): n
  * Folds the selected notes into the chart's buckets, one pass over the
  * notes. The window is `range` ending `today`, its start moved back to the
  * start of the bucket it falls in, so only the last bucket can be partial.
+ * A fixed `range` (B-129) counts only its own days, even in a first bucket
+ * that starts before it; a week window starts its weeks on its own first
+ * day; and a window already over has no partial bucket at all.
  * A bucket's value is `agg` over the bag of every value any of the series'
  * fields resolved to on any note dated in it: two notes on one day count
  * twice, the same numbers a `stats` card over that week shows. An empty bag
@@ -377,7 +406,10 @@ export function bucketize(
 ): BucketOutcome {
     const diagnostics: Diagnostic[] = [];
     const bounds = periodWindow(spec.range, today, firstDay);
-    let keys = eachBucket(bucketStart(bounds.start, spec.bucket, firstDay), bounds.end, spec.bucket);
+    const weekStart = windowFirstDay(spec.range, firstDay);
+    const fixed = spec.range.kind === "fixed";
+    const running = windowTense(spec.range, today) === "current";
+    let keys = eachBucket(bucketStart(bounds.start, spec.bucket, weekStart), bounds.end, spec.bucket);
     if (keys.length > MAX_BUCKETS) {
         keys = keys.slice(-MAX_BUCKETS);
         // The next coarser bucket: `bucket: week` itself over ten years of
@@ -389,7 +421,7 @@ export function bucketize(
     if (keys.length < 2) diagnostics.push({ level: "warning", message: t("chart.rangeShorterThanBucket") });
 
     const index = new Map(keys.map((k, i) => [k, i]));
-    const first = keys[0] ?? bounds.end;
+    const first = fixed ? bounds.start : keys[0] ?? bounds.end;
     const bags = keys.map(() => spec.series.map((): number[] => []));
     const counts = keys.map(() => spec.series.map(() => 0));
     const contributors = keys.map(() => new Map<string, DayNote>());
@@ -400,7 +432,7 @@ export function bucketize(
         if (day === null) continue;
         anyDated = true;
         if (day < first || day > bounds.end) continue;
-        const b = index.get(bucketStart(day, spec.bucket, firstDay));
+        const b = index.get(bucketStart(day, spec.bucket, weekStart));
         if (b === undefined) continue;
         let contributed = false;
         spec.series.forEach((series, s) => {
@@ -426,7 +458,7 @@ export function bucketize(
         return {
             key,
             end,
-            partial: b === last && spec.bucket !== "day" && end > bounds.end,
+            partial: running && b === last && spec.bucket !== "day" && end > bounds.end,
             values: spec.series.map((series, s) => (series.agg === "count"
                 ? counts[b]?.[s] ?? 0
                 : collapse(bags[b]?.[s] ?? [], series.agg))),
@@ -482,12 +514,14 @@ function aggText(agg: ChartAgg): string {
  * The heading: `title` when written, otherwise "{label}: {agg} per {bucket},
  * last {n} {buckets}". Several series join their labels; series with
  * different aggregates drop the aggregate word rather than name only one.
+ * `windowText` names a fixed window ("October 2026") in place of "last
+ * {n} {buckets}", which a closed window is not (B-129).
  */
-export function chartCaption(spec: ChartSpec, bucketCount: number): string {
+export function chartCaption(spec: ChartSpec, bucketCount: number, windowText?: string): string {
     if (spec.title !== undefined) return spec.title;
     const label = spec.series.map((s) => s.label).join(", ");
     const per = perText(spec.bucket);
-    const span = spanText(spec.bucket, bucketCount);
+    const span = windowText ?? spanText(spec.bucket, bucketCount);
     const aggs = new Set(spec.series.map((s) => s.agg));
     const first = spec.series[0];
     return aggs.size === 1 && first

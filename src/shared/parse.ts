@@ -37,29 +37,49 @@ export interface ParseOutcome<T> {
  */
 export const KEY_ALIASES: Record<string, string> = buildAliases();
 
+/**
+ * Keys whose value may be a map of its own, by the schema's `map` type:
+ * `period: { from: 2026-09-01, to: 2026-09-30 }` (B-129). That map's keys
+ * belong to the value, not to the block, so no synonym is applied inside
+ * it: `from` is otherwise a synonym of `source`.
+ */
+const MAP_KEYS: ReadonlySet<string> = buildMapKeys();
+
 interface SchemaField {
     aliases?: readonly string[];
+    type?: string;
 }
 
-function buildAliases(): Record<string, string> {
-    // One cast, over data whose shape differs per block: `today` has no item
-    // level, `heatmap` no columns. Typing each block separately would describe
-    // the schema twice over, which is the duplication this is removing.
+/**
+ * Every field of every block level. One cast, over data whose shape differs
+ * per block: `today` has no item level, `heatmap` no columns. Typing each
+ * block separately would describe the schema twice over, which is the
+ * duplication this is removing.
+ */
+function schemaFields(): [string, SchemaField][] {
     const blocks = schema.blocks as unknown as Record<
         string,
         { root?: Record<string, SchemaField>; item?: Record<string, SchemaField> }
     >;
-
-    const out: Record<string, string> = {};
+    const out: [string, SchemaField][] = [];
     for (const block of Object.values(blocks)) {
         for (const level of [block.root, block.item]) {
-            if (!level) continue;
-            for (const [canonical, field] of Object.entries(level)) {
-                for (const alias of field.aliases ?? []) out[alias] = canonical;
-            }
+            if (level) out.push(...Object.entries(level));
         }
     }
     return out;
+}
+
+function buildAliases(): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const [canonical, field] of schemaFields()) {
+        for (const alias of field.aliases ?? []) out[alias] = canonical;
+    }
+    return out;
+}
+
+function buildMapKeys(): Set<string> {
+    return new Set(schemaFields().filter(([, field]) => field.type?.split("|").includes("map")).map(([key]) => key));
 }
 
 /**
@@ -111,8 +131,9 @@ function walk(input: unknown, keep: readonly string[] | undefined, context: KeyC
     const out: Record<string, unknown> = {};
     for (const [rawKey, value] of Object.entries(input as Record<string, unknown>)) {
         const key = canonicalKey(rawKey, keep);
-        // past `items:` the list elements begin — they have their own key set
-        const walked = walk(value, key === "items" ? context.item : keep, context);
+        // past `items:` the list elements begin — they have their own key set;
+        // a map-typed key's own map is taken as written (`MAP_KEYS`)
+        const walked = MAP_KEYS.has(key) && isRecord(value) ? value : walk(value, key === "items" ? context.item : keep, context);
         // Defined, not assigned: `out["__proto__"] = …` would swap the object's
         // prototype, the key would vanish from the unknown-key check and its
         // fields would quietly read through as if they were the block's own.

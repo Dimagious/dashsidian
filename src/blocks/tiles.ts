@@ -1,14 +1,15 @@
 import type { BlockContext } from "./context";
 import { selectNotes, readSelector, readSource, unmatchedSource } from "../core/source";
 import { readDateField } from "../core/note-date";
-import { readPeriod, filterByPeriod, dateFieldHasEffect } from "../core/period";
+import { readPeriod, filterByPeriod, dateFieldHasEffect, futureStart } from "../core/period";
 import { classifyImage } from "../core/image";
 import { tileTarget, type TileTarget } from "../core/folder-tile";
 import { firstDayOfWeek } from "../adapters/datetime";
-import { noteDateFormats } from "../adapters/periodic";
+import { noteDateFormats, periodContext } from "../adapters/periodic";
 import { resolveImage, pathKind, revealFolder } from "../adapters/vault";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
-import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
+import { clearBlock, renderDiagnostics, renderNotices, internalLink } from "../shared/render";
+import { notStartedNotice } from "./window";
 import { t } from "../i18n";
 import schema from "./schema.json";
 
@@ -60,6 +61,10 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
     // measures the same "today".
     const today = ctx.today();
     const firstDay = firstDayOfWeek();
+    // B-129: how `period: note`, `2026-W40` and `from`/`to` are read.
+    const periodCtx = periodContext(ctx.app, ctx.sourcePath);
+    // A badge whose window has not started yet draws nothing and says when it starts.
+    const notices: string[] = [];
 
     // First pass: read every tile into a plain model and collect every
     // diagnostic, root and per-item alike, into one array. Nothing is drawn
@@ -122,8 +127,10 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
             const selected = selectNotes(notes, selection);
 
             const dateField = readDateField(item);
-            const { spec: periodSpec, diagnostics: periodDiags } = readPeriod(item, label, dateField);
+            const { spec: periodSpec, diagnostics: periodDiags, broken } = readPeriod(item, label, dateField, periodCtx);
             diags.push(...periodDiags);
+            const startsOn = periodSpec ? futureStart(periodSpec.period, today) : null;
+            if (startsOn !== null) notices.push(notStartedNotice(startsOn));
 
             // Only `period` reads a note's date here; there is no `streak`,
             // `latest` or `trend` on a tile for `date_field` to steer.
@@ -147,8 +154,11 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
                 counted = windowed.notes;
             }
 
-            const count = counted.length;
-            tile.badge = { text: String(count), empty: count === 0 };
+            // A window that cannot be built, or has not started, has no count to show.
+            if (!broken && startsOn === null) {
+                const count = counted.length;
+                tile.badge = { text: String(count), empty: count === 0 };
+            }
         } else {
             // `tag`, `where`, `period` and `date_field` only mean something
             // next to `badge: count`; a custom badge never counts anything.
@@ -166,6 +176,7 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
     // Diagnostics before the grid: an error or a warning must be seen before
     // the tiles are, the same order every other block draws in.
     renderDiagnostics(el, "tiles", diags);
+    renderNotices(el, notices);
 
     const grid = el.createDiv({ cls: "dashy-tiles" });
     grid.style.setProperty("--dashy-tile-columns", String(Math.max(1, Math.min(8, columns))));

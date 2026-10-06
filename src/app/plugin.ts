@@ -13,6 +13,7 @@ import { renderStats } from "../blocks/stats";
 import { renderToday } from "../blocks/today";
 import { renderTiles } from "../blocks/tiles";
 import { BlockRefresher } from "./refresh";
+import { RenameTrail } from "./renames";
 import { DashyBlock, type Draw } from "./block";
 import { fenceName, registerBlocks } from "./register";
 import { isPluginEnabled } from "../adapters/plugins";
@@ -40,6 +41,8 @@ export default class DashyPlugin extends Plugin {
     private refresher!: BlockRefresher;
     private scheduled: Debouncer<[], void> | null = null;
     private dayRollover!: DayRollover;
+    /** Where a note renamed since its blocks were drawn lives now: `period: note` reads its name. */
+    private readonly renames = new RenameTrail();
 
     async onload(): Promise<void> {
         await this.loadSettings();
@@ -61,7 +64,7 @@ export default class DashyPlugin extends Plugin {
         // that is the expected setup, not something to warn about.
         const { taken, yielded } = registerBlocks(BLOCKS, (name, draw) => {
             this.registerMarkdownCodeBlockProcessor(name, (source, el, ctx) => {
-                ctx.addChild(new DashyBlock(el, this.refresher, draw, () => this.context(), source));
+                ctx.addChild(new DashyBlock(el, this.refresher, draw, () => this.context(this.renames.current(ctx.sourcePath)), source));
             });
         }, (id) => isPluginEnabled(this.app, id));
         if (taken.length > 0) {
@@ -111,14 +114,20 @@ export default class DashyPlugin extends Plugin {
 
         this.registerEvent(this.app.metadataCache.on("resolved", schedule));
         this.registerEvent(this.app.metadataCache.on("changed", schedule));
-        this.registerEvent(this.app.vault.on("create", schedule));
+        this.registerEvent(this.app.vault.on("create", (file) => {
+            this.renames.created(file.path);
+            schedule();
+        }));
         this.registerEvent(this.app.vault.on("delete", schedule));
-        this.registerEvent(this.app.vault.on("rename", schedule));
+        this.registerEvent(this.app.vault.on("rename", (file, oldPath) => {
+            this.renames.renamed(oldPath, file.path);
+            schedule();
+        }));
     }
 
-    /** Built per draw so a block always reads the current settings. */
-    private context(): BlockContext {
-        return buildContext({ app: this.app, notes: () => this.snapshot.get(), settings: this.settings });
+    /** Built per draw so a block always reads the current settings; `sourcePath` is the note the block sits in. */
+    private context(sourcePath: string): BlockContext {
+        return buildContext({ app: this.app, notes: () => this.snapshot.get(), settings: this.settings, sourcePath });
     }
 
     /**

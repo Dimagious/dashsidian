@@ -44,7 +44,7 @@ export const fr: Catalog = {
         "`tag` doit être un seul nom de tag sous forme de texte, reçu `{value}`, la clé a donc été ignorée et aucun filtre par tag ne s'applique. Indiquez un tag, par exemple `tag: book`.",
 
     "inherit.rootPeriodInvalid":
-        "`period` à la racine du bloc attend week, month, year ou une fenêtre glissante comme 30d, reçu « {value} ». Tout ce qui en hérite est dessiné sans la fenêtre.",
+        "`period` à la racine du bloc attend week, month, year, une fenêtre glissante comme 30d, note, une période comme 2026-W40 ou des dates from et to, reçu « {value} ». Tout ce qui en hérite est dessiné sans la fenêtre.",
     "inherit.rootDateFieldUndated":
         "`date_field` à la racine du bloc : aucune des notes sélectionnées pour {cards} n'a de date dans « {field} ».",
     "inherit.blankSourceRoot":
@@ -112,12 +112,19 @@ export const fr: Catalog = {
         "`date_format: {format}` ne correspond à aucune des notes sélectionnées : « {example} », par exemple, n'est pas écrit ainsi.",
 
     "period.invalid":
-        "{card} : `period` attend week, month, year ou une fenêtre glissante comme 30d, reçu « {value} ». Dessiné sans la fenêtre.",
+        "{card} : `period` attend week, month, year, une fenêtre glissante comme 30d, note, une période comme 2026-W40 ou des dates from et to, reçu « {value} ». Dessiné sans la fenêtre.",
     "period.noDatedNotes":
         "{card} : aucune des notes sélectionnées n'a un nom commençant par une date du type YYYY-MM-DD. Définissez `date_format:` si les noms l'écrivent autrement, comme DD.MM.YYYY, ou ajoutez `date_field:` si la date se trouve dans une propriété.",
     "period.noDatedNotesField": "{card} : aucune des notes sélectionnées n'a de date dans « {field} ».",
     "period.dateFieldUnused":
         "{card} : `date_field` n'a aucun effet ici. Il ne pilote que `period`, `streak`, `current_streak`, `latest` et `trend`.",
+    "period.noteNotAPeriod": "`{key}: note` demande une note nommée comme un jour, une semaine, un mois, un trimestre ou une année, et cette note s'appelle « {name} ». Nommez-la dans l'un de ces formats : {formats}.",
+    "period.boundsInvalid": "`{key}` sous forme de map prend `from` et `to`, chacun une date comme 2026-09-01, reçu « {value} ».",
+    "period.boundsNoFrom": "`{key}` a `to` mais pas `from`. Une fenêtre a besoin d'un début : ajoutez `from:` avec une date comme 2026-09-01.",
+    "period.boundsOrder": "`{key}` commence après sa fin : `from: {from}` est postérieur à `to: {to}`. Inversez-les.",
+    "period.atCard": "{card} : {message}",
+    "period.noteFuture": "Cette fenêtre commence le {date}, il n'y a encore rien à compter.",
+    "period.windowSpan": "du {from} au {to}",
 
     "compare.notBoolean": "{card} : `compare` attend true ou false, reçu « {value} ». Comparaison ignorée.",
     "compare.needsPeriod": "{card} : `compare` a besoin de `period`. Il n'y a rien avec quoi comparer.",
@@ -128,6 +135,12 @@ export const fr: Catalog = {
     "compare.vsWeek": "par rapport aux mêmes jours la semaine dernière : {value}",
     "compare.vsMonth": "par rapport aux mêmes jours le mois dernier : {value}",
     "compare.vsYear": "par rapport aux mêmes jours l'année dernière : {value}",
+    "compare.vsQuarter": "par rapport aux mêmes jours le trimestre dernier : {value}",
+    "compare.vsPreviousDay": "par rapport au jour précédent : {value}",
+    "compare.vsPreviousWeek": "par rapport à la semaine précédente : {value}",
+    "compare.vsPreviousMonth": "par rapport au mois précédent : {value}",
+    "compare.vsPreviousQuarter": "par rapport au trimestre précédent : {value}",
+    "compare.vsPreviousYear": "par rapport à l'année précédente : {value}",
     "compare.vsDays.one": "par rapport au jour précédent : {value}",
     "compare.vsDays.few": "par rapport aux {count} jours précédents : {value}",
     "compare.vsDays.many": "par rapport aux {count} jours précédents : {value}",
@@ -191,9 +204,9 @@ export const fr: Catalog = {
     "heatmap.pickInvalid": "`pick` attend first ou max, reçu « {value} ». Utilisation de first.",
     "heatmap.pickWithoutLayers": "`pick` est ignoré : il ne choisit qu'entre des `layers`, et ce bloc a un seul `field`.",
     "heatmap.rangeInvalid":
-        "`range` attend week, month, year ou une fenêtre glissante comme 30d, reçu « {value} ». Une grille par année est dessinée à la place.",
+        "`range` attend week, month, year, une fenêtre glissante comme 30d, note, une période comme 2026-W40 ou des dates from et to, reçu « {value} ». Une grille par année est dessinée à la place.",
     "heatmap.layoutInvalid": "`layout` attend grid ou calendar, reçu « {value} ». grid est utilisé.",
-    "heatmap.calendarNeedsRange": "`layout: calendar` demande `range: month` ou `range: week`. La grille est dessinée à la place.",
+    "heatmap.calendarNeedsRange": "`layout: calendar` demande un mois ou une semaine : `range: month`, `range: week`, ou un seul mois ou une seule semaine comme `range: 2026-10` ou `range: note` dans une note hebdomadaire. La grille est dessinée à la place.",
     "heatmap.calendarBandsIgnored": "`bands` est ignoré avec `layout: calendar` : un jour affiche des points, pas une nuance.",
     "heatmap.calendarSpan": "{from} à {to}",
     "heatmap.caption": "{year}, {field} : moyenne {average}, {present} jours sur {total}",
@@ -238,7 +251,7 @@ export const fr: Catalog = {
     "chart.aggInvalidGuess": "Agrégat inconnu « {value} ». Vouliez-vous dire « {guess} » ? Disponibles : {available}.",
     "chart.countIgnoresField": "`agg: count` compte les notes datées et ne lit aucun `field`. Le champ est ignoré.",
     "chart.countLabel": "notes",
-    "chart.rangeInvalid": "`range` attend week, month, year ou une fenêtre glissante comme 30d, reçu « {value} ». La valeur par défaut du regroupement est utilisée.",
+    "chart.rangeInvalid": "`range` attend week, month, year, une fenêtre glissante comme 30d, note, une période comme 2026-W40 ou des dates from et to, reçu « {value} ». La valeur par défaut du regroupement est utilisée.",
     "chart.tooManyBuckets": "Plus de {max} regroupements dans la fenêtre. Seuls les {max} plus récents sont tracés. Essayez `bucket: {next}`.",
     "chart.rangeShorterThanBucket": "La fenêtre ne contient qu'un seul regroupement, aucune tendance n'est visible. Élargissez `range` ou choisissez un `bucket` plus petit.",
     "chart.goalInvalid": "`goal` attend un nombre ou une durée comme `7h 30m`, reçu « {value} ». Ignoré.",
@@ -293,6 +306,7 @@ export const fr: Catalog = {
     "chart.weekOf": "Semaine du {date}",
     "chart.goalLabel": "objectif {value}",
     "chart.emptyRange": "Aucune donnée : {span}",
+    "chart.emptyWindow": "Aucune donnée : {window}",
     "chart.kindLine": "Graphique en ligne",
     "chart.kindBar": "Graphique en barres",
     "chart.summary": "{kind} : {series}, {span}",

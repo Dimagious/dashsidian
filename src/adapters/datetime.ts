@@ -196,10 +196,30 @@ const PARSED_LIMIT = 20000;
  * `ParseDate` core/note-date.ts is handed.
  */
 export function parseDateWithFormat(text: string, format: string): string | null {
-    const key = `${override ?? m.locale()}\u0000${format}\u0000${text}`;
+    return parseIn(text, format, override);
+}
+
+/**
+ * Reads a periodic note's name in a moment format, strictly (B-129), and
+ * returns the first day of the period it names as `YYYY-MM-DD`: the 1st for
+ * `YYYY-MM`, the first day of the week for `gggg-[W]ww`. The `ParseDate`
+ * core/period-name.ts is handed.
+ *
+ * Always in moment's own locale, the application's, never the language
+ * picked in Dashy's settings: Periodic Notes names its notes with that same
+ * moment, and a locale week (`ww`) only means the seven days it wrote when
+ * read by the same locale (ADR 0006).
+ */
+export function parsePeriodStart(text: string, format: string): string | null {
+    return parseIn(text, format, null);
+}
+
+/** A strict parse in `locale`, or moment's own when null, through the cache above. */
+function parseIn(text: string, format: string, locale: string | null): string | null {
+    const key = `${locale ?? m.locale()}\u0000${format}\u0000${text}`;
     const hit = parsed.get(key);
     if (hit !== undefined) return hit;
-    const at = override ? m(text, format, override, true) : m(text, format, true);
+    const at = locale ? m(text, format, locale, true) : m(text, format, true);
     const day = at.isValid()
         ? `${String(at.year()).padStart(4, "0")}-${String(at.month() + 1).padStart(2, "0")}-${String(at.date()).padStart(2, "0")}`
         : null;

@@ -39,8 +39,8 @@
           "doc": "a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, \"rating >= 4\"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or`. One unreadable condition drops the whole filter with a warning, and the count is drawn unfiltered. Narrows `badge: count`"
         },
         "period": {
-          "type": "string|number",
-          "doc": "narrow `badge: count` to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. Notes without a date are left out first. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages"
+          "type": "string|number|map",
+          "doc": "narrow `badge: count` to a window: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`, all ending today; `note`, the day, week, month, quarter or year the name of the note this block sits in stands for, like `2026-W40`; a period written out the same way: `2026-10-01`, `2026-W40`, `2026-10`, `2026-Q4` or `2026`; or `{ from: 2026-09-01, to: 2026-09-30 }`, both days included, `from` alone running to today. Notes without a date are left out first. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages; a week named like `2026-W40` is the seven days its name stands for"
         },
         "date_field": {
           "type": "string",
@@ -70,7 +70,10 @@
           "doc": "a cover image above the icon and label: a vault path (`Attachments/gym.jpg`), a `[[wikilink]]`, or an `https://` URL. A vault path that does not resolve, or anything other than those three, warns and the tile draws without a cover"
         }
       },
-      "example": "columns: 4\nitems:\n  - { label: Inbox, path: 00-Inbox, icon: 📥, badge: count }\n  - { label: Sport, path: 01-Areas/Sport/Training-Log, icon: 🏆, sub: workouts, accent: true }"
+      "example": "columns: 4\nitems:\n  - { label: Inbox, path: 00-Inbox, icon: 📥, badge: count }\n  - { label: Sport, path: 01-Areas/Sport/Training-Log, icon: 🏆, sub: workouts, accent: true }",
+      "notes": [
+        "`period: note` on a `badge: count` tile counts the notes dated in the day, week, month, quarter or year the name of the note the block sits in stands for: in a note named `2026-W40`, `{ label: Workouts, path: Training, badge: count, period: note }` counts that week's workouts. `period: 2026-10` or `period: { from: 2026-09-01, to: 2026-09-30 }` names the window outright. A note not named for a period is an error; a window that has not started yet shows no badge and says the day it starts."
+      ]
     },
     "stats": {
       "summary": "Number cards: one value per card, computed over a selection of notes.",
@@ -107,7 +110,7 @@
           "doc": "conditions every card must meet, written like a card's `where`. A card's own `where` does not replace it but narrows further: both must hold"
         },
         "period": {
-          "type": "string|number",
+          "type": "string|number|map",
           "doc": "window for every card that sets none of its own, written like a card's `period`. A card's own `period` replaces it"
         },
         "date_field": {
@@ -146,8 +149,8 @@
           "doc": "a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, \"rating >= 4\"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or`. One unreadable condition drops the whole filter with a warning, and the numbers are drawn unfiltered"
         },
         "period": {
-          "type": "string|number",
-          "doc": "narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. Notes without a date are left out first, then every agg, count included, runs on what remains. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages"
+          "type": "string|number|map",
+          "doc": "narrow to a window: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`, all ending today; `note`, the day, week, month, quarter or year the name of the note this block sits in stands for, like `2026-W40`; a period written out the same way: `2026-10-01`, `2026-W40`, `2026-10`, `2026-Q4` or `2026`; or `{ from: 2026-09-01, to: 2026-09-30 }`, both days included, `from` alone running to today. Notes without a date are left out first, then every agg, count included, runs on what remains. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages; a week named like `2026-W40` is the seven days its name stands for"
         },
         "date_field": {
           "type": "string",
@@ -159,7 +162,7 @@
         },
         "compare": {
           "type": "boolean",
-          "doc": "show the delta against the same stretch of the previous period, to date: this week compares against the same weekdays last week, not the whole of last week. Only with `period` set, and not with `agg: streak` or `current_streak`"
+          "doc": "show the delta against the same stretch of the previous period, to date: this week compares against the same weekdays last week, not the whole of last week. A fixed `period` already over compares against the whole period before it, June against all of May; a `from`/`to` against as many days right before `from`. Only with `period` set, and not with `agg: streak` or `current_streak`"
         },
         "better": {
           "type": "string",
@@ -208,7 +211,7 @@
         },
         "trend": {
           "type": "string|number",
-          "doc": "sketch the last N days ending today: `30d`. Needs `field`. Its own trailing window, independent of `period`"
+          "doc": "sketch the last N days ending today, or on the last day of a `period` window already over: `30d`. Needs `field`. Its own trailing window, independent of `period`"
         },
         "icon": {
           "type": "string",
@@ -227,12 +230,13 @@
         "`streak` counts the longest run of consecutive days and `latest` takes the value from the newest note, a tie on the same date broken by path. Both resolve a note's date the same way `period` does, below, and two or more notes landing on the same day count as one day. With a `field:` set, `streak` is a field aggregate like `sum` or `avg`: nothing to count shows a dash, even over an empty selection. Without a `field:` it counts every selected note's own date instead, and reads a plain `0` when there is nothing, the same as `count`. `streak` is the best run on record: label the card \"Best streak\" or \"Longest streak\". `current_streak` is the run going on now, counted back from today by the same rules: label the card \"Current streak\" or \"Days in a row\". Today never breaks it: a day not filled yet leaves the run counted up to yesterday, and only a gap on yesterday or earlier resets it to `0`. It counts within the selection after `period`, `where`, `tag` and `source`, so `period: month` stops it at the first of the month.",
         "`count` over nothing reads a plain `0`, the number of notes found; every other aggregate, and `streak` or `current_streak` with a `field` set, shows a dash instead: \"no data\" and \"zero\" are different answers.",
         "`trend` sketches the days of a trailing window ending today, scaled between the smallest and largest value in that window rather than from zero. A day without a note is left out, not drawn as a zero, and two or more notes on the same day are summed into that one day's bar.",
-        "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not) or with a date in `date_format` or in the Daily notes day format, unless `date_field` names a property instead; a note with no date under either rule is left out before counting.",
+        "`period` narrows to a calendar week, month, year or a rolling `Nd`, ending today, or to a fixed window, below. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not) or with a date in `date_format` or in the Daily notes day format, unless `date_field` names a property instead; a note with no date under either rule is left out before counting.",
         "`compare` needs a note in both windows; when either the current or the previous stretch has none at all, the card shows its number alone with no delta. `streak` and `current_streak` have no value of their own to compare and refuse `compare` outright, the way `trend` refuses `count`.",
         "`at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak` and `current_streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. `skip_field` does the same for a day any note marks special, `vacation: true` or `sick: flu` for example, and combines with `days: weekdays`. All three keys apply to `agg: streak` and `agg: current_streak` only and are ignored on every other aggregate.",
         "`source`, `tag`, `where`, `period`, `date_field` and `date_format` written at the block root, next to `items:`, apply to every card, so a folder shared by the whole block is written once. A card's own `source`, `tag`, `period`, `date_field` or `date_format` replaces the root's for that card; `where` is the exception: the root's conditions and the card's own both hold. A root folder that does not exist, a root `where` or `period` that cannot be read, a blank root `source` or `tag`, a root `date_field` that no note selected under `period` has a date in, or a root `date_format` that none of the notes its cards select fits is reported once for the block, not once per card. A card's own `source:` or `tag:` left empty still replaces the root's, so the card reads the whole vault or drops the tag filter, and it warns: to inherit the root's value, remove the key. Without `items:` the block is a single card and these keys are simply its own.",
         "`layout: inline` draws every card as one item of a single line, its number first and its label after, joined by a middle dot: `items: [{ label: notes, agg: count }, { label: journal entries, source: Journal, agg: count }]` with `layout: inline` reads `1001 notes · 188 journal entries`, so a lowercase label reads best there. A `compare` delta follows the label, coloured the way it is on a card. A narrow pane wraps the line between items, never inside one. A card whose number cannot be computed shows a dash in its place and the rest of the line still draws.",
-        "Daily notes named another way, like `05.10.2026`, are read in the day format set in the Daily notes or Periodic Notes settings, with no key at all. Without that setting, name the format: `date_format: DD.MM.YYYY`. A time after the date is fine (`2026-10-05-14:30`), but an order that could be read two ways, like `05-10-2026`, is never guessed: without a format it is not a date."
+        "Daily notes named another way, like `05.10.2026`, are read in the day format set in the Daily notes or Periodic Notes settings, with no key at all. Without that setting, name the format: `date_format: DD.MM.YYYY`. A time after the date is fine (`2026-10-05-14:30`), but an order that could be read two ways, like `05-10-2026`, is never guessed: without a format it is not a date.",
+        "A weekly review: in a note named `2026-W40`, `period: note` at the block root counts that week and no other, however late the note is opened: `period: note` with `items: [{ label: Gym, field: gym, agg: sum, compare: true }, { label: Sleep, field: sleep_score, agg: avg }]`. A period written out works anywhere: `period: 2026-Q4`, or `period: { from: 2026-06-01, to: 2026-08-31 }` for a season. The name is read in the formats set in Periodic Notes for each period, the day falling back to Daily notes, then as ISO: `YYYY-MM-DD`, `GGGG-[W]WW`, `YYYY-MM`, `YYYY-[Q]Q`, `YYYY`, the day first, so `2026` never takes `2026-10`. A note named otherwise is an error that lists those formats; nothing is guessed. A window already over compares against the whole period before it, June against all of May however long each is; a `from`/`to` against as many days right before `from`; one still running against the same days of the period before, as `period: week` does. `current_streak` counts back from the window's last day, and `trend` ends there. A window that has not started yet, a note on next week, draws no cards, only the day it starts. `period: 2026` is the year 2026; write `2026d` for a count of days."
       ]
     },
     "progress": {
@@ -265,7 +269,7 @@
           "doc": "conditions every bar must meet, written like a bar's `where`. A bar's own `where` does not replace it but narrows further: both must hold"
         },
         "period": {
-          "type": "string|number",
+          "type": "string|number|map",
           "doc": "window for every bar that sets none of its own, written like a bar's `period`. A bar's own `period` replaces it"
         },
         "date_field": {
@@ -312,8 +316,8 @@
           "doc": "a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, \"rating >= 4\"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or`. One unreadable condition drops the whole filter with a warning, and the numbers are drawn unfiltered"
         },
         "period": {
-          "type": "string|number",
-          "doc": "narrow to a window ending today: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`. The goal is measured against the period's value; notes without a date are left out first. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages"
+          "type": "string|number|map",
+          "doc": "narrow to a window: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`, all ending today; `note`, the day, week, month, quarter or year the name of the note this block sits in stands for, like `2026-W40`; a period written out the same way: `2026-10-01`, `2026-W40`, `2026-10`, `2026-Q4` or `2026`; or `{ from: 2026-09-01, to: 2026-09-30 }`, both days included, `from` alone running to today. The goal is measured against the period's value; notes without a date are left out first. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages; a week named like `2026-W40` is the seven days its name stands for"
         },
         "date_field": {
           "type": "string",
@@ -381,10 +385,11 @@
         "Going past the goal is shown as it is, 125% stays 125%; only the bar itself stops at full.",
         "`count` over nothing reads a plain `0` and an empty bar; every other aggregate, and `streak` or `current_streak` with a `field` set, shows a dash instead: \"no data\" and \"zero\" are different answers.",
         "`streak` counts the longest run of consecutive days on record; label the bar \"Best streak\" or \"Longest streak\". `current_streak` counts the run going on now, label it \"Current streak\" or \"Days in a row\": today never breaks it, a day not filled yet leaves the run counted up to yesterday, and only a gap on yesterday or earlier resets it. It counts within the selection after `period`, `where`, `tag` and `source`, so `period: month` stops it at the first of the month.",
-        "`period` narrows to a calendar week, month, year or a rolling `Nd`, always ending today. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not) or with a date in `date_format` or in the Daily notes day format, unless `date_field` names a property instead; a note with no date under either rule is left out before counting.",
+        "`period` narrows to a calendar week, month, year or a rolling `Nd`, ending today, or to a fixed window, below. A note's date is its name, as long as it starts with `YYYY-MM-DD` (`2026-03-02 Monday` counts, `2026-03-021` does not) or with a date in `date_format` or in the Daily notes day format, unless `date_field` names a property instead; a note with no date under either rule is left out before counting.",
         "`at_least`/`at_most` turn `streak` into a threshold: a day counts only when its notes' `field` values, summed for that day, satisfy the bound, `at_least: 5000` on steps for example. `days: weekdays` makes Saturday and Sunday transparent for `streak` and `current_streak`: they neither break the run nor extend it, whatever they hold, so a Friday followed by a Monday is a run of two. `skip_field` does the same for a day any note marks special, `vacation: true` or `sick: flu` for example, and combines with `days: weekdays`. All three keys apply to `agg: streak` and `agg: current_streak` only and are ignored on every other aggregate.",
         "`source`, `tag`, `where`, `period`, `date_field` and `date_format` written at the block root, next to `items:`, apply to every bar, so a folder shared by the whole block is written once. A bar's own `source`, `tag`, `period`, `date_field` or `date_format` replaces the root's for that bar; `where` is the exception: the root's conditions and the bar's own both hold. A root folder that does not exist, a root `where` or `period` that cannot be read, a blank root `source` or `tag`, a root `date_field` that no note selected under `period` has a date in, or a root `date_format` that none of the notes its bars select fits is reported once for the block, not once per bar. A bar's own `source:` or `tag:` left empty still replaces the root's, so the bar reads the whole vault or drops the tag filter, and it warns: to inherit the root's value, remove the key. Without `items:` the block is a single bar and these keys are simply its own.",
-        "Daily notes named another way, like `05.10.2026`, are read in the day format set in the Daily notes or Periodic Notes settings, with no key at all. Without that setting, name the format: `date_format: DD.MM.YYYY`. A time after the date is fine (`2026-10-05-14:30`), but an order that could be read two ways, like `05-10-2026`, is never guessed: without a format it is not a date."
+        "Daily notes named another way, like `05.10.2026`, are read in the day format set in the Daily notes or Periodic Notes settings, with no key at all. Without that setting, name the format: `date_format: DD.MM.YYYY`. A time after the date is fine (`2026-10-05-14:30`), but an order that could be read two ways, like `05-10-2026`, is never guessed: without a format it is not a date.",
+        "A monthly review: in a note named `2026-10`, `period: note` measures the goal against that month and no other: `{ label: Running, field: distance_km, agg: sum, goal: 200, unit: km, period: note }`. `period: 2026-Q4` or `period: { from: 2026-09-01, to: 2026-11-30 }` names a window outright. The name is read in the formats set in Periodic Notes for each period, the day falling back to Daily notes, then as ISO: `YYYY-MM-DD`, `GGGG-[W]WW`, `YYYY-MM`, `YYYY-[Q]Q`, `YYYY`, the day first, so `2026` never takes `2026-10`. A note named otherwise is an error that lists those formats; nothing is guessed. `current_streak` counts back from the window's last day. A window that has not started yet draws no bars, only the day it starts."
       ]
     },
     "today": {
@@ -574,13 +579,13 @@
           "doc": "clicking a cell opens that day's note"
         },
         "range": {
-          "type": "string|number",
-          "doc": "one grid over a window ending today, instead of a grid per calendar year: `week`, `month`, `year` (1 January of the current year to today) or a rolling count of days like `365d`. Columns still align to the week the same way; a day outside the window is neither drawn nor counted. With `layout: calendar`, `month` and `week` draw the whole month or week as a calendar instead. An unrecognised value warns and falls back to a grid per year"
+          "type": "string|number|map",
+          "doc": "one grid over a window instead of a grid per calendar year: `week`, `month`, `year` (1 January of the current year to today) or a rolling count of days like `365d`, all ending today; `note`, the day, week, month, quarter or year the name of the note this block sits in stands for, like `2026-W40`; a period written out the same way: `2026-10-01`, `2026-W40`, `2026-10`, `2026-Q4` or `2026`; or `{ from: 2026-09-01, to: 2026-09-30 }`, both days included, `from` alone running to today. Columns still align to the week the same way, a named week starting on its own first day; a fixed window's caption starts with its name, like `Sep 28, 2026 to Oct 4, 2026`; a day outside the window is neither drawn nor counted. With `layout: calendar`, a month or a week draws the whole month or week as a calendar instead. A window that has not started yet draws no grid, only the day it starts. An unrecognised value warns and falls back to a grid per year; `note` in a note not named for a period, and a `from`/`to` that does not read, are errors"
         },
         "layout": {
           "type": "string",
           "default": "grid",
-          "doc": "`grid` (the default) or `calendar`. `calendar` works with `range: month` or `range: week` only and draws the whole current month (1st to last day) or week as a calendar: weekday columns starting on the locale's first day of the week, the month name and year above (both months for a week that crosses into the next), each day its number with dots under it. Without `layers`, one dot per note that painted that day, at most 3; with `layers`, one dot per layer painted that day in its colour, in list order, at most 4, whatever `pick` says. Days after today are dimmed, with no dots. Tooltips, links, today's ring, `skip_field` hatching and the caption work as on the grid. `bands` has nothing to shade there and is ignored with a warning. With any other `range`, or none, `calendar` warns and the grid is drawn; an unrecognised value warns and falls back to grid"
+          "doc": "`grid` (the default) or `calendar`. `calendar` works with a window of one month or one week only: `range: month` or `range: week` for the current one, or a fixed one such as `range: 2026-10`, `range: 2026-W40`, `range: note` in a monthly or weekly note, or a `from`/`to` of a whole month or of seven days starting on the locale's first day of the week; it draws that whole month (1st to last day) or week as a calendar: weekday columns starting on the locale's first day of the week, the month name and year above (both months for a week that crosses into the next), each day its number with dots under it. Without `layers`, one dot per note that painted that day, at most 3; with `layers`, one dot per layer painted that day in its colour, in list order, at most 4, whatever `pick` says. Days after today are dimmed, with no dots; a month or week already over has none. Tooltips, links, today's ring, `skip_field` hatching and the caption work as on the grid. `bands` has nothing to shade there and is ignored with a warning. With any other `range`, or none, `calendar` warns and the grid is drawn; an unrecognised value warns and falls back to grid"
         },
         "title": {
           "type": "string",
@@ -622,7 +627,8 @@
         "`skip_field` marks special days, vacation or sick for example: they still show a hatched cell, keeping any painted colour underneath, and their count in the caption is unchanged (a special day with no value is still not present).",
         "`range` draws one grid over a window ending today instead of a grid per year: `range: 365d` is a rolling year that crosses 1 January in a single grid rather than splitting into two. Everything else works the same over that one grid: bands, layers, skip_field and its legend row, the caption's count and average, tooltips and links.",
         "`layout: calendar` with `range: month` draws a month calendar of a habit inside the note: `range: month`, `layout: calendar` and `field: gym`, or a few `layers`. Each day shows its number and a dot per note or layer that painted it; the days still ahead are dimmed.",
-        "Daily notes named another way, like `05.10.2026`, are read in the day format set in the Daily notes or Periodic Notes settings, with no key at all. Without that setting, name the format: `date_format: DD.MM.YYYY`. A time after the date is fine (`2026-10-05-14:30`), but an order that could be read two ways, like `05-10-2026`, is never guessed: without a format it is not a date."
+        "Daily notes named another way, like `05.10.2026`, are read in the day format set in the Daily notes or Periodic Notes settings, with no key at all. Without that setting, name the format: `date_format: DD.MM.YYYY`. A time after the date is fine (`2026-10-05-14:30`), but an order that could be read two ways, like `05-10-2026`, is never guessed: without a format it is not a date.",
+        "`range: note` draws the period the note's name stands for: in a note named `2026-10`, `range: note`, `layout: calendar` and `field: gym` draw October as a calendar, and in `2026-W40` the same keys draw that week. `range: 2026` draws a year, `range: { from: 2026-06-01, to: 2026-08-31 }` a summer. The name is read in the formats set in Periodic Notes for each period, the day falling back to Daily notes, then as ISO: `YYYY-MM-DD`, `GGGG-[W]WW`, `YYYY-MM`, `YYYY-[Q]Q`, `YYYY`, the day first, so `2026` never takes `2026-10`. A note named otherwise is an error that lists those formats; nothing is guessed. A week named like `2026-W40` starts on its own first day, whatever the interface language says. A window that has not started yet draws no grid, only the day it starts."
       ]
     },
     "chart": {
@@ -675,11 +681,11 @@
         "bucket": {
           "type": "string",
           "default": "day",
-          "doc": "`day`, `week`, `month` or `year`. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages; a month starts on the 1st, a year on 1 January. A year is labelled with the year alone, like `2024`. An unrecognised value warns and falls back to day"
+          "doc": "`day`, `week`, `month` or `year`. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages; a month starts on the 1st, a year on 1 January. A year is labelled with the year alone, like `2024`. Without it, `day`; with a fixed `range` such as `note`, by the window's length: `day` up to 31 days, `week` up to 182, `month` beyond. An unrecognised value warns and falls back the same way"
         },
         "range": {
-          "type": "string|number",
-          "doc": "the window, ending today: `week`, `month`, `year` (1 January of the current year to today) or a rolling count of days like `90d`. Defaults to `30d` for `day`, `182d` for `week`, `365d` for `month` and `3650d` for `year`. The window's start moves back to the start of the bucket it falls in, so only the last bucket can be partial. Above 400 buckets only the most recent 400 are drawn, and a window of a single bucket is drawn too; both warn. An unrecognised value warns and falls back to the default"
+          "type": "string|number|map",
+          "doc": "the window: `week`, `month`, `year` (1 January of the current year to today) or a rolling count of days like `90d`, all ending today; `note`, the day, week, month, quarter or year the name of the note this block sits in stands for, like `2026-W40`; a period written out the same way: `2026-10-01`, `2026-W40`, `2026-10`, `2026-Q4` or `2026`; or `{ from: 2026-09-01, to: 2026-09-30 }`, both days included, `from` alone running to today. Defaults to `30d` for `day`, `182d` for `week`, `365d` for `month` and `3650d` for `year`. The window's start moves back to the start of the bucket it falls in, so only the last bucket can be partial; a fixed window counts only its own days and, once over, has no partial bucket. Above 400 buckets only the most recent 400 are drawn, and a window of a single bucket is drawn too; both warn. An unrecognised value warns and falls back to the default; `note` in a note not named for a period, and a `from`/`to` that does not read, are errors"
         },
         "type": {
           "type": "string",
@@ -775,7 +781,8 @@
         "The last bucket is usually still running (this week, this month, this year): it is drawn lighter, or as a hollow point on a line, and its tooltip ends with `so far`.",
         "A list in the block's own `field` is an error rather than a guess: write `series:` for several lines, or `series: [{field: [a, b]}]` to fold several properties into one.",
         "Not in this block, on purpose: pie, doughnut, radar and scatter charts, stacked bars, cumulative sums, a second y axis, smoothing and trend lines, zoom, tick and axis settings, annotations, and a height key (the height is the `--dashy-chart-height` CSS variable, which a CSS snippet can change). Steps and sleep on one chart are two chart blocks.",
-        "Daily notes named another way, like `05.10.2026`, are read in the day format set in the Daily notes or Periodic Notes settings, with no key at all. Without that setting, name the format: `date_format: DD.MM.YYYY`. A time after the date is fine (`2026-10-05-14:30`), but an order that could be read two ways, like `05-10-2026`, is never guessed: without a format it is not a date."
+        "Daily notes named another way, like `05.10.2026`, are read in the day format set in the Daily notes or Periodic Notes settings, with no key at all. Without that setting, name the format: `date_format: DD.MM.YYYY`. A time after the date is fine (`2026-10-05-14:30`), but an order that could be read two ways, like `05-10-2026`, is never guessed: without a format it is not a date.",
+        "`range: note` charts the period the note's name stands for: in a weekly note `2026-W40`, `field: steps` and `range: note` draw its seven days. Without `bucket`, a fixed window picks its own: `day` up to 31 days, `week` up to 182, `month` beyond, so a quarter draws weeks and a year months; a single day is one bucket and warns. The heading names the window, `October 2026`, instead of `last 30 days`. A window already over has no `so far` bucket, and only its own days count, even in a first week that starts before it. The name is read in the formats set in Periodic Notes for each period, the day falling back to Daily notes, then as ISO: `YYYY-MM-DD`, `GGGG-[W]WW`, `YYYY-MM`, `YYYY-[Q]Q`, `YYYY`, the day first, so `2026` never takes `2026-10`. A note named otherwise is an error that lists those formats; nothing is guessed. A window that has not started yet draws no chart, only the day it starts."
       ]
     }
   },
