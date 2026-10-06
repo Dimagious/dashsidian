@@ -888,7 +888,8 @@ items:
   - { label: Events, path: Events, icon: 📅, date_field: start, period: 1d, badge: count }
 ```</code></pre>
         </div>
-        <p class="muted" style="font-size:14.5px">These four keys only mean something next to <code>badge: count</code>; on a tile with no badge, or a custom one, they are ignored and warn.</p>
+        <p><code>period</code> takes everything it takes on <code>stats</code>, <code>period: note</code> included: in a weekly note named <code>2026-W40</code>, <code>badge: count</code> counts that week's notes. Notes named like <code>05.10.2026</code> are dated by the day format of the Daily notes or Periodic Notes settings, or by <code>date_format: DD.MM.YYYY</code> on the tile, next to its <code>period</code>.</p>
+        <p class="muted" style="font-size:14.5px">These keys only mean something next to <code>badge: count</code>; on a tile with no badge, or a custom one, they are ignored and warn.</p>
         <p class="muted" style="font-size:14.5px">Tiles as the navigation of a start page, with folder counts: <a href="guides/homepage-dashboard/">a homepage dashboard without code</a>.</p>
         <p class="muted" style="font-size:14.5px">Every key: <a href="reference/tiles/">reference/tiles/</a></p>
       </section>
@@ -926,6 +927,7 @@ items:
           </div>
         </div>
         <p><code>period: week</code>, <code>month</code> or <code>year</code> narrows a card to the current calendar one, ending today; <code>period: 30d</code> is a rolling count of days instead. A note's date is its name, as long as it starts with <code>YYYY-MM-DD</code> (<code>2026-03-02 Monday</code> and <code>2026-03-02_standup</code> both count) or with a date in the Daily notes day format or in <code>date_format: DD.MM.YYYY</code>, unless <code>date_field</code> names a frontmatter date property instead. <code>streak</code>, <code>current_streak</code>, <code>latest</code> and <code>trend</code> resolve a note's date the same way, whether or not <code>period</code> is even set, and two or more notes landing on the same day always count as that one day, not two. <code>compare: true</code> sets a card against the period before it, and <code>compare: usual</code>, on <code>agg: avg</code>, against your usual level: the average of every earlier note.</p>
+        <p>A review note counts its own period. <code>period: note</code> is the day, week, month, quarter or year the note the block sits in is named for: in <code>2026-W40</code> that week, however late you open it. A period can be written out too, <code>period: 2026-Q4</code>, or given as two dates, <code>period: { from: 2026-09-01, to: 2026-09-30 }</code>, both days included. Once such a window is over, <code>current_streak</code> and <code>trend</code> end on its last day, and <code>compare: true</code> sets a week or a month against the whole one before it, June against all of May.</p>
         <p><code>where</code> is a condition on frontmatter: <code>where: "rating &gt;= 4"</code>, <code>where: "tags contains books"</code>. Several conditions must all hold, as a list, <code>where: [year = 2026, "rating &gt;= 4"]</code>, or joined by <code>and</code>, <code>where: "year = 2026 and rating &gt;= 4"</code>. <code>or</code> is not supported: it warns and the filter is ignored.</p>
         <div class="callout quote">
           <div class="callout-title"><svg><use href="#i-quote"/></svg>A dash, not a zero</div>
@@ -939,7 +941,7 @@ items:
       <section class="file" id="progress" data-title="progress" data-path="Blocks / progress">
         <div class="crumb">Blocks/progress.md</div>
         <h2><code class="h-code">progress</code>: how far along</h2>
-        <p>Bars towards a <code>goal</code>. Beating it shows as it is: 110% stays 110%, only the bar stops at full. <code>period</code> and <code>date_field</code> work as they do on <code>stats</code>, narrowing what the goal is measured against and feeding <code>streak</code> and <code>latest</code> too; "Books this year" reads a <code>finished</code> property, since a book is rarely named as a date.</p>
+        <p>Bars towards a <code>goal</code>. Beating it shows as it is: 110% stays 110%, only the bar stops at full. <code>period</code>, <code>date_field</code> and <code>date_format</code> work as they do on <code>stats</code>, <code>period: note</code> included, narrowing what the goal is measured against and feeding <code>streak</code> and <code>latest</code> too; "Books this year" reads a <code>finished</code> property, since a book is rarely named as a date.</p>
         <div class="pair">
           <div class="codeblock" data-code>
             <div class="bar"><span>progress</span><button class="copy" type="button">Copy</button></div>
@@ -1021,6 +1023,7 @@ title: Sleep, last twelve months
           </div>
         </div>
         <p>Two or more notes landing on the same day paint one cell: their values sum, and a ticked or numeric note always outweighs a <code>false</code> one on the same day. A field nothing carries, or one that holds text rather than a number or a checkbox, is an error that says which, rather than an empty grid that looks like a note-taking gap.</p>
+        <p><code>range</code> draws one grid over a window instead of a grid per calendar year: <code>365d</code> rolling across 1 January, <code>range: note</code> for the week or month a review note is named for, a written period like <code>range: 2026-10</code>, or <code>from</code>/<code>to</code> dates. With a month or a week, <code>layout: calendar</code> draws it as a calendar: each day's number with dots under it for the notes or layers that painted it. With <code>layers</code>, <code>pick: max</code> colours a day by the layer with the largest value instead of the first one in the list.</p>
         <p class="muted" style="font-size:14.5px">A checkbox property works as <code>field</code> too: a ticked day paints its cell. That is the whole <a href="#habits">habit tracker</a>. Two habits on one grid, each in its own colour: <a href="guides/heatmap-two-activities/">the <code>layers</code> guide</a>.</p>
         <p class="muted" style="font-size:14.5px">This month as a calendar, a dot under every day you kept a habit: <a href="guides/monthly-habit-calendar/">a monthly habit calendar</a>.</p>
         <p class="muted" style="font-size:14.5px">Every key: <a href="reference/heatmap/">reference/heatmap/</a></p>
@@ -1078,6 +1081,7 @@ series:
           </div>
         </div>
         <p><code>agg</code> turns a bucket into one number: <code>sum</code> by default, or <code>avg</code>, <code>min</code>, <code>max</code>, <code>count</code>. It is one step over every value on every note dated in the bucket, so a week's <code>avg</code> is the same number a <code>stats</code> card with <code>agg: avg, period: week</code> shows. Hover a bar for its value and the note behind it; click a day to open that note. On a phone, the first tap shows the value and a second tap opens the note.</p>
+        <p><code>range: note</code> draws the week or month a review note is named for, and <code>range</code> also takes a written period, <code>range: 2026-10</code>, or two dates, <code>range: { from: 2026-09-01, to: 2026-09-30 }</code>. Without <code>bucket</code>, such a window picks one by its length: by day up to 31 days, by week up to 182, by month beyond. The automatic heading names the window, like October 2026, and once the window is over no bucket is drawn as "so far".</p>
         <p class="muted" style="font-size:14.5px">Ten years of a reading log, one bar a year: <a href="guides/books-per-year/">books per year</a>.</p>
         <p class="muted" style="font-size:14.5px">Every key: <a href="reference/chart/">reference/chart/</a></p>
       </section>
@@ -1192,7 +1196,7 @@ layers: [sleep_score]
 
         <details class="callout">
           <summary class="callout-title"><svg><use href="#i-help"/></svg>Do I need Dataview or any other plugin?<svg class="chev"><use href="#i-right"/></svg></summary>
-          <p>No. Dashy reads frontmatter through Obsidian's own metadata cache. If you use Periodic Notes, the <code>today</code> block reads its folders and formats; it works with the core Daily notes plugin too.</p>
+          <p>No. Dashy reads frontmatter through Obsidian's own metadata cache. If you use Periodic Notes, the <code>today</code> block reads its folders and formats, the other blocks read note dates in its day format, and <code>period: note</code> reads a review note's name in its weekly, monthly, quarterly and yearly formats; it all works with the core Daily notes plugin too.</p>
         </details>
         <details class="callout">
           <summary class="callout-title"><svg><use href="#i-help"/></svg>Does it work on my phone?<svg class="chev"><use href="#i-right"/></svg></summary>
