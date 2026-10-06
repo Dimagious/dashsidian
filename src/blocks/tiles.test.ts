@@ -740,6 +740,92 @@ describe("tiles: a blank path and a selection that is not text (B-160)", () => {
     });
 });
 
+describe("tiles: a path that is not text (B-178)", () => {
+    const fixture = mockContext({
+        notes: [
+            { path: "2024/a.md" },
+            { path: "2024/b.md" },
+            { path: "Other/c.md" },
+        ],
+    });
+    const render = (config: string): HTMLElement => {
+        const el = host();
+        renderTiles(fixture, config, el);
+        return el;
+    };
+
+    it("a number says to quote it; the tile has no link and no count of the whole vault", () => {
+        const el = render("items:\n  - { label: Year, path: 2024, badge: count }");
+        expect(diagnostics(el, "error")).toEqual([
+            '⛔ tiles: "Year": `path` must be a note or folder name in text, got `2024`, so it was ignored: ' +
+                'the tile links nowhere and a `badge: count` on it is not drawn. ' +
+                'Put the name in quotes, as written: `path: "2024"`.',
+        ]);
+        expect(texts(el, ".dashy-tile-label")).toEqual(["Year"]);
+        expect(nodes(el, "a.dashy-tile-link")).toHaveLength(0);
+        expect(nodes(el, ".dashy-tile-badge")).toHaveLength(0);
+    });
+
+    it("quoted, the same path links and counts its folder without a word", () => {
+        const el = render('items:\n  - { label: Year, path: "2024", badge: count }');
+        expect(texts(el, ".dashy-tile-badge")).toEqual(["2"]);
+        expect(nodes(el, ".dashy-tile-link.dashy-tile-folder")).toHaveLength(1);
+        expect(diagnostics(el, "error")).toEqual([]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("a list, a map and a boolean each name the value and ask for one name", () => {
+        const el = render(
+            "items:\n" +
+                "  - { label: L, path: [2024, Other], badge: count }\n" +
+                "  - { label: M, path: { a: 1 } }\n" +
+                "  - { label: B, path: true, badge: count }",
+        );
+        const tail =
+            ", so it was ignored: the tile links nowhere and a `badge: count` on it is not drawn. " +
+            "Name one note or folder, like `path: Journal`.";
+        expect(diagnostics(el, "error")).toEqual([
+            '⛔ tiles: "L": `path` must be one note or folder name in text, got `[2024,"Other"]`' + tail,
+            '⛔ tiles: "M": `path` must be one note or folder name in text, got `{"a":1}`' + tail,
+            '⛔ tiles: "B": `path` must be one note or folder name in text, got `true`' + tail,
+        ]);
+        expect(texts(el, ".dashy-tile-label")).toEqual(["L", "M", "B"]);
+        expect(nodes(el, "a.dashy-tile-link")).toHaveLength(0);
+        expect(nodes(el, ".dashy-tile-badge")).toHaveLength(0);
+    });
+
+    it("without a label the tile is not drawn, but the error still names it", () => {
+        const el = render("items:\n  - { path: 2024, badge: count }\n  - { label: Real, path: Other }");
+        expect(texts(el, ".dashy-tile-label")).toEqual(["Real"]);
+        expect(diagnostics(el, "error")).toHaveLength(1);
+        expect(diagnostics(el, "error")[0]).toContain("a card with no label: `path` must be a note or folder name");
+    });
+
+    it("a count tile with a bad path does not warn about its tag or period being unused", () => {
+        const el = render("items:\n  - { label: Y, path: 2024, tag: x, period: week, badge: count }");
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(diagnostics(el, "error")).toHaveLength(1);
+    });
+
+    it("a custom badge is still printed next to a bad path", () => {
+        const el = render("items:\n  - { label: Y, path: 2024, badge: soon }");
+        expect(texts(el, ".dashy-tile-badge")).toEqual(["soon"]);
+        expect(diagnostics(el, "error")).toHaveLength(1);
+    });
+
+    it("a path of only spaces is still no path, not an error", () => {
+        const el = render('items:\n  - { label: A, path: "  ", badge: count }');
+        expect(diagnostics(el, "error")).toEqual([]);
+        expect(nodes(el, "a.dashy-tile-link")).toHaveLength(0);
+    });
+
+    it("an empty path is the blank case, not an error", () => {
+        const el = render("items:\n  - { label: A, path: }");
+        expect(diagnostics(el, "error")).toEqual([]);
+        expect(nodes(el, "a.dashy-tile-link")).toHaveLength(0);
+    });
+});
+
 describe("tiles — a period over daily notes named another way (B-120)", () => {
     it("the Daily notes day format decides which notes fall in the window", () => {
         const notes = [
