@@ -124,7 +124,7 @@ export const ru: Catalog = {
     "period.noteFuture": "Это окно начинается {date}, считать пока нечего.",
     "period.windowSpan": "с {from} по {to}",
 
-    "compare.notBoolean": "{card}: `compare` ожидает true или false, получено «{value}». Сравнение пропущено.",
+    "compare.notBoolean": "{card}: `compare` ожидает true, false или usual, получено «{value}». Сравнение пропущено.",
     "compare.needsPeriod": "{card}: `compare` работает только вместе с `period`. Сравнивать не с чем.",
     "compare.streakUnsupported":
         "{card}: `compare` не работает со `streak` и `current_streak`. У серии нет отдельного значения за предыдущий период для сравнения.",
@@ -143,6 +143,9 @@ export const ru: Catalog = {
     "compare.vsDays.few": "за предыдущие {count} дня: {value}",
     "compare.vsDays.many": "за предыдущие {count} дней: {value}",
     "compare.vsDays.other": "за предыдущие {count} дней: {value}",
+    "compare.usualNeedsAvg": "{card}: `compare: usual` работает только с `agg: avg`. Обычный уровень считается как среднее, поэтому разница не показана.",
+    "compare.vsUsual": "относительно обычного: {value}",
+    "compare.noHistory": "до этого периода данных нет",
 
     "countdown.empty": "Список дат пуст. Ожидается `items:` или массив.",
     "countdown.dateRequired": "{card}: не задан ни `date:`, ни `field:`. Не до чего считать.",

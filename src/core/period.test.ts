@@ -5,11 +5,14 @@ import {
     previousPeriodWindow,
     noteDate,
     filterByPeriod,
+    filterByWindow,
     readPeriod,
     readCompare,
     formatDelta,
     deltaTone,
     compareCaption,
+    usualCaption,
+    usualWindow,
     dateFieldHasEffect,
 } from "./period";
 import type { NoteRecord } from "./source";
@@ -461,13 +464,13 @@ describe("readCompare", () => {
 
     it("compare: true next to a working period turns it on", () => {
         const { spec, diagnostics } = readCompare({ compare: true }, "Gym", true);
-        expect(spec).toEqual({});
+        expect(spec).toEqual({ against: "previous" });
         expect(diagnostics).toHaveLength(0);
     });
 
     it("a valid better rides along", () => {
         const { spec } = readCompare({ compare: true, better: "up" }, "Gym", true);
-        expect(spec).toEqual({ better: "up" });
+        expect(spec).toEqual({ against: "previous", better: "up" });
     });
 
     it("compare without a working period warns and stays off", () => {
@@ -494,7 +497,7 @@ describe("readCompare", () => {
 
     it("an unrecognised better warns and the delta stays neutral", () => {
         const { spec, diagnostics } = readCompare({ compare: true, better: "sideways" }, "Gym", true);
-        expect(spec).toEqual({});
+        expect(spec).toEqual({ against: "previous" });
         expect(diagnostics).toHaveLength(1);
         expect(diagnostics[0]?.message).toContain("sideways");
     });
@@ -547,9 +550,85 @@ describe("readCompare", () => {
     it("every other aggregate, including latest, is left alone", () => {
         for (const agg of ["count", "sum", "avg", "min", "max", "latest"] as const) {
             const { spec, diagnostics } = readCompare({ compare: true }, "Card", true, agg);
-            expect(spec, agg).toEqual({});
+            expect(spec, agg).toEqual({ against: "previous" });
             expect(diagnostics, agg).toHaveLength(0);
         }
+    });
+});
+
+describe("readCompare — compare: usual (B-135)", () => {
+    it("turns on the usual comparison with avg, and better rides along", () => {
+        const { spec, diagnostics } = readCompare({ compare: "usual", better: "up" }, "Sleep", true, "avg");
+        expect(spec).toEqual({ against: "usual", better: "up" });
+        expect(diagnostics).toEqual([]);
+    });
+
+    it("reads the word whatever its case and surrounding space", () => {
+        expect(readCompare({ compare: " Usual " }, "Sleep", true, "avg").spec).toEqual({ against: "usual" });
+    });
+
+    it.each(["count", "sum", "min", "max", "latest", "streak", "current_streak"] as const)(
+        "refuses %s with a warning that the usual level is an average", (agg) => {
+            const { spec, diagnostics } = readCompare({ compare: "usual" }, "Sleep", true, agg);
+            expect(spec).toBeNull();
+            expect(diagnostics.map((d) => d.message)).toEqual([
+                '"Sleep": `compare: usual` works only with `agg: avg`. The usual level is an average, so no delta is drawn.',
+            ]);
+        });
+
+    it("an agg that did not parse is not blamed a second time", () => {
+        expect(readCompare({ compare: "usual" }, "Sleep", true, undefined).spec).toEqual({ against: "usual" });
+    });
+
+    it("still needs a period, before anything about the aggregate", () => {
+        const { spec, diagnostics } = readCompare({ compare: "usual" }, "Sleep", false, "sum");
+        expect(spec).toBeNull();
+        expect(diagnostics.map((d) => d.message)).toEqual([
+            '"Sleep": `compare` needs `period` set. There is nothing to compare against.',
+        ]);
+    });
+
+    it("any other word still warns, and the message lists usual", () => {
+        const { spec, diagnostics } = readCompare({ compare: "normal" }, "Sleep", true, "avg");
+        expect(spec).toBeNull();
+        expect(diagnostics.map((d) => d.message)).toEqual([
+            '"Sleep": `compare` expects true, false or usual, got "normal". Comparison skipped.',
+        ]);
+    });
+});
+
+describe("usualWindow", () => {
+    // Thursday 24 September 2026.
+    const TODAY = new Date(2026, 8, 24);
+
+    it("ends the day before a running week starts, and is open at the start", () => {
+        expect(usualWindow({ kind: "week" }, TODAY, 0)).toEqual({ start: "", end: "2026-09-19" });
+        expect(usualWindow({ kind: "week" }, TODAY, 1)).toEqual({ start: "", end: "2026-09-20" });
+    });
+
+    it("crosses a month and a year boundary by the calendar", () => {
+        expect(usualWindow({ kind: "month" }, TODAY, 1)).toEqual({ start: "", end: "2026-08-31" });
+        expect(usualWindow({ kind: "year" }, TODAY, 1)).toEqual({ start: "", end: "2025-12-31" });
+        expect(usualWindow({ kind: "days", days: 7 }, TODAY, 1)).toEqual({ start: "", end: "2026-09-17" });
+    });
+
+    it("a fixed window, closed or not, ends the day before its own start; what came after never counts", () => {
+        const w40 = { kind: "fixed" as const, unit: "week" as const, start: "2026-09-28", end: "2026-10-04" };
+        expect(usualWindow(w40, new Date(2026, 9, 20), 0)).toEqual({ start: "", end: "2026-09-27" });
+        const march = { kind: "fixed" as const, unit: "month" as const, start: "2026-03-01", end: "2026-03-31" };
+        expect(usualWindow(march, TODAY, 1)).toEqual({ start: "", end: "2026-02-28" });
+    });
+
+    it("keeps every dated note before the window, however old, and none from the window itself", () => {
+        const notes = [note("1999-01-01"), note("2026-09-19"), note("2026-09-20"), note("undated")];
+        const bounds = usualWindow({ kind: "days", days: 1 }, new Date(2026, 8, 20), 0);
+        expect(filterByWindow(notes, bounds).notes.map((n) => n.name)).toEqual(["1999-01-01", "2026-09-19"]);
+    });
+});
+
+describe("usualCaption", () => {
+    it("names the usual level and carries its value", () => {
+        expect(usualCaption("85")).toBe("vs usual: 85");
     });
 });
 

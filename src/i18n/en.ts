@@ -128,7 +128,7 @@ export const en = {
     "period.noteFuture": "This window starts on {date}, so there is nothing to count yet.",
     "period.windowSpan": "{from} to {to}",
 
-    "compare.notBoolean": "{card}: `compare` expects true or false, got \"{value}\". Comparison skipped.",
+    "compare.notBoolean": "{card}: `compare` expects true, false or usual, got \"{value}\". Comparison skipped.",
     "compare.needsPeriod": "{card}: `compare` needs `period` set. There is nothing to compare against.",
     "compare.streakUnsupported":
         "{card}: `compare` does not work with `streak` or `current_streak`. There is no separate value from the previous period to compare a streak against.",
@@ -147,6 +147,9 @@ export const en = {
     "compare.vsDays.few": "vs the {count} days before: {value}",
     "compare.vsDays.many": "vs the {count} days before: {value}",
     "compare.vsDays.other": "vs the {count} days before: {value}",
+    "compare.usualNeedsAvg": "{card}: `compare: usual` works only with `agg: avg`. The usual level is an average, so no delta is drawn.",
+    "compare.vsUsual": "vs usual: {value}",
+    "compare.noHistory": "no history before this period",
 
     "countdown.empty": "No dates to draw. Expected `items:` or a list.",
     "countdown.dateRequired": "{card}: neither `date:` nor `field:` is set. There is nothing to count down to.",

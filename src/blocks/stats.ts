@@ -15,6 +15,8 @@ import {
     filterByPeriod,
     filterByWindow,
     previousPeriodWindow,
+    usualWindow,
+    usualCaption,
     formatDelta,
     deltaTone,
     compareCaption,
@@ -58,6 +60,8 @@ interface Card {
     trend: number[];
     /** unset when `compare` was not asked for, or either side had nothing to count */
     delta?: Delta;
+    /** `compare: usual` with no history before the window: a muted line instead of a delta */
+    deltaHint?: string;
 }
 
 export function renderStats(ctx: BlockContext, source: string, el: HTMLElement): void {
@@ -259,20 +263,31 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         // the aggregate — a phantom delta against a made-up 0 is worse than
         // no delta. `current !== null` still covers a field aggregate whose
         // window has notes but none carrying the field.
+        //
+        // `compare: usual` (B-135) takes the same aggregate over everything
+        // in the selection dated before the window instead: the card's
+        // history, without the window it is measured against.
         if (compareSpec && periodSpec && spec && counted.length && current !== null) {
-            const previousBounds = previousPeriodWindow(periodSpec.period, today, firstDay);
+            const usual = compareSpec.against === "usual";
+            const previousBounds = usual
+                ? usualWindow(periodSpec.period, today, firstDay)
+                : previousPeriodWindow(periodSpec.period, today, firstDay);
             const previousFiltered = filterByWindow(selected, previousBounds, periodSpec.dateField, formats);
             const previous = previousFiltered.notes.length
                 ? aggregate(previousFiltered.notes, { agg: spec.agg, field: spec.field, dateField, formats })
                 : null;
             if (previous !== null) {
                 const format = formatDelta(current, previous, spec.precision, duration, clock);
+                const previousText = formatReading(previous, spec.precision, duration, clock);
                 card.delta = {
                     arrow: format.arrow,
                     text: format.text,
                     tone: deltaTone(format.direction, compareSpec.better),
-                    title: compareCaption(periodSpec.period, formatReading(previous, spec.precision, duration, clock), today),
+                    title: usual ? usualCaption(previousText) : compareCaption(periodSpec.period, previousText, today),
                 };
+            } else if (usual) {
+                // No history yet is not a mistake, only nothing to compare with.
+                card.deltaHint = t("compare.noHistory");
             }
         }
 
@@ -325,6 +340,8 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
             // the meaning, so a screen reader loses nothing by skipping it.
             deltaEl.createSpan({ cls: "dashy-stat-delta-arrow", attr: { "aria-hidden": "true" }, text: card.delta.arrow });
             deltaEl.appendText(` ${card.delta.text}`);
+        } else if (card.deltaHint) {
+            box.createDiv({ cls: "dashy-stat-delta dashy-stat-delta-hint", text: card.deltaHint });
         }
 
         if (card.trend.length) {
@@ -364,6 +381,8 @@ function renderInline(el: HTMLElement, cards: readonly Card[]): void {
         }
         const isEmpty = card.text === "—";
         const valueEl = item.createSpan({ cls: isEmpty ? "dashy-stat-inline-value is-empty" : "dashy-stat-inline-value" });
+        // A visible hint would overflow a nowrap item in a narrow pane; here it is a tooltip.
+        if (card.deltaHint) valueEl.setAttribute("title", card.deltaHint);
         // Plain text, not renderGroupedValue: its <wbr> stays a break point even
         // under nowrap in Chromium, which would tear "14 500" from its label.
         valueEl.appendText(card.text);

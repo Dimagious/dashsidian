@@ -116,6 +116,26 @@ items:
     },
     {
         block: "stats",
+        title: "stats — против обычного уровня (compare: usual)",
+        source: `source: Diary
+items:
+  - { label: Сон за неделю, field: sleep_score, agg: avg, period: week, compare: usual, better: up }
+  - { label: Сон за неделю, field: sleep_duration, agg: avg, period: week, compare: usual, better: up }
+  - { label: Обзор недели, field: sleep_score, agg: avg, period: LAST_WEEK, compare: usual, better: up }
+  - { label: Без истории, field: sleep_score, agg: avg, period: 200d, compare: usual }
+  - { label: Не среднее, field: steps, agg: sum, period: week, compare: usual }`,
+    },
+    {
+        block: "stats",
+        title: "stats — в одну строку против обычного (compare: usual)",
+        source: `layout: inline
+source: Diary
+items:
+  - { label: сон за неделю, field: sleep_score, agg: avg, period: week, compare: usual, better: up }
+  - { label: без истории, field: sleep_score, agg: avg, period: 200d, compare: usual }`,
+    },
+    {
+        block: "stats",
         title: "stats — неделя ещё не началась (period: NEXT_WEEK)",
         source: `source: Diary
 period: NEXT_WEEK
