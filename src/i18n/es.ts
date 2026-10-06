@@ -62,7 +62,8 @@ export const es: Catalog = {
 
     "tiles.empty": "No hay mosaicos que dibujar. Se espera `items:` o una lista.",
     "tiles.dateFieldUnused": "{card}: `date_field` no tiene efecto sin `period`.",
-    "tiles.selectionUnused": "{card}: `tag`, `where`, `period` y `date_field` solo acotan `badge: count`.",
+    "tiles.dateFormatUnused": "{card}: `date_format` no tiene efecto sin `period`.",
+    "tiles.selectionUnused": "{card}: `tag`, `where`, `period`, `date_field` y `date_format` solo se aplican a `badge: count`.",
     "tiles.imageMissing": "{card}: imagen «{path}» no encontrada.",
     "tiles.imageUnsupported":
         "{card}: `image` espera una ruta del almacén, un `[[wikienlace]]` o una URL `https://`, recibido «{value}».",

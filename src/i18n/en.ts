@@ -64,7 +64,8 @@ export const en = {
 
     "tiles.empty": "No tiles to draw. Expected `items:` or a list.",
     "tiles.dateFieldUnused": "{card}: `date_field` has no effect without `period`.",
-    "tiles.selectionUnused": "{card}: `tag`, `where`, `period` and `date_field` only narrow `badge: count`.",
+    "tiles.dateFormatUnused": "{card}: `date_format` has no effect without `period`.",
+    "tiles.selectionUnused": "{card}: `tag`, `where`, `period`, `date_field` and `date_format` only apply to `badge: count`.",
     "tiles.imageMissing": "{card}: image \"{path}\" was not found.",
     "tiles.imageUnsupported":
         "{card}: `image` expects a vault path, a `[[wikilink]]`, or an `https://` URL, got \"{value}\".",

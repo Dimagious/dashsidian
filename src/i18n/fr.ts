@@ -62,7 +62,8 @@ export const fr: Catalog = {
 
     "tiles.empty": "Aucune tuile à dessiner. Attendu : `items:` ou une liste.",
     "tiles.dateFieldUnused": "{card} : `date_field` n'a aucun effet sans `period`.",
-    "tiles.selectionUnused": "{card} : `tag`, `where`, `period` et `date_field` ne font que restreindre `badge: count`.",
+    "tiles.dateFormatUnused": "{card} : `date_format` n'a aucun effet sans `period`.",
+    "tiles.selectionUnused": "{card} : `tag`, `where`, `period`, `date_field` et `date_format` ne s'appliquent qu'à `badge: count`.",
     "tiles.imageMissing": "{card} : image « {path} » introuvable.",
     "tiles.imageUnsupported":
         "{card} : `image` attend un chemin du coffre, un `[[wikilien]]` ou une URL `https://`, reçu « {value} ».",
