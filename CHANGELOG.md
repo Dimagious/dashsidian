@@ -92,8 +92,45 @@ removed public export.
   `tiles`, `heatmap`, `chart` and a `countdown` `field` now name
   `date_format` next to `date_field`. A `date_field` value with a time after a hyphen,
   `2026-10-05-14:30`, now reads as its day, the way a name already did.
+- **A window taken from the note, for reviews of a past week, month or
+  year.** `period: note` on `stats` and `progress` (on a card, or at the
+  block root for every card) and on a `tiles` count badge, and `range: note`
+  on `heatmap` and `chart`, count the day, week, month, quarter or year the
+  name of the note the block sits in stands for: in a note named `2026-W40`
+  that week and no other, however late the note is opened. The name is read
+  in the formats set in Periodic Notes for each period, the day falling back
+  to Daily notes, then as `YYYY-MM-DD`, `GGGG-[W]WW`, `YYYY-MM`, `YYYY-[Q]Q`
+  or `YYYY`, strictly and the day first, so `2026` never takes `2026-10`. A
+  locale week like `gggg-[W]ww` is the seven days Periodic Notes named, even
+  when the interface language starts its weeks on another day. A note named
+  otherwise is an error listing those formats, and its cards and bars show a
+  dash. The same keys also take a period written out, `period: 2026-Q4`, and
+  two dates, `period: { from: 2026-09-01, to: 2026-09-30 }`, both days
+  included; `from` alone runs to today, while `to` alone or `from` after `to`
+  is an error. Inside such a window, notes dated after its end are left out,
+  and one already over compares (`compare: true`) against the whole period
+  before it, June against all of May, while `from`/`to` compares against as
+  many days right before `from`; a window still running behaves as `week` or
+  `month` does. `current_streak` counts back from the window's last day and
+  `trend` ends there. A window that has not started yet draws no numbers,
+  only the day it starts, and is not an error. A `chart` without `bucket`
+  picks one by the window's length (`day` up to 31 days, `week` up to 182,
+  `month` beyond), names the window in its heading, `October 2026`, draws no
+  `so far` bucket once the window is over, and counts only the window's own
+  days, even in a first week that starts before it. A `heatmap` with
+  `layout: calendar` draws a window of one month or one week as that month
+  or week, `range: 2026-10` or `range: note` in a weekly note, with nothing
+  dimmed once it is over; a named week starts its row on its own first day,
+  and a `from`/`to` counts as a week only when it starts on the locale's
+  first day. A heatmap grid over a fixed window names it in its caption,
+  `Sep 28, 2026 to Oct 4, 2026, gym: 3 of 7 days`.
+  The agent skill and the block reference show a weekly review to copy.
 
 ### Changed
+
+- **`period: 2026` and `range: 2026` are the year 2026.** They used to be a
+  rolling 2026 days; a bare four-digit number is now a year, and `2026d`
+  still counts days.
 
 - **The `progress` example (Insert block, the agent skill and the block
   reference) sets its folder once, at the block root,** as the `stats`

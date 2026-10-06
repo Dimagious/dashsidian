@@ -18,6 +18,7 @@ import { renderToday } from "../blocks/today";
 import { renderCountdown } from "../blocks/countdown";
 import { renderHeatmap } from "../blocks/heatmap";
 import { renderChart } from "../blocks/chart";
+import { formatDate } from "../adapters/datetime";
 
 export type Draw = (ctx: BlockContext, source: string, el: HTMLElement) => void;
 
@@ -124,9 +125,18 @@ export function previewContext(notes: readonly NoteRecord[]): BlockContext {
     };
 }
 
-/** Dates that have to move with the calendar, or the stand goes stale. */
+/**
+ * Dates that have to move with the calendar, or the stand goes stale.
+ * `LAST_WEEK` and `NEXT_WEEK` are ISO week names (B-129), `2026-W40`.
+ */
 export function withDates(source: string): string {
     const today = new Date();
     const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-    return source.replace("TODAY", dayKey(today)).replace("TOMORROW", dayKey(tomorrow));
+    const week = (days: number): string =>
+        formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + days), "GGGG-[W]WW");
+    return source
+        .replace("TODAY", dayKey(today))
+        .replace("TOMORROW", dayKey(tomorrow))
+        .replace(/LAST_WEEK/g, week(-7))
+        .replace(/NEXT_WEEK/g, week(7));
 }

@@ -22,6 +22,12 @@ export interface BlockContext {
      * and the next begins.
      */
     today: () => Date;
+    /**
+     * The path of the note the block sits in, what `period: note` and
+     * `range: note` read their window from (B-129). Absent where a block is
+     * drawn outside a note, the preview stand for one.
+     */
+    sourcePath?: string;
 }
 
 /**
@@ -40,11 +46,14 @@ export function buildContext(params: {
     settings: DashySettings;
     /** Defaults to the real clock; a test overrides it. */
     now?: () => Date;
+    sourcePath?: string;
 }): BlockContext {
-    return {
+    const context: BlockContext = {
         app: params.app,
         notes: params.notes,
         settings: params.settings,
         today: makeToday(() => params.settings.startDayHour, params.now),
     };
+    if (params.sourcePath !== undefined) context.sourcePath = params.sourcePath;
+    return context;
 }

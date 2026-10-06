@@ -596,7 +596,7 @@ describe("guide: monthly-habit-calendar", () => {
     });
 
     it("what it does not do: any other range, or none, warns and draws the grid; bands warn", () => {
-        const needsRange = "⚠️ heatmap: `layout: calendar` needs `range: month` or `range: week`. Drawing the grid instead.";
+        const needsRange = "⚠️ heatmap: `layout: calendar` needs a month or a week: `range: month`, `range: week`, or one month or week such as `range: 2026-10` or `range: note` in a weekly note. Drawing the grid instead.";
         for (const range of ["range: year\n", "range: 90d\n", ""]) {
             const el = render("heatmap", `source: Diary\nfield: gym\n${range}layout: calendar`, HABIT_VAULT);
             expect(diagnostics(el, "warning")).toEqual([needsRange]);

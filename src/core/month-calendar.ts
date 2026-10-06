@@ -8,8 +8,8 @@
  * Pure module: no Obsidian, no DOM. `today` and `firstDay` are passed in.
  */
 
-import { dateKey, parseDateKey, weekdayRow } from "./calendar";
-import { periodWindow, type DateWindow, type Period } from "./period";
+import { DEFAULT_FIRST_DAY, dateKey, parseDateKey, weekdayRow } from "./calendar";
+import { isMonthWindow, isWeekWindow, periodWindow, type DateWindow, type Period } from "./period";
 import { describeValue, type Diagnostic } from "../shared/parse";
 import { t } from "../i18n";
 
@@ -35,11 +35,18 @@ function isHeatmapLayout(v: unknown): v is HeatmapLayout {
  * Reads `layout` off a heatmap config, against the `range` already read.
  * Absent is silent `grid`. An unrecognised value warns and falls back to
  * `grid`, the same shape `readPick` takes for `pick`. `calendar` only has a
- * month or a week to lay out: with any other window, or none, it warns and
- * the grid is drawn. Once the calendar does apply, `bands` has nothing to
- * shade (a day shows dots, not a fill) and is reported as ignored.
+ * month or a week to lay out, `range: month` or `week`, or a fixed window
+ * that is exactly one calendar month or one week (B-129); a `from`/`to` week
+ * has to start on `firstDay`, the locale's first day of the week. With any
+ * other window, or none, it warns and the grid is drawn. Once the calendar
+ * does apply, `bands` has nothing to shade (a day shows dots, not a fill)
+ * and is reported as ignored.
  */
-export function readLayout(value: Record<string, unknown>, range: Period | undefined): LayoutOutcome {
+export function readLayout(
+    value: Record<string, unknown>,
+    range: Period | undefined,
+    firstDay: number = DEFAULT_FIRST_DAY,
+): LayoutOutcome {
     const raw = value.layout;
     if (raw === undefined) return { layout: "grid", diagnostics: [] };
     if (!isHeatmapLayout(raw)) {
@@ -49,7 +56,7 @@ export function readLayout(value: Record<string, unknown>, range: Period | undef
         };
     }
     if (raw === "grid") return { layout: "grid", diagnostics: [] };
-    if (range?.kind !== "month" && range?.kind !== "week") {
+    if (range?.kind !== "month" && range?.kind !== "week" && !(range && (isMonthWindow(range) || isWeekWindow(range, firstDay)))) {
         return { layout: "grid", diagnostics: [{ level: "warning", message: t("heatmap.calendarNeedsRange") }] };
     }
     const diagnostics: Diagnostic[] = value.bands !== undefined
@@ -63,9 +70,11 @@ export function readLayout(value: Record<string, unknown>, range: Period | undef
  * 1st to its last day for `range: month`, the current week per the locale's
  * `firstDay` for `range: week`. Unlike `periodWindow`, whose start this
  * reuses, the end is not today: a calendar shows the days still ahead too,
- * dimmed. `null` for any other window, which has no calendar shape.
+ * dimmed. A fixed month or week (B-129) is that month or week, whenever it
+ * falls. `null` for any other window, which has no calendar shape.
  */
 export function calendarWindow(period: Period, today: Date, firstDay: number): DateWindow | null {
+    if (isMonthWindow(period) || isWeekWindow(period, firstDay)) return { start: period.start, end: period.end };
     if (period.kind !== "month" && period.kind !== "week") return null;
     const { start } = periodWindow(period, today, firstDay);
     const first = parseDateKey(start);

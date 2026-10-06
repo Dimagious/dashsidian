@@ -1617,7 +1617,7 @@ items:
   - { label: B, agg: count }
   - { label: C, field: gym, agg: sum }`);
         expect(diagnostics(el, "warning")).toEqual([
-            '⚠️ stats: `period` at the block root expects week, month, year or a rolling window such as 30d, got "fortnight". Everything that inherits it is drawn unfiltered.',
+            '⚠️ stats: `period` at the block root expects week, month, year, a rolling window such as 30d, note, a period such as 2026-W40, or from and to dates, got "fortnight". Everything that inherits it is drawn unfiltered.',
         ]);
         // Unfiltered, as the warning says.
         expect(texts(el, ".dashy-stat-value")).toEqual(["2", "2", "2"]);
@@ -1630,7 +1630,7 @@ items:
   - { label: A, agg: count, compare: true }
   - { label: B, agg: count, compare: true }`);
         expect(diagnostics(el, "warning")).toEqual([
-            '⚠️ stats: `period` at the block root expects week, month, year or a rolling window such as 30d, got "fortnight". Everything that inherits it is drawn unfiltered.',
+            '⚠️ stats: `period` at the block root expects week, month, year, a rolling window such as 30d, note, a period such as 2026-W40, or from and to dates, got "fortnight". Everything that inherits it is drawn unfiltered.',
         ]);
         expect(nodes(el, ".dashy-stat-delta")).toHaveLength(0);
     });
@@ -1648,8 +1648,8 @@ items:
   - { label: B, agg: count, period: biweekly }
   - { label: C, source: Diary, agg: count, period: week }`);
         expect(diagnostics(el, "warning")).toEqual([
-            '⚠️ stats: `period` at the block root expects week, month, year or a rolling window such as 30d, got "fortnight". Everything that inherits it is drawn unfiltered.',
-            '⚠️ stats: "B": `period` expects week, month, year or a rolling window such as 30d, got "biweekly". Drawn unfiltered.',
+            '⚠️ stats: `period` at the block root expects week, month, year, a rolling window such as 30d, note, a period such as 2026-W40, or from and to dates, got "fortnight". Everything that inherits it is drawn unfiltered.',
+            '⚠️ stats: "B": `period` expects week, month, year, a rolling window such as 30d, note, a period such as 2026-W40, or from and to dates, got "biweekly". Drawn unfiltered.',
         ]);
         // C's own week replaces the bad root value and counts its one diary day.
         expect(texts(el, ".dashy-stat-value")).toEqual(["2", "2", "1"]);
@@ -1658,7 +1658,7 @@ items:
     it("a bad period on a single card without items: warns per card, as before", () => {
         const el = withToday("label: A\nsource: Log\nperiod: fortnight\nagg: count");
         expect(diagnostics(el, "warning")).toEqual([
-            '⚠️ stats: "A": `period` expects week, month, year or a rolling window such as 30d, got "fortnight". Drawn unfiltered.',
+            '⚠️ stats: "A": `period` expects week, month, year, a rolling window such as 30d, note, a period such as 2026-W40, or from and to dates, got "fortnight". Drawn unfiltered.',
         ]);
     });
 

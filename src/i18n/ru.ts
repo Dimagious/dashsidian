@@ -42,7 +42,7 @@ export const ru: Catalog = {
         "`tag` должен быть одним именем тега в виде текста, а получено `{value}`, поэтому ключ пропущен и фильтра по тегу нет. Укажите один тег, например `tag: book`.",
 
     "inherit.rootPeriodInvalid":
-        "`period` в корне блока ожидает week, month, year или скользящее окно вроде 30d, получено «{value}». Всё, что его наследует, рисуется без окна.",
+        "`period` в корне блока ожидает week, month, year, скользящее окно вроде 30d, note, период вроде 2026-W40 или даты from и to, получено «{value}». Всё, что его наследует, рисуется без окна.",
     "inherit.rootDateFieldUndated":
         "`date_field` в корне блока: ни у одной заметки, выбранной для {cards}, нет даты в «{field}».",
     "inherit.blankSourceRoot":
@@ -110,12 +110,19 @@ export const ru: Catalog = {
         "`date_format: {format}` не подходит ни к одной выбранной заметке: например, «{example}» записано иначе.",
 
     "period.invalid":
-        "{card}: `period` ожидает week, month, year или скользящее окно вроде 30d, получено «{value}». Рисуется без окна.",
+        "{card}: `period` ожидает week, month, year, скользящее окно вроде 30d, note, период вроде 2026-W40 или даты from и to, получено «{value}». Рисуется без окна.",
     "period.noDatedNotes":
         "{card}: ни у одной выбранной заметки нет имени, начинающегося с даты вида YYYY-MM-DD. Задайте `date_format:`, если в именах дата записана иначе, например DD.MM.YYYY, или добавьте `date_field:`, если дата лежит в свойстве.",
     "period.noDatedNotesField": "{card}: ни у одной выбранной заметки нет даты в «{field}».",
     "period.dateFieldUnused":
         "{card}: `date_field` здесь ни на что не влияет. Он управляет только `period`, `streak`, `current_streak`, `latest` и `trend`.",
+    "period.noteNotAPeriod": "`{key}: note` нужна заметка, названная как день, неделя, месяц, квартал или год, а эта заметка называется «{name}». Назовите её в одном из форматов: {formats}.",
+    "period.boundsInvalid": "`{key}` в виде словаря принимает `from` и `to`, каждое датой вроде 2026-09-01, получено «{value}».",
+    "period.boundsNoFrom": "У `{key}` есть `to`, но нет `from`. Окну нужно начало: добавьте `from:` с датой вроде 2026-09-01.",
+    "period.boundsOrder": "`{key}` начинается позже, чем заканчивается: `from: {from}` позже `to: {to}`. Поменяйте их местами.",
+    "period.atCard": "{card}: {message}",
+    "period.noteFuture": "Это окно начинается {date}, считать пока нечего.",
+    "period.windowSpan": "с {from} по {to}",
 
     "compare.notBoolean": "{card}: `compare` ожидает true или false, получено «{value}». Сравнение пропущено.",
     "compare.needsPeriod": "{card}: `compare` работает только вместе с `period`. Сравнивать не с чем.",
@@ -126,6 +133,12 @@ export const ru: Catalog = {
     "compare.vsWeek": "относительно тех же дней прошлой недели: {value}",
     "compare.vsMonth": "относительно тех же дней прошлого месяца: {value}",
     "compare.vsYear": "относительно тех же дней прошлого года: {value}",
+    "compare.vsQuarter": "относительно тех же дней прошлого квартала: {value}",
+    "compare.vsPreviousDay": "за предыдущий день: {value}",
+    "compare.vsPreviousWeek": "относительно предыдущей недели: {value}",
+    "compare.vsPreviousMonth": "относительно предыдущего месяца: {value}",
+    "compare.vsPreviousQuarter": "относительно предыдущего квартала: {value}",
+    "compare.vsPreviousYear": "относительно предыдущего года: {value}",
     "compare.vsDays.one": "за предыдущий день: {value}",
     "compare.vsDays.few": "за предыдущие {count} дня: {value}",
     "compare.vsDays.many": "за предыдущие {count} дней: {value}",
@@ -189,9 +202,9 @@ export const ru: Catalog = {
     "heatmap.pickInvalid": "`pick` принимает first или max, получено «{value}». Используется first.",
     "heatmap.pickWithoutLayers": "`pick` игнорируется: он выбирает только между `layers`, а у этого блока один `field`.",
     "heatmap.rangeInvalid":
-        "`range` ожидает week, month, year или скользящее окно вроде 30d, получено «{value}». Рисуется сетка по годам.",
+        "`range` ожидает week, month, year, скользящее окно вроде 30d, note, период вроде 2026-W40 или даты from и to, получено «{value}». Рисуется сетка по годам.",
     "heatmap.layoutInvalid": "`layout` ожидает grid или calendar, получено «{value}». Используется grid.",
-    "heatmap.calendarNeedsRange": "`layout: calendar` работает только с `range: month` или `range: week`. Рисуется обычная сетка.",
+    "heatmap.calendarNeedsRange": "`layout: calendar` нужен месяц или неделя: `range: month`, `range: week` или один месяц или неделя вроде `range: 2026-10` или `range: note` в заметке недели. Рисуется обычная сетка.",
     "heatmap.calendarBandsIgnored": "`bands` игнорируется при `layout: calendar`: день показывает точки, а не оттенок.",
     "heatmap.calendarSpan": "с {from} по {to}",
     "heatmap.titleYear": "{title} ({year})",
@@ -236,7 +249,7 @@ export const ru: Catalog = {
     "chart.aggInvalidGuess": "Неизвестный агрегат «{value}». Возможно, имелся в виду «{guess}». Доступны: {available}.",
     "chart.countIgnoresField": "`agg: count` считает датированные заметки и не читает `field`. Поле пропущено.",
     "chart.countLabel": "заметки",
-    "chart.rangeInvalid": "`range` ожидает week, month, year или скользящее окно вроде 30d, получено «{value}». Беру окно по умолчанию для корзины.",
+    "chart.rangeInvalid": "`range` ожидает week, month, year, скользящее окно вроде 30d, note, период вроде 2026-W40 или даты from и to, получено «{value}». Беру окно по умолчанию для корзины.",
     "chart.tooManyBuckets": "В окне больше {max} корзин. Нарисованы только последние {max}. Попробуйте `bucket: {next}`.",
     "chart.rangeShorterThanBucket": "В окне всего одна корзина, тренда не видно. Расширьте `range` или возьмите `bucket` помельче.",
     "chart.goalInvalid": "`goal` ожидает число или длительность вроде `7h 30m`, получено «{value}». Пропущено.",
@@ -291,6 +304,7 @@ export const ru: Catalog = {
     "chart.weekOf": "Неделя с {date}",
     "chart.goalLabel": "цель {value}",
     "chart.emptyRange": "Нет данных: {span}",
+    "chart.emptyWindow": "Нет данных: {window}",
     "chart.kindLine": "Линейный график",
     "chart.kindBar": "Столбчатая диаграмма",
     "chart.summary": "{kind}: {series}, {span}",

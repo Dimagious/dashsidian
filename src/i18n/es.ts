@@ -44,7 +44,7 @@ export const es: Catalog = {
         "`tag` debe ser un solo nombre de etiqueta en texto, se recibió `{value}`, así que la clave se ignoró y no se aplica ningún filtro por etiqueta. Indica una etiqueta, por ejemplo `tag: book`.",
 
     "inherit.rootPeriodInvalid":
-        "`period` en la raíz del bloque espera week, month, year o una ventana móvil como 30d, recibido «{value}». Todo lo que lo hereda se dibuja sin la ventana.",
+        "`period` en la raíz del bloque espera week, month, year, una ventana móvil como 30d, note, un periodo como 2026-W40 o las fechas from y to, recibido «{value}». Todo lo que lo hereda se dibuja sin la ventana.",
     "inherit.rootDateFieldUndated":
         "`date_field` en la raíz del bloque: ninguna de las notas seleccionadas para {cards} tiene fecha en «{field}».",
     "inherit.blankSourceRoot":
@@ -112,12 +112,19 @@ export const es: Catalog = {
         "`date_format: {format}` no encaja con ninguna de las notas seleccionadas: «{example}», por ejemplo, no está escrito así.",
 
     "period.invalid":
-        "{card}: `period` espera week, month, year o una ventana móvil como 30d, recibido «{value}». Dibujado sin la ventana.",
+        "{card}: `period` espera week, month, year, una ventana móvil como 30d, note, un periodo como 2026-W40 o las fechas from y to, recibido «{value}». Dibujado sin la ventana.",
     "period.noDatedNotes":
         "{card}: ninguna de las notas seleccionadas tiene un nombre que empiece con una fecha como YYYY-MM-DD. Indica `date_format:` si los nombres la escriben de otra forma, como DD.MM.YYYY, o añade `date_field:` si la fecha está en una propiedad.",
     "period.noDatedNotesField": "{card}: ninguna de las notas seleccionadas tiene fecha en «{field}».",
     "period.dateFieldUnused":
         "{card}: `date_field` no tiene efecto aquí. Solo dirige `period`, `streak`, `current_streak`, `latest` y `trend`.",
+    "period.noteNotAPeriod": "`{key}: note` necesita una nota con nombre de día, semana, mes, trimestre o año, y esta nota se llama «{name}». Nómbrala en uno de estos formatos: {formats}.",
+    "period.boundsInvalid": "`{key}` como mapa acepta `from` y `to`, cada uno una fecha como 2026-09-01, recibido «{value}».",
+    "period.boundsNoFrom": "`{key}` tiene `to` pero no `from`. Una ventana necesita un inicio: añade `from:` con una fecha como 2026-09-01.",
+    "period.boundsOrder": "`{key}` empieza después de terminar: `from: {from}` es posterior a `to: {to}`. Intercámbialos.",
+    "period.atCard": "{card}: {message}",
+    "period.noteFuture": "Esta ventana empieza el {date}, todavía no hay nada que contar.",
+    "period.windowSpan": "del {from} al {to}",
 
     "compare.notBoolean": "{card}: `compare` espera true o false, recibido «{value}». Comparación omitida.",
     "compare.needsPeriod": "{card}: `compare` necesita `period`. No hay nada con qué comparar.",
@@ -128,6 +135,12 @@ export const es: Catalog = {
     "compare.vsWeek": "respecto a los mismos días de la semana pasada: {value}",
     "compare.vsMonth": "respecto a los mismos días del mes pasado: {value}",
     "compare.vsYear": "respecto a los mismos días del año pasado: {value}",
+    "compare.vsQuarter": "respecto a los mismos días del trimestre pasado: {value}",
+    "compare.vsPreviousDay": "respecto al día anterior: {value}",
+    "compare.vsPreviousWeek": "respecto a la semana anterior: {value}",
+    "compare.vsPreviousMonth": "respecto al mes anterior: {value}",
+    "compare.vsPreviousQuarter": "respecto al trimestre anterior: {value}",
+    "compare.vsPreviousYear": "respecto al año anterior: {value}",
     "compare.vsDays.one": "respecto al día anterior: {value}",
     "compare.vsDays.few": "respecto a los {count} días anteriores: {value}",
     "compare.vsDays.many": "respecto a los {count} días anteriores: {value}",
@@ -191,9 +204,9 @@ export const es: Catalog = {
     "heatmap.pickInvalid": "`pick` espera first o max, se obtuvo «{value}». Se usará first.",
     "heatmap.pickWithoutLayers": "`pick` se ignora: solo elige entre `layers`, y este bloque tiene un único `field`.",
     "heatmap.rangeInvalid":
-        "`range` espera week, month, year o una ventana móvil como 30d, se obtuvo «{value}». Se dibuja una cuadrícula por año.",
+        "`range` espera week, month, year, una ventana móvil como 30d, note, un periodo como 2026-W40 o las fechas from y to, se obtuvo «{value}». Se dibuja una cuadrícula por año.",
     "heatmap.layoutInvalid": "`layout` espera grid o calendar, se obtuvo «{value}». Se usa grid.",
-    "heatmap.calendarNeedsRange": "`layout: calendar` necesita `range: month` o `range: week`. Se dibuja la cuadrícula en su lugar.",
+    "heatmap.calendarNeedsRange": "`layout: calendar` necesita un mes o una semana: `range: month`, `range: week` o un solo mes o semana como `range: 2026-10` o `range: note` en una nota semanal. Se dibuja la cuadrícula en su lugar.",
     "heatmap.calendarBandsIgnored": "`bands` se ignora con `layout: calendar`: un día muestra puntos, no un tono.",
     "heatmap.calendarSpan": "{from} a {to}",
     "heatmap.caption": "{year}, {field}: media {average}, {present} de {total} días",
@@ -238,7 +251,7 @@ export const es: Catalog = {
     "chart.aggInvalidGuess": "Agregado desconocido «{value}». ¿Querías decir «{guess}»? Disponibles: {available}.",
     "chart.countIgnoresField": "`agg: count` cuenta notas con fecha y no lee ningún `field`. El campo se ignora.",
     "chart.countLabel": "notas",
-    "chart.rangeInvalid": "`range` espera week, month, year o una ventana móvil como 30d, se recibió «{value}». Se usa la predeterminada del agrupamiento.",
+    "chart.rangeInvalid": "`range` espera week, month, year, una ventana móvil como 30d, note, un periodo como 2026-W40 o las fechas from y to, se recibió «{value}». Se usa la predeterminada del agrupamiento.",
     "chart.tooManyBuckets": "Más de {max} agrupamientos en la ventana. Solo se dibujan los {max} más recientes. Prueba `bucket: {next}`.",
     "chart.rangeShorterThanBucket": "La ventana contiene un solo agrupamiento, así que no se ve ninguna tendencia. Amplía `range` o elige un `bucket` más pequeño.",
     "chart.goalInvalid": "`goal` espera un número o una duración como `7h 30m`, se recibió «{value}». Se ignora.",
@@ -293,6 +306,7 @@ export const es: Catalog = {
     "chart.weekOf": "Semana del {date}",
     "chart.goalLabel": "meta {value}",
     "chart.emptyRange": "Sin datos: {span}",
+    "chart.emptyWindow": "Sin datos: {window}",
     "chart.kindLine": "Gráfico de líneas",
     "chart.kindBar": "Gráfico de barras",
     "chart.summary": "{kind}: {series}, {span}",

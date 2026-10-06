@@ -12,20 +12,23 @@ import {
 import { formatDuration } from "../core/duration";
 import { readLayers, readPick, combineLayers, type Layer } from "../core/layers";
 import { readDateField, readDateFormat, unmatchedDateFormat, type DateFormats } from "../core/note-date";
-import { noteDateFormats } from "../adapters/periodic";
+import { noteDateFormats, periodContext } from "../adapters/periodic";
 import { specialDays } from "../core/special-days";
 import { formatValue, roundedValue } from "../core/stat";
 import {
     layoutYear, layoutRange, eachDay, eachDayBetween, yearsOf, rotateWeekdays, weekdayRow, dateKey, parseDateKey,
     type MonthLabel,
 } from "../core/calendar";
-import { parsePeriod, periodWindow, type Period, type DateWindow } from "../core/period";
+import {
+    readPeriodValue, periodWindow, windowFirstDay, futureStart, type Period, type DateWindow,
+} from "../core/period";
 import { readLayout, calendarWindow, calendarMonths, layoutCalendar, noteDots, layerDots } from "../core/month-calendar";
 import { toRgb, rgba, DEFAULT_COLOR, PALETTE, type Rgb } from "../core/palette";
 import { readBands, bandFor, autoBands, durationThresholdIn, type Band } from "../core/bands";
 import { scrollEdges, resolveScrollRestore, isEndClamp, type ScrollSnapshot } from "../core/scroll";
 import { parseConfig, isRecord, unknownKeys, describeValue, type Diagnostic } from "../shared/parse";
-import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
+import { clearBlock, renderDiagnostics, renderNotices, internalLink } from "../shared/render";
+import { notStartedNotice, windowLabel } from "./window";
 import { t, tPlural } from "../i18n";
 import schema from "./schema.json";
 
@@ -177,8 +180,14 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     const linkable = value.link !== false;
     const dateField = readDateField(value);
     const skipField = readSkipField(value, diags);
-    const range = readRange(value, diags);
-    const { layout, diagnostics: layoutDiags } = readLayout(value, range);
+    const { range, broken } = readRange(ctx, value, diags);
+    if (broken) {
+        // `range` names a window that cannot be built (B-129): drawing every
+        // year instead would show numbers the reader did not ask for.
+        renderDiagnostics(el, "heatmap", diags);
+        return;
+    }
+    const { layout, diagnostics: layoutDiags } = readLayout(value, range, firstDayOfWeek());
     diags.push(...layoutDiags);
     const { perDay, diagnostics: perDayDiags } = readPerDay(value);
     diags.push(...perDayDiags);
@@ -252,7 +261,8 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
 
     renderDiagnostics(el, "heatmap", diags);
 
-    const firstDay = firstDayOfWeek();
+    // A week window lays its own seven days out from its own first day (B-129).
+    const firstDay = windowFirstDay(range, firstDayOfWeek());
     // B-133: a calendar day shows a dot per note that painted it, which
     // `marks` (one collapsed value per day) no longer knows.
     const dots: CalendarDots | undefined = layout === "calendar"
@@ -314,22 +324,33 @@ function readSkipField(value: Record<string, unknown>, diags: Diagnostic[]): str
 /**
  * Reads `range` off the block's root config (B-093): a window ending today
  * — `week`, `month`, `year`, or a rolling `Nd` — that draws one grid instead
- * of the default grid per calendar year. Exactly stats' `period` vocabulary
- * (`core/period.ts#parsePeriod`), reused rather than reinvented so an agent
- * that already knows `period: 30d` on a stats card does not have to learn a
- * second spelling here. Absent is silent; present but unreadable warns and
- * falls back to the per-year grids, the same "keep drawing something
- * sensible" shape every other malformed key in this block already takes.
+ * of the default grid per calendar year, or since B-129 a fixed one: `note`,
+ * `2026-W40`, `from`/`to`. Exactly stats' `period` vocabulary
+ * (`core/period.ts#readPeriodValue`), reused rather than reinvented so an
+ * agent that already knows `period: 30d` on a stats card does not have to
+ * learn a second spelling here. Absent is silent; present but unreadable
+ * warns and falls back to the per-year grids, the same "keep drawing
+ * something sensible" shape every other malformed key in this block already
+ * takes. A window that cannot be built is an error and `broken`: there is
+ * nothing sensible to fall back to when the reader named a window.
  */
-function readRange(value: Record<string, unknown>, diags: Diagnostic[]): Period | undefined {
+function readRange(
+    ctx: BlockContext,
+    value: Record<string, unknown>,
+    diags: Diagnostic[],
+): { range: Period | undefined; broken: boolean } {
     const raw = value.range;
-    if (raw === undefined) return undefined;
-    const period = parsePeriod(raw);
+    if (raw === undefined) return { range: undefined, broken: false };
+    const { period, problem } = readPeriodValue(raw, "range", periodContext(ctx.app, ctx.sourcePath));
+    if (problem) {
+        diags.push({ level: "error", message: problem });
+        return { range: undefined, broken: true };
+    }
     if (!period) {
         diags.push({ level: "warning", message: t("heatmap.rangeInvalid", { value: describeValue(raw) }) });
-        return undefined;
+        return { range: undefined, broken: false };
     }
-    return period;
+    return { range: period, broken: false };
 }
 
 /**
@@ -358,8 +379,12 @@ function renderLayeredHeatmap(
     const linkable = value.link !== false;
     const dateField = readDateField(value);
     const skipField = readSkipField(value, diags);
-    const range = readRange(value, diags);
-    const { layout, diagnostics: layoutDiags } = readLayout(value, range);
+    const { range, broken } = readRange(ctx, value, diags);
+    if (broken) {
+        renderDiagnostics(el, "heatmap", diags);
+        return;
+    }
+    const { layout, diagnostics: layoutDiags } = readLayout(value, range, firstDayOfWeek());
     diags.push(...layoutDiags);
     const { perDay, diagnostics: perDayDiags } = readPerDay(value);
     diags.push(...perDayDiags);
@@ -440,7 +465,7 @@ function renderLayeredHeatmap(
 
     renderDiagnostics(el, "heatmap", diags);
 
-    const firstDay = firstDayOfWeek();
+    const firstDay = windowFirstDay(range, firstDayOfWeek());
     return drawHeatmap(el, ctx, marks, {
         // Defensive filler only, never any one layer's colour: a cell reads
         // its colour from `layers[mark.layer]` (see `drawGrid`), and the
@@ -499,13 +524,19 @@ function drawHeatmap(
     range: Period | undefined,
     dots: CalendarDots | undefined,
 ): void | (() => void) {
+    // A window still ahead of today (B-129) has nothing to paint yet.
+    const startsOn = range ? futureStart(range, ctx.today()) : null;
+    if (startsOn !== null) {
+        renderNotices(el, [notStartedNotice(startsOn)]);
+        return;
+    }
     const full: GridSharedOptions & Pick<DrawOptions, "mobile" | "tap"> = {
         ...opts,
         mobile: isMobile(),
         tap: { selectedCell: null, selectedDate: null, status: undefined },
     };
     // `dots` is only ever set once `readLayout` has settled on a calendar,
-    // which it does only for `range: month` or `range: week`.
+    // which it does only for a month or a week window.
     if (range && dots) {
         const bounds = calendarWindow(range, ctx.today(), opts.firstDay);
         if (bounds) {
@@ -721,7 +752,8 @@ function drawRangeGrid(
     const dayKeys = eachDayBetween(dateWindow.start, dateWindow.end);
     const stats = captionStats(dayKeys, marks, opts);
 
-    const caption = rangeCaption(opts, stats);
+    // A fixed window (B-129) is named the way a year names its grid: "Sep 28, 2026 to Oct 4, 2026, gym: ...".
+    const caption = rangeCaption(opts, stats, windowLabel(period, today));
 
     // B-116: the one grid this draws gets its own scale, fitted only to
     // what it itself paints — the same rule a per-year grid follows.
@@ -745,10 +777,16 @@ function drawRangeGrid(
  * A `range` window's caption, the grid's (B-093) and the calendar's (B-133)
  * alike: the reader's own `title` when given, never with a year suffix,
  * otherwise the field with its count of days and, where it says something,
- * the average.
+ * the average. `windowName` puts a fixed grid window's name in front (B-129);
+ * a calendar's own heading already names its month.
  */
-function rangeCaption(opts: Pick<DrawOptions, "title" | "field">, stats: CaptionStats): string {
+function rangeCaption(opts: Pick<DrawOptions, "title" | "field">, stats: CaptionStats, windowName?: string): string {
     if (typeof opts.title === "string") return opts.title;
+    if (windowName !== undefined) {
+        return stats.showAverage
+            ? t("heatmap.caption", { year: windowName, field: opts.field, average: stats.average, present: stats.present, total: stats.total })
+            : t("heatmap.captionMarks", { year: windowName, field: opts.field, present: stats.present, total: stats.total });
+    }
     return stats.showAverage
         ? t("heatmap.captionRange", { field: opts.field, average: stats.average, present: stats.present, total: stats.total })
         : t("heatmap.captionRangeMarks", { field: opts.field, present: stats.present, total: stats.total });

@@ -1,24 +1,61 @@
 /**
  * A time window for `stats` and `progress`: this week, this month, this year,
- * or a rolling count of days, always ending today. Pure layer: `today` and
+ * or a rolling count of days, all ending today; or, since B-129, a window
+ * with fixed bounds: the period a note's name stands for (`note`), one
+ * written out (`2026-W40`), or `from`/`to`. Pure layer: `today` and
  * `firstDay` are passed in by the caller rather than read from the wall clock
  * or from Obsidian's locale, so a test can put "today" anywhere it likes.
  */
 
 import type { NoteRecord } from "./source";
-import { dateKey, weekdayRow } from "./calendar";
+import { dateKey, daysBetween, parseDateKey, weekdayRow } from "./calendar";
 import { isStreakAgg, type Agg } from "./aggregate";
-import { resolveNoteDate, type DateFormats } from "./note-date";
+import { isRealDate, resolveNoteDate, type DateFormats } from "./note-date";
+import { expectedNames, readPeriodName, type PeriodNames, type PeriodUnit } from "./period-name";
 import { formatValue, roundedValue } from "./stat";
 import { formatDuration, roundedDuration } from "./duration";
-import { describeValue, type Diagnostic } from "../shared/parse";
+import { describeValue, isRecord, type Diagnostic } from "../shared/parse";
 import { t, tPlural } from "../i18n";
+
+/**
+ * A window with fixed calendar bounds (B-129, ADR 0006): a day, week, month,
+ * quarter or year named by a note's name or a literal, or a `span` written
+ * as `from`/`to`. Unlike the other kinds it does not move with today.
+ */
+export interface FixedWindow {
+    kind: "fixed";
+    unit: PeriodUnit | "span";
+    /** inclusive, YYYY-MM-DD */
+    start: string;
+    /** inclusive, YYYY-MM-DD; absent for `from` alone, which runs to today */
+    end?: string;
+}
 
 export type Period =
     | { kind: "week" }
     | { kind: "month" }
     | { kind: "year" }
-    | { kind: "days"; days: number };
+    | { kind: "days"; days: number }
+    | FixedWindow;
+
+/** What reading a fixed window takes besides the value itself. */
+export interface PeriodContext {
+    /** the formats period names are read in, and the parse that reads them */
+    names: PeriodNames;
+    /** the name of the note the block sits in, for `note`; absent when there is none */
+    noteName?: string;
+}
+
+export interface PeriodReading {
+    period: Period | null;
+    /**
+     * Set when the value is plainly a window that cannot be built: `note` in
+     * a note whose name is not a period, `from`/`to` that do not read. An
+     * error the config must fix; a value that is simply not a window at all
+     * leaves it unset and the caller says so in its own words.
+     */
+    problem?: string;
+}
 
 /** A rolling window shorter than a day or longer than ten years is not a habit tracker anymore. */
 const MIN_DAYS = 1;
@@ -26,20 +63,87 @@ const MAX_DAYS = 3650;
 
 /**
  * `week`, `month`, `year`, or a rolling window: `30d`, `30 d`, a bare `30`.
- * Case and surrounding space do not matter. Anything else is null, and the
- * caller reports it rather than guessing what was meant.
+ * With a `context` (B-129) also `note`, a period written out (`2026-W40`,
+ * `2026-10`, `2026-Q4`, `2026`, `2026-10-01`) and `{ from, to }`. Case and
+ * surrounding space do not matter. Anything else is null, and the caller
+ * reports it rather than guessing what was meant.
  */
-export function parsePeriod(raw: unknown): Period | null {
-    const text = (typeof raw === "number" ? String(raw) : typeof raw === "string" ? raw : "")
-        .trim()
-        .toLowerCase();
-    if (!text) return null;
-    if (text === "week" || text === "month" || text === "year") return { kind: text };
+export function parsePeriod(raw: unknown, context?: PeriodContext): Period | null {
+    return readPeriodValue(raw, "period", context).period;
+}
+
+/**
+ * `parsePeriod` with the reason a window could not be built (`problem`).
+ * `key` is the key the value was written under, `period` or `range`, for
+ * the message.
+ *
+ * A bare number is read as a period name first: `2026` is the year, while
+ * `30`, which no format reads as a period, stays thirty days. `2026d` is
+ * always days.
+ */
+export function readPeriodValue(raw: unknown, key: string, context?: PeriodContext): PeriodReading {
+    if (isRecord(raw)) return context ? readBounds(raw, key) : { period: null };
+    const written = (typeof raw === "number" ? String(raw) : typeof raw === "string" ? raw : "").trim();
+    const text = written.toLowerCase();
+    if (!text) return { period: null };
+    if (text === "week" || text === "month" || text === "year") return { period: { kind: text } };
+
+    if (context && text === "note") {
+        const name = context.noteName ?? "";
+        const named = readPeriodName(name, context.names);
+        if (named) return { period: { kind: "fixed", unit: named.unit, start: named.start, end: named.end } };
+        return {
+            period: null,
+            problem: t("period.noteNotAPeriod", { key, name, formats: expectedNames(context.names) }),
+        };
+    }
+
+    if (context && !/d$/.test(text)) {
+        const named = readPeriodName(written, context.names);
+        if (named) return { period: { kind: "fixed", unit: named.unit, start: named.start, end: named.end } };
+    }
 
     const match = /^(\d+)\s*d?$/.exec(text);
-    if (!match?.[1]) return null;
+    if (!match?.[1]) return { period: null };
     const days = Number(match[1]);
-    return days >= MIN_DAYS && days <= MAX_DAYS ? { kind: "days", days } : null;
+    return { period: days >= MIN_DAYS && days <= MAX_DAYS ? { kind: "days", days } : null };
+}
+
+/** A bound written as `YYYY-MM-DD`, or a Date a YAML date became; null for anything else. */
+function readBound(raw: unknown): string | null {
+    if (raw instanceof Date) return Number.isNaN(raw.getTime()) ? null : dateKey(raw);
+    if (typeof raw !== "string") return null;
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw.trim());
+    if (!match) return null;
+    const [, y = "", m = "", d = ""] = match;
+    return isRealDate(Number(y), Number(m), Number(d)) ? `${y}-${m}-${d}` : null;
+}
+
+/**
+ * `{ from, to }`: both inclusive, `from` alone runs to today. `to` alone is
+ * refused, since a window without a start has nothing to compare against
+ * and no first bucket, and so is `from` after `to`.
+ */
+function readBounds(raw: Record<string, unknown>, key: string): PeriodReading {
+    const invalid = (): PeriodReading => ({
+        period: null,
+        problem: t("period.boundsInvalid", { key, value: describeValue(raw) }),
+    });
+    if (Object.keys(raw).some((k) => k !== "from" && k !== "to")) return invalid();
+    // Own keys only: the map reaches here as YAML wrote it (shared/parse.ts#MAP_KEYS).
+    const own = (k: string): unknown => (Object.prototype.hasOwnProperty.call(raw, k) ? raw[k] : undefined);
+    const rawFrom = own("from");
+    const rawTo = own("to");
+    if (rawFrom === undefined) {
+        return rawTo === undefined ? invalid() : { period: null, problem: t("period.boundsNoFrom", { key }) };
+    }
+    const from = readBound(rawFrom);
+    const to = rawTo === undefined ? undefined : readBound(rawTo);
+    if (from === null || to === null) return invalid();
+    if (to !== undefined && from > to) return { period: null, problem: t("period.boundsOrder", { key, from, to }) };
+    const period: FixedWindow = { kind: "fixed", unit: "span", start: from };
+    if (to !== undefined) period.end = to;
+    return { period };
 }
 
 /**
@@ -51,7 +155,7 @@ export function parsePeriod(raw: unknown): Period | null {
 export interface DateWindow {
     /** inclusive, YYYY-MM-DD */
     start: string;
-    /** inclusive, YYYY-MM-DD — always today */
+    /** inclusive, YYYY-MM-DD: today, or a fixed window's own end when that comes first */
     end: string;
 }
 
@@ -71,6 +175,10 @@ export function periodWindow(period: Period, today: Date, firstDay: number): Dat
     const end = dateKey(today);
 
     switch (period.kind) {
+        case "fixed":
+            // A window still running counts up to today, as `week` does; one
+            // not started yet comes out with its start after its end, empty.
+            return { start: period.start, end: period.end !== undefined && period.end < end ? period.end : end };
         case "days":
             return { start: dateKey(new Date(y, m, d - (period.days - 1))), end };
         case "year":
@@ -107,6 +215,8 @@ export function previousPeriodWindow(period: Period, today: Date, firstDay: numb
     const d = today.getDate();
 
     switch (period.kind) {
+        case "fixed":
+            return previousFixedWindow(period, today);
         case "days":
             return {
                 start: dateKey(new Date(y, m, d - (2 * period.days - 1))),
@@ -127,6 +237,102 @@ export function previousPeriodWindow(period: Period, today: Date, firstDay: numb
             return { start: dateKey(new Date(prevYear, 0, 1)), end: dateKey(new Date(prevYear, m, day)) };
         }
     }
+}
+
+/** Where a window lies against today. A window that moves with today is always `current`. */
+export type WindowTense = "past" | "current" | "future";
+
+export function windowTense(period: Period, today: Date): WindowTense {
+    if (period.kind !== "fixed") return "current";
+    const key = dateKey(today);
+    if (period.start > key) return "future";
+    return period.end !== undefined && period.end < key ? "past" : "current";
+}
+
+/** The first day of a window still ahead of today, or null for one that has started or moves with today. */
+export function futureStart(period: Period, today: Date): string | null {
+    return period.kind === "fixed" && windowTense(period, today) === "future" ? period.start : null;
+}
+
+/**
+ * The last day a window counts, as a Date: today, or a closed window's own
+ * last day. What `current_streak` counts back from and where `trend` ends
+ * (B-129): a weekly review keeps reading its own week a year later.
+ */
+export function windowLastDay(period: Period | undefined, today: Date): Date {
+    if (period?.kind !== "fixed") return today;
+    return parseDateKey(periodWindow(period, today, 0).end);
+}
+
+/**
+ * The first day of the week inside a window. A named week starts its week
+ * where its own first day falls, which for a locale week (`gggg-[W]ww`) can
+ * differ from the interface language's first day (ADR 0006). Every other
+ * window keeps `firstDay`.
+ */
+export function windowFirstDay(period: Period | undefined, firstDay: number): number {
+    return period?.kind === "fixed" && period.unit === "week" ? parseDateKey(period.start).getDay() : firstDay;
+}
+
+/**
+ * A fixed window that is one week: a named week, or a `from`/`to` of seven
+ * days starting on `firstDay`, the locale's first day of the week. Seven days
+ * from a Wednesday are a plain stretch of days, not a week.
+ */
+export function isWeekWindow(period: Period, firstDay: number): period is FixedWindow & { end: string } {
+    if (period.kind !== "fixed" || period.end === undefined) return false;
+    if (period.unit === "week") return true;
+    return period.unit === "span" && daysBetween(period.start, period.end) === 6
+        && parseDateKey(period.start).getDay() === firstDay;
+}
+
+/** A fixed window that is one calendar month, 1st to last day: a named month, or a `from`/`to` written that way. */
+export function isMonthWindow(period: Period): period is FixedWindow & { end: string } {
+    if (period.kind !== "fixed" || period.end === undefined) return false;
+    if (period.unit === "month") return true;
+    const first = parseDateKey(period.start);
+    return period.unit === "span" && first.getDate() === 1
+        && period.end === dateKey(new Date(first.getFullYear(), first.getMonth() + 1, 0));
+}
+
+/** `date` moved back by one period of `unit`, the day of the month clamped to what the earlier month has. */
+function shiftBack(date: Date, unit: PeriodUnit): Date {
+    const y = date.getFullYear();
+    const m = date.getMonth();
+    const d = date.getDate();
+    switch (unit) {
+        case "day":
+            return new Date(y, m, d - 1);
+        case "week":
+            return new Date(y, m, d - 7);
+        case "month":
+        case "quarter":
+        case "year": {
+            const back = unit === "month" ? 1 : unit === "quarter" ? 3 : 12;
+            return new Date(y, m - back, Math.min(d, daysInMonth(y, m - back)));
+        }
+    }
+}
+
+/**
+ * What a fixed window is compared with (ADR 0006). A closed day, week,
+ * month, quarter or year: the whole period before it, so June is compared
+ * with the whole of May however long each is. One still running: the same
+ * stretch of the previous period to date, as `period: week` does. `from`/
+ * `to`: as many days as the window counts, right before `from`.
+ */
+function previousFixedWindow(period: FixedWindow, today: Date): DateWindow {
+    const bounds = periodWindow(period, today, 0);
+    const start = parseDateKey(bounds.start);
+    const dayBefore = dateKey(new Date(start.getFullYear(), start.getMonth(), start.getDate() - 1));
+    if (period.unit === "span") {
+        const length = daysBetween(bounds.start, bounds.end) + 1;
+        return { start: dateKey(new Date(start.getFullYear(), start.getMonth(), start.getDate() - length)), end: dayBefore };
+    }
+    const previousStart = dateKey(shiftBack(start, period.unit));
+    if (windowTense(period, today) !== "current") return { start: previousStart, end: dayBefore };
+    const sameDay = dateKey(shiftBack(today, period.unit));
+    return { start: previousStart, end: sameDay < dayBefore ? sameDay : dayBefore };
 }
 
 /**
@@ -192,6 +398,11 @@ export interface PeriodOutcome {
     /** null — no period was asked for, or it could not be read */
     spec: PeriodSpec | null;
     diagnostics: Diagnostic[];
+    /**
+     * True when `period` names a window that cannot be built (`problem` on
+     * `PeriodReading`): the card counts nothing rather than everything.
+     */
+    broken: boolean;
 }
 
 /**
@@ -202,24 +413,28 @@ export interface PeriodOutcome {
  * view of. `label` names the card in diagnostics, the same way every other
  * reader in `core/` does.
  */
-export function readPeriod(item: Record<string, unknown>, label: string, dateField?: string): PeriodOutcome {
+export function readPeriod(
+    item: Record<string, unknown>,
+    label: string,
+    dateField?: string,
+    context?: PeriodContext,
+): PeriodOutcome {
     const diagnostics: Diagnostic[] = [];
 
-    if (item.period === undefined) return { spec: null, diagnostics };
+    if (item.period === undefined) return { spec: null, diagnostics, broken: false };
 
-    const period = parsePeriod(item.period);
+    const { period, problem } = readPeriodValue(item.period, "period", context);
     if (!period) {
         const card = label ? `"${label}"` : t("stats.unlabeledCard");
-        diagnostics.push({
-            level: "warning",
-            message: t("period.invalid", { card, value: describeValue(item.period) }),
-        });
-        return { spec: null, diagnostics };
+        diagnostics.push(problem
+            ? { level: "error", message: t("period.atCard", { card, message: problem }) }
+            : { level: "warning", message: t("period.invalid", { card, value: describeValue(item.period) }) });
+        return { spec: null, diagnostics, broken: problem !== undefined };
     }
 
     const spec: PeriodSpec = { period };
     if (dateField) spec.dateField = dateField;
-    return { spec, diagnostics };
+    return { spec, diagnostics, broken: false };
 }
 
 /**
@@ -381,10 +596,13 @@ export function deltaTone(direction: DeltaDirection, better?: BetterDirection): 
 /**
  * What the delta compares with, for a tooltip: "vs the same days last week:
  * 1". `previousText` is the previous window's value, already formatted with
- * the card's own precision.
+ * the card's own precision. `today` tells a fixed window that is still
+ * running, compared to date, from a closed one, compared whole.
  */
-export function compareCaption(period: Period, previousText: string): string {
+export function compareCaption(period: Period, previousText: string, today?: Date): string {
     switch (period.kind) {
+        case "fixed":
+            return fixedCompareCaption(period, previousText, today);
         case "week":
             return t("compare.vsWeek", { value: previousText });
         case "month":
@@ -393,5 +611,39 @@ export function compareCaption(period: Period, previousText: string): string {
             return t("compare.vsYear", { value: previousText });
         case "days":
             return tPlural("compare.vsDays", period.days, { value: previousText });
+    }
+}
+
+function fixedCompareCaption(period: FixedWindow, previousText: string, today?: Date): string {
+    const value = previousText;
+    if (period.unit === "span") {
+        const bounds = periodWindow(period, today ?? parseDateKey(period.end ?? period.start), 0);
+        return tPlural("compare.vsDays", daysBetween(bounds.start, bounds.end) + 1, { value });
+    }
+    if (today && windowTense(period, today) === "current") {
+        switch (period.unit) {
+            case "week":
+                return t("compare.vsWeek", { value });
+            case "month":
+                return t("compare.vsMonth", { value });
+            case "quarter":
+                return t("compare.vsQuarter", { value });
+            case "year":
+                return t("compare.vsYear", { value });
+            case "day":
+                return t("compare.vsPreviousDay", { value });
+        }
+    }
+    switch (period.unit) {
+        case "day":
+            return t("compare.vsPreviousDay", { value });
+        case "week":
+            return t("compare.vsPreviousWeek", { value });
+        case "month":
+            return t("compare.vsPreviousMonth", { value });
+        case "quarter":
+            return t("compare.vsPreviousQuarter", { value });
+        case "year":
+            return t("compare.vsPreviousYear", { value });
     }
 }

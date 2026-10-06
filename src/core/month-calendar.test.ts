@@ -38,7 +38,7 @@ describe("readLayout", () => {
             expect(outcome.layout).toBe("grid");
             expect(outcome.diagnostics).toEqual([{
                 level: "warning",
-                message: "`layout: calendar` needs `range: month` or `range: week`. Drawing the grid instead.",
+                message: "`layout: calendar` needs a month or a week: `range: month`, `range: week`, or one month or week such as `range: 2026-10` or `range: note` in a weekly note. Drawing the grid instead.",
             }]);
         }
     });
@@ -51,6 +51,47 @@ describe("readLayout", () => {
         // The calendar fell back to the grid, where bands do shade: no word about them.
         expect(readLayout({ layout: "calendar", bands: [90, 80] }, { kind: "year" }).diagnostics).toHaveLength(1);
         expect(readLayout({ layout: "grid", bands: [90, 80] }, { kind: "month" }).diagnostics).toEqual([]);
+    });
+});
+
+describe("readLayout and calendarWindow with a fixed window (B-129)", () => {
+    const fixed = (unit: "day" | "week" | "month" | "quarter" | "span", start: string, end?: string) =>
+        (end === undefined ? { kind: "fixed", unit, start } as const : { kind: "fixed", unit, start, end } as const);
+
+    it("one month or one week, named or written as `from`/`to`, is a calendar", () => {
+        for (const range of [
+            fixed("month", "2026-09-01", "2026-09-30"),
+            fixed("week", "2026-09-27", "2026-10-03"),
+            fixed("span", "2026-02-01", "2026-02-28"),
+            fixed("span", "2026-09-28", "2026-10-04"),
+        ]) {
+            expect(readLayout({ layout: "calendar" }, range, MONDAY), JSON.stringify(range)).toEqual({ layout: "calendar", diagnostics: [] });
+        }
+    });
+
+    it("a day, a quarter, a 30-day span or an open one is not, and warns", () => {
+        for (const range of [
+            fixed("day", "2026-10-01", "2026-10-01"),
+            fixed("quarter", "2026-10-01", "2026-12-31"),
+            fixed("span", "2026-09-02", "2026-10-01"),
+            fixed("span", "2026-09-01"),
+            // Seven days from a Wednesday are a stretch of days, not a calendar week.
+            fixed("span", "2026-09-30", "2026-10-06"),
+        ]) {
+            const outcome = readLayout({ layout: "calendar" }, range, MONDAY);
+            expect(outcome.layout, JSON.stringify(range)).toBe("grid");
+            expect(outcome.diagnostics).toHaveLength(1);
+        }
+    });
+
+    it("draws that month or week, whenever it falls, not the current one", () => {
+        expect(calendarWindow(fixed("month", "2026-06-01", "2026-06-30"), new Date(2026, 9, 6), MONDAY))
+            .toEqual({ start: "2026-06-01", end: "2026-06-30" });
+        expect(calendarWindow(fixed("week", "2026-09-27", "2026-10-03"), new Date(2026, 9, 6), MONDAY))
+            .toEqual({ start: "2026-09-27", end: "2026-10-03" });
+        expect(calendarWindow(fixed("quarter", "2026-10-01", "2026-12-31"), new Date(2026, 9, 6), MONDAY)).toBeNull();
+        expect(calendarWindow(fixed("span", "2026-09-27", "2026-10-03"), new Date(2026, 9, 6), SUNDAY))
+            .toEqual({ start: "2026-09-27", end: "2026-10-03" });
     });
 });
 

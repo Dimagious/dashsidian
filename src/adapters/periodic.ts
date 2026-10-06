@@ -1,8 +1,10 @@
 import type { App } from "obsidian";
 import { PERIODS, type Period, type PeriodConfig } from "../core/periodic";
 import { dateFormats, type DateFormats } from "../core/note-date";
+import { noteNameFromPath, periodNames, type PeriodUnit } from "../core/period-name";
+import type { PeriodContext } from "../core/period";
 import { isRecord } from "../shared/parse";
-import { parseDateWithFormat } from "./datetime";
+import { parseDateWithFormat, parsePeriodStart } from "./datetime";
 
 /**
  * Where periodic notes live, according to the neighbouring plugins.
@@ -22,13 +24,19 @@ interface PluginHost {
     internalPlugins?: { plugins?: Record<string, unknown> };
 }
 
+/** The Periodic Notes settings object, when the plugin is there and has one. */
+function periodicNotesSettings(app: App): Record<string, unknown> | undefined {
+    const periodic = (app as unknown as PluginHost).plugins?.plugins?.["periodic-notes"];
+    const settings = isRecord(periodic) ? periodic.settings : undefined;
+    return isRecord(settings) ? settings : undefined;
+}
+
 export function discoverPeriodics(app: App): Discovered {
     const host = app as unknown as PluginHost;
     const out: Discovered = {};
 
-    const periodic = host.plugins?.plugins?.["periodic-notes"];
-    const settings = isRecord(periodic) ? periodic.settings : undefined;
-    if (isRecord(settings)) {
+    const settings = periodicNotesSettings(app);
+    if (settings) {
         for (const period of PERIODS) {
             const cfg = settings[period];
             // `enabled` is ignored on purpose: even a period switched off at the
@@ -77,4 +85,38 @@ export function dailyNoteFormat(app: App): string | undefined {
  */
 export function noteDateFormats(app: App, own?: string): DateFormats | undefined {
     return dateFormats(own, dailyNoteFormat(app), parseDateWithFormat);
+}
+
+/**
+ * The name format of each period, as Periodic Notes has it set, the day
+ * falling back to the core Daily notes one (B-129). Quarter and year are
+ * read here only: no other part of Dashy has a use for their folders.
+ */
+export function periodNameFormats(app: App): Partial<Record<PeriodUnit, string>> {
+    const found = discoverPeriodics(app);
+    const settings = periodicNotesSettings(app);
+    const formatOf = (key: string): string | undefined => {
+        const cfg = settings?.[key];
+        return isRecord(cfg) && typeof cfg.format === "string" ? cfg.format : undefined;
+    };
+    const out: Partial<Record<PeriodUnit, string>> = {};
+    const add = (unit: PeriodUnit, format: string | undefined): void => {
+        if (format?.trim()) out[unit] = format.trim();
+    };
+    add("day", found.daily?.format);
+    add("week", found.weekly?.format);
+    add("month", found.monthly?.format);
+    add("quarter", formatOf("quarterly"));
+    add("year", formatOf("yearly"));
+    return out;
+}
+
+/**
+ * What a block reads `period`/`range` with (B-129): the period name formats
+ * and the name of the note at `sourcePath`, where the block sits.
+ */
+export function periodContext(app: App, sourcePath?: string): PeriodContext {
+    const context: PeriodContext = { names: periodNames(periodNameFormats(app), parsePeriodStart) };
+    if (sourcePath !== undefined) context.noteName = noteNameFromPath(sourcePath);
+    return context;
 }

@@ -141,7 +141,7 @@ function prose(s) {
     return out;
 }
 
-const TYPE_WORDS = { string: "text", number: "number", boolean: "true or false", list: "list" };
+const TYPE_WORDS = { string: "text", number: "number", boolean: "true or false", list: "list", map: "map" };
 
 /** A schema `type` (`string|list`) as words a person reads (`text or list`). Throws on a part it does not know. */
 function typeWords(t) {
