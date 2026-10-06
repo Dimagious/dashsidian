@@ -3,7 +3,7 @@
   "id": "dashsidian",
   "version": "1.8.0",
   "minAppVersion": "1.13.0",
-  "description": "Dashboard blocks for your notes: charts, number cards, streaks, progress bars, tiles, countdowns, a year heatmap and a month calendar. Configured in YAML, no JavaScript.",
+  "description": "Charts, number cards, streaks, goals, countdowns and heatmaps from note properties. Plain YAML blocks that you write, or that your AI agent writes with the skill from the settings. No JavaScript, no Dataview.",
   "author": "Dimagious",
   "authorUrl": "https://github.com/Dimagious",
   "fundingUrl": "https://buymeacoffee.com/dimagious",

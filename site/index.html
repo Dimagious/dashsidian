@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dashy</title>
-<meta name="description" content="Dashy is an Obsidian plugin: a dashboard inside a note from seven markdown blocks, configured in YAML. No JavaScript, no Dataview.">
+<meta name="description" content="Describe charts, streaks, heatmaps and goals in plain words. Your AI agent writes them into the note as YAML you can read. No JavaScript, no Dataview, and the dashboard opens on your phone.">
 <meta name="google-site-verification" content="A5aof5FeNBDbJI7YYed-t8E-8gIIiio2XaS3EyVX3B4">
 <link rel="canonical" href="https://dimagious.github.io/dashsidian/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%238b6cef'/%3E%3Crect x='7' y='7.5' width='11' height='3' rx='1.5' fill='%23fff'/%3E%3Crect x='7' y='13' width='8.5' height='7' rx='2' fill='%23fff' fill-opacity='.55'/%3E%3Crect x='16.5' y='13' width='8.5' height='7' rx='2' fill='%23fff'/%3E%3Crect x='7' y='22.5' width='18' height='3' rx='1.5' fill='%23fff' fill-opacity='.35'/%3E%3Crect x='7' y='22.5' width='12' height='3' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
@@ -12,14 +12,14 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Dashy">
 <meta property="og:url" content="https://dimagious.github.io/dashsidian/">
-<meta property="og:title" content="Dashy: a dashboard inside an Obsidian note">
-<meta property="og:description" content="Seven markdown blocks, configured in YAML. No JavaScript, no Dataview.">
+<meta property="og:title" content="Dashy: your AI agent builds the dashboard in your Obsidian note">
+<meta property="og:description" content="Describe charts, streaks, heatmaps and goals in plain words. Your AI agent writes them into the note as YAML you can read. No JavaScript, no Dataview, and the dashboard opens on your phone.">
 <meta property="og:image" content="https://dimagious.github.io/dashsidian/img/social-preview.png">
 <meta property="og:image:width" content="1280">
 <meta property="og:image:height" content="640">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Dashy: a dashboard inside an Obsidian note">
-<meta name="twitter:description" content="Seven markdown blocks, configured in YAML. No JavaScript, no Dataview.">
+<meta name="twitter:title" content="Dashy: your AI agent builds the dashboard in your Obsidian note">
+<meta name="twitter:description" content="Describe charts, streaks, heatmaps and goals in plain words. Your AI agent writes them into the note as YAML you can read. No JavaScript, no Dataview, and the dashboard opens on your phone.">
 <meta name="twitter:image" content="https://dimagious.github.io/dashsidian/img/social-preview.png">
 <style>
 /* ---------- self-hosted fonts: Inter and JetBrains Mono, latin, woff2 only ---------- */
@@ -343,6 +343,7 @@ h2 code.h-code { font-size: .92em; background: none; border: 0; padding: 0; colo
 }
 .copy:hover { color: var(--text); border-color: var(--border-strong); }
 pre { margin: 0; padding: 12px 14px; overflow-x: auto; font-size: 13px; line-height: 1.6; tab-size: 2; }
+pre.wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
 .t-fence { color: var(--tok-fence); }
 .t-lang { color: var(--accent-text); font-weight: 500; }
 .t-key { color: var(--tok-key); }
@@ -627,18 +628,20 @@ footer.note-foot a { color: var(--muted); }
           <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
           <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>plugin id</div><div class="v"><code>dashsidian</code></div></div>
           <div class="prop"><div class="k"><svg><use href="#i-tag"/></svg>blocks</div><div class="v"><span class="pill">today</span><span class="pill">tiles</span><span class="pill">stats</span><span class="pill">progress</span><span class="pill">countdown</span><span class="pill">heatmap</span><span class="pill">chart</span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>agents</div><div class="v"><span class="pill">Claude Code</span><span class="pill">Codex</span><span class="pill">Cursor</span></div></div>
           <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>needs dataview</div><div class="v"><span class="check off" aria-label="no"></span></div></div>
           <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>mobile</div><div class="v"><span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span></div></div>
           <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>version</div><div class="v">{{version}} <span class="muted" style="font-size:13px">· Obsidian {{minAppVersion}} or later</span></div></div>
           <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>license</div><div class="v">MIT</div></div>
         </div>
 
-        <p class="lede">A dashboard inside an Obsidian note, built from seven markdown blocks. Each block is a few lines of YAML. No JavaScript, and no Dataview.</p>
-        <p>Or describe it to your AI agent: Dashy ships a skill and an <code>AGENTS.md</code> that teach Claude Code, Codex and Cursor its blocks. <a href="guides/ai-agent-dashboard/">Build a dashboard with an agent</a>.</p>
+        <p class="lede">Describe the dashboard you want. Your AI agent builds it in your note.</p>
+        <p>Charts, streaks, heatmaps and goals from your daily notes' properties. Plain YAML you can read and edit. No JavaScript, no Dataview, works on your phone.</p>
+        <p>Dashy's settings install a skill for Claude Code and an <code>AGENTS.md</code> for Codex, Cursor and other agents. Open your vault in the agent, <a href="guides/ai-agent-dashboard/">say what you want to see</a>, then open the note and check. Prefer to <a href="#habits">write it yourself</a>? <b>Dashy: Insert block</b> drops a working example at the cursor.</p>
 
         <div class="actions">
           <a class="btn primary" href="#install"><svg><use href="#i-plug"/></svg>Get it from Community plugins</a>
-          <a class="btn" href="#habits">Track habits with it</a>
+          <a class="btn" href="guides/ai-agent-dashboard/">Build one with your agent</a>
           <a class="btn star" href="https://github.com/Dimagious/dashsidian"><svg><use href="#i-star"/></svg>Star on GitHub</a>
         </div>
 
@@ -649,17 +652,27 @@ footer.note-foot a { color: var(--muted); }
               <img src="img/dashboard-light.png" width="1280" height="900" alt="A Dashy dashboard in Obsidian: a day row, four navigation tiles, eight number cards and three progress bars">
             </picture>
           </div>
-          <figcaption>One note in a demo vault. Every part of it is a Dashy block.</figcaption>
+          <figcaption>One note in a demo vault. Every part of it is a Dashy block an agent can write.</figcaption>
         </figure>
 
-        <p style="margin-top:22px">The first block on that page is this, in full:</p>
-        <div class="codeblock" data-code>
-          <div class="bar"><span>Dashboard.md</span><button class="copy" type="button">Copy</button></div>
-<pre><code class="yaml-fenced">```today
-daily: true
-weekly: true
-monthly: true
+        <div class="pair side">
+          <div>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>You ask</span><button class="copy" type="button">Copy</button></div>
+<pre class="wrap"><code>Count the books I finished this year against a goal of 24.</code></pre>
+            </div>
+            <p class="muted" style="font-size:14px;margin-top:10px">The agent first finds how a book note says when you finished it: here a <code>finished</code> date property in the notes under <code>Books</code>.</p>
+          </div>
+          <div class="codeblock" data-code>
+            <div class="bar"><span>The agent writes</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```progress
+source: Books
+date_field: finished
+period: year
+items:
+  - { label: Books this year, agg: count, goal: 24 }
 ```</code></pre>
+          </div>
         </div>
 
         <h3>Seven blocks, one job each</h3>
@@ -690,6 +703,7 @@ monthly: true
           <li>Open a note and run <b>Dashy: Insert block</b> from the command palette (<kbd>Ctrl/Cmd</kbd> <kbd>P</kbd>).</li>
           <li>Pick a block. A working example lands at the cursor, ready to edit.</li>
         </ol>
+        <p>To have an agent write the blocks instead, install its skill from Dashy's settings: see <a href="#agents">the next note</a>.</p>
 
         <div class="palette-demo" aria-label="The block picker, as it appears in Obsidian">
           <div class="q">Which block?<span class="caret"></span></div>
