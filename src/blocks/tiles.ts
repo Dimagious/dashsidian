@@ -5,6 +5,7 @@ import { readPeriod, filterByPeriod, dateFieldHasEffect } from "../core/period";
 import { classifyImage } from "../core/image";
 import { tileTarget, type TileTarget } from "../core/folder-tile";
 import { firstDayOfWeek } from "../adapters/datetime";
+import { noteDateFormats } from "../adapters/periodic";
 import { resolveImage, pathKind, revealFolder } from "../adapters/vault";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, internalLink } from "../shared/render";
@@ -132,7 +133,9 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
 
             let counted = selected;
             if (periodSpec) {
-                const windowed = filterByPeriod(selected, periodSpec.period, today, firstDay, periodSpec.dateField);
+                const windowed = filterByPeriod(
+                    selected, periodSpec.period, today, firstDay, periodSpec.dateField, noteDateFormats(ctx.app),
+                );
                 if (selected.length && !windowed.anyDated) {
                     diags.push({
                         level: "warning",

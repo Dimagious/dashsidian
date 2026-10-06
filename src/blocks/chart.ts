@@ -4,7 +4,9 @@ import {
     monthYearShort,
 } from "../adapters/datetime";
 import { isMobile } from "../adapters/platform";
+import { noteDateFormats } from "../adapters/periodic";
 import { selectNotes, readSource, unmatchedSource } from "../core/source";
+import { readDateFormat, unmatchedDateFormat } from "../core/note-date";
 import { classifyValues, type FieldValueKind } from "../core/aggregate";
 import {
     readChart, bucketize, chartFieldStatus, chartCaption, spanText, formatPoint, formatAxis, bucketTooltip,
@@ -73,8 +75,14 @@ export function renderChart(ctx: BlockContext, source: string, el: HTMLElement):
     if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
     const notes = selectNotes(ctx.notes(), selection);
 
+    // B-120: a format other than ISO for names and `date_field` values.
+    const { format: dateFormat, diagnostics: formatDiags } = readDateFormat(value);
+    diags.push(...formatDiags);
+    const formats = noteDateFormats(ctx.app, dateFormat);
+    diags.push(...unmatchedDateFormat(notes, spec.dateField, formats));
+
     const firstDay = firstDayOfWeek();
-    const { buckets, anyDated, diagnostics: bucketDiags } = bucketize(notes, spec, ctx.today(), firstDay);
+    const { buckets, anyDated, diagnostics: bucketDiags } = bucketize(notes, spec, ctx.today(), firstDay, formats);
 
     if (notes.length && !anyDated) {
         diags.push({
@@ -91,7 +99,7 @@ export function renderChart(ctx: BlockContext, source: string, el: HTMLElement):
     const statuses = new Map<string, ChartFieldStatus>();
     for (const series of spec.series) {
         for (const field of series.fields) {
-            if (!statuses.has(field)) statuses.set(field, chartFieldStatus(notes, field, spec.dateField));
+            if (!statuses.has(field)) statuses.set(field, chartFieldStatus(notes, field, spec.dateField, formats));
         }
     }
     const usable = spec.series.some((s) => s.agg === "count" || s.fields.some((f) => statuses.get(f) === "ok"));

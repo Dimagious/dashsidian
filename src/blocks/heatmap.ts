@@ -11,7 +11,8 @@ import {
 } from "../core/day-values";
 import { formatDuration } from "../core/duration";
 import { readLayers, readPick, combineLayers, type Layer } from "../core/layers";
-import { readDateField } from "../core/note-date";
+import { readDateField, readDateFormat, unmatchedDateFormat, type DateFormats } from "../core/note-date";
+import { noteDateFormats } from "../adapters/periodic";
 import { specialDays } from "../core/special-days";
 import { formatValue, roundedValue } from "../core/stat";
 import {
@@ -183,6 +184,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     diags.push(...perDayDiags);
 
     const notes = selectConfiguredNotes(ctx, value, diags);
+    const formats = readFormats(ctx, value, notes, dateField, diags);
     // B-121: every value the field(s) hold across the selection being a
     // duration string is what turns tooltips, the caption's average and the
     // legend into `7h 30m`; a mix of both is counted in minutes and warned.
@@ -201,10 +203,10 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     // One entry per day any of `fields` resolved on at all — see
     // `core/day-values.ts` for how a day's contributors (two notes, two
     // fields in one note, or both at once) collapse into its one value.
-    const marks = dayValues(notes, fields, perDay, dateField);
+    const marks = dayValues(notes, fields, perDay, dateField, formats);
     // Every note in the selection, not only the ones that ended up in
     // `marks`: a vacation day with nothing painted still has to hatch.
-    const special = skipField ? specialDays(notes, skipField, dateField) : new Set<string>();
+    const special = skipField ? specialDays(notes, skipField, dateField, formats) : new Set<string>();
 
     if (!marks.size) {
         // Reported per field, not lumped together: a typo in one entry of a
@@ -244,7 +246,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     // `per_day: avg`, the share of them), shaded against every listed box
     // ticked; `undefined` keeps a checkbox day flat, as a single checkbox
     // field always was.
-    const { count, diagnostics: countDiags } = checkboxCount(notes, fields, perDay, marks, dateField);
+    const { count, diagnostics: countDiags } = checkboxCount(notes, fields, perDay, marks, dateField, formats);
     diags.push(...countDiags);
     const checkboxBands = count?.bands;
 
@@ -254,7 +256,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     // B-133: a calendar day shows a dot per note that painted it, which
     // `marks` (one collapsed value per day) no longer knows.
     const dots: CalendarDots | undefined = layout === "calendar"
-        ? { kind: "notes", counts: paintedNotesPerDay(notes, fields, dateField) }
+        ? { kind: "notes", counts: paintedNotesPerDay(notes, fields, dateField, formats) }
         : undefined;
     return drawHeatmap(el, ctx, count?.marks ?? marks, {
         color, explicitBands, checkboxBands, field: fieldLabel, linkable, title: value.title, firstDay, special, duration, clock,
@@ -272,6 +274,25 @@ function selectConfiguredNotes(
     const missing = unmatchedSource(ctx.notes(), selection);
     if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
     return selectNotes(ctx.notes(), selection);
+}
+
+/**
+ * The formats besides ISO this heatmap reads dates in (B-120): its own
+ * `date_format`, then the Daily notes day format. A `date_format` that does
+ * not read, or that no selected note fits, warns here.
+ */
+function readFormats(
+    ctx: BlockContext,
+    value: Record<string, unknown>,
+    notes: readonly NoteRecord[],
+    dateField: string | undefined,
+    diags: Diagnostic[],
+): DateFormats | undefined {
+    const { format, diagnostics } = readDateFormat(value);
+    diags.push(...diagnostics);
+    const formats = noteDateFormats(ctx.app, format);
+    diags.push(...unmatchedDateFormat(notes, dateField, formats));
+    return formats;
 }
 
 /**
@@ -346,6 +367,7 @@ function renderLayeredHeatmap(
     diags.push(...pickDiags);
 
     const notes = selectConfiguredNotes(ctx, value, diags);
+    const formats = readFormats(ctx, value, notes, dateField, diags);
 
     // B-121: each layer decides its own tooltip part; the shared scale and
     // its legend read as durations only once every layer with data holds
@@ -370,11 +392,11 @@ function renderLayeredHeatmap(
         || (durationThresholdIn(value.bands) !== undefined && layerDurations.some(Boolean));
     const explicitBands = value.bands !== undefined ? readBands(value.bands, bandsAsDurations) : undefined;
 
-    const perLayerMarks = layers.map((layer) => dayValues(notes, layer.fields, perDay, dateField));
+    const perLayerMarks = layers.map((layer) => dayValues(notes, layer.fields, perDay, dateField, formats));
     const marks = combineLayers(perLayerMarks, layers.map((l) => l.label), pick);
     // Block-wide, the same as the plain `field` path: a special day hatches
     // regardless of which layer, if any, painted it.
-    const special = skipField ? specialDays(notes, skipField, dateField) : new Set<string>();
+    const special = skipField ? specialDays(notes, skipField, dateField, formats) : new Set<string>();
 
     if (!marks.size) {
         // The same per-field reporting as the plain `field` path (B-112),

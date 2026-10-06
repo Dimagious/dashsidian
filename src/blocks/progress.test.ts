@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderProgress } from "./progress";
-import { mockContext, diary, host, texts, nodes, diagnostics } from "../test/vault";
+import { mockContext, diary, host, texts, nodes, diagnostics, type FakeNote, type FakeVault } from "../test/vault";
 import { setLocale } from "../i18n";
 
 const ctx = mockContext({
@@ -802,5 +802,54 @@ describe("progress: a source or tag that is not text is an error (B-160)", () =>
         const el = bars("items:\n  - { label: Days, source: , agg: count, goal: 40 }");
         expect(diagnostics(el, "error")).toEqual([]);
         expect(diagnostics(el, "warning")).toHaveLength(1);
+    });
+});
+
+describe("progress — dates not written as YYYY-MM-DD (B-120)", () => {
+    // 2026-10-06 is a Tuesday; the English week starts on Sunday the 4th.
+    const TODAY = new Date(2026, 9, 6);
+    const notes: FakeNote[] = [
+        ...Array.from({ length: 6 }, (_, i) => ({ path: `Diary/0${i + 1}.10.2026.md`, frontmatter: { km: i + 1 } })),
+        { path: "Log/20261006.md", frontmatter: { km: 10 } },
+    ];
+    const render = (config: string, extra: Partial<FakeVault> = {}) => {
+        const el = host();
+        renderProgress({ ...mockContext({ notes, ...extra }), today: () => TODAY }, config, el);
+        return el;
+    };
+    const BARS = `source: Diary
+period: week
+items:
+  - { label: Week, field: km, agg: sum, goal: 30 }
+  - { label: Latest, field: km, agg: latest, goal: 10 }
+  - { label: Log, source: Log, field: km, agg: sum, goal: 10, date_format: YYYYMMDD }`;
+
+    it("a root date_format reaches every bar, and a bar's own replaces it", () => {
+        const el = render(`date_format: DD.MM.YYYY\n${BARS}`);
+        // Week: 4 + 5 + 6. Latest: 06.10.2026. Log: its own format.
+        expect(texts(el, ".dashy-progress-value")).toEqual(["15 / 30 50%", "6 / 10 60%", "10 / 10 100%"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("the Daily notes day format is read with no key at all", () => {
+        const el = render(BARS, { dailyNotes: { format: "DD.MM.YYYY" } });
+        expect(texts(el, ".dashy-progress-value")[0]).toBe("15 / 30 50%");
+    });
+
+    it("a root date_format the bars' notes do not fit is one warning for the block", () => {
+        const el = render(`date_format: D-M-YYYY
+items:
+  - { label: A, source: Diary, field: km, agg: sum, goal: 30 }
+  - { label: B, source: Diary, field: km, agg: max, goal: 30 }`);
+        expect(diagnostics(el, "warning")).toEqual([
+            "⚠️ progress: `date_format: D-M-YYYY` fits none of the selected notes: \"01.10.2026\", for one, is not written that way.",
+        ]);
+    });
+
+    it("a bar's own date_format no note fits warns for that bar", () => {
+        const el = render("items:\n  - { label: A, source: Log, field: km, agg: sum, goal: 30, date_format: DD.MM.YYYY }");
+        expect(diagnostics(el, "warning")).toEqual([
+            "⚠️ progress: `date_format: DD.MM.YYYY` fits none of the selected notes: \"20261006\", for one, is not written that way.",
+        ]);
     });
 });

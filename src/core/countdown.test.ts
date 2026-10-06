@@ -219,7 +219,7 @@ describe("readCountdown: field", () => {
         const { spec, diagnostics } = readCountdown({ field: "valid_until" }, "Medical", () => [bad]);
         expect(spec).toBeNull();
         expect(diagnostics[0]?.message).toBe(
-            '"Medical": "valid_until" in "Certificate" is "next spring", not a date. Expected YYYY-MM-DD.',
+            '"Medical": "valid_until" in "Certificate" is "next spring", not a date. Expected YYYY-MM-DD, or another format named with `date_format:` next to `items:`.',
         );
     });
 

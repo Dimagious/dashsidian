@@ -31,7 +31,7 @@
         <div class="props" aria-label="Properties">
           <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
           <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>code block</div><div class="v"><code>chart</code><code>dashy-chart</code></div></div>
-          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">17 on the block, 4 on each series</div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">18 on the block, 4 on each series</div></div>
           <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
         </div>
 
@@ -92,7 +92,7 @@ agg: avg
 
 
         <h2 id="root-keys">Keys on the block</h2>
-        <div class="keys"><a href="#source"><code>source</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#date_field"><code>date_field</code></a><a href="#field"><code>field</code></a><a href="#series"><code>series</code></a><a href="#agg"><code>agg</code></a><a href="#bucket"><code>bucket</code></a><a href="#range"><code>range</code></a><a href="#type"><code>type</code></a><a href="#label"><code>label</code></a><a href="#color"><code>color</code></a><a href="#unit"><code>unit</code></a><a href="#precision"><code>precision</code></a><a href="#goal"><code>goal</code></a><a href="#link"><code>link</code></a><a href="#title"><code>title</code></a></div>
+        <div class="keys"><a href="#source"><code>source</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#date_field"><code>date_field</code></a><a href="#date_format"><code>date_format</code></a><a href="#field"><code>field</code></a><a href="#series"><code>series</code></a><a href="#agg"><code>agg</code></a><a href="#bucket"><code>bucket</code></a><a href="#range"><code>range</code></a><a href="#type"><code>type</code></a><a href="#label"><code>label</code></a><a href="#color"><code>color</code></a><a href="#unit"><code>unit</code></a><a href="#precision"><code>precision</code></a><a href="#goal"><code>goal</code></a><a href="#link"><code>link</code></a><a href="#title"><code>title</code></a></div>
         <div class="keytab-wrap">
           <table class="keytab">
             <thead><tr><th>Key</th><th>What it does</th><th>Type</th><th>Default</th></tr></thead>
@@ -117,7 +117,13 @@ agg: avg
               </tr>
               <tr id="date_field">
                 <td class="k"><a class="key" href="#date_field"><code>date_field</code></a></td>
-                <td class="d">a date frontmatter property to read instead of the note name: <code>2026-03-02</code> or <code>2026-03-02T10:30</code>, or a dotted path into a nested property like <code>meta.date</code></td>
+                <td class="d">a date frontmatter property to read instead of the note name: <code>2026-03-02</code> or <code>2026-03-02T10:30</code>, or in <code>date_format</code>, or a dotted path into a nested property like <code>meta.date</code></td>
+                <td class="t" data-h="type">text</td>
+                <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
+              <tr id="date_format">
+                <td class="k"><a class="key" href="#date_format"><code>date_format</code></a></td>
+                <td class="d">a date format for note names and <code>date_field</code> values not written as <code>YYYY-MM-DD</code>, in moment notation: <code>DD.MM.YYYY</code>, <code>MM/DD/YYYY</code>, <code>YYYYMMDD</code>. Tried after <code>YYYY-MM-DD</code> and before the day format of the Daily notes or Periodic Notes settings, which is read without this key. A name or a value only has to start with the date (<code>05.10.2026 Monday</code> and <code>05.10.2026 14:30</code> count); the match is strict, so <code>5.10.2026</code> and <code>31.02.2026</code> are no date under <code>DD.MM.YYYY</code>. Needs a year, a month and a day, and warns when no selected note fits it. Month and weekday names (<code>MMMM</code>, <code>dddd</code>) are read in Obsidian's language, or in the Plugin language setting when one is picked</td>
                 <td class="t" data-h="type">text</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
@@ -252,13 +258,14 @@ agg: avg
         <h2 id="how-it-counts">How it behaves</h2>
         <ul class="notes">
           <li>With the Obsidian Charts plugin enabled, write the block as <code>dashy-chart</code>: Dashy then leaves the <code>chart</code> language to Charts, so a <code>chart</code> block is drawn by Charts. <code>dashy-chart</code> takes the same keys and always works. Turned Charts on while Obsidian was open? Restart Obsidian once.</li>
-          <li>A note's date is its name, as long as it starts with <code>YYYY-MM-DD</code>, unless <code>date_field</code> names a property instead. Notes without a date are left out, and a selection where none has one warns. Notes dated after today are never drawn.</li>
+          <li>A note's date is its name, as long as it starts with <code>YYYY-MM-DD</code> or with a date in <code>date_format</code> or in the Daily notes day format, unless <code>date_field</code> names a property instead. Notes without a date are left out, and a selection where none has one warns. Notes dated after today are never drawn.</li>
           <li>A week starts on the locale's first day, the same day <code>period: week</code> and the heatmap grid use, and a week's tooltip names it: <code>Week of Sun Sep 27, 2026</code>.</li>
           <li>A bucket with no data is a gap in the line and no bar, never a zero: a missing day is not a day of zero. An unticked checkbox (<code>false</code>) is a real 0, and <code>count</code> over an empty bucket is a plain 0.</li>
           <li><code>avg</code> is over values, not days: two notes on one day both count, so a week's average matches a stats card with <code>agg: avg</code> and <code>period: week</code>. <code>sum</code> of a checkbox counts the ticked days.</li>
           <li>The last bucket is usually still running (this week, this month, this year): it is drawn lighter, or as a hollow point on a line, and its tooltip ends with <code>so far</code>.</li>
           <li>A list in the block's own <code>field</code> is an error rather than a guess: write <code>series:</code> for several lines, or <code>series: [{field: [a, b]}]</code> to fold several properties into one.</li>
           <li>Not in this block, on purpose: pie, doughnut, radar and scatter charts, stacked bars, cumulative sums, a second y axis, smoothing and trend lines, zoom, tick and axis settings, annotations, and a height key (the height is the <code>--dashy-chart-height</code> CSS variable, which a CSS snippet can change). Steps and sleep on one chart are two chart blocks.</li>
+          <li>Daily notes named another way, like <code>05.10.2026</code>, are read in the day format set in the Daily notes or Periodic Notes settings, with no key at all. Without that setting, name the format: <code>date_format: DD.MM.YYYY</code>. A time after the date is fine (<code>2026-10-05-14:30</code>), but an order that could be read two ways, like <code>05-10-2026</code>, is never guessed: without a format it is not a date.</li>
         </ul>
 
 

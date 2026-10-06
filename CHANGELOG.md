@@ -71,6 +71,27 @@ removed public export.
   nothing to shade there and warns that it is ignored. With any other
   `range`, or none, `layout: calendar` warns and the grid is drawn, and so
   does an unknown `layout` value.
+- **Dates not written as `YYYY-MM-DD`.** A note named `05.10.2026` or
+  `20261005` is now dated by the day format set in the Daily notes or
+  Periodic Notes settings, with no key at all, and a block can name its own
+  with `date_format: DD.MM.YYYY` (moment notation, matched strictly). It reads
+  note names and `date_field` values alike, on `stats` and `progress` (at the
+  root for every card, or on one card), `heatmap`, `chart` and `countdown`;
+  `tiles` follows the settings format for `period`. `YYYY-MM-DD` is still
+  tried first, then `date_format`, then the settings format. A name or a
+  value only has to start with the date (`05.10.2026 Monday` and
+  `05.10.2026 14:30` count). Month and weekday names are read in Obsidian's
+  language, or in the Plugin language setting, and moment's locale day
+  formats `L`, `l`, `LL` and `ll` work too. An order that could be
+  read two ways, like `05-10-2026`, is never guessed without a format, and a
+  day that does not exist, like `31.02.2026`, is no date. A `date_format`
+  with no year, month and day warns and is ignored, and one that none of the
+  selected notes fits (a note already dated as `YYYY-MM-DD` counts as
+  fitting) warns, naming the format and one name or value that does not fit
+  it. The warnings for notes without a usable date on `stats`, `progress`,
+  `tiles`, `heatmap`, `chart` and a `countdown` `field` now name
+  `date_format` next to `date_field`. A `date_field` value with a time after a hyphen,
+  `2026-10-05-14:30`, now reads as its day, the way a name already did.
 
 ### Changed
 

@@ -533,7 +533,7 @@ describe("chart: every diagnostic reaches the note, under the block's name", () 
         ]);
         expect(diagnostics(chart("source: Diary\nfield: running", notes), "error")[0]).toMatch(/^⛔ chart: "running" holds text/);
         expect(diagnostics(chart("source: Diary\nfield: weight", notes), "error")).toEqual([
-            "⛔ chart: \"weight\" holds numbers only on notes without a date. Name daily notes YYYY-MM-DD, or add `date_field:` if the date lives in a property.",
+            "⛔ chart: \"weight\" holds numbers only on notes without a date. Name daily notes YYYY-MM-DD, set `date_format:` if they are named another way, like DD.MM.YYYY, or add `date_field:` if the date lives in a property.",
         ]);
     });
 
@@ -548,7 +548,7 @@ describe("chart: every diagnostic reaches the note, under the block's name", () 
     it("a selection with no dated note warns, naming date_field when one is set", () => {
         const notes: FakeNote[] = [{ path: "Diary/Template.md", frontmatter: { steps: 5 } }];
         expect(diagnostics(chart("source: Diary\nfield: steps", notes), "warning")).toEqual([
-            "⚠️ chart: None of the selected notes has a name starting with a date like YYYY-MM-DD. Add `date_field:` if the date lives in a property instead.",
+            "⚠️ chart: None of the selected notes has a name starting with a date like YYYY-MM-DD. Set `date_format:` if the names write it another way, like DD.MM.YYYY, or add `date_field:` if the date lives in a property instead.",
         ]);
         expect(diagnostics(chart("source: Diary\nfield: steps\ndate_field: when", notes), "warning")).toEqual([
             "⚠️ chart: None of the selected notes has a date in \"when\".",
@@ -713,3 +713,43 @@ describe("chart: a source or tag that is not text is an error (B-160)", () => {
     });
 });
 
+describe("chart: dates not written as YYYY-MM-DD (B-120)", () => {
+    /** The same ten days as `tenDays`, named DD.MM.YYYY. */
+    const dotted = (): FakeNote[] => tenDays().map((n) => {
+        const [y, m, d] = n.path.slice("Diary/".length, -".md".length).split("-");
+        return { ...n, path: `Diary/${d}.${m}.${y}.md` };
+    });
+    const render = (config: string, vault: Parameters<typeof mockContext>[0]) => {
+        const el = host();
+        renderChart(mockContext(vault), config, el);
+        return el;
+    };
+
+    it("without a format the names are undated, and the block says so", () => {
+        const el = render("source: Diary\nfield: steps\nrange: 10d", { notes: dotted() });
+        expect(diagnostics(el, "warning")[0]).toContain("None of the selected notes has a name starting with a date");
+    });
+
+    it("the Daily notes day format buckets every note", () => {
+        const el = render("source: Diary\nfield: steps\nrange: 10d", { notes: dotted(), dailyNotes: { format: "DD.MM.YYYY" } });
+        expect(titles(el)[9]).toBe("Sep 30, 2026: steps 10000 (30.09.2026)");
+        expect(hits(el)[9]!.getAttribute("data-href")).toBe("Diary/30.09.2026.md");
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("date_format does the same with no settings, and wins over them", () => {
+        const el = render("source: Diary\nfield: steps\nrange: 10d\ndate_format: DD.MM.YYYY", {
+            notes: dotted(),
+            dailyNotes: { format: "MM.DD.YYYY" },
+        });
+        expect(titles(el)[0]).toBe("Sep 21, 2026: steps 1000 (21.09.2026)");
+        expect(titles(el)[9]).toBe("Sep 30, 2026: steps 10000 (30.09.2026)");
+    });
+
+    it("a date_format no note fits warns, naming it and the first note", () => {
+        const el = render("source: Diary\nfield: steps\nrange: 10d\ndate_format: YYYYMMDD", { notes: dotted() });
+        expect(diagnostics(el, "warning")).toContain(
+            "⚠️ chart: `date_format: YYYYMMDD` fits none of the selected notes: \"21.09.2026\", for one, is not written that way.",
+        );
+    });
+});

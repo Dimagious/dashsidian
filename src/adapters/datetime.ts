@@ -32,8 +32,19 @@ interface MomentLocaleData {
     longDateFormat(key: string): string;
 }
 
+/** A date moment read from text: `isValid` is false when strict parsing failed. */
+interface MomentParsed {
+    isValid(): boolean;
+    year(): number;
+    /** 0-based, January is 0 */
+    month(): number;
+    date(): number;
+}
+
 interface MomentStatic {
     (date: Date): MomentDate;
+    (text: string, format: string, strict: boolean): MomentParsed;
+    (text: string, format: string, locale: string, strict: boolean): MomentParsed;
     locale(): string;
     localeData(code?: string): MomentLocaleData | null;
 }
@@ -165,4 +176,34 @@ export function formatDayShortYear(date: Date): string {
  */
 export function formatDayWithWeekday(date: Date): string {
     return formatDate(date, "ddd ll");
+}
+
+/**
+ * What `parseDateWithFormat` already answered, keyed by locale, format and
+ * text. Every block on every page resolves the same note names against the
+ * same formats, and each redraw does it again; a strict moment parse is far
+ * slower than the map lookup. Cleared whole once it grows past the limit,
+ * which a vault reaches only after thousands of renames.
+ */
+const parsed = new Map<string, string | null>();
+const PARSED_LIMIT = 20000;
+
+/**
+ * Reads `text` in a moment format, strictly (B-120): `05.10.2026` in
+ * `DD.MM.YYYY` is 2026-10-05, while `5.10.2026`, `05.10.2026 x` and
+ * `31.02.2026` are null. Month and weekday names are read in the language
+ * dates are drawn in. Returns the day as `YYYY-MM-DD`; this is the
+ * `ParseDate` core/note-date.ts is handed.
+ */
+export function parseDateWithFormat(text: string, format: string): string | null {
+    const key = `${override ?? m.locale()}\u0000${format}\u0000${text}`;
+    const hit = parsed.get(key);
+    if (hit !== undefined) return hit;
+    const at = override ? m(text, format, override, true) : m(text, format, true);
+    const day = at.isValid()
+        ? `${String(at.year()).padStart(4, "0")}-${String(at.month() + 1).padStart(2, "0")}-${String(at.date()).padStart(2, "0")}`
+        : null;
+    if (parsed.size >= PARSED_LIMIT) parsed.clear();
+    parsed.set(key, day);
+    return day;
 }

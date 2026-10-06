@@ -141,7 +141,9 @@ Yes. A tap on a heatmap cell or a chart bar shows its value, and a second tap op
 <details>
 <summary>How does a block know a note's date?</summary>
 
-From its name, when it starts with `YYYY-MM-DD`: `2026-01-05 Monday` counts. Otherwise add
+From its name, when it starts with `YYYY-MM-DD`: `2026-01-05 Monday` counts. Names written
+another way, like `05.01.2026`, are read in the day format set in the Daily notes or Periodic
+Notes settings, or in one the block names with `date_format: DD.MM.YYYY`. Otherwise add
 `date_field` to the block and keep the date in a property.
 
 </details>

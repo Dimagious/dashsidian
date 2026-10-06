@@ -5,7 +5,7 @@
 import { daysBetween } from "./calendar";
 import { newestFirst } from "./aggregate";
 import { readField } from "./field";
-import { isRealDate, resolveNoteDate } from "./note-date";
+import { isRealDate, resolveNoteDate, unmatchedDateFormat, type DateFormats } from "./note-date";
 import { readSource, selectNotes, unmatchedSource, type NoteRecord } from "./source";
 import { describeValue, type Diagnostic } from "../shared/parse";
 import { t } from "../i18n";
@@ -67,6 +67,7 @@ export function readCountdown(
     item: Record<string, unknown>,
     label: string,
     notes: () => readonly NoteRecord[],
+    formats?: DateFormats,
 ): CountdownOutcome {
     const diagnostics: Diagnostic[] = [];
     const card = label ? `"${label}"` : t("stats.unlabeledCard");
@@ -119,7 +120,7 @@ export function readCountdown(
         return { spec: null, diagnostics };
     }
     const field = item.field.trim();
-    const found = readFieldDate(notes(), item, field);
+    const found = readFieldDate(notes(), item, field, formats);
     diagnostics.push(...found.diagnostics);
 
     if (found.kind === "missing") {
@@ -177,13 +178,15 @@ function readFieldDate(
     all: readonly NoteRecord[],
     item: Record<string, unknown>,
     field: string,
+    formats: DateFormats | undefined,
 ): FieldDate & { diagnostics: Diagnostic[] } {
     const { spec: source, diagnostics } = readSource(item);
     const missing = unmatchedSource(all, source);
     if (missing) diagnostics.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
 
     const selected = selectNotes(all, source);
-    const dated = newestFirst(selected);
+    diagnostics.push(...unmatchedDateFormat(selected, field, formats));
+    const dated = newestFirst(selected, undefined, formats);
     const datedSet = new Set(dated);
     const undated = selected
         .filter((n) => !datedSet.has(n))
@@ -194,7 +197,7 @@ function readFieldDate(
         if (!isSet(value)) continue;
         // The same reading `date_field` gives a property: `2026-03-02`, with or
         // without a time after it, or the Date an Obsidian date property becomes.
-        const date = resolveNoteDate(note, field);
+        const date = resolveNoteDate(note, field, formats);
         return date
             ? { kind: "ok", date, note, diagnostics }
             : { kind: "invalid", value, note, diagnostics };
