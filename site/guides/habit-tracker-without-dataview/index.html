@@ -95,12 +95,13 @@ read: false
         <div class="codeblock" data-code>
           <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Habits.md</span></span><button class="copy" type="button">Copy</button></div>
 <pre><code class="yaml-fenced">```stats
+source: Diary
 columns: 4
 items:
-  - { label: Gym days, source: Diary, field: gym, agg: sum, icon: 🏋️ }
-  - { label: Longest gym streak, source: Diary, field: gym, agg: streak, unit: days, icon: 🔥 }
-  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, icon: 📅, compare: true, better: up }
-  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month, icon: 🗓 }
+  - { label: Gym days, field: gym, agg: sum, icon: 🏋️ }
+  - { label: Longest gym streak, field: gym, agg: streak, unit: days, icon: 🔥 }
+  - { label: Gym this week, field: gym, agg: sum, period: week, icon: 📅, compare: true, better: up }
+  - { label: Gym this month, field: gym, agg: sum, period: month, icon: 🗓 }
 ```</code></pre>
         </div>
         <ul class="keynotes">
@@ -131,10 +132,11 @@ title: Gym
           <div class="codeblock" data-code>
             <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Habits.md</span></span><button class="copy" type="button">Copy</button></div>
 <pre><code class="yaml-fenced">```stats
+source: Diary
 columns: 2
 items:
-  - { label: Days in a row, source: Diary, field: meditate, agg: current_streak, unit: days, icon: 🔥 }
-  - { label: Best streak, source: Diary, field: meditate, agg: streak, unit: days }
+  - { label: Days in a row, field: meditate, agg: current_streak, unit: days, icon: 🔥 }
+  - { label: Best streak, field: meditate, agg: streak, unit: days }
 ```</code></pre>
           </div>
           <div>
@@ -155,12 +157,13 @@ items:
         <div class="codeblock" data-code>
           <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Habits.md</span></span><button class="copy" type="button">Copy</button></div>
 <pre><code class="yaml-fenced">```stats
+source: Diary
 columns: 4
 items:
-  - { label: Gym days, source: Diary, field: gym, agg: sum, icon: 🏋️ }
-  - { label: Longest gym streak, source: Diary, field: gym, agg: streak, unit: days, icon: 🔥 }
-  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, icon: 📅, compare: true, better: up }
-  - { label: Gym this month, source: Diary, field: gym, agg: sum, period: month, icon: 🗓 }
+  - { label: Gym days, field: gym, agg: sum, icon: 🏋️ }
+  - { label: Longest gym streak, field: gym, agg: streak, unit: days, icon: 🔥 }
+  - { label: Gym this week, field: gym, agg: sum, period: week, icon: 📅, compare: true, better: up }
+  - { label: Gym this month, field: gym, agg: sum, period: month, icon: 🗓 }
 ```
 
 ```heatmap
@@ -171,10 +174,11 @@ title: Gym
 ```
 
 ```stats
+source: Diary
 columns: 2
 items:
-  - { label: Days in a row, source: Diary, field: meditate, agg: current_streak, unit: days, icon: 🔥 }
-  - { label: Best streak, source: Diary, field: meditate, agg: streak, unit: days }
+  - { label: Days in a row, field: meditate, agg: current_streak, unit: days, icon: 🔥 }
+  - { label: Best streak, field: meditate, agg: streak, unit: days }
 ```</code></pre>
         </div>
 
