@@ -6,6 +6,16 @@ chart) configured in YAML. No JavaScript, no Dataview. It reads frontmatter
 through Obsidian's own metadata cache and writes nothing to your notes
 unless you ask it to.
 
+A block counts over a window: the current week, month or year, a rolling
+count of days like `30d`, the period the note it sits in is named for
+(`period: note` on stats, progress and a tiles count badge, `range: note`
+on chart and heatmap, for a weekly or monthly review note like `2026-W40`
+or `2026-10`), a period written out (`2026-Q4`) or two dates
+(`{ from: 2026-09-01, to: 2026-09-30 }`). A note is dated by its name
+(`YYYY-MM-DD`, the day format of the Daily notes or Periodic Notes
+settings, or a block's own `date_format`, like `DD.MM.YYYY`) or by a
+frontmatter property named in `date_field`.
+
 Site: https://dimagious.github.io/dashsidian/
 Repository: https://github.com/Dimagious/dashsidian
 Community plugin listing: https://community.obsidian.md/plugins/dashsidian

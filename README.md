@@ -72,11 +72,16 @@ page: a picture, an example, every key.
 
 - [`stats`](https://dimagious.github.io/dashsidian/reference/stats/): number cards, or one line of numbers for a page header. Count, sum, average, best and current streak, this week against last or against your usual level.
 - [`chart`](https://dimagious.github.io/dashsidian/reference/chart/): a line or bars of a number by day, week, month or year, with a goal line.
-- [`heatmap`](https://dimagious.github.io/dashsidian/reference/heatmap/): a year of days coloured by a number or a checkbox, several habits on one grid.
+- [`heatmap`](https://dimagious.github.io/dashsidian/reference/heatmap/): a year of days coloured by a number or a checkbox, several habits on one grid, or [a month as a calendar](https://dimagious.github.io/dashsidian/guides/monthly-habit-calendar/) with a dot under every day you kept a habit.
 - [`progress`](https://dimagious.github.io/dashsidian/reference/progress/): bars towards a goal, like 24 books this year.
 - [`today`](https://dimagious.github.io/dashsidian/reference/today/): today's date, an optional live clock, and links to the daily, weekly and monthly notes.
 - [`tiles`](https://dimagious.github.io/dashsidian/reference/tiles/): link tiles into the vault, with live note counts.
 - [`countdown`](https://dimagious.github.io/dashsidian/reference/countdown/): days until a race, a holiday, the next birthday, or a date kept in a note.
+
+A weekly or monthly review counts its own period: `period: note` on `stats` and `progress`,
+`range: note` on `chart` and `heatmap`, in a note named `2026-W40` or `2026-10`, however late
+you open it. The same keys take a period written out, `2026-Q4`, or two dates,
+`{ from: 2026-09-01, to: 2026-09-30 }`. Step by step: [a weekly review without Dataview](https://dimagious.github.io/dashsidian/guides/weekly-review-without-dataview/).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/chart-weekly-dark.png">
@@ -84,6 +89,8 @@ page: a picture, an example, every key.
        src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/chart-weekly-light.png">
 </picture>
 
+Dates read the way your daily notes are named: `2026-10-05`, or `05.10.2026` in the day format
+set in Daily notes or Periodic Notes, or in one a block names with `date_format: DD.MM.YYYY`.
 Durations read the way your watch writes them: `sleep: 7h 38min` counts as a number and comes
 back as `7h 38m`. Race times written to the second, `time: 2:16:32`, come back to the second
 as a clock; `H:MM` always means hours and minutes, so write a 5 km time as `0:18:51`. Every
