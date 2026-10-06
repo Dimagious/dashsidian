@@ -12,6 +12,16 @@ removed public export.
 
 ### Fixed
 
+- **`chart` labels every day of a week and no longer writes its goal over
+  the last bar.** The x labels stopped at six whatever the width, so a week
+  of daily bars left one day, like "1 Oct", without a label. How many labels
+  a chart gets now depends on its width and on how long its labels are: a
+  week at 700px labels all seven days, a phone keeps fewer, and labels with
+  a year, like "28 Sep 2025", thin out sooner. Labels are still spaced so
+  they do not run into each other, and the first and the last are always
+  there. The goal's value, written at the right end of its dashed line, sat
+  on top of the last bar and repeated the legend under the chart; it is now
+  named in the legend only.
 - **`chart` no longer warns about a single bucket on the first day of the
   week or month.** `range: week` or `range: month` by day warned "The window
   holds a single bucket" whenever only one day of it had passed, though the

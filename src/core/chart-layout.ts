@@ -20,6 +20,8 @@ export interface LayoutInput {
     height: number;
     /** the longest y label, in characters, to size the left gutter */
     labelChars: number;
+    /** the longest x label, in characters: how many of them fit side by side */
+    xLabelChars: number;
 }
 
 export interface Rect {
@@ -56,7 +58,7 @@ export interface ChartLayout {
     /** point markers: every point with 30 buckets or fewer, else lone points only, plus a partial last one */
     points: LinePoint[];
     bars: BarRect[];
-    /** bucket indices that get an x label: at most six, always the first and the last */
+    /** bucket indices that get an x label: as many as fit side by side without colliding, always the first and the last */
     xLabels: number[];
 }
 
@@ -71,9 +73,10 @@ const GUTTER_PAD = 6;
 const MARKER_LIMIT = 30;
 /** How much of a bucket column its bars fill; the rest is the gap between columns. */
 const BAR_FILL = 0.8;
-/** Roughly the width one x label needs so its neighbours do not collide. */
+/** The least room one x label takes, however short: keeps a row of short labels from reading as one line. */
 const LABEL_SPACING = 64;
-const MAX_X_LABELS = 6;
+/** The clear space kept between two neighbouring x labels. */
+const LABEL_GAP = 8;
 
 function round2(n: number): number {
     return Math.round(n * 100) / 100;
@@ -114,6 +117,38 @@ export function placeXLabel(center: number, chars: number, width: number): XLabe
     if (center - half < 0) return { x: 0, anchor: "start" };
     if (center + half > width) return { x: round2(width), anchor: "end" };
     return { x: center, anchor: "middle" };
+}
+
+/** Where a label placed by `placeXLabel` starts and ends. */
+function labelExtent(center: number, chars: number, width: number): [number, number] {
+    const w = chars * CHAR_WIDTH;
+    const { x, anchor } = placeXLabel(center, chars, width);
+    if (anchor === "start") return [x, x + w];
+    if (anchor === "end") return [x - w, x];
+    return [x - w / 2, x + w / 2];
+}
+
+/**
+ * The x labels for these columns: as many as the plot has room for, each
+ * label taking its estimated text width plus a gap, or `LABEL_SPACING`
+ * when that is more, then fewer while any two neighbours, placed the way
+ * `placeXLabel` places them, would still touch. Never below the first and
+ * the last.
+ */
+function pickXLabels(centers: readonly number[], plotWidth: number, chars: number, width: number): number[] {
+    const room = Math.max(LABEL_SPACING, chars * CHAR_WIDTH + LABEL_GAP);
+    for (let max = Math.floor(plotWidth / room); max > 2; max--) {
+        const picked = xLabelIndices(centers.length, max);
+        const fits = picked.every((index, i) => {
+            const next = picked[i + 1];
+            if (next === undefined) return true;
+            const [, end] = labelExtent(centers[index] ?? 0, chars, width);
+            const [start] = labelExtent(centers[next] ?? 0, chars, width);
+            return end + LABEL_GAP <= start;
+        });
+        if (fits) return picked;
+    }
+    return xLabelIndices(centers.length, 2);
 }
 
 export function chartLayout(input: LayoutInput): ChartLayout {
@@ -198,7 +233,7 @@ export function chartLayout(input: LayoutInput): ChartLayout {
         lines,
         points,
         bars,
-        xLabels: xLabelIndices(buckets, Math.max(2, Math.min(MAX_X_LABELS, Math.floor(plot.width / LABEL_SPACING)))),
+        xLabels: pickXLabels(columns.map((c) => c.center), plot.width, input.xLabelChars, input.width),
     };
     if (input.goal !== undefined) out.goalY = clampY(yOf(input.goal));
     return out;

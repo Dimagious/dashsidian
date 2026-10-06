@@ -102,16 +102,15 @@ describe("chart: what it draws", () => {
         expect(points.map((p) => p.classList.contains("is-partial"))).toEqual([false, true]);
     });
 
-    it("three labelled y gridlines and at most six x labels, first and last always", () => {
+    it("three labelled y gridlines and as many x labels as fit, first and last always", () => {
         const el = chart("source: Diary\nfield: steps\nrange: 30d");
         const labels = texts(el, "text.dashy-chart-label");
         // y labels come first: 1000 to 10000 steps scale to 0, 5000, 10 000.
         expect(labels.slice(0, 3)).toEqual(["0", "5000", "10\u202f000"]);
         expect(nodes(el, "line.dashy-chart-grid")).toHaveLength(3);
         const xs = labels.slice(nodes(el, "line.dashy-chart-grid").length);
-        expect(xs.length).toBeLessThanOrEqual(6);
-        expect(xs[0]).toBe("1 Sep");
-        expect(xs[xs.length - 1]).toBe("30 Sep");
+        // 551px of plot at 64px a label: eight, where the old cap stopped at six.
+        expect(xs).toEqual(["1 Sep", "5 Sep", "9 Sep", "13 Sep", "18 Sep", "22 Sep", "26 Sep", "30 Sep"]);
     });
 
     it("the unit rides on the top y label and in the tooltip, not on every label", () => {
@@ -178,7 +177,16 @@ describe("chart: series, legend and goal", () => {
         expect(swatches[1]!.style.backgroundColor).toBe("rgb(245, 158, 11)");
         expect(swatches[3]!.classList.contains("is-goal")).toBe(true);
         expect(nodes(el, "line.dashy-chart-goal")).toHaveLength(1);
-        expect(texts(el, "text.dashy-chart-goal-label")).toEqual(["goal 20000"]);
+        // B-175: the value is named in the legend only, not again over the last bar.
+        expect(texts(el, "text").filter((s) => s.includes("goal"))).toEqual([]);
+    });
+
+    it("a week of bars with a goal labels all seven days, the goal only in the legend (B-175)", () => {
+        const el = chart("source: Diary\nfield: steps\ntype: bar\nrange: 7d\ngoal: 10000");
+        const xs = texts(el, "text.dashy-chart-label").slice(nodes(el, "line.dashy-chart-grid").length);
+        expect(xs).toEqual(["24 Sep", "25 Sep", "26 Sep", "27 Sep", "28 Sep", "29 Sep", "30 Sep"]);
+        expect(nodes(el, "line.dashy-chart-goal")).toHaveLength(1);
+        expect(texts(el, ".dashy-chart-leg")).toEqual(["goal 10000"]);
     });
 
     it("the tooltip lists every series with a value", () => {
@@ -370,7 +378,8 @@ describe("chart: bucket: year (B-147)", () => {
         // Two lone values between gaps: two points, no line drawn through the empty years.
         expect(nodes(el, "polyline.dashy-chart-line")).toHaveLength(0);
         expect(nodes(el, "circle.dashy-chart-point")).toHaveLength(2);
-        expect(texts(el, "text.dashy-chart-goal-label")).toEqual(["goal 400"]);
+        expect(nodes(el, "line.dashy-chart-goal")).toHaveLength(1);
+        expect(texts(el, ".dashy-chart-leg")).toEqual(["goal 400"]);
     });
 
     it("works the same as `dashy-chart`, the name left when Obsidian Charts owns `chart`", () => {

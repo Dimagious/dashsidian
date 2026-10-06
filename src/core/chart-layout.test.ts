@@ -9,7 +9,21 @@ const base: LayoutInput = {
     width: 400,
     height: 160,
     labelChars: 1,
+    xLabelChars: 4,
 };
+
+/** Where each picked x label starts and ends, placed and estimated as `placeXLabel` does (6.5px a character). */
+function labelBoxes(layout: ReturnType<typeof chartLayout>, chars: number, width: number): [number, number][] {
+    const w = chars * 6.5;
+    return layout.xLabels.map((index) => {
+        const { x, anchor } = placeXLabel(layout.columns[index]!.center, chars, width);
+        return anchor === "start" ? [x, x + w] : anchor === "end" ? [x - w, x] : [x - w / 2, x + w / 2];
+    });
+}
+
+function collides(boxes: [number, number][]): boolean {
+    return boxes.some((box, i) => i > 0 && boxes[i - 1]![1] > box[0]);
+}
 
 describe("xLabelIndices", () => {
     it("the first and the last are always among them", () => {
@@ -144,10 +158,60 @@ describe("chartLayout", () => {
         expect(layout.zeroY).toBe(layout.plot.top + layout.plot.height);
     });
 
-    it("a wide plot labels at most six buckets, a narrow one only the ends", () => {
+    it("a wide plot labels as many buckets as its width holds, a narrow one only the ends", () => {
         const many = Array.from({ length: 60 }, () => [1]);
-        expect(chartLayout({ ...base, values: many, width: 900 }).xLabels).toHaveLength(6);
+        // 890px of plot at 64px a label: thirteen, no longer capped at six.
+        expect(chartLayout({ ...base, values: many, width: 900 }).xLabels).toHaveLength(13);
         expect(chartLayout({ ...base, values: many, width: 120 }).xLabels).toEqual([0, 59]);
+    });
+});
+
+describe("x labels follow the width (B-175)", () => {
+    // A week of daily bars under a `20 000` axis, labelled like "28 Sep".
+    const week: LayoutInput = {
+        ...base, type: "bar", values: Array.from({ length: 7 }, () => [10000]),
+        ticks: [0, 10000, 20000], labelChars: 6, xLabelChars: 6,
+    };
+
+    it("a week at 700px labels every day", () => {
+        const layout = chartLayout({ ...week, width: 700 });
+        expect(layout.xLabels).toEqual([0, 1, 2, 3, 4, 5, 6]);
+        expect(collides(labelBoxes(layout, 6, 700))).toBe(false);
+    });
+
+    it("the same week at 320px thins its labels, the ends kept, none touching", () => {
+        const layout = chartLayout({ ...week, width: 320 });
+        expect(layout.xLabels).toEqual([0, 2, 4, 6]);
+        expect(collides(labelBoxes(layout, 6, 320))).toBe(false);
+    });
+
+    it("labels with a year, like \"28 Sep 2025\", thin earlier than the short ones", () => {
+        const short = chartLayout({ ...week, width: 560 });
+        const long = chartLayout({ ...week, width: 560, xLabelChars: 11 });
+        expect(short.xLabels).toEqual([0, 1, 2, 3, 4, 5, 6]);
+        expect(long.xLabels).toEqual([0, 2, 4, 6]);
+        expect(collides(labelBoxes(long, 11, 560))).toBe(false);
+    });
+
+    it("labels too long for any middle one keep only the first and the last", () => {
+        const layout = chartLayout({ ...week, width: 320, xLabelChars: 20 });
+        expect(layout.xLabels).toEqual([0, 6]);
+    });
+
+    it("no two neighbours touch at any width, bucket count or label length", () => {
+        for (const width of [200, 320, 480, 700, 1000]) {
+            for (const count of [2, 3, 7, 12, 31, 60, 400]) {
+                for (const chars of [2, 6, 11]) {
+                    const values = Array.from({ length: count }, () => [1]);
+                    const layout = chartLayout({ ...week, values, width, xLabelChars: chars });
+                    expect(layout.xLabels[0]).toBe(0);
+                    expect(layout.xLabels[layout.xLabels.length - 1]).toBe(count - 1);
+                    if (layout.xLabels.length > 2) {
+                        expect(collides(labelBoxes(layout, chars, width)), `${width}px, ${count} buckets, ${chars} chars`).toBe(false);
+                    }
+                }
+            }
+        }
     });
 });
 
