@@ -391,6 +391,73 @@ describe("chart: bucket: year (B-147)", () => {
     });
 });
 
+describe("chart: x labels sit under their points (B-157)", () => {
+    const races: FakeNote[] = [2021, 2022, 2023, 2024, 2025, 2026].map((y, i) => ({
+        path: `Races/${y}-05-01.md`,
+        frontmatter: { km: 10 + i },
+    }));
+    const xLabels = (el: HTMLElement): Element[] =>
+        nodes(el, "text.dashy-chart-label").slice(nodes(el, "line.dashy-chart-grid").length);
+    const num = (node: Element, name: string): number => Number(node.getAttribute(name));
+
+    it("six yearly points: every label, the first and the last too, is centred on its point", () => {
+        const el = chart("source: Races\nfield: km\nbucket: year\nrange: 1826d", races);
+        const labels = xLabels(el);
+        expect(labels.map((l) => l.textContent)).toEqual(["2021", "2022", "2023", "2024", "2025", "2026"]);
+        const points = nodes(el, "circle.dashy-chart-point");
+        expect(points).toHaveLength(6);
+        labels.forEach((label, i) => {
+            expect(label.getAttribute("text-anchor"), `${i}`).toBe("middle");
+            expect(num(label, "x"), `${i}`).toBe(num(points[i]!, "cx"));
+        });
+    });
+
+    it("a bar chart follows the same rule: each year under the middle of its bar", () => {
+        const el = chart("source: Races\nfield: km\nbucket: year\nrange: 1826d\ntype: bar", races);
+        const labels = xLabels(el);
+        const bars = nodes(el, "rect.dashy-chart-bar");
+        expect(bars).toHaveLength(6);
+        labels.forEach((label, i) => {
+            expect(label.getAttribute("text-anchor"), `${i}`).toBe("middle");
+            expect(num(label, "x"), `${i}`).toBeCloseTo(num(bars[i]!, "x") + num(bars[i]!, "width") / 2, 1);
+        });
+    });
+
+    it("labels that would cross an edge are pinned to it; the ones between stay centred", () => {
+        vi.setSystemTime(new Date(2027, 1, 10, 12));
+        const notes = diary("Diary", "2026-12-01", 60, (i) => ({ steps: i }));
+        // A day per bucket: the end columns are a few pixels wide, "14 Oct 2026" and "10 Feb" are not.
+        const el = chart("source: Diary\nfield: steps\nrange: 120d", notes);
+        const labels = xLabels(el);
+        expect(labels.length).toBeGreaterThan(2);
+        const first = labels[0]!;
+        expect(first.textContent).toBe("14 Oct 2026");
+        expect(first.getAttribute("text-anchor")).toBe("start");
+        expect(num(first, "x")).toBe(0);
+        const last = labels[labels.length - 1]!;
+        expect(last.textContent).toBe("10 Feb");
+        expect(last.getAttribute("text-anchor")).toBe("end");
+        // The fallback width of a plot jsdom does not measure.
+        expect(num(last, "x")).toBe(600);
+        const centers = hits(el).map((h) => parseFloat(h.style.left) + parseFloat(h.style.width) / 2);
+        for (const label of labels.slice(1, -1)) {
+            expect(label.getAttribute("text-anchor")).toBe("middle");
+            const x = num(label, "x");
+            expect(Math.min(...centers.map((c) => Math.abs(c - x)))).toBeLessThan(0.02);
+        }
+    });
+
+    it("a single point is labelled right under it", () => {
+        const el = chart("source: Races\nfield: km\nbucket: year\nrange: 30d", races);
+        const labels = xLabels(el);
+        const points = nodes(el, "circle.dashy-chart-point");
+        expect(labels.map((l) => l.textContent)).toEqual(["2026"]);
+        expect(points).toHaveLength(1);
+        expect(labels[0]!.getAttribute("text-anchor")).toBe("middle");
+        expect(num(labels[0]!, "x")).toBe(num(points[0]!, "cx"));
+    });
+});
+
 describe("chart: an empty window is not an error", () => {
     it("draws the axes and says no data in the window", () => {
         const old = diary("Diary", "2025-01-01", 5, (i) => ({ steps: i }));

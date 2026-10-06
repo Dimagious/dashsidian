@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { chartLayout, xLabelIndices, type LayoutInput } from "./chart-layout";
+import { chartLayout, placeXLabel, xLabelIndices, type LayoutInput } from "./chart-layout";
 
 const base: LayoutInput = {
     values: [[1], [2], [3], [4]],
@@ -148,5 +148,54 @@ describe("chartLayout", () => {
         const many = Array.from({ length: 60 }, () => [1]);
         expect(chartLayout({ ...base, values: many, width: 900 }).xLabels).toHaveLength(6);
         expect(chartLayout({ ...base, values: many, width: 120 }).xLabels).toEqual([0, 59]);
+    });
+});
+
+describe("placeXLabel (B-157)", () => {
+    // Six yearly points on a 600px drawing: every "2021".."2026" fits centred.
+    const years: LayoutInput = { ...base, values: [[1], [2], [3], [4], [5], [6]], width: 600, labelChars: 2 };
+
+    it("a label that fits sits centred under its point, the edge ones too", () => {
+        const layout = chartLayout(years);
+        expect(layout.xLabels).toEqual([0, 1, 2, 3, 4, 5]);
+        for (const index of layout.xLabels) {
+            const point = layout.points.find((p) => p.bucket === index)!;
+            const column = layout.columns[index]!;
+            expect(column.center).toBe(point.x);
+            expect(placeXLabel(column.center, 4, 600), `${index}`).toEqual({ x: point.x, anchor: "middle" });
+        }
+    });
+
+    it("bars get the same rule: centred under the middle of their bucket's bars", () => {
+        const layout = chartLayout({ ...years, type: "bar", ticks: [0, 3, 6] });
+        for (const bar of layout.bars) {
+            const center = layout.columns[bar.bucket]!.center;
+            expect(center).toBeCloseTo(bar.left + bar.width / 2, 1);
+            expect(placeXLabel(center, 4, 600)).toEqual({ x: center, anchor: "middle" });
+        }
+    });
+
+    it("a label that would cross the left edge starts at it, one crossing the right edge ends at it", () => {
+        // 12 characters estimate at 78px: centred at 30 it would start at -9.
+        expect(placeXLabel(30, 12, 600)).toEqual({ x: 0, anchor: "start" });
+        expect(placeXLabel(580, 12, 600)).toEqual({ x: 600, anchor: "end" });
+        // The same label further in fits and stays centred.
+        expect(placeXLabel(300, 12, 600)).toEqual({ x: 300, anchor: "middle" });
+    });
+
+    it("a label touching an edge exactly still fits; one wider than the drawing starts at the left", () => {
+        // 4 characters are 26px, half of it 13.
+        expect(placeXLabel(13, 4, 600)).toEqual({ x: 13, anchor: "middle" });
+        expect(placeXLabel(587, 4, 600)).toEqual({ x: 587, anchor: "middle" });
+        expect(placeXLabel(50, 20, 100)).toEqual({ x: 0, anchor: "start" });
+    });
+
+    it("a single point is labelled in the middle of the plot", () => {
+        const layout = chartLayout({ ...years, values: [[5]] });
+        expect(layout.xLabels).toEqual([0]);
+        const center = layout.columns[0]!.center;
+        expect(center).toBe(layout.points[0]!.x);
+        expect(center).toBeCloseTo(layout.plot.left + layout.plot.width / 2, 1);
+        expect(placeXLabel(center, 4, 600)).toEqual({ x: center, anchor: "middle" });
     });
 });

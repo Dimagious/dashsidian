@@ -45,8 +45,8 @@ export interface BarRect extends Rect {
 
 export interface ChartLayout {
     plot: Rect;
-    /** one per bucket, left to right, tiling the plot width exactly: the hit row */
-    columns: { left: number; width: number }[];
+    /** one per bucket, left to right, tiling the plot width exactly: the hit row. `center` is where its point sits and its bars are centred */
+    columns: { left: number; width: number; center: number }[];
     ticks: { value: number; y: number }[];
     /** where zero sits, clamped into the plot: the bars' baseline */
     zeroY: number;
@@ -95,6 +95,27 @@ export function xLabelIndices(count: number, max: number): number[] {
     return out;
 }
 
+export type LabelAnchor = "start" | "middle" | "end";
+
+export interface XLabelPlacement {
+    x: number;
+    anchor: LabelAnchor;
+}
+
+/**
+ * Where one x label goes: centred under its column's `center` (its point,
+ * or the middle of its bars) whenever the label, estimated at `CHAR_WIDTH`
+ * per character, fits inside a drawing `width` wide. Only a label that would
+ * cross an edge is pinned to that edge instead; one wider than the whole
+ * drawing starts at the left edge.
+ */
+export function placeXLabel(center: number, chars: number, width: number): XLabelPlacement {
+    const half = (chars * CHAR_WIDTH) / 2;
+    if (center - half < 0) return { x: 0, anchor: "start" };
+    if (center + half > width) return { x: round2(width), anchor: "end" };
+    return { x: center, anchor: "middle" };
+}
+
 export function chartLayout(input: LayoutInput): ChartLayout {
     const buckets = input.values.length;
     const gutter = input.labelChars > 0 ? input.labelChars * CHAR_WIDTH + GUTTER_PAD : GUTTER_PAD;
@@ -112,9 +133,11 @@ export function chartLayout(input: LayoutInput): ChartLayout {
     const clampY = (y: number): number => Math.min(plot.top + plot.height, Math.max(plot.top, y));
 
     const colWidth = plot.width / Math.max(1, buckets);
+    const centerOf = (b: number): number => round2(plot.left + (b + 0.5) * colWidth);
     const columns = Array.from({ length: buckets }, (_, i) => ({
         left: round2(plot.left + i * colWidth),
         width: round2(colWidth),
+        center: centerOf(i),
     }));
 
     const zeroY = clampY(yOf(0));
@@ -142,7 +165,7 @@ export function chartLayout(input: LayoutInput): ChartLayout {
                     flush();
                     continue;
                 }
-                run.push({ series: s, bucket: b, x: round2(plot.left + (b + 0.5) * colWidth), y: yOf(v), partial: isPartial(b) });
+                run.push({ series: s, bucket: b, x: centerOf(b), y: yOf(v), partial: isPartial(b) });
             }
             flush();
         }

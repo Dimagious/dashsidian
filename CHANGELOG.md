@@ -20,6 +20,14 @@ removed public export.
   warns the way an empty `source:` or `tag:` already does. A real name with
   spaces around it, like `source: " Diary "` or `tag: " #read "`, now reads
   as that folder or tag instead of selecting nothing.
+- **`chart` labels its first and last points where they are.** The first
+  label under the chart started at the left edge of the plot and the last one
+  ended at its right edge, so with few points, like six years of races on
+  `bucket: year`, "2021" sat left of its point and "2026" right of its own,
+  as if the axis were shifted. Every label is now centred under its point,
+  or under the middle of its bars on `type: bar`. Only a label too long to fit
+  centred, like a dated first day on a long `range`, is pinned to the edge of
+  the chart.
 
 ## [1.6.0] - 2026-10-05
 
