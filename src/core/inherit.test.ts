@@ -150,6 +150,15 @@ describe("readBlockSelection: root problems reported once for the block (B-153, 
         expect(empties.diagnostics.map((d) => d.message)).toEqual(nulls.diagnostics.map((d) => d.message));
     });
 
+    it("a whitespace root source or tag warns the same as an empty one (B-156)", () => {
+        const spaced = readBlockSelection({ source: "  ", tag: " ", items: [] }, SHARED);
+        expect(spaced.diagnostics.map((d) => d.message)).toEqual([
+            "`source` at the block root is empty, so the whole vault is read. Name a folder, or remove the key if the whole vault is meant.",
+            "`tag` at the block root is empty, so no tag filter applies. Name a tag, or remove the key if no tag filter is meant.",
+        ]);
+        expect(spaced.source).toEqual({});
+    });
+
     it("a single card without items: has no root, so nothing is reported for one", () => {
         expect(readBlockSelection({ source: null, period: "fortnight" }, SHARED).diagnostics).toEqual([]);
     });
@@ -198,10 +207,26 @@ describe("blankSelectionDiagnostics (B-154)", () => {
         ]);
     });
 
-    it("a written value, a missing key or whitespace is not blank", () => {
+    it("a written value or a missing key is not blank", () => {
         expect(blankSelectionDiagnostics({ source: "Gym", tag: "run" }, root, '"Gym"')).toEqual([]);
         expect(blankSelectionDiagnostics({}, root, '"Gym"')).toEqual([]);
-        expect(blankSelectionDiagnostics({ source: " " }, root, '"Gym"')).toEqual([]);
+        // Padding around a real name is not blank: it reads as the name (B-156).
+        expect(blankSelectionDiagnostics({ source: " Gym ", tag: " run " }, root, '"Gym"')).toEqual([]);
+    });
+
+    it("whitespace alone is blank, the same as empty text (B-156)", () => {
+        expect(blankSelectionDiagnostics({ source: " ", tag: "\t " }, root, '"Gym"').map((d) => d.message))
+            .toEqual(blankSelectionDiagnostics({ source: "", tag: "" }, root, '"Gym"').map((d) => d.message));
+        expect(blankSelectionDiagnostics({ source: "   " }, bare, '"Gym"').map((d) => d.message)).toEqual([
+            '"Gym": `source` is empty, so it reads the whole vault. Name a folder, or remove the key if the whole vault is meant.',
+        ]);
+    });
+
+    it("a whitespace root value is nothing to inherit (B-156)", () => {
+        const spacedRoot = readBlockSelection({ tag: "  ", items: [] }, SHARED);
+        expect(blankSelectionDiagnostics({ tag: "" }, spacedRoot, '"Gym"').map((d) => d.message)).toEqual([
+            '"Gym": `tag` is empty, so no tag filter applies. Name a tag, or remove the key if no tag filter is meant.',
+        ]);
     });
 });
 

@@ -445,6 +445,17 @@ describe("chart: every diagnostic reaches the note, under the block's name", () 
             .toMatch(/^⚠️ chart: `where: mood > 3 or gym = true` uses `or`, which is not supported/);
     });
 
+    it("a source of only spaces reads like no source, and a padded one like the folder (B-156)", () => {
+        const plain = titles(chart("source: Diary\nfield: steps\nrange: 10d"));
+        expect(plain).toHaveLength(10);
+        const spaced = chart('source: "   "\nfield: steps\nrange: 10d');
+        expect(titles(spaced)).toEqual(plain);
+        expect(diagnostics(spaced, "warning")).toEqual([]);
+        const padded = chart('source: " Diary "\nfield: steps\nrange: 10d');
+        expect(titles(padded)).toEqual(plain);
+        expect(diagnostics(padded, "warning")).toEqual([]);
+    });
+
     it("a missing field, a text field and an undated one each say what is wrong", () => {
         const notes: FakeNote[] = [
             { path: "Diary/2026-09-30.md", frontmatter: { running: "10 km · 51min" } },

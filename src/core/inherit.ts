@@ -1,6 +1,6 @@
 import { describeValue, isRecord, type Diagnostic } from "../shared/parse";
 import { t, type MessageKey } from "../i18n";
-import { readSource, readWhere, type SourceSpec } from "./source";
+import { readSelector, readSource, readWhere, type SourceSpec } from "./source";
 import { parsePeriod } from "./period";
 import { readDateField } from "./note-date";
 
@@ -107,18 +107,17 @@ const BLANK_ALONE: Record<Blankable, MessageKey> = {
 };
 
 /**
- * `source:` or `tag:` written with no value (YAML null) or as `""`.
+ * `source:` or `tag:` written with no value (YAML null), as `""`, or as
+ * nothing but whitespace like `"  "`.
  *
  * Either one filters nothing: a blank `source` reads the whole vault and a
  * blank `tag` drops the tag filter. On a card under a root selection it also
  * replaces the root's value, so the card silently reads more than the block
- * around it (B-154). Only these two exact shapes count. A whitespace-only
- * value is neither blank here nor caught by `unmatchedSource` (its trim and
- * `inFolder` disagree), so it selects nothing without a word; that is older
- * than this and tracked as B-156.
+ * around it (B-154). Whitespace is blank by `readSelector`, the same reader
+ * the selection itself goes through (B-156).
  */
 function isBlank(value: unknown): boolean {
-    return value === null || value === "";
+    return value === null || (typeof value === "string" && readSelector(value) === undefined);
 }
 
 /**

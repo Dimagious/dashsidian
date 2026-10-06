@@ -286,7 +286,7 @@ function comparable(value: unknown): string {
 
 /** A folder includes its children: "01-Areas" covers "01-Areas/Sport/x.md". */
 function inFolder(note: NoteRecord, folder: string): boolean {
-    const f = folder.replace(/^\/+|\/+$/g, "");
+    const f = normalize(folder);
     if (!f) return true;
     return note.folder === f || note.folder.startsWith(`${f}/`);
 }
@@ -327,6 +327,22 @@ export function selectNotes(notes: readonly NoteRecord[], spec: SourceSpec): Not
 }
 
 /**
+ * A `source` or `tag` as written, trimmed, or `undefined` when it selects
+ * nothing: not text, empty, or only whitespace (B-156).
+ *
+ * The one place a blank `source` or `tag` is decided (countdown's `isSet`
+ * makes the same call for its own keys). Read through here, `"  "` is the
+ * same as `""` for the selection, the missing-folder check and the blank-key
+ * warnings alike; before, it filtered on the spaces and matched no note
+ * without a word.
+ */
+export function readSelector(value: unknown): string | undefined {
+    if (typeof value !== "string") return undefined;
+    const text = value.trim();
+    return text || undefined;
+}
+
+/**
  * The selection a block config asks for, and what could not be read in it.
  *
  * The three keys are read in one place because a `where` that fails to parse is
@@ -340,8 +356,10 @@ export function readSource(item: Record<string, unknown>): {
     const spec: SourceSpec = {};
     const diagnostics: Diagnostic[] = [];
 
-    if (typeof item.source === "string") spec.source = item.source;
-    if (typeof item.tag === "string") spec.tag = item.tag;
+    const source = readSelector(item.source);
+    if (source !== undefined) spec.source = source;
+    const tag = readSelector(item.tag);
+    if (tag !== undefined) spec.tag = tag;
 
     const where = readWhere(item.where);
     if (where.kind === "ok") {

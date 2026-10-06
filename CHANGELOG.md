@@ -10,6 +10,17 @@ removed public export.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A `source` or `tag` of only spaces no longer counts nothing in silence.**
+  `source: " "` matched no folder and `tag: " "` no tag, so the card showed
+  0 with no warning. Such a value now means the same as an empty one in
+  every block: `source` reads the whole vault and `tag` drops the tag
+  filter. On a `stats` card or `progress` bar, and at their block root, it
+  warns the way an empty `source:` or `tag:` already does. A real name with
+  spaces around it, like `source: " Diary "` or `tag: " #read "`, now reads
+  as that folder or tag instead of selecting nothing.
+
 ## [1.6.0] - 2026-10-05
 
 ### Added
