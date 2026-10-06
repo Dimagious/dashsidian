@@ -28,6 +28,24 @@ removed public export.
   or under the middle of its bars on `type: bar`. Only a label too long to fit
   centred, like a dated first day on a long `range`, is pinned to the edge of
   the chart.
+- **A `source` or `tag` that is not text is an error instead of a silent
+  whole vault.** YAML reads `source: 2024` as a number and `source: [A, B]`
+  as a list, and the key was dropped without a word, so the block counted
+  every note. Now `stats` and `progress` (on a card and at the block root),
+  `chart`, `heatmap`, `countdown` with `field` and a `tiles` count badge's
+  `tag` show an error naming the value. For a number it says to quote the
+  name as written, `source: "2024"`; for a list, a map or a boolean it asks
+  for one name. The key is still ignored, and the message says so: the whole
+  vault is read, or the tag filter is dropped. An empty `source:` is
+  unchanged: on `stats` and `progress` it keeps its warning. A quoted
+  `source: "2024"` reads that folder as before. Insert
+  block now quotes such a folder when it fits an example to the vault, so a
+  vault whose biggest folder is `2024` gets `source: "2024"`.
+- **A tile whose `path` is only spaces is treated as one without a `path`.**
+  Without a `label` it is skipped, the same as a tile with neither; with one,
+  it is drawn without a link instead of linking to the spaces. Spaces around
+  a real path, like `path: " Tasks "`, are trimmed.
+
 ### Added
 
 - **`pick: max` on a `heatmap` with `layers`.** On a day several layers

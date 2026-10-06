@@ -394,6 +394,58 @@ describe("readSelector (B-156)", () => {
     });
 });
 
+describe("readSource: a source or tag that is not text is an error (B-160)", () => {
+    const errors = (item: Record<string, unknown>): string[] =>
+        readSource(item).diagnostics.filter((d) => d.level === "error").map((d) => d.message);
+
+    it("a number names the quoted fix, for source and for tag", () => {
+        const { spec, diagnostics } = readSource({ source: 2024, tag: 7 });
+        expect(spec).toEqual({});
+        expect(diagnostics).toEqual([
+            {
+                level: "error",
+                message: '`source` must be a folder name in text, got `2024`, so it was ignored and the whole vault is read. Put the folder name in quotes, as written: `source: "2024"`.',
+            },
+            {
+                level: "error",
+                message: '`tag` must be a tag name in text, got `7`, so it was ignored and the tag filter is dropped. Put the tag name in quotes, as written: `tag: "2024"`.',
+            },
+        ]);
+    });
+
+    it("a list, a map or a boolean asks for one name, with the value written back", () => {
+        expect(errors({ source: ["A", "B"] })).toEqual([
+            '`source` must be one folder name in text, got `["A","B"]`, so it was ignored and the whole vault is read. Name one folder, like `source: Journal`.',
+        ]);
+        expect(errors({ source: { x: 1 } })).toEqual([
+            '`source` must be one folder name in text, got `{"x":1}`, so it was ignored and the whole vault is read. Name one folder, like `source: Journal`.',
+        ]);
+        expect(errors({ tag: true })).toEqual([
+            "`tag` must be one tag name in text, got `true`, so it was ignored and the tag filter is dropped. Name one tag, like `tag: book`.",
+        ]);
+        expect(errors({ tag: [] })).toEqual([
+            "`tag` must be one tag name in text, got `[]`, so it was ignored and the tag filter is dropped. Name one tag, like `tag: book`.",
+        ]);
+    });
+
+    it("a quoted number is a folder name and says nothing", () => {
+        const { spec, diagnostics } = readSource({ source: "2024", tag: "7" });
+        expect(spec).toEqual({ source: "2024", tag: "7" });
+        expect(diagnostics).toEqual([]);
+    });
+
+    it("an empty key (null) or a missing one is not this error", () => {
+        expect(readSource({ source: null, tag: null }).diagnostics).toEqual([]);
+        expect(readSource({}).diagnostics).toEqual([]);
+        expect(readSource({ source: "", tag: "" }).diagnostics).toEqual([]);
+    });
+
+    it("comes before a where warning, and does not hide it", () => {
+        const { diagnostics } = readSource({ source: 2024, where: "just words" });
+        expect(diagnostics.map((d) => d.level)).toEqual(["error", "warning"]);
+    });
+});
+
 describe("unmatchedSource", () => {
     it("names a folder nothing is filed under", () => {
         expect(unmatchedSource(vault, { source: "99-Nowhere" })).toBe("99-Nowhere");

@@ -781,3 +781,26 @@ describe("progress: race times as a clock", () => {
         expect(texts(el, ".dashy-progress-value")).toEqual(["19h 40m / 20h 98%"]);
     });
 });
+
+describe("progress: a source or tag that is not text is an error (B-160)", () => {
+    it("on a bar, a number says to quote it", () => {
+        const el = bars("items:\n  - { label: Days, source: 2024, agg: count, goal: 40 }");
+        expect(diagnostics(el, "error")).toEqual([
+            '⛔ progress: `source` must be a folder name in text, got `2024`, so it was ignored and the whole vault is read. Put the folder name in quotes, as written: `source: "2024"`.',
+        ]);
+    });
+
+    it("at the root, a tag list is one error for the block", () => {
+        const el = bars("tag: [a, b]\nitems:\n  - { label: A, source: Diary, agg: count, goal: 40 }\n  - { label: B, source: Diary, agg: count, goal: 40 }");
+        expect(diagnostics(el, "error")).toEqual([
+            '⛔ progress: `tag` must be one tag name in text, got `["a","b"]`, so it was ignored and the tag filter is dropped. Name one tag, like `tag: book`.',
+        ]);
+        expect(texts(el, ".dashy-progress-percent")).toEqual(["25%", "25%"]);
+    });
+
+    it("an empty source: stays a warning", () => {
+        const el = bars("items:\n  - { label: Days, source: , agg: count, goal: 40 }");
+        expect(diagnostics(el, "error")).toEqual([]);
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+    });
+});

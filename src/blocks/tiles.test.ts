@@ -683,3 +683,60 @@ describe("tiles — a folder as the path (B-144)", () => {
         ]);
     });
 });
+
+describe("tiles: a blank path and a selection that is not text (B-160)", () => {
+    const fixture = mockContext({
+        notes: [
+            { path: "Tasks/a.md", tags: ["2024"] },
+            { path: "Tasks/b.md", tags: [] },
+            { path: "Other/c.md", tags: ["2024"] },
+        ],
+    });
+    const render = (config: string): HTMLElement => {
+        const el = host();
+        renderTiles(fixture, config, el);
+        return el;
+    };
+
+    it("a path of only spaces and no label is skipped like a tile with neither", () => {
+        const el = render('items:\n  - { path: "  ", badge: count }\n  - { label: Real, path: Tasks }');
+        expect(texts(el, ".dashy-tile-label")).toEqual(["Real"]);
+        expect(nodes(el, ".dashy-tile")).toHaveLength(1);
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(diagnostics(el, "error")).toEqual([]);
+    });
+
+    it("with a label, a path of only spaces is no link, the same as no path", () => {
+        const spaces = render('items:\n  - { label: A, path: "   " }');
+        const none = render("items:\n  - { label: A }");
+        expect(nodes(spaces, "a.dashy-tile-link")).toHaveLength(0);
+        expect(spaces.innerHTML).toBe(none.innerHTML);
+    });
+
+    it("a path with spaces around a folder name reads as that folder", () => {
+        const el = render('items:\n  - { label: T, path: " Tasks ", badge: count }');
+        expect(texts(el, ".dashy-tile-badge")).toEqual(["2"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("a count badge with tag: 2024 says to quote it", () => {
+        const el = render("items:\n  - { label: T, path: Tasks, tag: 2024, badge: count }");
+        expect(diagnostics(el, "error")).toEqual([
+            '⛔ tiles: `tag` must be a tag name in text, got `2024`, so it was ignored and the tag filter is dropped. Put the tag name in quotes, as written: `tag: "2024"`.',
+        ]);
+    });
+
+    it("quoted, the tag narrows the count without a word", () => {
+        const el = render('items:\n  - { label: T, path: Tasks, tag: "2024", badge: count }');
+        expect(texts(el, ".dashy-tile-badge")).toEqual(["1"]);
+        expect(diagnostics(el, "error")).toEqual([]);
+    });
+
+    it("a source on a tile is only an unknown key, not a source error", () => {
+        const el = render("items:\n  - { label: T, path: Tasks, source: 2024, badge: count }");
+        expect(diagnostics(el, "error")).toEqual([]);
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+        expect(diagnostics(el, "warning")[0]).toContain("source");
+    });
+});
+

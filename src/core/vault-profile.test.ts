@@ -140,6 +140,34 @@ describe("fitExample", () => {
     });
 });
 
+describe("fitExample: a folder name YAML would not read back as text is quoted (B-160)", () => {
+    const fit = (folder: string, example = "source: Diary"): string => fitExample(example, { folder, field: null });
+
+    it("a folder named like a number is quoted, or `source` would read a number", () => {
+        expect(fit("2024")).toBe('source: "2024"');
+        expect(fit("1e3")).toBe('source: "1e3"');
+    });
+
+    it("words YAML reads as a boolean or as null are quoted", () => {
+        expect(fit("true")).toBe('source: "true"');
+        expect(fit("null")).toBe('source: "null"');
+        expect(fit("~")).toBe('source: "~"');
+    });
+
+    it("a comma or a bracket would break the inline map, so it is quoted there too", () => {
+        expect(fit("Notes, old", "{ label: A, source: Diary, agg: count }")).toBe('{ label: A, source: "Notes, old", agg: count }');
+        expect(fit("Notes [old]")).toBe('source: "Notes [old]"');
+        expect(fit("# inbox")).toBe('source: "# inbox"');
+    });
+
+    it("an ordinary name, a nested path or one starting with a digit stays bare", () => {
+        expect(fit("Journal")).toBe("source: Journal");
+        expect(fit("Journal/2024")).toBe("source: Journal/2024");
+        expect(fit("01-Areas")).toBe("source: 01-Areas");
+        expect(fit("Ideas & Plans")).toBe("source: Ideas & Plans");
+    });
+});
+
 describe("every block's example fits the vault it lands in", () => {
     const profile = { folder: "Journal", field: "mood" };
 
@@ -232,3 +260,35 @@ describe("the schema examples survive a newcomer-shaped vault", () => {
         expect(chartEl.querySelector(".dashy-chart-empty")).toBeNull();
     });
 });
+
+describe("the schema examples survive a vault whose main folder is a year (B-160)", () => {
+    const TODAY = new Date(2026, 8, 24);
+
+    afterEach(() => vi.useRealTimers());
+
+    it("stats, progress and chart fitted to a folder named 2024 draw with no diagnostics", () => {
+        const notes = newcomerVaultNotes(TODAY).map((n) =>
+            n.folder === "Journal" ? { ...n, folder: "2024", path: n.path.replace(/^Journal\//, "2024/") } : n);
+        const profile = profileVault(notes);
+        expect(profile).toEqual({ folder: "2024", field: "mood" });
+        const ctx = mockContext({
+            notes: notes.map((n) => ({ path: n.path, frontmatter: n.frontmatter, tags: n.tags })),
+        });
+
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+
+        const blocks = schema.blocks as Record<string, { example: string }>;
+        for (const name of ["stats", "progress", "chart"] as const) {
+            const fitted = fitExample(blocks[name]!.example, profile);
+            expect(fitted).toContain('source: "2024"');
+            const el = host();
+            if (name === "stats") renderStats(ctx, fitted, el);
+            else if (name === "progress") renderProgress(ctx, fitted, el);
+            else renderChart(ctx, fitted, el);
+            expect(diagnostics(el, "error"), `${name}:\n${fitted}`).toEqual([]);
+            expect(diagnostics(el, "warning"), `${name}:\n${fitted}`).toEqual([]);
+        }
+    });
+});
+

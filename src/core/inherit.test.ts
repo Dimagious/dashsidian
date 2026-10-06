@@ -230,6 +230,49 @@ describe("blankSelectionDiagnostics (B-154)", () => {
     });
 });
 
+describe("a source or tag that is not text, at the root and on a card (B-160)", () => {
+    const SOURCE_2024 = '`source` must be a folder name in text, got `2024`, so it was ignored and the whole vault is read. Put the folder name in quotes, as written: `source: "2024"`.';
+    const TAG_LIST = "`tag` must be one tag name in text, got `[\"a\",\"b\"]`, so it was ignored and the tag filter is dropped. Name one tag, like `tag: book`.";
+
+    it("at the root it is one error each, and it is not handed down", () => {
+        const block = readBlockSelection({ source: 2024, tag: ["a", "b"], period: "week", items: [] }, SHARED);
+        expect(block.diagnostics).toEqual([
+            { level: "error", message: SOURCE_2024 },
+            { level: "error", message: TAG_LIST },
+        ]);
+        expect(block.defaults).toEqual({ period: "week" });
+        expect(block.source).toEqual({});
+    });
+
+    it("a card under such a root repeats nothing and reads as if the root had no source", () => {
+        const block = readBlockSelection({ source: 2024, items: [] }, SHARED);
+        const { source, diagnostics, inherited } = inheritSelection({ label: "A" }, block);
+        expect(diagnostics).toEqual([]);
+        expect(source).toEqual({});
+        expect(inherited.has("source")).toBe(false);
+    });
+
+    it("a card's own number is the card's error, and its source is not the root's", () => {
+        const block = readBlockSelection({ source: "Diary", items: [] }, SHARED);
+        const { source, diagnostics } = inheritSelection({ source: 2024 }, block);
+        expect(diagnostics).toEqual([{ level: "error", message: SOURCE_2024 }]);
+        expect(source.source).toBeUndefined();
+    });
+
+    it("an empty root source stays the blank warning, not this error", () => {
+        const block = readBlockSelection({ source: null, items: [] }, SHARED);
+        expect(block.diagnostics.map((d) => d.level)).toEqual(["warning"]);
+        expect(block.diagnostics[0]?.message).toContain("`source` at the block root is empty");
+    });
+
+    it("a blank card under a root whose source is a number is told nothing is inherited", () => {
+        const block = readBlockSelection({ source: 2024, items: [] }, SHARED);
+        expect(blankSelectionDiagnostics({ source: null }, block, '"Gym"').map((d) => d.message)).toEqual([
+            '"Gym": `source` is empty, so it reads the whole vault. Name a folder, or remove the key if the whole vault is meant.',
+        ]);
+    });
+});
+
 describe("undatedRootDiagnostics (B-153)", () => {
     const block = readBlockSelection({ date_field: "day", items: [] }, SHARED);
 

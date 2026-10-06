@@ -34,6 +34,14 @@ export const fr: Catalog = {
         "`where` contient `{value}`, qui n'est pas une condition, donc tout le filtre a été ignoré. Les chiffres ci-dessous ne sont pas filtrés. Chaque élément est une condition comme `year = 2026`.",
     "where.emptyList":
         "`where` est une liste vide, le filtre a donc été ignoré et les chiffres ci-dessous ne sont pas filtrés. Listez des conditions, par exemple `[year = 2026, rating >= 4]`, ou retirez la clé.",
+    "where.sourceNumber":
+        "`source` doit être un nom de dossier sous forme de texte, reçu `{value}`, la clé a donc été ignorée et tout le coffre est lu. Mettez le nom du dossier entre guillemets, tel qu'il est écrit : `source: \"2024\"`.",
+    "where.sourceNotText":
+        "`source` doit être un seul nom de dossier sous forme de texte, reçu `{value}`, la clé a donc été ignorée et tout le coffre est lu. Indiquez un dossier, par exemple `source: Journal`.",
+    "where.tagNumber":
+        "`tag` doit être un nom de tag sous forme de texte, reçu `{value}`, la clé a donc été ignorée et aucun filtre par tag ne s'applique. Mettez le nom du tag entre guillemets, tel qu'il est écrit : `tag: \"2024\"`.",
+    "where.tagNotText":
+        "`tag` doit être un seul nom de tag sous forme de texte, reçu `{value}`, la clé a donc été ignorée et aucun filtre par tag ne s'applique. Indiquez un tag, par exemple `tag: book`.",
 
     "inherit.rootPeriodInvalid":
         "`period` à la racine du bloc attend week, month, year ou une fenêtre glissante comme 30d, reçu « {value} ». Tout ce qui en hérite est dessiné sans la fenêtre.",

@@ -34,6 +34,14 @@ export const de: Catalog = {
         "`where` enthält `{value}`, das ist keine Bedingung, deshalb wurde der ganze Filter ignoriert. Die Zahlen unten sind ungefiltert. Jeder Eintrag ist eine Bedingung wie `year = 2026`.",
     "where.emptyList":
         "`where` ist eine leere Liste, der Filter wurde ignoriert und die Zahlen unten sind ungefiltert. Liste Bedingungen auf, etwa `[year = 2026, rating >= 4]`, oder entferne den Schlüssel.",
+    "where.sourceNumber":
+        "`source` muss ein Ordnername als Text sein, erhalten wurde `{value}`, daher wurde der Schlüssel ignoriert und der ganze Tresor gelesen. Setze den Ordnernamen so in Anführungszeichen, wie er geschrieben ist: `source: \"2024\"`.",
+    "where.sourceNotText":
+        "`source` muss ein einzelner Ordnername als Text sein, erhalten wurde `{value}`, daher wurde der Schlüssel ignoriert und der ganze Tresor gelesen. Nenne einen Ordner, etwa `source: Journal`.",
+    "where.tagNumber":
+        "`tag` muss ein Tag-Name als Text sein, erhalten wurde `{value}`, daher wurde der Schlüssel ignoriert und es gilt kein Tag-Filter. Setze den Tag-Namen so in Anführungszeichen, wie er geschrieben ist: `tag: \"2024\"`.",
+    "where.tagNotText":
+        "`tag` muss ein einzelner Tag-Name als Text sein, erhalten wurde `{value}`, daher wurde der Schlüssel ignoriert und es gilt kein Tag-Filter. Nenne einen Tag, etwa `tag: book`.",
 
     "inherit.rootPeriodInvalid":
         "`period` an der Wurzel des Blocks erwartet week, month, year oder ein rollierendes Fenster wie 30d, bekommen „{value}“. Alles, was es erbt, wird ohne das Fenster gezeichnet.",
