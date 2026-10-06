@@ -387,6 +387,35 @@ describe("currentStreak", () => {
     });
 });
 
+describe("currentStreak with `graceToday: false`: the last day of a stretch already over (B-173)", () => {
+    const closed = { graceToday: false };
+
+    it("an unfilled last day breaks the run: 0", () => {
+        expect(currentStreak(["2026-09-20", "2026-09-21"], "2026-09-22", closed)).toBe(0);
+    });
+
+    it("a filled last day counts the whole run, as with grace", () => {
+        const dates = ["2026-09-20", "2026-09-21", "2026-09-22"];
+        expect(currentStreak(dates, "2026-09-22", closed)).toBe(3);
+        expect(currentStreak(dates, "2026-09-22")).toBe(3);
+    });
+
+    it("a transparent last day is skipped, not a break: Sunday under weekdays counts back to Friday", () => {
+        // 2026-09-18 is a Friday, 19/20 the weekend.
+        const weekend = (d: string): boolean => d === "2026-09-19" || d === "2026-09-20";
+        expect(currentStreak(["2026-09-17", "2026-09-18"], "2026-09-20", { ...closed, transparent: weekend })).toBe(2);
+    });
+
+    it("`graceToday: true` and leaving it out are the same grace as before", () => {
+        expect(currentStreak(["2026-09-20", "2026-09-21"], "2026-09-22", { graceToday: true })).toBe(2);
+        expect(currentStreak(["2026-09-20", "2026-09-21"], "2026-09-22", {})).toBe(2);
+    });
+
+    it("an empty set is still 0", () => {
+        expect(currentStreak([], "2026-09-22", closed)).toBe(0);
+    });
+});
+
 describe("yearsOf", () => {
     it("returns years newest first, without repeats", () => {
         expect(yearsOf(["2025-01-01", "2026-05-05", "2026-01-01"])).toEqual([2026, 2025]);

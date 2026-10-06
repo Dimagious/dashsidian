@@ -129,7 +129,7 @@ items:
           <li><code>period: note</code><span>Written once, next to <code>items</code>, it holds for every card: each counts the week this note is named for. A card with its own <code>period</code> uses that instead.</span></li>
           <li><code>compare: usual</code><span>Is this week normal for me? Sleep reads <code>82</code> with <code>▼ −3</code>, and the tooltip says <code>vs usual: 85</code>: the average of every earlier note, the week itself left out. It works with <code>agg: avg</code>.</span></li>
           <li><code>compare: true</code><span>Against the week before, all seven days of it once this week is over: gym <code>4</code>, <code>▲ +1</code>, <code>vs the week before: 3</code>.</span></li>
-          <li><code>current_streak</code><span>Once the week is over, counted back from its last day, Sunday here (Saturday for a locale week that starts on Sunday), not from today. While the week runs, counted back from today. It counts inside the week, so seven days at most.</span></li>
+          <li><code>current_streak</code><span>Once the week is over, counted back from its last day, Sunday here (Saturday for a locale week that starts on Sunday), not from today, and that day counts like any other: left unticked, the streak reads 0. While the week runs, counted back from today, and today not ticked yet does not break it. It counts inside the week, so seven days at most.</span></li>
         </ul>
         <div class="callout tip">
           <div class="callout-title"><svg><use href="#i-info"/></svg>Opened in March, still week 40</div>

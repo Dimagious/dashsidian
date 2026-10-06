@@ -121,6 +121,45 @@ items:
         expect(nodes(el, ".dashy-stat-bar")).toHaveLength(6);
     });
 
+    describe("`current_streak` gives no grace to a closed window's last day (B-173)", () => {
+        const streak = (period: string): string => `source: Diary\nitems:\n  - { label: Now, field: gym, agg: current_streak, period: ${period} }`;
+        const value = (notes: FakeNote[], period: string, sourcePath = "Home.md"): string[] =>
+            texts(draw(renderStats, at({ notes }, sourcePath), streak(period)), ".dashy-stat-value");
+        // ISO week 40, Monday 28 September to Sunday 4 October: every day ticked but Sunday.
+        const noSunday = diary("Diary", "2026-09-28", 7, (i) => ({ gym: i < 6 }));
+
+        it("an unticked last day of a closed week is 0, however the week is written", () => {
+            expect(value(noSunday, "note", "Reviews/2026-W40.md")).toEqual(["0"]);
+            expect(value(noSunday, "2026-W40")).toEqual(["0"]);
+            expect(value(noSunday, "{ from: 2026-09-28, to: 2026-10-04 }")).toEqual(["0"]);
+        });
+
+        it("a closed week ticked every day is 7", () => {
+            expect(value(diary("Diary", "2026-09-28", 7, () => ({ gym: true })), "note", "Reviews/2026-W40.md")).toEqual(["7"]);
+        });
+
+        it("a transparent last day is skipped, not forgiven: `days: weekdays` counts Monday to Friday", () => {
+            const el = draw(renderStats, at({ notes: noSunday }, "Reviews/2026-W40.md"),
+                "source: Diary\nperiod: note\nitems:\n  - { label: Now, field: gym, agg: current_streak, days: weekdays }");
+            expect(texts(el, ".dashy-stat-value")).toEqual(["5"]);
+        });
+
+        it("a window still running keeps today's grace, one ending today included", () => {
+            // ISO week 43 from Monday 19 October; today, Tuesday the 20th, not ticked yet.
+            const notes = diary("Diary", "2026-10-14", 7, (i) => ({ gym: i < 6 }));
+            expect(value(notes, "note", "Reviews/2026-W43.md")).toEqual(["1"]);
+            expect(value(notes, "{ from: 2026-10-14, to: 2026-10-20 }")).toEqual(["6"]);
+        });
+
+        it("a moving `period: week` and no `period` at all keep today's grace", () => {
+            // 14 to 19 October ticked, today the 20th not yet; the test locale's week starts on Sunday the 18th.
+            const notes = diary("Diary", "2026-10-14", 7, (i) => ({ gym: i < 6 }));
+            expect(value(notes, "week")).toEqual(["2"]);
+            const el = draw(renderStats, at({ notes }, "Home.md"), "source: Diary\nitems:\n  - { label: Now, field: gym, agg: current_streak }");
+            expect(texts(el, ".dashy-stat-value")).toEqual(["6"]);
+        });
+    });
+
     it("a week that has not started yet draws no cards, only the day it starts, and is no error", () => {
         const el = draw(renderStats, at(vault, "Reviews/2026-W45.md"),
             "source: Diary\nperiod: note\nitems:\n  - { label: Days, agg: count }\n  - { label: Gym, field: gym, agg: sum }");
@@ -230,6 +269,16 @@ items:
   - { label: Later, field: km, agg: sum, goal: 100, unit: km, period: 2026-12 }`);
         expect(texts(el, ".dashy-progress-value")).toEqual(["40 / 100 km 40%", "— / 100 km"]);
         expect(nodes(el, ".dashy-progress-row.is-broken")).toHaveLength(0);
+    });
+
+    it("`current_streak` gives no grace to a closed week's last day, and keeps it for a week still running (B-173)", () => {
+        const bar = (notes: FakeNote[], sourcePath: string): string[] => texts(draw(renderProgress, at({ notes }, sourcePath),
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: current_streak, goal: 7, period: note }"), ".dashy-progress-value");
+        // ISO week 40 ticked every day but Sunday 4 October, then every day.
+        expect(bar(diary("Diary", "2026-09-28", 7, (i) => ({ gym: i < 6 })), "Reviews/2026-W40.md")).toEqual(["0 / 7 0%"]);
+        expect(bar(diary("Diary", "2026-09-28", 7, () => ({ gym: true })), "Reviews/2026-W40.md")).toEqual(["7 / 7 100%"]);
+        // ISO week 43: Monday ticked, today, Tuesday 20 October, not yet.
+        expect(bar(diary("Diary", "2026-10-19", 2, (i) => ({ gym: i === 0 })), "Reviews/2026-W43.md")).toEqual(["1 / 7 14%"]);
     });
 
     it("a note not named for a period is an error and a broken bar", () => {
