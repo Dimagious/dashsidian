@@ -48,6 +48,20 @@ removed public export.
 
 ### Added
 
+- **`compare: usual` on a `stats` card.** The delta compares the window with
+  your usual level instead of the previous period: "sleep this week 82,
+  usually 85" draws 82 with `▼ −3` and the tooltip `vs usual: 85`. The usual
+  level is the average of the same field over every note in the card's
+  selection dated before the window starts, however old; the window itself
+  is left out, and so is anything dated after a closed window, so a weekly
+  review with `period: note` keeps reading the same history. It works with
+  `agg: avg` only: any other aggregate warns and draws no delta. It needs a
+  `period`, on the card or at the block root, like `compare: true`. With no
+  note before the window the card shows "no history before this period" in
+  muted text where the delta would be; on `layout: inline` that hint is a
+  tooltip on the number instead. `better`, durations, the card's `precision`
+  and the inline delta work as they do for `compare: true`, which is
+  unchanged.
 - **`pick: max` on a `heatmap` with `layers`.** On a day several layers
   painted, the layer with the largest value that day colours the cell, links
   to its note and sets the value that the shading and `bands` read, instead of
