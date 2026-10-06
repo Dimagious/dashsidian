@@ -689,3 +689,27 @@ describe("chart: colours", () => {
         expect([...colours].sort()).toEqual(["139,108,239", "59,130,246"]);
     });
 });
+
+describe("chart: a source or tag that is not text is an error (B-160)", () => {
+    it("source: 2024 says to quote it", () => {
+        const el = chart("source: 2024\nfield: steps\nrange: 10d");
+        expect(diagnostics(el, "error")).toEqual([
+            '⛔ chart: `source` must be a folder name in text, got `2024`, so it was ignored and the whole vault is read. Put the folder name in quotes, as written: `source: "2024"`.',
+        ]);
+    });
+
+    it("quoted, a folder named 2024 is charted without a word", () => {
+        const el = chart('source: "2024"\nfield: steps\nrange: 10d', diary("2024", "2026-09-21", 10, (i) => ({ steps: 100 * (i + 1) })));
+        expect(diagnostics(el, "error")).toEqual([]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(hits(el)).toHaveLength(10);
+    });
+
+    it("tag: true names the one-tag fix", () => {
+        const el = chart("source: Diary\ntag: true\nfield: steps\nrange: 10d");
+        expect(diagnostics(el, "error")).toEqual([
+            "⛔ chart: `tag` must be one tag name in text, got `true`, so it was ignored and the tag filter is dropped. Name one tag, like `tag: book`.",
+        ]);
+    });
+});
+

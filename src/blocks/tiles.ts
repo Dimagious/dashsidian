@@ -1,5 +1,5 @@
 import type { BlockContext } from "./context";
-import { selectNotes, readSource, unmatchedSource } from "../core/source";
+import { selectNotes, readSelector, readSource, unmatchedSource } from "../core/source";
 import { readDateField } from "../core/note-date";
 import { readPeriod, filterByPeriod, dateFieldHasEffect } from "../core/period";
 import { classifyImage } from "../core/image";
@@ -71,7 +71,9 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
         diags.push(...unknownKeys(item, KNOWN_ITEM));
 
         const label = typeof item.label === "string" ? item.label : "";
-        const path = typeof item.path === "string" ? item.path : "";
+        // A `path` of only spaces is no path: kept, it linked to "  " and a
+        // count badge on it counted the whole vault (B-160).
+        const path = readSelector(item.path) ?? "";
         if (!label && !path) continue;
 
         const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
@@ -111,8 +113,9 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
             if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
 
             // `path` is the tile's own folder key; `tag` and `where` narrow it
-            // further, read the same way `stats` reads its own selection.
-            const { spec: selection, diagnostics: sourceDiags } = readSource(item);
+            // further, read the same way `stats` reads its own selection. A tile
+            // has no `source` key, so only `tag` and `where` are handed over.
+            const { spec: selection, diagnostics: sourceDiags } = readSource({ tag: item.tag, where: item.where });
             selection.source = path;
             diags.push(...sourceDiags);
             const selected = selectNotes(notes, selection);

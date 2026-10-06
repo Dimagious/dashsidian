@@ -365,6 +365,7 @@ say what actually does the job.
 ## General rules
 
 - Quote values containing a colon, a comma or a hash: `label: "Home: entry"`.
+- `source` and `tag` take one name as text. Quote a folder or tag that YAML would read as a number or a boolean: `source: "2024"`, `tag: "2024"`. Unquoted, or written as a list, the block shows an error and ignores the key.
 - The key synonyms in the tables above are recognised, but write the canonical key in new configs.
 - An unknown key does not break the block — a warning is drawn instead. Still, stray keys do not belong there.
 - A block prints its own config errors straight into the note. If the user pastes an error, read it literally: it carries the line number.

@@ -34,6 +34,14 @@ export const es: Catalog = {
         "`where` incluye `{value}`, que no es una condición, así que se ignoró todo el filtro. Los números de abajo están sin filtrar. Cada elemento es una condición como `year = 2026`.",
     "where.emptyList":
         "`where` es una lista vacía, así que el filtro se ignoró y los números de abajo están sin filtrar. Enumera condiciones, por ejemplo `[year = 2026, rating >= 4]`, o quita la clave.",
+    "where.sourceNumber":
+        "`source` debe ser un nombre de carpeta en texto, se recibió `{value}`, así que la clave se ignoró y se lee toda la bóveda. Pon el nombre de la carpeta entre comillas, tal como está escrito: `source: \"2024\"`.",
+    "where.sourceNotText":
+        "`source` debe ser un solo nombre de carpeta en texto, se recibió `{value}`, así que la clave se ignoró y se lee toda la bóveda. Indica una carpeta, por ejemplo `source: Journal`.",
+    "where.tagNumber":
+        "`tag` debe ser un nombre de etiqueta en texto, se recibió `{value}`, así que la clave se ignoró y no se aplica ningún filtro por etiqueta. Pon el nombre de la etiqueta entre comillas, tal como está escrito: `tag: \"2024\"`.",
+    "where.tagNotText":
+        "`tag` debe ser un solo nombre de etiqueta en texto, se recibió `{value}`, así que la clave se ignoró y no se aplica ningún filtro por etiqueta. Indica una etiqueta, por ejemplo `tag: book`.",
 
     "inherit.rootPeriodInvalid":
         "`period` en la raíz del bloque espera week, month, year o una ventana móvil como 30d, recibido «{value}». Todo lo que lo hereda se dibuja sin la ventana.",
