@@ -106,6 +106,24 @@ describe("the generated skill corrects what agents got wrong", () => {
         }
     });
 
+    it("carries a copyable recipe for each 1.8.0 feature, in both files, and the review in the description (B-162)", () => {
+        for (const recipe of [
+            // A weekly review note counting its own week.
+            "in a note named `2026-W40`, `period: note` at the block root counts that week and no other",
+            // Daily notes not named as ISO dates.
+            "name the format: `date_format: DD.MM.YYYY`",
+            // A week against the usual level, not last week.
+            "`{ label: Sleep, field: sleep_score, agg: avg, period: week, compare: usual, better: up }`",
+            // A season between two dates.
+            "`period: { from: 2026-06-01, to: 2026-08-31 }` for a season",
+        ]) {
+            expect(SKILL_MARKDOWN, recipe).toContain(recipe);
+            expect(AGENTS_SECTION, recipe).toContain(recipe);
+        }
+        const description = SKILL_MARKDOWN.split("\n---\n")[0] ?? "";
+        expect(description).toContain("a weekly or monthly review that\n  counts its own week or month");
+    });
+
     it("chart: the facts ADR 0005 says an agent gets wrong", () => {
         const chart = schema.blocks.chart as { root: Record<string, { required?: boolean }>; hints: Record<string, string> };
         // `field` is optional at the root: `series` or `agg: count` replace it.

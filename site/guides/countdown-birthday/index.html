@@ -267,7 +267,7 @@ items:
         <p>A card that cannot find its date says so above the cards, and draws a dash. The ones you are likely to see here, and one surprise that comes with no message:</p>
         <ul>
           <li><b>No note in the selection has "birthday" filled in.</b> The property name is spelled differently in the note, or <code>source</code>, <code>tag</code> or <code>where</code> match no note that has it.</li>
-          <li><b>"birthday" in "Anna" is "next week", not a date.</b> The note holds text. Write the date as <code>YYYY-MM-DD</code>.</li>
+          <li><b>"birthday" in "Anna" is "next week", not a date.</b> The note holds text. Write the date as <code>YYYY-MM-DD</code>, or name your own format next to <code>items:</code>, <code>date_format: DD.MM.YYYY</code>.</li>
           <li><b>Both <code>date:</code> and <code>field:</code> are set.</b> A card takes one of them: the date on the card, or a property read from a note.</li>
           <li><b><code>repeat</code> expects <code>yearly</code>.</b> Something else was written, <code>repeat: annual</code> or <code>repeat: true</code> for example.</li>
           <li><b>Every card shows the same birthday.</b> The cards have no <code>where</code>, so each reads the same note. Add one per card, as in step 2.</li>
