@@ -8,6 +8,7 @@ import { renderStats } from "./stats";
 import { renderProgress } from "./progress";
 import { renderTiles } from "./tiles";
 import { renderToday } from "./today";
+import { renderHeatmap } from "./heatmap";
 import { mockContext, diary, host, texts, nodes, diagnostics, type FakeNote, type FakeVault } from "../test/vault";
 
 /**
@@ -41,6 +42,7 @@ const RENDERERS: Record<string, Render> = {
     progress: renderProgress,
     tiles: renderTiles,
     today: renderToday,
+    heatmap: renderHeatmap,
 };
 
 /** Renders one block the way Obsidian hands it a code block, stopping a clock it may start. */
@@ -421,5 +423,200 @@ describe("guide: homepage-dashboard", () => {
         const clock = render("today", "clock: yes", HOME_VAULT);
         expect(diagnostics(clock, "warning").join("\n")).toContain("`clock` expects true, false, minutes or seconds");
         expect(nodes(clock, ".dashy-today-clock")).toHaveLength(0);
+    });
+});
+
+/* ---------------------------------------------------------------- guide 4 */
+
+/**
+ * October 2026 (the 1st is a Thursday) up to today, Monday the 5th, the
+ * Tuesday after it, a planned day off ahead, and the last day of September.
+ * `Workouts` holds a note per session: two on the 2nd, four on the 3rd.
+ */
+const HABIT_DAYS: FakeNote[] = [
+    { path: "Diary/2026-09-30.md", frontmatter: { gym: true, read: true, meditate: true } },
+    { path: "Diary/2026-10-01.md", frontmatter: { gym: true, read: false, meditate: true } },
+    { path: "Diary/2026-10-02.md", frontmatter: { gym: true, read: true, meditate: true, run_km: 8.5 } },
+    { path: "Diary/2026-10-03.md", frontmatter: { gym: false, read: true, meditate: false, run_km: 0 } },
+    { path: "Diary/2026-10-04.md", frontmatter: { gym: false, read: false, meditate: false, vacation: true } },
+    { path: "Diary/2026-10-05.md", frontmatter: { gym: true, read: false, meditate: true } },
+    { path: "Diary/2026-10-06.md", frontmatter: { gym: true, read: false, meditate: true } },
+    { path: "Diary/2026-10-09.md", frontmatter: { gym: true, vacation: true } },
+    ...["Run", "Swim"].map((s) => ({ path: `Workouts/2026-10-02 ${s}.md`, frontmatter: { minutes: 40 } })),
+    ...["Run", "Bike", "Swim", "Yoga"].map((s) => ({ path: `Workouts/2026-10-03 ${s}.md`, frontmatter: { minutes: 30 } })),
+];
+const HABIT_VAULT: FakeVault = { notes: HABIT_DAYS };
+
+const ONE_HABIT = `source: Diary
+field: gym
+color: orange
+range: month
+layout: calendar`;
+
+const HABIT_LAYERS = `source: Diary
+range: month
+layout: calendar
+layers:
+  - { field: gym, color: orange, label: Gym }
+  - { field: read, color: green, label: Reading }
+  - { field: meditate, color: purple, label: Meditation }`;
+
+const THIS_WEEK = `source: Diary
+field: gym
+color: orange
+range: week
+layout: calendar
+skip_field: vacation`;
+
+describe("guide: monthly-habit-calendar", () => {
+    /** The day cell showing `day`, pads excluded. */
+    const day = (el: HTMLElement, n: number): HTMLElement | undefined =>
+        nodes(el, ".dashy-hm-cal-day:not(.dashy-hm-pad)").find((c) => c.querySelector(".dashy-hm-cal-num")?.textContent === String(n));
+    const dots = (el: HTMLElement, n: number): number => day(el, n)?.querySelectorAll(".dashy-hm-dot").length ?? 0;
+
+    it("every Dashy block on the page draws without an error or a warning", () => {
+        const blocks = guideBlocks("monthly-habit-calendar");
+        // steps 2, 3 and 4, the whole note (2), four variations, the first of them two blocks
+        expect(blocks.map((b) => b.lang)).toEqual(Array(10).fill("heatmap"));
+        for (const { lang, source } of blocks) expectClean(render(lang, source, HABIT_VAULT));
+    });
+
+    it("the steps and the whole note are the same YAML", () => {
+        const blocks = guideBlocks("monthly-habit-calendar").map((b) => b.source);
+        expect(blocks.slice(0, 5)).toEqual([ONE_HABIT, HABIT_LAYERS, THIS_WEEK, HABIT_LAYERS, THIS_WEEK]);
+        // The first variation's calendar is step 2's block.
+        expect(blocks[5]).toBe(ONE_HABIT);
+    });
+
+    it("step 2: the whole month by weekday, a dot per ticked day, the days ahead dimmed and bare", () => {
+        const el = render("heatmap", ONE_HABIT, HABIT_VAULT);
+        expect(texts(el, ".dashy-hm-cal-month")).toEqual(["October 2026"]);
+        expect(texts(el, ".dashy-hm-cal-num")).toHaveLength(31);
+        expect([1, 2, 3, 4, 5, 6].map((d) => dots(el, d))).toEqual([1, 1, 0, 0, 1, 0]);
+        expect(day(el, 6)?.classList.contains("is-future")).toBe(true);
+        expect(day(el, 5)?.classList.contains("is-today")).toBe(true);
+        expect(nodes(el, ".is-today")).toHaveLength(1);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(0);
+    });
+
+    it("step 2: the caption counts the days with a dot out of the days so far, today included", () => {
+        expect(texts(render("heatmap", ONE_HABIT, HABIT_VAULT), ".dashy-hm-title")).toEqual(["gym: 3 of 5 days"]);
+        // The figure the guide quotes, on the 6th.
+        vi.setSystemTime(new Date(2026, 9, 6, 12));
+        expect(texts(render("heatmap", ONE_HABIT, HABIT_VAULT), ".dashy-hm-title")).toEqual(["gym: 4 of 6 days"]);
+    });
+
+    it("step 2: a day with a dot opens its note; a day without one is not a link", () => {
+        const el = render("heatmap", ONE_HABIT, HABIT_VAULT);
+        expect(day(el, 2)?.tagName).toBe("A");
+        expect(day(el, 2)?.getAttribute("data-href")).toBe("Diary/2026-10-02.md");
+        expect(day(el, 2)?.getAttribute("title")).toBe("Oct 2, 2026: gym 1 (2026-10-02)");
+        expect(day(el, 3)?.tagName).toBe("DIV");
+        expect(day(el, 6)?.tagName).toBe("DIV");
+    });
+
+    it("step 3: a dot per ticked habit, in list order and its own colour, a legend, every habit in the tooltip", () => {
+        const el = render("heatmap", HABIT_LAYERS, HABIT_VAULT);
+        const colours = (n: number): string[] =>
+            Array.from(day(el, n)?.querySelectorAll<HTMLElement>(".dashy-hm-dot") ?? [], (d) => d.style.backgroundColor);
+        expect([1, 2, 3, 4, 5].map((d) => dots(el, d))).toEqual([2, 3, 1, 0, 2]);
+        const two = colours(2);
+        expect(new Set(two).size).toBe(3);
+        expect(colours(1)).toEqual([two[0], two[2]]);
+        expect(colours(3)).toEqual([two[1]]);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["Gym", "Reading", "Meditation"]);
+        expect(day(el, 1)?.getAttribute("title")).toBe("Oct 1, 2026: Gym 1, Reading 0, Meditation 1 (2026-10-01)");
+    });
+
+    it("step 3: the caption counts the days with at least one dot", () => {
+        vi.setSystemTime(new Date(2026, 9, 6, 12));
+        expect(texts(render("heatmap", HABIT_LAYERS, HABIT_VAULT), ".dashy-hm-title"))
+            .toEqual(["Gym, Reading, Meditation: 5 of 6 days"]);
+    });
+
+    it("step 3: pick changes nothing on the calendar", () => {
+        const notes = [{ path: "Diary/2026-10-02.md", frontmatter: { gym: 1, read: 5, meditate: 3 } }];
+        const plain = render("heatmap", HABIT_LAYERS, { notes });
+        const max = render("heatmap", `${HABIT_LAYERS}\npick: max`, { notes });
+        expectClean(max);
+        const colours = (el: HTMLElement): string[] =>
+            Array.from(day(el, 2)?.querySelectorAll<HTMLElement>(".dashy-hm-dot") ?? [], (d) => d.style.backgroundColor);
+        expect(colours(max)).toHaveLength(3);
+        expect(colours(max)).toEqual(colours(plain));
+    });
+
+    it("step 3: at most four dots under a day", () => {
+        const fields = ["a", "b", "c", "d", "e"];
+        const notes = [{ path: "Diary/2026-10-02.md", frontmatter: Object.fromEntries(fields.map((f) => [f, true])) }];
+        const config = ["source: Diary", "range: month", "layout: calendar", "layers:", ...fields.map((f) => `  - { field: ${f} }`)].join("\n");
+        expect(dots(render("heatmap", config, { notes }), 2)).toBe(4);
+    });
+
+    it("step 4: one row for this week, a day off hatched, one ahead too but without its dot", () => {
+        const el = render("heatmap", THIS_WEEK, HABIT_VAULT);
+        // Sunday-first: Sunday 4 to Saturday 10 October.
+        expect(texts(el, ".dashy-hm-cal-num")).toEqual(["4", "5", "6", "7", "8", "9", "10"]);
+        expect(texts(el, ".dashy-hm-cal-month")).toEqual(["October 2026"]);
+        expect(texts(el, ".dashy-hm-title")).toEqual(["gym: 1 of 2 days"]);
+        expect(day(el, 4)?.classList.contains("is-skipped")).toBe(true);
+        expect(day(el, 9)?.classList.contains("is-skipped")).toBe(true);
+        expect(day(el, 9)?.classList.contains("is-future")).toBe(true);
+        expect(dots(el, 9)).toBe(0);
+        expect(day(el, 5)?.classList.contains("is-skipped")).toBe(false);
+        expect(texts(el, ".dashy-hm-leg")).toEqual(["Day off"]);
+    });
+
+    it("step 4: a week running into the next month names both", () => {
+        vi.setSystemTime(new Date(2026, 8, 30, 12));
+        const el = render("heatmap", THIS_WEEK, HABIT_VAULT);
+        expect(texts(el, ".dashy-hm-cal-month")).toEqual(["Sep 2026 to Oct 2026"]);
+        expect(texts(el, ".dashy-hm-cal-num")).toEqual(["27", "28", "29", "30", "1", "2", "3"]);
+    });
+
+    it("variations: a grid of the last half year; any number dots its day, even 0", () => {
+        const grid = render("heatmap", "source: Diary\nfield: gym\ncolor: orange\nrange: 182d", HABIT_VAULT);
+        expect(nodes(grid, ".dashy-hm-grid")).toHaveLength(1);
+        expect(nodes(grid, ".dashy-hm-cal")).toHaveLength(0);
+
+        const km = render("heatmap", "source: Diary\nfield: run_km\ncolor: green\nrange: month\nlayout: calendar", HABIT_VAULT);
+        expect([2, 3, 4].map((d) => dots(km, d))).toEqual([1, 1, 0]);
+        expect(day(km, 2)?.getAttribute("title")).toBe("Oct 2, 2026: run_km 8.5 (2026-10-02)");
+    });
+
+    it("variations: a note per workout is a dot per note, three at most", () => {
+        const el = render("heatmap", "source: Workouts\nfield: minutes\ncolor: red\nrange: month\nlayout: calendar", HABIT_VAULT);
+        expect([2, 3].map((d) => dots(el, d))).toEqual([2, 3]);
+        expect(day(el, 3)?.getAttribute("title")).toBe("Oct 3, 2026: minutes 120 (4 notes)");
+    });
+
+    it("variations: a title replaces the caption; the month heading stays", () => {
+        const el = render("heatmap", `${ONE_HABIT}\ntitle: Meditation this month`, HABIT_VAULT);
+        expect(texts(el, ".dashy-hm-title")).toEqual(["Meditation this month"]);
+        expect(texts(el, ".dashy-hm-cal-month")).toEqual(["October 2026"]);
+    });
+
+    it("what it does not do: any other range, or none, warns and draws the grid; bands warn", () => {
+        const needsRange = "⚠️ heatmap: `layout: calendar` needs `range: month` or `range: week`. Drawing the grid instead.";
+        for (const range of ["range: year\n", "range: 90d\n", ""]) {
+            const el = render("heatmap", `source: Diary\nfield: gym\n${range}layout: calendar`, HABIT_VAULT);
+            expect(diagnostics(el, "warning")).toEqual([needsRange]);
+            expect(nodes(el, ".dashy-hm-grid").length).toBeGreaterThan(0);
+            expect(nodes(el, ".dashy-hm-cal")).toHaveLength(0);
+        }
+        const bands = render("heatmap", `${ONE_HABIT}\nbands: [10, 5]`, HABIT_VAULT);
+        expect(diagnostics(bands, "warning")).toEqual(["⚠️ heatmap: `bands` is ignored with `layout: calendar`: a day shows dots, not a shade."]);
+        expect(nodes(bands, ".dashy-hm-cal")).toHaveLength(1);
+    });
+
+    it("the errors the guide lists are the ones the block shows", () => {
+        const typo = render("heatmap", "source: Diary\nfield: gym\nrange: month\nlayout: calender", HABIT_VAULT);
+        expect(diagnostics(typo, "warning").join("\n")).toContain("`layout` expects grid or calendar, got \"calender\". Using grid.");
+        expect(nodes(typo, ".dashy-hm-grid")).toHaveLength(1);
+
+        const missing = render("heatmap", HABIT_LAYERS, { notes: [{ path: "Diary/2026-10-02.md", frontmatter: { gym: true, read: true } }] });
+        // Two habits still draw; the third is named in a warning.
+        expect(diagnostics(missing, "error")).toEqual([]);
+        expect(diagnostics(missing, "warning").join("\n")).toContain("\"meditate\" never contributed a value here.");
+        expect(dots(missing, 2)).toBe(2);
     });
 });

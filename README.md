@@ -103,6 +103,7 @@ One problem per page, with the notes, the block, and the Bases, Tracker or datav
 - [A habit tracker without Dataview](https://dimagious.github.io/dashsidian/guides/habit-tracker-without-dataview/)
 - [A habit streak that skips weekends](https://dimagious.github.io/dashsidian/guides/streak-weekdays/)
 - [Two activities on one heatmap](https://dimagious.github.io/dashsidian/guides/heatmap-two-activities/)
+- [A monthly habit calendar without Dataview](https://dimagious.github.io/dashsidian/guides/monthly-habit-calendar/)
 - [A weekly chart without Tracker](https://dimagious.github.io/dashsidian/guides/weekly-chart-tracker-alternative/)
 - [Countdown to a birthday](https://dimagious.github.io/dashsidian/guides/countdown-birthday/)
 - [Books per year: a reading log chart](https://dimagious.github.io/dashsidian/guides/books-per-year/)
