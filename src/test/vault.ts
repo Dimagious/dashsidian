@@ -25,10 +25,26 @@ export interface FakeVault {
     alsoExists?: string[];
     /** settings of the Periodic Notes community plugin, any shape */
     periodicNotes?: unknown;
+    /** the installed Periodic Notes version, as its manifest has it; absent: no manifest */
+    periodicNotesVersion?: string;
+    /** hand `periodicNotes` out as a Svelte store, the way Periodic Notes 1.x keeps its settings */
+    periodicNotesStore?: boolean;
     /** options of the core Daily notes plugin, any shape */
     dailyNotes?: unknown;
     /** the core File explorer plugin's entry (`{ enabled, instance }`), any shape */
     fileExplorer?: unknown;
+}
+
+/** A minimal Svelte writable store holding `value`. */
+export function store(value: unknown): { subscribe: (fn: (v: unknown) => void) => () => void; set: () => void; update: () => void } {
+    return {
+        subscribe: (fn) => {
+            fn(value);
+            return () => undefined;
+        },
+        set: () => undefined,
+        update: () => undefined,
+    };
 }
 
 function toFile(note: FakeNote) {
@@ -86,7 +102,12 @@ export function mockApp(vault: FakeVault = {}): App {
     } as Record<string, unknown>;
 
     if (vault.periodicNotes !== undefined) {
-        app.plugins = { plugins: { "periodic-notes": { settings: vault.periodicNotes } } };
+        app.plugins = {
+            plugins: { "periodic-notes": { settings: vault.periodicNotesStore ? store(vault.periodicNotes) : vault.periodicNotes } },
+            manifests: vault.periodicNotesVersion === undefined
+                ? {}
+                : { "periodic-notes": { id: "periodic-notes", version: vault.periodicNotesVersion } },
+        };
     }
     const internal: Record<string, unknown> = {};
     if (vault.dailyNotes !== undefined) internal["daily-notes"] = { instance: { options: vault.dailyNotes } };

@@ -2126,8 +2126,17 @@ items:
     });
 
     it("Periodic Notes' day format is read the same way", () => {
-        const el = render(CARDS, vault({ periodicNotes: { daily: { folder: "Diary", format: "DD.MM.YYYY" } } }));
+        const el = render(CARDS, vault({ periodicNotes: { daily: { enabled: true, folder: "Diary", format: "DD.MM.YYYY" } } }));
         expect(texts(el, ".dashy-stat-value")).toEqual(["3", "6", "6000"]);
+    });
+
+    it("Periodic Notes' day switched off with a folder leaves the day format to Daily notes (B-172)", () => {
+        const el = render(CARDS, vault({
+            periodicNotes: { daily: { enabled: false, folder: "Diary", format: "" } },
+            dailyNotes: { folder: "Diary", format: "DD.MM.YYYY" },
+        }));
+        expect(texts(el, ".dashy-stat-value")).toEqual(["3", "6", "6000"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
     });
 
     it("a root date_format reaches every card", () => {
