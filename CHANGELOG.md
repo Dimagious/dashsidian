@@ -69,6 +69,15 @@ removed public export.
   downgrade; then the installed version decides, the sets for 1.0 and the
   old keys for 0.0.x. The same settings reach the day format and the period
   names that blocks read dates and `period: note` with.
+- **A tile whose `path` is not text is an error instead of a count of the
+  whole vault.** YAML reads `path: 2024` as a number, and the tile dropped it
+  without a word: it linked nowhere, and a `badge: count` on it counted every
+  note in the vault. Now the tile shows an error naming the value: for a
+  number it says to quote it as written, `path: "2024"`; for a list, a map
+  or a boolean it asks for one note or folder. A tile with a `label` is still
+  drawn, without a link, and a `badge: count` on it shows no number rather
+  than a wrong one; a badge given as text is printed as before. A quoted
+  `path: "2024"` links and counts that folder.
 
 ### Added
 

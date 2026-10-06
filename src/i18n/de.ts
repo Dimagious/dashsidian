@@ -67,6 +67,10 @@ export const de: Catalog = {
     "tiles.imageMissing": "{card}: Bild „{path}“ wurde nicht gefunden.",
     "tiles.imageUnsupported":
         "{card}: `image` erwartet einen Pfad im Tresor, einen `[[Wikilink]]` oder eine `https://`-URL, erhalten „{value}“.",
+    "tiles.pathNumber":
+        "{card}: `path` muss ein Notiz- oder Ordnername als Text sein, erhalten wurde `{value}`, daher wurde der Schlüssel ignoriert: Die Kachel führt nirgendwohin, und ein `badge: count` darauf wird nicht gezeichnet. Setze den Namen so in Anführungszeichen, wie er geschrieben ist: `path: \"2024\"`.",
+    "tiles.pathNotText":
+        "{card}: `path` muss ein einzelner Notiz- oder Ordnername als Text sein, erhalten wurde `{value}`, daher wurde der Schlüssel ignoriert: Die Kachel führt nirgendwohin, und ein `badge: count` darauf wird nicht gezeichnet. Nenne eine Notiz oder einen Ordner, etwa `path: Journal`.",
 
     "stats.empty": "Keine Karten zu zeichnen. Erwartet wird `items:` oder eine Liste.",
     "stats.unlabeledCard": "eine Karte ohne Beschriftung",

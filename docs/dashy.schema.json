@@ -28,7 +28,7 @@
         "path": {
           "type": "string",
           "required": true,
-          "doc": "where it leads: a note, File.base#View, or a folder. A folder opens its folder note, `Folder/Folder.md` or else `Folder.md` next to it, and without one shows the folder in the file explorer"
+          "doc": "where it leads: a note, File.base#View, or a folder. A folder opens its folder note, `Folder/Folder.md` or else `Folder.md` next to it, and without one shows the folder in the file explorer. A name YAML reads as a number goes in quotes, `path: \"2024\"`: a number, a list, a map or a boolean is an error, and the tile has no link and no count badge"
         },
         "tag": {
           "type": "string",

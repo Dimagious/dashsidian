@@ -67,6 +67,10 @@ export const es: Catalog = {
     "tiles.imageMissing": "{card}: imagen «{path}» no encontrada.",
     "tiles.imageUnsupported":
         "{card}: `image` espera una ruta del almacén, un `[[wikienlace]]` o una URL `https://`, recibido «{value}».",
+    "tiles.pathNumber":
+        "{card}: `path` debe ser un nombre de nota o carpeta en texto, se recibió `{value}`, así que la clave se ignoró: el mosaico no lleva a ninguna parte y un `badge: count` en él no se dibuja. Pon el nombre entre comillas, tal como está escrito: `path: \"2024\"`.",
+    "tiles.pathNotText":
+        "{card}: `path` debe ser un solo nombre de nota o carpeta en texto, se recibió `{value}`, así que la clave se ignoró: el mosaico no lleva a ninguna parte y un `badge: count` en él no se dibuja. Indica una nota o una carpeta, por ejemplo `path: Journal`.",
 
     "stats.empty": "No hay tarjetas que dibujar. Se espera `items:` o una lista.",
     "stats.unlabeledCard": "una tarjeta sin etiqueta",

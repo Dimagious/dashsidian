@@ -67,6 +67,10 @@ export const fr: Catalog = {
     "tiles.imageMissing": "{card} : image « {path} » introuvable.",
     "tiles.imageUnsupported":
         "{card} : `image` attend un chemin du coffre, un `[[wikilien]]` ou une URL `https://`, reçu « {value} ».",
+    "tiles.pathNumber":
+        "{card} : `path` doit être un nom de note ou de dossier sous forme de texte, reçu `{value}`, la clé a donc été ignorée : la tuile ne mène nulle part et un `badge: count` sur elle n'est pas dessiné. Mettez le nom entre guillemets, tel qu'il est écrit : `path: \"2024\"`.",
+    "tiles.pathNotText":
+        "{card} : `path` doit être un seul nom de note ou de dossier sous forme de texte, reçu `{value}`, la clé a donc été ignorée : la tuile ne mène nulle part et un `badge: count` sur elle n'est pas dessiné. Indiquez une note ou un dossier, par exemple `path: Journal`.",
 
     "stats.empty": "Aucune carte à dessiner. Attendu : `items:` ou une liste.",
     "stats.unlabeledCard": "une carte sans libellé",
