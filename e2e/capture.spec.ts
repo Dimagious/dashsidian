@@ -518,3 +518,26 @@ test("reel: the dashboard follows the theme", async ({ win }) => {
         await reel.hold(region, 6);
     }
 });
+
+/**
+ * The 2.0 hero's right half (B-184): the note an agent wrote for the prompt in
+ * scripts/agent-hero.cjs, as Obsidian draws it. Clipped from the note's title
+ * to the last block; the script puts the prompt beside it.
+ */
+for (const theme of ["obsidian", "moonstone"] as const) {
+    const suffix = theme === "obsidian" ? "dark" : "light";
+
+    test(`agent hero note, ${suffix}`, async ({ win }) => {
+        await setUp(win, theme);
+        const view = win.locator(READING_VIEW);
+        await openNote(win, "Running.md", ".dashy-chart-svg");
+        // From the note's title, so the picture says which note this is.
+        const box = await union(view.locator(".inline-title").first(), view.locator(".dashy-chart").last());
+        const pad = 24;
+        await win.screenshot({
+            path: path.join(SHOTS, `agent-note-${suffix}.png`),
+            clip: { x: box.x - pad, y: box.y - pad, width: box.width + 2 * pad, height: box.height + 2 * pad },
+        });
+        await openNote(win, "Dashboard.md", ".dashy-hm-cell");
+    });
+}
