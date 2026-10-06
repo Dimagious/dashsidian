@@ -295,6 +295,38 @@ for (const theme of ["obsidian", "moonstone"] as const) {
 }
 
 /**
+ * The picture for the weekly review guide (B-163): the cards and the chart of
+ * last week's review note, clipped from the first block to the last the way
+ * the books-per-year shot is. The note is named for last week by
+ * `guideNotes` in scripts/demo-vault.cjs, so it is found by folder here.
+ */
+for (const theme of ["obsidian", "moonstone"] as const) {
+    const suffix = theme === "obsidian" ? "dark" : "light";
+
+    test(`guides: weekly review, ${suffix}`, async ({ win }) => {
+        await setUp(win, theme);
+        const view = win.locator(READING_VIEW);
+        const note = await win.evaluate(() => {
+            const a = (globalThis as unknown as { app?: { vault?: { getMarkdownFiles?: () => { path: string }[] } } }).app;
+            return (a?.vault?.getMarkdownFiles?.() ?? []).map((f) => f.path).find((p) => /^Reviews\/\d{4}-W\d{2}\.md$/.test(p));
+        });
+        if (!note) throw new Error("capture: no weekly review note under Reviews/");
+        await openNote(win, note, ".dashy-chart-svg");
+        const top = view.locator(".dashy-stats").first();
+        await top.evaluate((el) => el.scrollIntoView({ block: "start" }));
+        await win.waitForTimeout(300);
+        const clip = await union(top, view.locator(".dashy-chart").last());
+        if (clip.y + clip.height > HEIGHT) {
+            throw new Error(`capture: weekly-review runs to ${Math.round(clip.y + clip.height)}px, past the window`);
+        }
+        await win.screenshot({ path: path.join(SHOTS, `weekly-review-${suffix}.png`), clip });
+
+        // Back where `setUp` expects to find the next test.
+        await openNote(win, "Dashboard.md", ".dashy-hm-cell");
+    });
+}
+
+/**
  * The same weekly chart from a `dataviewjs` script and from a Dashy block.
  * Dataview and Obsidian Charts are switched on for this shot only and off
  * again after it, so no other picture is drawn with them loaded. Skipped when

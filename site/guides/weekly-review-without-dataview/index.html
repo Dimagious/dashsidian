@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A weekly review in Obsidian, without Dataview · Dashy</title>
+<meta name="description" content="A weekly review template for Obsidian that counts its own week: averages and sums from your daily notes, this week against last and against your usual level, a bar a day. The same template for the monthly review. No Dataview, YAML you can copy.">
+<link rel="canonical" href="https://dimagious.github.io/dashsidian/guides/weekly-review-without-dataview/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%238b6cef'/%3E%3Crect x='7' y='7.5' width='11' height='3' rx='1.5' fill='%23fff'/%3E%3Crect x='7' y='13' width='8.5' height='7' rx='2' fill='%23fff' fill-opacity='.55'/%3E%3Crect x='16.5' y='13' width='8.5' height='7' rx='2' fill='%23fff'/%3E%3Crect x='7' y='22.5' width='18' height='3' rx='1.5' fill='%23fff' fill-opacity='.35'/%3E%3Crect x='7' y='22.5' width='12' height='3' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Dashy">
+<meta property="og:url" content="https://dimagious.github.io/dashsidian/guides/weekly-review-without-dataview/">
+<meta property="og:title" content="A weekly review in Obsidian, without Dataview">
+<meta property="og:description" content="A weekly note that counts the week it is named for: sleep, gym days and steps, against last week and against your usual. One template, no dataviewjs.">
+<meta property="og:image" content="https://dimagious.github.io/dashsidian/img/weekly-review-light.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="../../assets/site.css">
+<link rel="stylesheet" href="../../assets/guides.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"HowTo","name":"A weekly review in Obsidian, without Dataview","step":[
+{"@type":"HowToStep","name":"Properties in your daily notes"},
+{"@type":"HowToStep","name":"A note named for its week"},
+{"@type":"HowToStep","name":"The week in numbers"},
+{"@type":"HowToStep","name":"A bar a day"},
+{"@type":"HowToStep","name":"One template, every week"},
+{"@type":"HowToStep","name":"The monthly review"}]}
+</script>
+</head>
+<body>
+<!--shell:top tab="Weekly review"-->
+
+    <main class="note guide" id="note">
+      <article class="file" style="padding-top:34px">
+        <div class="crumb">Guides/Weekly review.md</div>
+        <h1 class="inline-title">A weekly review in Obsidian, without Dataview</h1>
+
+        <div class="props" aria-label="Properties">
+          <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
+          <div class="prop"><div class="k"><svg><use href="#i-tag"/></svg>blocks</div><div class="v"><span class="pill">stats</span><span class="pill">chart</span><span class="pill">heatmap</span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>keys</div><div class="v"><code>period: note</code><code>range: note</code><code>compare: usual</code></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>needs dataview</div><div class="v"><span class="check off" aria-label="no"></span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
+        </div>
+
+        <p class="lede">A weekly review asks the same questions every week: how did I sleep, how often did I train, was this week normal for me. One template answers them. Its blocks take the week from the note's own name, <code>2026-W40</code>, so the numbers stay that week's however late you open the note. The same cards do the monthly review.</p>
+
+        <figure class="shot">
+          <picture>
+            <source data-dark srcset="../../img/weekly-review-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="../../img/weekly-review-light.png" width="700" height="480" alt="A weekly review note: cards for sleep against the usual level, gym days and steps against the week before, a meditation streak, and a bar per day of the week's steps with a dashed goal line">
+          </picture>
+          <figcaption>What the weekly note shows at the end of step 4. From a demo vault with a year of daily notes.</figcaption>
+        </figure>
+
+        <nav class="toc" aria-label="On this page">
+          <b>ON THIS PAGE</b>
+          <ol>
+            <li><a href="#daily-note">Properties in your daily notes</a></li>
+            <li><a href="#weekly-note">A note named for its week</a></li>
+            <li><a href="#numbers">The week in numbers</a></li>
+            <li><a href="#chart">A bar a day</a></li>
+            <li><a href="#template">One template, every week</a></li>
+            <li><a href="#monthly">The monthly review</a></li>
+            <li><a href="#full">The whole templates</a></li>
+            <li><a href="#limits">What it does not do</a></li>
+            <li><a href="#other-ways">With dataviewjs</a></li>
+            <li><a href="#variations">Variations</a></li>
+            <li><a href="#errors">If a block shows an error</a></li>
+            <li><a href="#related">Related guides</a></li>
+          </ol>
+        </nav>
+
+        <!-- ============ 1 ============ -->
+        <h2 class="step" id="daily-note" data-short="Properties in your daily notes"><span class="n">1</span>Properties in your daily notes</h2>
+        <p>The review counts what your daily notes already hold. One property per thing you track: a number for a score or a count, a checkbox for a habit.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Diary/2026-10-02.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">---
+sleep_score: 83
+gym: true
+meditate: true
+steps: 7300
+---
+
+## 2026-10-02</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>2026-10-02</code><span>The note's name is its date. Named another way, like <code>02.10.2026</code>? Dashy reads the day format set in Daily notes or Periodic Notes. Without one, add <code>date_format: DD.MM.YYYY</code> to the block.</span></li>
+          <li><code>sleep_score: 83</code><span>A number. The review averages it over the week.</span></li>
+          <li><code>gym: true</code><span>A checkbox. Summed, it counts the days you ticked it.</span></li>
+          <li><code>Diary</code><span>The folder the blocks read from. Use the one your daily notes already live in.</span></li>
+        </ul>
+
+        <!-- ============ 2 ============ -->
+        <h2 class="step" id="weekly-note" data-short="A note named for its week"><span class="n">2</span>A note named for its week</h2>
+        <p>The review lives in a weekly note, and its name says which week. Periodic Notes names them this way, or you name them yourself.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Reviews/2026-W40.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced"># Week 40
+
+## What went well
+
+## What to change</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>2026-W40</code><span>Week 40 of 2026. This page uses ISO weeks, Monday 28 September to Sunday 4 October, as you get without Periodic Notes or with its weekly format set to <code>GGGG-[W]WW</code>. A month is <code>2026-09</code>, a quarter <code>2026-Q3</code>, a year <code>2026</code>.</span></li>
+          <li>Periodic Notes<span>Dashy reads the name the way Periodic Notes made it: in the weekly format set there, or, with weekly notes on and no format saved, in its default <code>gggg-[W]ww</code>. That is a locale week: in an English interface it starts on Sunday, so <code>2026-W40</code> is 27 September to 3 October. Without Periodic Notes, the name is read as an ISO week.</span></li>
+          <li>The whole name<span>The name has to be the week and nothing else. <code>2026-W40 review</code> is not read as a week: the block says so instead of guessing.</span></li>
+        </ul>
+
+        <!-- ============ 3 ============ -->
+        <h2 class="step" id="numbers" data-short="The week in numbers"><span class="n">3</span>The week in numbers</h2>
+        <p>Paste this block into the weekly note.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Reviews/2026-W40.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+source: Diary
+period: note
+columns: 2
+items:
+  - { label: Sleep, field: sleep_score, agg: avg, compare: usual, better: up }
+  - { label: Gym days, field: gym, agg: sum, compare: true, better: up }
+  - { label: Steps a day, field: steps, agg: avg, precision: 0, compare: true, better: up }
+  - { label: Meditation in a row, field: meditate, agg: current_streak, unit: days }
+```</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>period: note</code><span>Written once, next to <code>items</code>, it holds for every card: each counts the week this note is named for. A card with its own <code>period</code> uses that instead.</span></li>
+          <li><code>compare: usual</code><span>Is this week normal for me? Sleep reads <code>82</code> with <code>▼ −3</code>, and the tooltip says <code>vs usual: 85</code>: the average of every earlier note, the week itself left out. It works with <code>agg: avg</code>.</span></li>
+          <li><code>compare: true</code><span>Against the week before, all seven days of it once this week is over: gym <code>4</code>, <code>▲ +1</code>, <code>vs the week before: 3</code>.</span></li>
+          <li><code>current_streak</code><span>Once the week is over, counted back from its last day, Sunday here (Saturday for a locale week that starts on Sunday), not from today. While the week runs, counted back from today. It counts inside the week, so seven days at most.</span></li>
+        </ul>
+        <div class="callout tip">
+          <div class="callout-title"><svg><use href="#i-info"/></svg>Opened in March, still week 40</div>
+          <p>The week comes from the name, not from today. Open the note months later and every card shows the same numbers: notes dated after the week count nowhere, and <code>compare: usual</code> reads only the notes before it.</p>
+        </div>
+
+        <!-- ============ 4 ============ -->
+        <h2 class="step" id="chart" data-short="A bar a day"><span class="n">4</span>A bar a day</h2>
+        <p>Under the cards, the week day by day. This and the block from step 3 draw the picture above.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Reviews/2026-W40.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```chart
+source: Diary
+field: steps
+label: Steps
+type: bar
+range: note
+goal: 10000
+```</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>range: note</code><span>The seven days of the week the note is named for, a bar each. The heading names them: <code>Steps: sum per day, Sep 28, 2026 to Oct 4, 2026</code>.</span></li>
+          <li><code>goal: 10000</code><span>A dashed line at your daily goal.</span></li>
+          <li>A day with no note<span>A gap, not a zero: a day you did not log is not a day of no steps.</span></li>
+          <li>Obsidian Charts<span>With it turned on, write the block as <code>dashy-chart</code>: <code>chart</code> then belongs to Charts.</span></li>
+        </ul>
+
+        <!-- ============ 5 ============ -->
+        <h2 class="step" id="template" data-short="One template, every week"><span class="n">5</span>One template, every week</h2>
+        <p>Put both blocks in the note your weekly notes are made from: the template file set for weekly notes in Periodic Notes, or a note you insert with the core Templates plugin. Nothing in them names a date, so every weekly note made from it counts its own week.</p>
+        <ul class="keynotes">
+          <li>The week you are in<span>Counts up to today. <code>compare: true</code> reads the same days of last week, as <code>period: week</code> does.</span></li>
+          <li>A week still ahead<span>Next week's note, made early, draws no numbers yet, only a line: <code>This window starts on Oct 12, 2026, so there is nothing to count yet.</code></span></li>
+          <li>The template itself<span>Its name is not a week, so opened on its own, its blocks show an error. The notes made from it do not.</span></li>
+        </ul>
+
+        <!-- ============ 6 ============ -->
+        <h2 class="step" id="monthly" data-short="The monthly review"><span class="n">6</span>The monthly review</h2>
+        <p>A note named <code>2026-09</code> is September. Paste the step 3 block as it is: <code>period: note</code> now counts the month, and <code>compare: true</code> reads the whole of August, <code>vs the month before: 13</code>. For the habits, a calendar of the month.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Reviews/2026-09.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+range: note
+layout: calendar
+layers:
+  - { field: gym, color: orange, label: Gym }
+  - { field: meditate, color: purple, label: Meditation }
+```</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>range: note</code><span>With <code>layout: calendar</code>, the month the note is named for: <code>September 2026</code>, a dot under each day for each habit you kept. Nothing is dimmed once the month is over.</span></li>
+          <li>Caption<span>The days with at least one dot, out of the month's days: <code>Gym, Meditation: 28 of 30 days</code>.</span></li>
+          <li>In a weekly note<span>The same block draws that week as one row.</span></li>
+        </ul>
+        <p class="muted" style="font-size:14.5px">More on the calendar, colours and days off: <a href="../monthly-habit-calendar/">a monthly habit calendar</a>.</p>
+
+        <!-- ============ full ============ -->
+        <h2 id="full" data-short="The whole templates">The whole templates</h2>
+        <p>Ready to paste into your weekly and monthly templates. The cards are the same block in both.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Templates/Weekly review.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+source: Diary
+period: note
+columns: 2
+items:
+  - { label: Sleep, field: sleep_score, agg: avg, compare: usual, better: up }
+  - { label: Gym days, field: gym, agg: sum, compare: true, better: up }
+  - { label: Steps a day, field: steps, agg: avg, precision: 0, compare: true, better: up }
+  - { label: Meditation in a row, field: meditate, agg: current_streak, unit: days }
+```
+
+```chart
+source: Diary
+field: steps
+label: Steps
+type: bar
+range: note
+goal: 10000
+```
+
+## What went well
+
+## What to change</code></pre>
+        </div>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Templates/Monthly review.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+source: Diary
+period: note
+columns: 2
+items:
+  - { label: Sleep, field: sleep_score, agg: avg, compare: usual, better: up }
+  - { label: Gym days, field: gym, agg: sum, compare: true, better: up }
+  - { label: Steps a day, field: steps, agg: avg, precision: 0, compare: true, better: up }
+  - { label: Meditation in a row, field: meditate, agg: current_streak, unit: days }
+```
+
+```heatmap
+source: Diary
+range: note
+layout: calendar
+layers:
+  - { field: gym, color: orange, label: Gym }
+  - { field: meditate, color: purple, label: Meditation }
+```
+
+## The month in a few lines</code></pre>
+        </div>
+
+        <!-- ============ limits ============ -->
+        <h2 id="limits" data-short="What it does not do">What it does not do</h2>
+        <div class="callout warn">
+          <div class="callout-title"><svg><use href="#i-alert"/></svg>Numbers, from the name, for that period</div>
+          <ul>
+            <li><b>No lists of notes.</b> Dashy counts the books you finished this month, but it has no block that lists them. A list of the period's notes is still a query.</li>
+            <li><b>The name is the period.</b> <code>period: note</code> in a note named anything else is an error, not a guess. For a note named otherwise, write the week out: <code>period: 2026-W40</code>, or <code>range: 2026-W40</code> on a chart or heatmap.</li>
+            <li><b>No offset.</b> There is no <code>note-1</code> for the week before. <code>compare: true</code> already measures against it; any other week, write it out.</li>
+          </ul>
+        </div>
+
+        <!-- ============ other ways ============ -->
+        <h2 id="other-ways" data-short="With dataviewjs">The same review with dataviewjs</h2>
+        <p>The usual way today: a script reads the week from the note's name and adds up the daily notes in it.</p>
+        <div class="codeblock other" data-code>
+          <div class="bar"><span>With Dataview, JavaScript queries turned on</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">```dataviewjs
+const start = dv.luxon.DateTime.fromFormat(dv.current().file.name, "kkkk-'W'WW");
+const end = start.endOf("week");
+const days = dv.pages('"Diary"')
+  .where(p => p.file.day && p.file.day >= start && p.file.day <= end);
+const sleep = days.sleep_score.array().filter(v => typeof v === "number");
+dv.table(["", "This week"], [
+  ["Sleep", sleep.length ? (sleep.reduce((a, b) => a + b, 0) / sleep.length).toFixed(1) : "-"],
+  ["Gym days", days.where(p => p.gym === true).length],
+]);
+```</code></pre>
+        </div>
+        <ul>
+          <li>Needs <b>Enable JavaScript queries</b> in Dataview's settings. It is off by default.</li>
+          <li>The name is read as an ISO week, as written. A locale week from Periodic Notes is more code: Luxon has no token that parses it.</li>
+          <li>Last week, your usual level and the arrows are more code: the same loop over other dates. A bar a day is a second script, with Obsidian Charts.</li>
+        </ul>
+
+        <div class="table-wrap">
+          <table class="cmp">
+            <thead><tr><th></th><th class="us">Dashy</th><th>dataviewjs</th></tr></thead>
+            <tbody>
+              <tr><td>The week from the name</td><td data-h="Dashy" class="us"><span><code>period: note</code></span></td><td data-h="dataviewjs"><span><code>fromFormat</code> on the name</span></td></tr>
+              <tr><td>Against last week</td><td data-h="Dashy" class="us"><span><code>compare: true</code></span></td><td data-h="dataviewjs"><span>Write it</span></td></tr>
+              <tr><td>Against your usual</td><td data-h="Dashy" class="us"><span><code>compare: usual</code></span></td><td data-h="dataviewjs"><span>Write it</span></td></tr>
+              <tr><td>A bar a day</td><td data-h="Dashy" class="us"><span><code>range: note</code></span></td><td data-h="dataviewjs"><span>A second script and Obsidian Charts</span></td></tr>
+              <tr><td>What you install</td><td data-h="Dashy" class="us"><span>Dashy</span></td><td data-h="dataviewjs"><span>Dataview, JavaScript queries on</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ============ variations ============ -->
+        <h2 id="variations" data-short="Variations">Variations</h2>
+        <div class="vars">
+          <div class="var">
+            <h3>This week's habits as a row</h3>
+            <p>The calendar block from step 6, pasted into the weekly note: seven days, a dot for each habit you kept.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>heatmap</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+range: note
+layout: calendar
+layers:
+  - { field: gym, color: orange, label: Gym }
+  - { field: meditate, color: purple, label: Meditation }
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>A week written out</h3>
+            <p>In a note with any other name, say a project log, name the week in the block.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+source: Diary
+period: 2026-W40
+items:
+  - { label: Gym days, field: gym, agg: sum, compare: true, better: up }
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>A season</h3>
+            <p><code>from</code> and <code>to</code>, both days included. <code>compare: true</code> reads as many days right before <code>from</code>.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+source: Diary
+period: { from: 2026-09-01, to: 2026-09-14 }
+items:
+  - { label: Gym days, field: gym, agg: sum, compare: true, better: up }
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>Daily notes named 02.10.2026</h3>
+            <p>When Daily notes or Periodic Notes has no such day format set, say how the names are written.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+source: Diary
+period: note
+date_format: DD.MM.YYYY
+items:
+  - { label: Sleep, field: sleep_score, agg: avg, compare: usual, better: up }
+```</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ errors ============ -->
+        <h2 id="errors" data-short="If a block shows an error">If a block shows an error</h2>
+        <p>A block that cannot draw what you asked for says why, inside the note. The ones you are likely to see here:</p>
+        <ul>
+          <li><b><code>period: note</code> needs a note named like a day, week, month, quarter or year, and this note is "Weekly review".</b> The block sits in a note whose name is not a period: the template itself, or a name with words after the week. The message lists the formats it reads.</li>
+          <li><b><code>compare: usual</code> works only with <code>agg: avg</code>.</b> The usual level is an average. On a <code>sum</code> card, use <code>compare: true</code>.</li>
+          <li><b>no history before this period</b>, in grey where the arrow would be. <code>compare: usual</code> found no earlier note to average: your first week of notes. It is not an error.</li>
+        </ul>
+
+        <!-- ============ related ============ -->
+        <h2 id="related" data-short="Related guides">Related guides</h2>
+        <div class="cards small">
+          <a class="card" href="../monthly-habit-calendar/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/habit-calendar-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/habit-calendar-light.png" width="700" height="300" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A monthly habit calendar without Dataview</span><p class="card-promise">This month as a calendar, a dot in each habit's colour.</p></div>
+          </a>
+          <a class="card" href="../habit-tracker-without-dataview/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/habits-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/habits-light.png" width="700" height="369" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A habit tracker without Dataview</span><p class="card-promise">Counts, streaks and a year of days from daily note checkboxes.</p></div>
+          </a>
+          <a class="card" href="../weekly-chart-tracker-alternative/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/chart-weekly-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/chart-weekly-light.png" width="700" height="223" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A weekly chart without Tracker</span><p class="card-promise">Weekly bars with a goal line, from frontmatter.</p></div>
+          </a>
+        </div>
+
+        <div class="next">
+          <p>Dashy is in Obsidian's community plugins. Search for <b>Dashy</b>, install, enable, then paste the templates above.</p>
+          <div class="actions">
+            <a class="btn primary" href="../../#install"><svg><use href="#i-plug"/></svg>Install Dashy</a>
+            <a class="btn" href="../../reference/stats/">Every stats key</a>
+          </div>
+        </div>
+
+        <footer class="note-foot">
+          <span>MIT © Dmitriy Yurkin</span>
+          <a href="../../guides/">All guides</a>
+          <a href="https://github.com/Dimagious/dashsidian">GitHub</a>
+          <a href="https://community.obsidian.md/plugins/dashsidian">Plugin listing</a>
+          <a href="https://github.com/Dimagious/dashsidian/issues">Something wrong on this page?</a>
+        </footer>
+      </article>
+    </main>
+<!--shell:bottom-->

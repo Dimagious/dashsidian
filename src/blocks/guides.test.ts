@@ -45,12 +45,17 @@ const RENDERERS: Record<string, Render> = {
     heatmap: renderHeatmap,
 };
 
-/** Renders one block the way Obsidian hands it a code block, stopping a clock it may start. */
-function render(lang: string, source: string, vault: FakeVault): HTMLElement {
+/**
+ * Renders one block the way Obsidian hands it a code block, stopping a clock
+ * it may start. `sourcePath` is the note the block sits in, what
+ * `period: note` and `range: note` read their window from.
+ */
+function render(lang: string, source: string, vault: FakeVault, sourcePath?: string): HTMLElement {
     const draw = RENDERERS[lang];
     if (!draw) throw new Error(`no renderer for ${lang}`);
     const el = host();
-    const stop = draw(mockContext(vault), source, el);
+    const ctx = mockContext(vault);
+    const stop = draw(sourcePath === undefined ? ctx : { ...ctx, sourcePath }, source, el);
     if (stop) stop();
     return el;
 }
@@ -618,5 +623,253 @@ describe("guide: monthly-habit-calendar", () => {
         expect(diagnostics(missing, "error")).toEqual([]);
         expect(diagnostics(missing, "warning").join("\n")).toContain("\"meditate\" never contributed a value here.");
         expect(dots(missing, 2)).toBe(2);
+    });
+});
+
+/* ---------------------------------------------------------------- guide 5 */
+
+/** `YYYY-MM-DD` of a local date. */
+const dayKey = (d: Date): string =>
+    [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
+
+/**
+ * August 1 to Sunday 4 October 2026, a note a day. ISO week 40 is Monday 28
+ * September to Sunday 4 October, over by today (Monday the 5th). Sleep is 85
+ * on every night before it and averages 82 inside it. Gym is Monday,
+ * Wednesday and Friday, plus Saturday 3 October: 4 in week 40, 3 in week 39,
+ * 13 in September and 13 in August. Steps are 8000 a day before the week.
+ * Meditation runs unbroken from 20 September.
+ */
+const REVIEW_WEEK: Record<string, { sleep_score: number; steps: number }> = {
+    "2026-09-28": { sleep_score: 80, steps: 8200 },
+    "2026-09-29": { sleep_score: 84, steps: 9400 },
+    "2026-09-30": { sleep_score: 82, steps: 10600 },
+    "2026-10-01": { sleep_score: 81, steps: 11800 },
+    "2026-10-02": { sleep_score: 83, steps: 7300 },
+    "2026-10-03": { sleep_score: 78, steps: 12500 },
+    "2026-10-04": { sleep_score: 86, steps: 3200 },
+};
+const reviewDay = (date: Date): Record<string, unknown> => {
+    const key = dayKey(date);
+    const weekday = date.getDay();
+    return {
+        sleep_score: REVIEW_WEEK[key]?.sleep_score ?? 85,
+        gym: weekday === 1 || weekday === 3 || weekday === 5 || key === "2026-10-03",
+        meditate: date >= new Date(2026, 8, 20) || date.getDate() % 4 !== 0,
+        steps: REVIEW_WEEK[key]?.steps ?? 8000,
+    };
+};
+const REVIEW_DAYS: FakeNote[] = diary("Diary", "2026-08-01", 65, (i) => reviewDay(new Date(2026, 7, 1 + i)));
+const REVIEW_VAULT: FakeVault = { notes: REVIEW_DAYS };
+const W40 = "Reviews/2026-W40.md";
+const SEPTEMBER = "Reviews/2026-09.md";
+
+const REVIEW_STATS = `source: Diary
+period: note
+columns: 2
+items:
+  - { label: Sleep, field: sleep_score, agg: avg, compare: usual, better: up }
+  - { label: Gym days, field: gym, agg: sum, compare: true, better: up }
+  - { label: Steps a day, field: steps, agg: avg, precision: 0, compare: true, better: up }
+  - { label: Meditation in a row, field: meditate, agg: current_streak, unit: days }`;
+
+const REVIEW_CHART = `source: Diary
+field: steps
+label: Steps
+type: bar
+range: note
+goal: 10000`;
+
+const REVIEW_CALENDAR = `source: Diary
+range: note
+layout: calendar
+layers:
+  - { field: gym, color: orange, label: Gym }
+  - { field: meditate, color: purple, label: Meditation }`;
+
+/** The notice a block draws in place of numbers for a window still ahead. */
+const notStarted = (day: string): string => `This window starts on ${day}, so there is nothing to count yet.`;
+
+describe("guide: weekly-review-without-dataview", () => {
+    /** What a stats block shows: values, deltas and the deltas' tooltips. */
+    const cards = (el: HTMLElement): { values: string[]; deltas: string[]; vs: string[] } => ({
+        values: texts(el, ".dashy-stat-value"),
+        deltas: texts(el, ".dashy-stat-delta"),
+        vs: nodes(el, ".dashy-stat-delta").map((d) => d.getAttribute("title") ?? ""),
+    });
+    const WEEK_40 = {
+        values: ["82", "4", "9000", "7 days"],
+        deltas: ["▼ −3", "▲ +1", "▲ +1000"],
+        vs: ["vs usual: 85", "vs the week before: 3", "vs the week before: 8000"],
+    };
+
+    it("every Dashy block on the page draws without an error or a warning", () => {
+        const blocks = guideBlocks("weekly-review-without-dataview");
+        // steps 3, 4 and 6, the two templates (2 each), then four variations
+        expect(blocks.map((b) => b.lang)).toEqual([
+            "stats", "chart", "heatmap",
+            "stats", "chart", "stats", "heatmap",
+            "heatmap", "stats", "stats", "stats",
+        ]);
+        const dotted: FakeVault = {
+            notes: REVIEW_DAYS.map((n) => ({ ...n, path: n.path.replace(/(\d{4})-(\d{2})-(\d{2})/, "$3.$2.$1") })),
+        };
+        for (const [i, { lang, source }] of blocks.entries()) {
+            // The last variation names `DD.MM.YYYY`, which ISO-named notes do not fit: it reads its own diary.
+            const vault = i === blocks.length - 1 ? dotted : REVIEW_VAULT;
+            expectClean(render(lang, source, vault, W40));
+            if (i >= 3 && i <= 6) expectClean(render(lang, source, vault, SEPTEMBER));
+        }
+    });
+
+    it("the steps and the whole templates are the same YAML", () => {
+        const blocks = guideBlocks("weekly-review-without-dataview").map((b) => b.source);
+        expect(blocks.slice(0, 8)).toEqual([
+            REVIEW_STATS, REVIEW_CHART, REVIEW_CALENDAR,
+            REVIEW_STATS, REVIEW_CHART, REVIEW_STATS, REVIEW_CALENDAR,
+            REVIEW_CALENDAR,
+        ]);
+    });
+
+    it("step 3: the week in numbers, against your usual and against the whole week before", () => {
+        const el = render("stats", REVIEW_STATS, REVIEW_VAULT, W40);
+        expect(texts(el, ".dashy-stat-label")).toEqual(["Sleep", "Gym days", "Steps a day", "Meditation in a row"]);
+        expect(cards(el)).toEqual(WEEK_40);
+        expect(nodes(el, ".dashy-stat-delta")[0]?.className).toContain("dashy-stat-delta-bad");
+    });
+
+    it("step 3: opened months later, with months of notes after it, the same numbers", () => {
+        const later = diary("Diary", "2026-10-05", 150, () => ({ sleep_score: 50, gym: true, meditate: false, steps: 100 }));
+        vi.setSystemTime(new Date(2027, 2, 10, 12));
+        expect(cards(render("stats", REVIEW_STATS, { notes: [...REVIEW_DAYS, ...later] }, W40))).toEqual(WEEK_40);
+    });
+
+    it("step 3: the streak counts back from Sunday, inside the week", () => {
+        // Unbroken since 20 September, but the week holds seven days.
+        expect(cards(render("stats", REVIEW_STATS, REVIEW_VAULT, W40)).values[3]).toBe("7 days");
+        // A missed Saturday leaves Sunday alone, whatever comes after the week.
+        const missed = REVIEW_DAYS.map((n) => n.path === "Diary/2026-10-03.md" ? { ...n, frontmatter: { ...n.frontmatter, meditate: false } } : n);
+        const monday = { path: "Diary/2026-10-05.md", frontmatter: { meditate: true } };
+        // `unit` is written as it stands, so only the number is the point here.
+        expect(cards(render("stats", REVIEW_STATS, { notes: [...missed, monday] }, W40)).values[3]).toMatch(/^1\s/);
+        // A locale week (Periodic Notes' default, Sunday first here) ends on Saturday: a missed Sunday is outside it.
+        const sunday = REVIEW_DAYS.map((n) => n.path === "Diary/2026-10-04.md" ? { ...n, frontmatter: { ...n.frontmatter, meditate: false } } : n);
+        expect(cards(render("stats", REVIEW_STATS, { notes: sunday, periodicNotes: { weekly: { enabled: true } } }, W40)).values[3]).toMatch(/^7\s/);
+        // The ISO week ends on that Sunday, which, like today in a running week, does not break the run.
+        expect(cards(render("stats", REVIEW_STATS, { notes: sunday }, W40)).values[3]).toMatch(/^6\s/);
+    });
+
+    it("step 2: the name is read the way Periodic Notes made it, else as ISO", () => {
+        const iso = render("chart", REVIEW_CHART, REVIEW_VAULT, W40);
+        expect(texts(iso, ".dashy-chart-title")).toEqual(["Steps: sum per day, Sep 28, 2026 to Oct 4, 2026"]);
+        // A locale week in the test's English locale starts on Sunday.
+        const locale = render("chart", REVIEW_CHART, { ...REVIEW_VAULT, periodicNotes: { weekly: { format: "gggg-[W]ww" } } }, W40);
+        expect(texts(locale, ".dashy-chart-title")).toEqual(["Steps: sum per day, Sep 27, 2026 to Oct 3, 2026"]);
+        expect(nodes(locale, ".dashy-chart-hit")).toHaveLength(7);
+        // Weekly notes on in Periodic Notes with no format saved: its default, the same locale week.
+        const unsaved = render("chart", REVIEW_CHART, { ...REVIEW_VAULT, periodicNotes: { weekly: { enabled: true } } }, W40);
+        expect(texts(unsaved, ".dashy-chart-title")).toEqual(["Steps: sum per day, Sep 27, 2026 to Oct 3, 2026"]);
+        // A saved ISO format is the ISO week.
+        const savedIso = render("chart", REVIEW_CHART, { ...REVIEW_VAULT, periodicNotes: { weekly: { enabled: true, format: "GGGG-[W]WW" } } }, W40);
+        expect(texts(savedIso, ".dashy-chart-title")).toEqual(["Steps: sum per day, Sep 28, 2026 to Oct 4, 2026"]);
+    });
+
+    it("step 2 and errors: a name with words after the week is not a week; the template itself is not one either", () => {
+        const formats = "Name it in one of these formats: YYYY-MM-DD, GGGG-[W]WW, YYYY-MM, YYYY-[Q]Q, YYYY.";
+        for (const [path, name] of [["Reviews/2026-W40 review.md", "2026-W40 review"], ["Templates/Weekly review.md", "Weekly review"]] as const) {
+            const el = render("stats", REVIEW_STATS, REVIEW_VAULT, path);
+            expect(diagnostics(el, "error")).toEqual([
+                `⛔ stats: \`period: note\` needs a note named like a day, week, month, quarter or year, and this note is "${name}". ${formats}`,
+            ]);
+            expect(texts(el, ".dashy-stat-value")).toEqual(["—", "—", "—", "—"]);
+            const chart = render("chart", REVIEW_CHART, REVIEW_VAULT, path);
+            expect(diagnostics(chart, "error")).toHaveLength(1);
+            expect(nodes(chart, ".dashy-chart")).toHaveLength(0);
+        }
+    });
+
+    it("step 4: a bar per day of the week, named in the heading, nothing so far, a missing day a gap", () => {
+        const el = render("chart", REVIEW_CHART, REVIEW_VAULT, W40);
+        const hits = nodes(el, ".dashy-chart-hit").map((h) => h.getAttribute("title"));
+        expect(hits).toHaveLength(7);
+        expect(hits[0]).toBe("Sep 28, 2026: Steps 8200 (2026-09-28)");
+        expect(hits[6]).toBe("Oct 4, 2026: Steps 3200 (2026-10-04)");
+        expect(nodes(el, ".is-partial")).toHaveLength(0);
+
+        const gap = render("chart", REVIEW_CHART, { notes: REVIEW_DAYS.filter((n) => n.path !== "Diary/2026-10-01.md") }, W40);
+        expect(nodes(gap, ".dashy-chart-hit")[3]?.getAttribute("title")).toBe("Oct 1, 2026: no data");
+    });
+
+    it("step 5: a week still ahead draws only the day it starts, in every block, and is no error", () => {
+        for (const [lang, source] of [["stats", REVIEW_STATS], ["chart", REVIEW_CHART], ["heatmap", REVIEW_CALENDAR]] as const) {
+            const el = render(lang, source, REVIEW_VAULT, "Reviews/2026-W42.md");
+            expect(texts(el, ".dashy-notice")).toEqual([notStarted("Oct 12, 2026")]);
+            expect(diagnostics(el, "error")).toEqual([]);
+            expect(diagnostics(el, "warning")).toEqual([]);
+        }
+    });
+
+    it("step 5: the week you are in counts up to today, against the same days of last week", () => {
+        vi.setSystemTime(new Date(2026, 9, 6, 12));
+        const now = [
+            { path: "Diary/2026-10-05.md", frontmatter: { sleep_score: 85, gym: true, meditate: true, steps: 8000 } },
+            { path: "Diary/2026-10-06.md", frontmatter: { sleep_score: 85, gym: false, meditate: true, steps: 8000 } },
+        ];
+        const el = render("stats", REVIEW_STATS, { notes: [...REVIEW_DAYS, ...now] }, "Reviews/2026-W41.md");
+        // Monday and Tuesday: gym on Monday this week, and on Monday 28 September.
+        expect(texts(el, ".dashy-stat-value")[1]).toBe("1");
+        expect(nodes(el, ".dashy-stat-delta")[1]?.getAttribute("title")).toBe("vs the same days last week: 1");
+        // While the week runs, the streak counts back from today: Monday and Tuesday.
+        expect(texts(el, ".dashy-stat-value")[3]).toMatch(/^2\s/);
+    });
+
+    it("step 6: the same cards in a monthly note count the month, against the whole month before", () => {
+        const el = render("stats", REVIEW_STATS, REVIEW_VAULT, SEPTEMBER);
+        expect(texts(el, ".dashy-stat-value")[1]).toBe("13");
+        expect(texts(el, ".dashy-stat-delta")[1]).toBe("= 0");
+        expect(nodes(el, ".dashy-stat-delta")[1]?.getAttribute("title")).toBe("vs the month before: 13");
+    });
+
+    it("step 6: the calendar draws the month the note is named for, nothing dimmed; in a weekly note, one row", () => {
+        const month = render("heatmap", REVIEW_CALENDAR, REVIEW_VAULT, SEPTEMBER);
+        expect(texts(month, ".dashy-hm-cal-month")).toEqual(["September 2026"]);
+        expect(texts(month, ".dashy-hm-cal-num")).toHaveLength(30);
+        expect(nodes(month, ".is-future")).toHaveLength(0);
+        expect(texts(month, ".dashy-hm-title")).toEqual(["Gym, Meditation: 28 of 30 days"]);
+        expect(texts(month, ".dashy-hm-leg")).toEqual(["Gym", "Meditation"]);
+
+        const week = render("heatmap", REVIEW_CALENDAR, REVIEW_VAULT, W40);
+        expect(texts(week, ".dashy-hm-cal-num")).toEqual(["28", "29", "30", "1", "2", "3", "4"]);
+    });
+
+    it("variations: a week written out, a season, and daily notes named DD.MM.YYYY", () => {
+        const blocks = guideBlocks("weekly-review-without-dataview").map((b) => b.source);
+        const written = render("stats", blocks[8] ?? "", REVIEW_VAULT, "Projects/Log.md");
+        expect(cards(written)).toEqual({ values: ["4"], deltas: ["▲ +1"], vs: ["vs the week before: 3"] });
+
+        // 1 to 14 September against 18 to 31 August: six gym days each.
+        const season = render("stats", blocks[9] ?? "", REVIEW_VAULT, "Projects/Log.md");
+        expect(cards(season)).toEqual({ values: ["6"], deltas: ["= 0"], vs: ["vs the 14 days before: 6"] });
+
+        const dotted = REVIEW_DAYS.map((n) => ({ ...n, path: n.path.replace(/(\d{4})-(\d{2})-(\d{2})/, "$3.$2.$1") }));
+        expect(cards(render("stats", blocks[10] ?? "", { notes: dotted }, W40)))
+            .toEqual({ values: ["82"], deltas: ["▼ −3"], vs: ["vs usual: 85"] });
+    });
+
+    it("the errors the guide lists are the ones the blocks show", () => {
+        const sum = render("stats", "source: Diary\nperiod: note\nitems:\n  - { label: Gym days, field: gym, agg: sum, compare: usual }", REVIEW_VAULT, W40);
+        expect(diagnostics(sum, "warning")).toEqual([
+            "⚠️ stats: \"Gym days\": `compare: usual` works only with `agg: avg`. The usual level is an average, so no delta is drawn.",
+        ]);
+
+        const firstWeek = REVIEW_DAYS.filter((n) => n.path >= "Diary/2026-09-28");
+        const fresh = render("stats", REVIEW_STATS, { notes: firstWeek }, W40);
+        expect(texts(fresh, ".dashy-stat-delta-hint")).toEqual(["no history before this period"]);
+        expectClean(fresh);
+
+        // Monday 5 October, the first day of week 41: one bar so far, and no warning about it.
+        const monday = render("chart", REVIEW_CHART, REVIEW_VAULT, "Reviews/2026-W41.md");
+        expectClean(monday);
+        expect(nodes(monday, ".dashy-chart-hit")).toHaveLength(1);
     });
 });
