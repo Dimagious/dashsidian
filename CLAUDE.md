@@ -37,26 +37,21 @@
 
 ## Состояние
 
-1.6.0, опубликован в каталоге Obsidian. Трекер привычек: чекбоксы как 1/0,
-`period`, `compare`, `current_streak`. Шесть блоков ТЗ (`tiles`, `stats`,
-`progress`, `today`, `countdown`, `heatmap`) и седьмой, `chart` (ADR 0005);
-при включённом Obsidian Charts `chart` уступается ему, наш — `dashy-chart`
-(ADR 0007). Схема блоков — 1.8.0. Длительности (`5h 58min`, `7:30`) читаются
-как минуты, `core/duration.ts`. В `stats` и `progress` выборка (`source`, `tag`,
-`where`, `period`, `date_field`, `date_format`) пишется раз на корне блока и наследуется
-карточками, `core/inherit.ts` (B-131).
+1.8.0, опубликован в каталоге Obsidian (1.7.0 отдельно не выходил). Трекер
+привычек: чекбоксы как 1/0, `period`, `compare`, `current_streak`. Шесть блоков
+ТЗ (`tiles`, `stats`, `progress`, `today`, `countdown`, `heatmap`) и седьмой,
+`chart` (ADR 0005); при включённом Obsidian Charts `chart` уступается ему, наш —
+`dashy-chart` (ADR 0007). Схема блоков — 1.9.0. Длительности (`5h 58min`, `7:30`)
+читаются как минуты, `core/duration.ts`. В `stats` и `progress` выборка (`source`,
+`tag`, `where`, `period`, `date_field`, `date_format`) пишется раз на корне блока
+и наследуется карточками, `core/inherit.ts` (B-131).
 
-Не выпущено (1.8.0; 1.7.0 отдельно не выходит): в `heatmap` — `pick: max`
-и `layout: calendar` (месяц календарём); `date_format` и формат дня из
-настроек Daily notes / Periodic Notes (даты не только ISO, `core/note-date.ts`);
-окно из имени заметки — `period: note` / `range: note`, период словом
-(`2026-W40`, `2026-Q4`, `2026` — теперь год) и `{ from, to }`
-(`core/period-name.ts`, ADR 0006); у закрытого окна последний день не
-прощается (B-173); `compare: usual` против своего обычного уровня; форматы
-Periodic Notes по умолчанию; `source`/`tag` не текстом — ошибка, из одних
-пробелов — пусто, как и `path` плитки; подписи оси `chart` под точками;
-предупреждение «одна корзина» в `chart` смотрит на всё окно. Новые ключи и значения,
-поэтому версия схемы поднимается в релизном коммите: 1.8.0 → 1.9.0.
+В 1.8.0: `heatmap` — `pick: max` и `layout: calendar` (месяц календарём); даты не
+только ISO — `date_format` (и у плитки) и формат дня из Daily notes / Periodic
+Notes, включая Periodic Notes 1.0 beta (`core/note-date.ts`, `adapters/periodic.ts`);
+окно из имени заметки — `period: note` / `range: note`, период словом (`2026-W40`,
+`2026-Q4`, `2026` — год) и `{ from, to }` (`core/period-name.ts`, ADR 0006);
+`compare: usual`; на холодном старте блоки ждут индексации (`app/indexing.ts`).
 
 Сайт (`site/`, GitHub Pages) — витрина, гайды под поисковые запросы
 (`site/guides/`) и справочник блоков (`site/reference/`, генерируется из схемы).

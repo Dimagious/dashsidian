@@ -10,6 +10,8 @@ removed public export.
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-10-06
+
 ### Fixed
 
 - **`chart` labels every day of a week and no longer writes its goal over
