@@ -47,6 +47,12 @@ export class PluginSettingTab {
     containerEl: HTMLElement = document.createElement("div");
     constructor(public app: unknown, public plugin: unknown) {}
     display(): void { /* no-op */ }
+    update(): void { /* no-op */ }
+}
+
+/** Obsidian's path cleanup; the paths the tests pass are already clean. */
+export function normalizePath(path: string): string {
+    return path;
 }
 
 export class Setting {
