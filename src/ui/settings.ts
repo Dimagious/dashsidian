@@ -14,7 +14,11 @@ import type { Period } from "../core/periodic";
 import {
     SKILL_MARKDOWN,
     SKILL_VERSION,
+    SKILL_DIR,
     SKILL_PATH,
+    REFERENCE_MARKDOWN,
+    REFERENCE_PATH,
+    COMBINED_MARKDOWN,
     AGENTS_PATH,
     AGENTS_SECTION,
     AGENTS_BEGIN,
@@ -213,7 +217,7 @@ export class DashySettingTab extends PluginSettingTab {
         return {
             name: t("settings.skillName"),
             desc: installed === null
-                ? t("settings.skillNotInstalled", { path: SKILL_PATH })
+                ? t("settings.skillNotInstalled", { path: SKILL_DIR })
                 : installed === SKILL_VERSION
                     ? t("settings.skillCurrent", { version: installed })
                     : t("settings.skillOutdated", { installed, available: SKILL_VERSION }),
@@ -264,22 +268,28 @@ export class DashySettingTab extends PluginSettingTab {
     }
 
     /**
-     * Writes the file only on a click, never on its own.
+     * Writes the files only on a click, never on its own.
      *
      * The adapter rather than the Vault API, unusually: `.claude/` is a dotted
      * folder, which Obsidian does not index, so there is no TFile to get hold
      * of and `vault.create` has nothing to file the result under.
+     *
+     * Two files (B-164): SKILL.md, the process, and reference.md next to it,
+     * the key tables SKILL.md links to. The reference goes first, so a write
+     * that fails halfway never leaves a SKILL.md pointing at a file that is
+     * not there. An install from before the split updates the same way:
+     * SKILL.md is overwritten and reference.md created.
      */
     private async installSkill(): Promise<void> {
         const adapter = this.app.vault.adapter;
-        const target = normalizePath(SKILL_PATH);
-        const folder = normalizePath(SKILL_PATH.slice(0, SKILL_PATH.lastIndexOf("/")));
+        const folder = normalizePath(SKILL_DIR);
         try {
             if (!(await adapter.exists(folder))) await adapter.mkdir(folder);
-            await adapter.write(target, SKILL_MARKDOWN);
+            await adapter.write(normalizePath(REFERENCE_PATH), REFERENCE_MARKDOWN);
+            await adapter.write(normalizePath(SKILL_PATH), SKILL_MARKDOWN);
             this.plugin.settings.installedSkillVersion = SKILL_VERSION;
             await this.plugin.saveSettings();
-            new Notice(t("settings.written", { path: SKILL_PATH }));
+            new Notice(t("settings.written", { path: SKILL_DIR }));
             this.update();
         } catch (e) {
             new Notice(t("settings.writeFailed", { message: (e as Error).message }));
@@ -294,10 +304,14 @@ export class DashySettingTab extends PluginSettingTab {
      * throws inside the click handler and the second rejects unhandled — and
      * either way the button does nothing and says nothing, which is the one
      * outcome this plugin does not allow itself.
+     *
+     * What is copied is the one-file text AGENTS.md carries, process and
+     * reference together, without SKILL.md's frontmatter: pasted anywhere,
+     * it has no reference.md next to it to link to.
      */
     private async copySkill(): Promise<void> {
         try {
-            await navigator.clipboard.writeText(SKILL_MARKDOWN);
+            await navigator.clipboard.writeText(COMBINED_MARKDOWN);
             new Notice(t("settings.copied"));
         } catch (e) {
             new Notice(t("settings.copyFailed", { message: (e as Error).message }));

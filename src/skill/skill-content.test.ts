@@ -1,74 +1,84 @@
 import { describe, it, expect } from "vitest";
-import { SKILL_MARKDOWN, AGENTS_SECTION } from "./skill-content";
+import {
+    SKILL_MARKDOWN,
+    SKILL_VERSION,
+    SKILL_DIR,
+    SKILL_PATH,
+    REFERENCE_MARKDOWN,
+    REFERENCE_PATH,
+    COMBINED_MARKDOWN,
+    AGENTS_SECTION,
+} from "./skill-content";
 import schema from "../blocks/schema.json";
 
 /**
  * Pins the facts a live test with AI agents (B-105..B-110) found agents
- * getting wrong from the generated skill text. `SKILL_MARKDOWN` is built by
- * `npm run build:skill` from `src/blocks/schema.json`, so a regression here
+ * getting wrong from the generated skill text. `REFERENCE_MARKDOWN` (the
+ * skill's reference.md) is built by `npm run build:skill` from
+ * `src/blocks/schema.json`, so a regression here
  * means either the schema's wording regressed or the build script stopped
  * carrying it through — either way the agent reading the skill loses the
  * fact again.
  */
 describe("the generated skill corrects what agents got wrong", () => {
     it("streak is the longest run on record, current_streak the run going on now (B-105, B-118)", () => {
-        expect(SKILL_MARKDOWN).toContain("`streak` counts the longest run of consecutive days");
-        expect(SKILL_MARKDOWN).not.toContain("There is no current-streak aggregate");
-        expect(SKILL_MARKDOWN).toContain('`streak` is the best run on record: label the card "Best streak" or "Longest streak"');
-        expect(SKILL_MARKDOWN).toContain('label the bar "Best streak" or "Longest streak"');
-        expect(SKILL_MARKDOWN).toContain("`current_streak` is the run going on now");
-        expect(SKILL_MARKDOWN).toContain("`current_streak` counts the run going on now");
-        expect(SKILL_MARKDOWN).toContain("count sum avg min max latest streak current_streak");
+        expect(REFERENCE_MARKDOWN).toContain("`streak` counts the longest run of consecutive days");
+        expect(REFERENCE_MARKDOWN).not.toContain("There is no current-streak aggregate");
+        expect(REFERENCE_MARKDOWN).toContain('`streak` is the best run on record: label the card "Best streak" or "Longest streak"');
+        expect(REFERENCE_MARKDOWN).toContain('label the bar "Best streak" or "Longest streak"');
+        expect(REFERENCE_MARKDOWN).toContain("`current_streak` is the run going on now");
+        expect(REFERENCE_MARKDOWN).toContain("`current_streak` counts the run going on now");
+        expect(REFERENCE_MARKDOWN).toContain("count sum avg min max latest streak current_streak");
     });
 
     it("current_streak states its today grace and its period cap, on both blocks (B-118)", () => {
         const grace = "a day not filled yet leaves the run counted up to yesterday, and only a gap on yesterday or earlier";
         const cap = "so `period: month` stops it at the first of the month";
         // stats and progress each carry their own note.
-        expect(SKILL_MARKDOWN.split(grace).length - 1).toBe(2);
-        expect(SKILL_MARKDOWN.split(cap).length - 1).toBe(2);
+        expect(REFERENCE_MARKDOWN.split(grace).length - 1).toBe(2);
+        expect(REFERENCE_MARKDOWN.split(cap).length - 1).toBe(2);
     });
 
     it("a week starts on the first day of the interface language, the plugin's own if picked (B-107)", () => {
         const phrase = "A week starts on the first day of the interface language, Dashy's own when one "
             + "is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages";
         // stats, progress and tiles each document `period` separately, chart its `bucket`.
-        expect(SKILL_MARKDOWN.split(phrase).length - 1).toBe(4);
+        expect(REFERENCE_MARKDOWN.split(phrase).length - 1).toBe(4);
     });
 
     it("a text field is not a number, and names the where + count workaround (B-106)", () => {
         // stats and progress each document `field` separately, heatmap has its own wording.
         const dashPhrase = "holding text rather than a number, shows a dash and a warning naming it";
-        expect(SKILL_MARKDOWN.split(dashPhrase).length - 1).toBe(2);
-        expect(SKILL_MARKDOWN).toContain('count text instead with `where: "field contains ...');
-        expect(SKILL_MARKDOWN).toContain("holding text rather than a number, errors and says which");
+        expect(REFERENCE_MARKDOWN.split(dashPhrase).length - 1).toBe(2);
+        expect(REFERENCE_MARKDOWN).toContain('count text instead with `where: "field contains ...');
+        expect(REFERENCE_MARKDOWN).toContain("holding text rather than a number, errors and says which");
     });
 
     it("states the empty rule exactly: count reads 0, a field aggregate reads a dash (B-109)", () => {
-        expect(SKILL_MARKDOWN).toContain("`count` over nothing reads a plain `0`, the number of notes found");
-        expect(SKILL_MARKDOWN).toContain("`count` over nothing reads a plain `0` and an empty bar");
+        expect(REFERENCE_MARKDOWN).toContain("`count` over nothing reads a plain `0`, the number of notes found");
+        expect(REFERENCE_MARKDOWN).toContain("`count` over nothing reads a plain `0` and an empty bar");
         // The old blanket wording ("nothing to count... shows a dash rather
         // than a zero") contradicted `count`'s own honest `0` — it must not
         // reappear as a general rule.
-        expect(SKILL_MARKDOWN).not.toContain("Nothing to count, and the card shows a dash rather than a zero");
-        expect(SKILL_MARKDOWN).not.toContain("Nothing to count, and the bar stays empty and the value shows a dash rather than a zero");
+        expect(REFERENCE_MARKDOWN).not.toContain("Nothing to count, and the card shows a dash rather than a zero");
+        expect(REFERENCE_MARKDOWN).not.toContain("Nothing to count, and the bar stays empty and the value shows a dash rather than a zero");
     });
 
     it("countdown repeats a date yearly only when asked, and reads one from a note (B-148)", () => {
         // B-110's "does not repeat" note is gone with `repeat: yearly`; an agent
         // reading the old one would move a birthday's year forward by hand.
-        expect(SKILL_MARKDOWN).not.toContain("The date does not repeat every year");
-        expect(SKILL_MARKDOWN).toContain("A birthday or an anniversary repeats with `repeat: yearly`");
+        expect(REFERENCE_MARKDOWN).not.toContain("The date does not repeat every year");
+        expect(REFERENCE_MARKDOWN).toContain("A birthday or an anniversary repeats with `repeat: yearly`");
         // `date` gave way to `field` as an alternative, the way heatmap's `field` did to `layers`.
         const countdown = schema.blocks.countdown as { item: Record<string, { required?: boolean }> };
         expect(countdown.item.date.required).toBeUndefined();
-        expect(SKILL_MARKDOWN).toContain("Required unless `field` is set, and not allowed together with it");
+        expect(REFERENCE_MARKDOWN).toContain("Required unless `field` is set, and not allowed together with it");
     });
 
     it("heatmap field is not marked required, since layers replaces it (B-124)", () => {
         const heatmap = schema.blocks.heatmap as { root: Record<string, { required?: boolean }> };
         expect(heatmap.root.field.required).toBeUndefined();
-        expect(SKILL_MARKDOWN).toContain("required unless `layers` is set, and not allowed together with it");
+        expect(REFERENCE_MARKDOWN).toContain("required unless `layers` is set, and not allowed together with it");
         // The layer's own `field` stays required: a layer without one paints nothing.
         const item = schema.blocks.heatmap as { item: Record<string, { required?: boolean }> };
         expect(item.item.field.required).toBe(true);
@@ -98,8 +108,8 @@ describe("the generated skill corrects what agents got wrong", () => {
     });
 
     it("names the 1.7.0 heatmap recipes and every block in the description (B-159)", () => {
-        expect(SKILL_MARKDOWN).toContain("Minutes per sport, coloured by the sport that took the longest");
-        expect(SKILL_MARKDOWN).toContain("`layout: calendar` with `range: month` draws a month calendar of a habit");
+        expect(REFERENCE_MARKDOWN).toContain("Minutes per sport, coloured by the sport that took the longest");
+        expect(REFERENCE_MARKDOWN).toContain("`layout: calendar` with `range: month` draws a month calendar of a habit");
         const description = SKILL_MARKDOWN.split("\n---\n")[0] ?? "";
         for (const phrase of ["tiles", "number cards", "progress bars", "countdowns", "day row", "heatmap", "month habit calendar", "chart"]) {
             expect(description, phrase).toContain(phrase);
@@ -117,7 +127,9 @@ describe("the generated skill corrects what agents got wrong", () => {
             // A season between two dates.
             "`period: { from: 2026-06-01, to: 2026-08-31 }` for a season",
         ]) {
-            expect(SKILL_MARKDOWN, recipe).toContain(recipe);
+            // The recipes sit in the block notes, so since B-164 they reach
+            // Claude Code through reference.md, next to SKILL.md.
+            expect(REFERENCE_MARKDOWN, recipe).toContain(recipe);
             expect(AGENTS_SECTION, recipe).toContain(recipe);
         }
         const description = SKILL_MARKDOWN.split("\n---\n")[0] ?? "";
@@ -128,18 +140,18 @@ describe("the generated skill corrects what agents got wrong", () => {
         const chart = schema.blocks.chart as { root: Record<string, { required?: boolean }>; hints: Record<string, string> };
         // `field` is optional at the root: `series` or `agg: count` replace it.
         expect(chart.root.field.required).toBeUndefined();
-        expect(SKILL_MARKDOWN).toContain("A list in the block's own `field` is an error rather than a guess");
-        expect(SKILL_MARKDOWN).toContain("A bucket with no data is a gap in the line and no bar, never a zero");
-        expect(SKILL_MARKDOWN).toContain("`avg` is over values, not days");
-        expect(SKILL_MARKDOWN).toContain("`sum` of a checkbox counts the ticked days");
-        expect(SKILL_MARKDOWN).toContain("a second y axis");
+        expect(REFERENCE_MARKDOWN).toContain("A list in the block's own `field` is an error rather than a guess");
+        expect(REFERENCE_MARKDOWN).toContain("A bucket with no data is a gap in the line and no bar, never a zero");
+        expect(REFERENCE_MARKDOWN).toContain("`avg` is over values, not days");
+        expect(REFERENCE_MARKDOWN).toContain("`sum` of a checkbox counts the ticked days");
+        expect(REFERENCE_MARKDOWN).toContain("a second y axis");
         // The neighbours' keys are printed with what they are called here.
         for (const [from, to] of Object.entries(chart.hints)) {
-            expect(SKILL_MARKDOWN).toContain(`- \`${from}\` is \`${to}\` here`);
+            expect(REFERENCE_MARKDOWN).toContain(`- \`${from}\` is \`${to}\` here`);
         }
         // Charts are no longer on the "does not do" list; pie charts are.
-        expect(SKILL_MARKDOWN).not.toContain("Dashy does not draw charts");
-        expect(SKILL_MARKDOWN).toContain("- **pie** —");
+        expect(REFERENCE_MARKDOWN).not.toContain("Dashy does not draw charts");
+        expect(REFERENCE_MARKDOWN).toContain("- **pie** —");
     });
 
     it("AGENTS.md carries every one of these facts too, not only SKILL.md", () => {
@@ -155,5 +167,63 @@ describe("the generated skill corrects what agents got wrong", () => {
         ]) {
             expect(AGENTS_SECTION, phrase).toContain(phrase);
         }
+    });
+});
+
+/**
+ * B-164 splits the Claude skill in two: SKILL.md holds the process an agent
+ * reads on every request, reference.md the key tables it reads per block.
+ * AGENTS.md and "Copy markdown" stay one text holding both.
+ */
+describe("the skill is a process file and a reference file (B-164)", () => {
+    const reference = REFERENCE_MARKDOWN.slice(REFERENCE_MARKDOWN.indexOf("# Dashy block reference"));
+
+    it("both files sit in one folder, the one the plugin installs", () => {
+        expect(SKILL_PATH).toBe(`${SKILL_DIR}/SKILL.md`);
+        expect(REFERENCE_PATH).toBe(`${SKILL_DIR}/reference.md`);
+    });
+
+    it("SKILL.md links reference.md and tells the agent to read the block's section first", () => {
+        expect(SKILL_MARKDOWN).toContain(
+            "Key tables for every block are in [reference.md](reference.md); "
+            + "read the section of the block you are about to write before writing it.",
+        );
+    });
+
+    it("SKILL.md holds the process, not the tables; reference.md the tables, not the process", () => {
+        for (const step of ["## 1. Look before writing", "## 2. Pick the block", "## 3. Write",
+            "## 4. Recipes", "## 5. Check before handing over", "## 6. When Dashy cannot do it"]) {
+            expect(SKILL_MARKDOWN, step).toContain(step);
+            expect(REFERENCE_MARKDOWN, step).not.toContain(step);
+        }
+        expect(SKILL_MARKDOWN).not.toContain("| key | type | required |");
+        expect(REFERENCE_MARKDOWN).toContain("| key | type | required |");
+        expect(REFERENCE_MARKDOWN).toContain("## What the plugin does NOT do");
+        expect(REFERENCE_MARKDOWN).toContain("## General rules");
+        // The process sends the agent to that list rather than repeating it.
+        expect(SKILL_MARKDOWN).toContain('"What the plugin does NOT do" in\nreference.md');
+    });
+
+    it("both files carry the same version; only SKILL.md has frontmatter", () => {
+        expect(SKILL_MARKDOWN.startsWith(`---\nname: dashy\n`)).toBe(true);
+        expect(SKILL_MARKDOWN).toContain(`\nversion: ${SKILL_VERSION}\n---\n`);
+        expect(REFERENCE_MARKDOWN.startsWith("---")).toBe(false);
+        expect(REFERENCE_MARKDOWN).toContain(`version ${SKILL_VERSION}.`);
+    });
+
+    it("AGENTS.md is one section holding the process and the whole reference", () => {
+        expect(AGENTS_SECTION).toContain(COMBINED_MARKDOWN);
+        expect(AGENTS_SECTION).toContain(`version ${SKILL_VERSION}.`);
+        expect(COMBINED_MARKDOWN).toContain("## 1. Look before writing");
+        expect(COMBINED_MARKDOWN).toContain(reference);
+        // The process comes first, then the tables it points to.
+        expect(COMBINED_MARKDOWN.indexOf("## 5. Check before handing over"))
+            .toBeLessThan(COMBINED_MARKDOWN.indexOf("# Dashy block reference"));
+    });
+
+    it("the one-file text points below, never to a reference.md that is not there", () => {
+        expect(COMBINED_MARKDOWN).not.toContain("reference.md");
+        expect(COMBINED_MARKDOWN).toContain("Key tables for every block are in the block reference below");
+        expect(COMBINED_MARKDOWN.startsWith("---")).toBe(false);
     });
 });

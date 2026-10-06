@@ -10,6 +10,21 @@ removed public export.
 
 ## [Unreleased]
 
+### Changed
+
+- **The agent skill is a way of working, not only a list of keys.** The
+  skill now tells an agent to look before writing (the vault's property
+  types, the Daily notes, Periodic Notes and Dashy settings, the frontmatter
+  of a few recent notes, how a note's date is known), which block answers
+  which request, how to write one, recipes for what the site guides build,
+  and how to check its work without seeing the note: then ask you to open it
+  in Reading view and paste any error a block shows. The Claude Code skill is now two files
+  in `.claude/skills/dashy/`: `SKILL.md` with these steps and `reference.md`
+  next to it with the key tables, which the agent reads for the block it is
+  writing. **Install** or **Update** in the settings writes both; an older
+  install updates in place. The `AGENTS.md` section and **Copy markdown**
+  stay one text holding both parts.
+
 ## [1.8.0] - 2026-10-06
 
 ### Fixed

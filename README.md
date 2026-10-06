@@ -119,9 +119,10 @@ One problem per page, with the notes, the block, and the Bases, Tracker or datav
 
 ## Your AI agent can write these blocks
 
-Two buttons in Dashy's settings write a reference of every block and key: a Claude Code skill,
-or an `AGENTS.md` section for Cursor, Codex and the rest. Both are generated from the schema the
-plugin validates against. Then ask for "weekly distance as bars with a 40 km goal and my current
+Two buttons in Dashy's settings write a skill for your agent: a Claude Code skill, or an
+`AGENTS.md` section for Cursor, Codex and the rest. It tells the agent to read your properties
+and folders before writing, which block fits the request, and how to check its work, with a
+reference of every block and key generated from the schema the plugin validates against. Then ask for "weekly distance as bars with a 40 km goal and my current
 streak". [More on the site](https://dimagious.github.io/dashsidian/#agents).
 
 ## What it leaves out

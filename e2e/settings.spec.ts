@@ -99,10 +99,18 @@ test.describe("settings tab", () => {
             const a = (globalThis as unknown as {
                 app?: { vault?: { adapter?: { read?: (p: string) => Promise<string> } } };
             }).app;
-            return a?.vault?.adapter?.read?.(".claude/skills/dashy/SKILL.md") ?? null;
+            const adapter = a?.vault?.adapter;
+            if (!adapter?.read) return null;
+            return {
+                skill: await adapter.read(".claude/skills/dashy/SKILL.md"),
+                reference: await adapter.read(".claude/skills/dashy/reference.md"),
+            };
         });
-        expect(written).toContain("# Dashy — dashboard blocks");
-        expect(written).toContain("### `countdown`");
+        // The process in SKILL.md, the key tables in reference.md next to it (B-164).
+        expect(written?.skill).toContain("## 1. Look before writing");
+        expect(written?.skill).toContain("[reference.md](reference.md)");
+        expect(written?.reference).toContain("# Dashy block reference");
+        expect(written?.reference).toContain("### `countdown`");
     });
 
     test("the About rows are there, with somewhere to send feedback", async ({ app, win }) => {

@@ -73,7 +73,9 @@ Step-by-step pages, one problem each, with YAML to copy:
   https://raw.githubusercontent.com/Dimagious/dashsidian/master/README.md
 - Changelog:
   https://raw.githubusercontent.com/Dimagious/dashsidian/master/CHANGELOG.md
-- Agent skill reference, generated from the block schema:
+- Agent skill: how an agent writes Dashy blocks (look, pick, write, check):
   https://raw.githubusercontent.com/Dimagious/dashsidian/master/docs/SKILL.preview.md
+- Agent skill reference of every block key, generated from the block schema:
+  https://raw.githubusercontent.com/Dimagious/dashsidian/master/docs/reference.preview.md
 - JSON schema of every block key:
   https://raw.githubusercontent.com/Dimagious/dashsidian/master/docs/dashy.schema.json
