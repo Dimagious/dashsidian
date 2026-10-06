@@ -359,6 +359,9 @@ function drawChart(el: HTMLElement, spec: ChartSpec, buckets: readonly Bucket[],
     const values = buckets.map((b) => b.values);
     const lastPartial = buckets[buckets.length - 1]?.partial ?? false;
     const labelChars = tickLabels.reduce((n, s) => Math.max(n, s.length), 0);
+    // Every label as it reads with nothing before it, so with its year
+    // whenever the window crosses one: the longest a label can get.
+    const xLabelChars = buckets.reduce((n, _, i) => Math.max(n, xLabel(buckets, i, undefined, spec).length), 0);
     let painted = "";
 
     // Aggregation happened once, above; a resize only lays out and rewrites
@@ -370,11 +373,11 @@ function drawChart(el: HTMLElement, spec: ChartSpec, buckets: readonly Bucket[],
         if (size === painted) return;
         painted = size;
 
-        const input = { values, lastPartial, type: spec.type, ticks, width, height, labelChars };
+        const input = { values, lastPartial, type: spec.type, ticks, width, height, labelChars, xLabelChars };
         const layout = chartLayout(spec.goal ? { ...input, goal: spec.goal.value } : input);
         graphic.setAttribute("viewBox", `0 0 ${width} ${height}`);
         while (graphic.firstChild) graphic.removeChild(graphic.firstChild);
-        paintSvg(graphic, layout, width, spec, buckets, tickLabels, goalText);
+        paintSvg(graphic, layout, width, spec, buckets, tickLabels);
         for (const { hit, b } of hits) {
             const column = layout.columns[b];
             if (!column) continue;
@@ -407,7 +410,6 @@ function paintSvg(
     spec: ChartSpec,
     buckets: readonly Bucket[],
     tickLabels: readonly string[],
-    goalText: string | undefined,
 ): void {
     const { plot } = layout;
     const right = plot.left + plot.width;
@@ -443,12 +445,10 @@ function paintSvg(
         });
     }
 
+    // The goal's value is named once, in the legend under its dashed
+    // swatch: a label at the end of the line sat on the last bar (B-175).
     if (layout.goalY !== undefined) {
         svg(graphic, "line", { class: "dashy-chart-goal", x1: plot.left, x2: right, y1: layout.goalY, y2: layout.goalY });
-        if (goalText) {
-            svg(graphic, "text", { class: "dashy-chart-goal-label", x: right, y: Math.round((layout.goalY - 4) * 100) / 100, "text-anchor": "end" })
-                .textContent = goalText;
-        }
     }
 
     let previous: number | undefined;

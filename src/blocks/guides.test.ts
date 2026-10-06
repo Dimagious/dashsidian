@@ -290,7 +290,8 @@ describe("guide: books-per-year", () => {
             "2025: Books 4 (4 notes)",
             "2026: Books 5 (5 notes), so far",
         ]);
-        expect(texts(el, "text.dashy-chart-goal-label")).toEqual(["goal 24"]);
+        expect(nodes(el, "line.dashy-chart-goal")).toHaveLength(1);
+        expect(texts(el, ".dashy-chart-leg")).toEqual(["goal 24"]);
     });
 
     it("without range: the last ten years and this one", () => {

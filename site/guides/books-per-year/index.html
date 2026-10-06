@@ -129,7 +129,7 @@ goal: 24
           <li><code>agg: count</code><span>Counts the books dated in each year. No <code>field</code> is needed.</span></li>
           <li><code>bucket: year</code><span>One bar per calendar year, labelled with the year alone.</span></li>
           <li><code>range: 1825d</code><span>Five years back from today. The window starts on 1 January of the year it reaches, so in 2026 the bars run from 2021 to 2026. Leave it out for the last ten years and this one.</span></li>
-          <li><code>goal: 24</code><span>A dashed line at 24 books, with its value.</span></li>
+          <li><code>goal: 24</code><span>A dashed line at 24 books, its value named in the legend.</span></li>
         </ul>
         <p>This year's bar is drawn lighter and its tooltip says "so far": the year is not over. A year with no books is a 0, since counting nothing is still a count. Hover a bar for the number.</p>
 

@@ -321,6 +321,15 @@ range: LAST_WEEK`,
     },
     {
         block: "chart",
+        title: "chart — неделя столбцами по дням, цель: подпись у каждого дня, цель только в легенде (B-175)",
+        source: `source: Diary
+field: steps
+type: bar
+range: LAST_WEEK
+goal: 10000`,
+    },
+    {
+        block: "chart",
         title: "chart — пустое окно, не ошибка",
         source: `source: Diary
 field: sleep_score
