@@ -69,6 +69,10 @@ export const en = {
     "tiles.imageMissing": "{card}: image \"{path}\" was not found.",
     "tiles.imageUnsupported":
         "{card}: `image` expects a vault path, a `[[wikilink]]`, or an `https://` URL, got \"{value}\".",
+    "tiles.pathNumber":
+        "{card}: `path` must be a note or folder name in text, got `{value}`, so it was ignored: the tile links nowhere and a `badge: count` on it is not drawn. Put the name in quotes, as written: `path: \"2024\"`.",
+    "tiles.pathNotText":
+        "{card}: `path` must be one note or folder name in text, got `{value}`, so it was ignored: the tile links nowhere and a `badge: count` on it is not drawn. Name one note or folder, like `path: Journal`.",
 
     "stats.empty": "No cards to draw. Expected `items:` or a list.",
     "stats.unlabeledCard": "a card with no label",

@@ -1,5 +1,5 @@
 import type { BlockContext } from "./context";
-import { selectNotes, readSelector, readSource, unmatchedSource } from "../core/source";
+import { selectNotes, isNotText, readSelector, readSource, unmatchedSource } from "../core/source";
 import { readDateField, readDateFormat, unmatchedDateFormat } from "../core/note-date";
 import { readPeriod, filterByPeriod, dateFieldHasEffect, futureStart } from "../core/period";
 import { classifyImage } from "../core/image";
@@ -7,7 +7,7 @@ import { tileTarget, type TileTarget } from "../core/folder-tile";
 import { firstDayOfWeek } from "../adapters/datetime";
 import { noteDateFormats, periodContext } from "../adapters/periodic";
 import { resolveImage, pathKind, revealFolder } from "../adapters/vault";
-import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
+import { parseConfig, asItems, isRecord, unknownKeys, describeValue, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, renderNotices, internalLink } from "../shared/render";
 import { notStartedNotice } from "./window";
 import { t } from "../i18n";
@@ -80,9 +80,18 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
         // A `path` of only spaces is no path: kept, it linked to "  " and a
         // count badge on it counted the whole vault (B-160).
         const path = readSelector(item.path) ?? "";
+        const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
+        // A `path` that YAML read as a number, a list, a map or a boolean was
+        // dropped without a word, and a count badge on it counted the whole
+        // vault (B-178). It is an error now, and the tile has no link and no
+        // count: a number of every note would look right and be wrong.
+        const pathNotText = isNotText(item.path);
+        if (pathNotText) {
+            const key = typeof item.path === "number" ? "tiles.pathNumber" : "tiles.pathNotText";
+            diags.push({ level: "error", message: t(key, { card: cardLabel, value: describeValue(item.path) }) });
+        }
         if (!label && !path) continue;
 
-        const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
         const isCountBadge = item.badge === "count" || item.badge === true;
         const hasSelectionKeys =
             item.tag !== undefined || item.where !== undefined ||
@@ -114,7 +123,7 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
             }
         }
 
-        if (isCountBadge) {
+        if (isCountBadge && !pathNotText) {
             const missing = unmatchedSource(notes, { source: path });
             if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
 
@@ -168,7 +177,7 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
                 const count = counted.length;
                 tile.badge = { text: String(count), empty: count === 0 };
             }
-        } else {
+        } else if (!isCountBadge) {
             // `tag`, `where`, `period`, `date_field` and `date_format` only mean something
             // next to `badge: count`; a custom badge never counts anything.
             if (hasSelectionKeys) {
