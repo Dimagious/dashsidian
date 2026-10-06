@@ -86,6 +86,26 @@ describe("the generated skill corrects what agents got wrong", () => {
         }
     });
 
+    it("no stats or progress example repeats the root's source on a card (B-131)", () => {
+        for (const name of ["stats", "progress"] as const) {
+            const example = (schema.blocks[name] as { example: string }).example;
+            const rootSource = /^source: (.+)$/m.exec(example)?.[1];
+            expect(rootSource, `${name} example sets its folder at the root`).toBeDefined();
+            for (const line of example.split("\n").filter((l) => l.trimStart().startsWith("- "))) {
+                expect(line, `${name} example: ${line}`).not.toContain(`source: ${rootSource}`);
+            }
+        }
+    });
+
+    it("names the 1.7.0 heatmap recipes and every block in the description (B-159)", () => {
+        expect(SKILL_MARKDOWN).toContain("Minutes per sport, coloured by the sport that took the longest");
+        expect(SKILL_MARKDOWN).toContain("`layout: calendar` with `range: month` draws a month calendar of a habit");
+        const description = SKILL_MARKDOWN.split("\n---\n")[0] ?? "";
+        for (const phrase of ["tiles", "number cards", "progress bars", "countdowns", "day row", "heatmap", "month habit calendar", "chart"]) {
+            expect(description, phrase).toContain(phrase);
+        }
+    });
+
     it("chart: the facts ADR 0005 says an agent gets wrong", () => {
         const chart = schema.blocks.chart as { root: Record<string, { required?: boolean }>; hints: Record<string, string> };
         // `field` is optional at the root: `series` or `agg: count` replace it.

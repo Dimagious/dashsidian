@@ -1,11 +1,14 @@
 ---
 name: tech-writer
-description: Keep snipsidian's user-facing documentation in sync with shipped releases. Triggered when the user says "обнови доки", "документация устарела", "опиши в доках", "update docs", "document this", or right after a release when README / wiki / privacy disclosures may have drifted from what actually shipped (new settings-UI affordances, changed default snippets, new placeholders, changed network behavior, changed submission flow).
+description: Keep Dashy's (dashsidian) user-facing documentation in sync with what ships. Triggered when the user says "обнови доки", "документация устарела", "опиши в доках", "update docs", "document this", or after a release when the README, the site (guides, block reference, llms.txt) or the manifest description may have drifted from what the plugin actually does (new block keys, changed defaults, changed Insert block examples, changed settings).
 ---
 
-# Tech Writer for snipsidian
+# Tech Writer for Dashy
 
-Keep `README.md`, `docs/wiki/`, and the `manifest.json` description in sync with what's actually shipped. Stale docs are worse than no docs: this plugin's docs make **privacy and behavior claims** (what expands when, what touches the network, what reads the clipboard) that users rely on when deciding to install.
+Keep `README.md`, the site in `site/` and the `manifest.json` description in
+sync with what the plugin does. Stale docs are worse than none: a guide that
+promises a key the plugin does not have sends someone to install Dashy and
+watch a block print a warning.
 
 ## Mental model
 
@@ -14,117 +17,127 @@ Two confirmation gates:
 1. After detecting affected docs → **wait for OK** on the proposed mapping (which docs to touch, what changes to capture).
 2. After drafting → **wait for OK** before committing.
 
+Docs travel with the change: a feature PR carries its schema `doc` strings, the
+regenerated skill and block reference, a README line when a user now does
+something differently, its `CHANGELOG.md` entry under `[Unreleased]`, and the
+guide it changes. This skill is the pass that catches what slipped: after a
+release, or when the author says the docs look stale.
+
 Skip docs work for:
-- Pure bugfixes with no behavior-contract change (CHANGELOG already covers them — that's the release-bump flow's job, not this skill's)
+- Pure bugfixes with no behaviour-contract change (the CHANGELOG entry covers them)
 - Refactors, test-only changes, CI/tooling changes
-- Unreleased work — **never document what isn't in a tagged release**; the Obsidian plugin index points users at `main`'s README while they run the last release
-- CHANGELOG entries — those accumulate in `[Unreleased]` as work lands (release-bump skill owns promotion)
-- `.claude/brain/` upkeep (sessions/backlog/ADRs) — that's the brain conventions in `.claude/brain/README.md`, not this skill; this skill may *reference* ADRs but doesn't write them
+- `.claude/brain/` upkeep (sessions/backlog/ADRs): that's the brain conventions in `.claude/brain/README.md`, not this skill
 
 ## Doc map
 
 ```
-README.md ........................ GitHub-facing + what the Obsidian plugin index links to.
-                                   Load-bearing sections: "Try these out of the box"
-                                   (MUST mirror src/presets.ts DEFAULT_SNIPPETS),
-                                   "How expansion works", "Packages", "Privacy",
-                                   "Project status", "Development"
-docs/wiki/ ....................... GitHub Wiki source (Home, Getting-Started, FAQ,
-                                   Troubleshooting, Package-Creation, API-Reference,
-                                   Google-Form-Package-Submission). ⚠ Written in the
-                                   1.0.0 era, large parts aspirational/stale — verify
-                                   any claim against current code before propagating it.
-                                   ⚠ Publishing to the actual GitHub Wiki is a separate
-                                   manual step — editing these files does NOT update the
-                                   wiki; flag it in the summary when these change.
-docs/screens/ .................... Screenshots / demo video assets referenced by README.
-                                   Flag (don't silently keep) screenshots that show a UI
-                                   the release visibly changed.
-manifest.json "description" ...... The one-liner in Obsidian's plugin browser. Must not
-                                   start with the plugin name (scorecard rule). Changing
-                                   it is a release-worthy change, not a docs commit.
-CHANGELOG.md ..................... Owned by the release flow. Read it as the source of
-                                   "what shipped"; don't edit it from this skill.
-CLAUDE.md / .claude/brain/ ....... Assistant layer, git-excluded. Update pointers if the
-                                   docs layout itself changes; content upkeep is out of
-                                   scope here.
+README.md ........................ Short landing page, also what Obsidian's plugin
+                                   browser shows: links and images are absolute URLs
+                                   only. One complete example, links into the site.
+                                   Checked by `npm run readme:check`.
+site/index.html .................. Showcase page with block examples, hand-written.
+site/guides/<slug>/ .............. One search-shaped problem per page, YAML to copy,
+                                   screenshots from docs/screens/. Hand-written.
+site/reference/ .................. GENERATED by `npm run build:reference` from
+                                   src/blocks/schema.json. Never edit by hand: fix
+                                   the schema `doc`/`notes`/`example` instead.
+site/llms.txt, sitemap.xml ....... Hand-written index for agents and crawlers: a new
+                                   guide gets a line in both. `npm run site:check`.
+docs/SKILL.preview.md, ........... GENERATED by `npm run build:skill`, together with
+docs/AGENTS.preview.md,            src/skill/. The hand-written parts (skill
+docs/dashy.schema.json             description, general rules) live in
+                                   scripts/build-skill.cjs.
+docs/screens/ .................... Screenshots used by README and the site
+                                   (`npm run capture`). Flag screenshots that show a
+                                   block the release visibly changed.
+docs/SPEC.md ..................... The original spec. History, not a promise: do
+                                   not copy claims from it without checking the code.
+manifest.json "description" ...... The one-liner in Obsidian's plugin browser. Must
+                                   not start with the plugin name (scorecard rule).
+                                   Changed with the PR that adds or reshapes a
+                                   block, never in a docs-only commit.
+CHANGELOG.md ..................... Written per change under [Unreleased]; release-bump
+                                   promotes it. Read it as the source of "what shipped".
 ```
 
-## Decision tree — what goes where
+## Decision tree: what goes where
 
 | Shipped change | Doc(s) to touch |
 |---|---|
-| Default snippets changed (triggers, replacements, grouping) | README "Try these out of the box" — table mirrors `src/presets.ts`; wiki Getting-Started / Troubleshooting if they mention defaults |
-| New settings-UI affordance (button, tab, flow) | README section that covers that surface; wiki Getting-Started + FAQ; screenshot check in `docs/screens/` |
-| Expansion-contract change (delimiters, placeholders, tabstops, collision rules) | README "How expansion works"; wiki FAQ + Troubleshooting |
-| Network behavior change (new host, new request, caching) | README "Privacy" — the network claims there must stay literally true (`api.github.com` listing + `raw.githubusercontent.com` pack downloads) |
-| Privacy-relevant behavior (clipboard access, file access) | README "Privacy"; this is where audit items flagged "document, don't gate" land (e.g. S-012 `$clipboard`) |
-| Package / submission flow change | README "Packages"; wiki Package-Creation + the submission page |
-| Import path change (Espanso, JSON) | README "Packages"; wiki FAQ |
-| Dev workflow / scripts change | README "Development"; CLAUDE.md tooling table |
-| Version/status milestone | README "Project status" |
+| New block key or new value | schema `doc` (+ `notes`/`example` if an agent needs a recipe), then `build:skill` and `build:reference`; README if it changes the one example; the guide that covers that problem |
+| Changed default or behaviour of a key | schema `doc`/`notes`; every guide and `site/index.html` example that relies on the old behaviour |
+| Insert block example changed | it comes from the schema `example`; check README and guides that show the same block |
+| New guide | `site/guides/<slug>/`, `site/guides/index.html`, `site/llms.txt`, `site/sitemap.xml` |
+| Settings tab change | README section that mentions settings; quote labels from `src/i18n/en.ts` |
+| A new block | README, `site/index.html`, `site/llms.txt` (block count and list), manifest description in the same PR |
+| Network or privacy behaviour | The plugin makes no network calls today. A new one is a disclosure change for the store listing and the README: stop and ask |
 
-If a change touches several axes, it gets multiple updates — normal.
+If a change touches several axes, it gets several updates: normal.
 
-### Behavior claims need a code anchor
+### Behaviour claims need a code anchor
 
-Every factual claim added to README/wiki must name (in the PR/commit body, not the prose) the code it mirrors — e.g. "defaults table ← `src/presets.ts` DEFAULT_SNIPPETS", "restore button ← `BasicTab.restoreDefaults`". If you can't point at the code, the claim doesn't go in. This is how the wiki got stale: 1.0.0-era pages documented buttons that didn't exist (Troubleshooting's "Add missing defaults" predated the real Restore button by two minor versions).
+Every factual claim added to README or the site must name (in the PR/commit
+body, not the prose) the code it mirrors, for example "root `source` inherited
+by cards ← `core/inherit.ts`". If you cannot point at the code, the claim does
+not go in. Every YAML block in a guide must render without a warning: paste it
+into the preview stand (`src/preview/cases.ts`) or a vault.
 
 ## Style rules
 
-- **UI copy is quoted exactly as rendered** — sentence case, the real labels ("Restore default snippets", "Import from Espanso YAML"), Settings paths as **Settings → Snipsy → <tab>**.
-- **Triggers/keys in backticks**, replacements shown literally; the defaults table format in README is the convention to follow.
-- **No em-dashes (—) in user-facing prose** (user preference, same rule as issue comments); plain hyphens, colons, or rewrites. Existing em-dashes in untouched paragraphs stay — don't bulk-restyle.
-- **No AI-slop phrasing** — write like the existing README voice: direct, specific, numbers over narrative.
-- **Keep diffs small** — edit the affected section only.
-- **English everywhere** in README/wiki (the plugin's audience); Russian only in conversation with the user.
+- **UI copy is quoted exactly as rendered**, from `src/i18n/en.ts`: **Insert block**, **Settings → Dashy**, "New day starts at".
+- **Keys and values in backticks**, YAML in fenced blocks with the block name as the language (`stats`, `heatmap`, `dashy-chart`).
+- **No em or en dashes** in anything a person reads (`readme:check` and `site:check` enforce it). Plain hyphens, colons, or rewrites.
+- **No AI-slop phrasing**: run `/stop-slop` on new prose. Direct, specific, numbers over narrative.
+- **Keep diffs small**: edit the affected section only.
+- **English everywhere** in README and the site; Russian only in conversation with the user.
 
 ## Workflow
 
-### Step 1 — Detect what changed
+### Step 1: Detect what changed
 
 ```bash
-# Boundary: last substantive docs touch
-git log --oneline -5 -- README.md docs/wiki/
-
-# What shipped since (releases are the unit of "shipped")
 git tag --list '[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -3
-git log --oneline {last_docs_sha}..HEAD --grep="^feat\|^fix" --oneline
-
-# The authoritative "what shipped" summary
-awk '/^## \[{latest_version}\]/,/^## \[{previous_version}\]/' CHANGELOG.md
+git log --oneline {last_tag}..HEAD --grep="^feat\|^fix"
+awk '/^## \[Unreleased\]/,/^## \[[0-9]/' CHANGELOG.md
+git log --oneline -5 -- README.md site/
 ```
 
-Filter to **released** `feat:` and behavior-changing `fix:` only.
+Filter to `feat:` and behaviour-changing `fix:`.
 
-### Step 2 — Map changes to docs
+### Step 2: Map changes to docs
 
 Build a table:
 
-| Shipped change (release) | Affected doc(s) | One-line summary |
+| Change (version) | Affected doc(s) | One-line summary |
 |---|---|---|
-| `feat: defaults as group + restore (1.2.0)` | README out-of-the-box, wiki Troubleshooting | defaults are a deletable group; Restore button exists now |
+| `feat(stats): set the selection once for the whole block (1.6.0)` | README example, guides with `stats` | `source` can sit at the root next to `items:` |
 
 Show this to the user. **WAIT FOR OK** before writing.
 
-### Step 3 — Write
+### Step 3: Write
 
-Per doc: `Read` the file, `Edit` only the affected section. Verify every claim against the code (open the source, don't trust memory). After all edits: `git diff --stat README.md docs/`.
+Per doc: read the file, edit only the affected section. Verify every claim
+against the code (open the source, don't trust memory). Then:
 
-### Step 4 — Commit
+```bash
+npm run build:skill && npm run build:reference
+npm run readme:check && npm run site:check
+git diff --stat README.md site/ docs/
+```
 
-Tracked docs go through the normal PR flow (`main` is the release branch). Single commit `docs: {short-title}`, or split per surface (`docs(readme): …` / `docs(wiki): …`) if review is easier.
+### Step 4: Commit
 
-**Never add AI co-author trailers or AI mentions** to commits/PRs (global rule 11 — this repo's commits are authored by the developer only).
+On a branch named after the backlog item (`docs/b-nnn-<slug>`), through a PR
+to `master`, as CLAUDE.md describes. One commit `docs(<scope>): …` (`readme`,
+`site`, `skill`), or one per surface if review is easier.
 
-If `docs/wiki/` changed, remind the user in the summary: the GitHub Wiki itself needs the manual sync step.
+**Never add AI co-author trailers or AI mentions** to commits or PRs (global
+rule 11: commits are authored by the developer only).
 
 ## What NOT to do
 
-- ❌ Document unreleased work — tagged releases only
-- ❌ Edit CHANGELOG.md from this skill (release-bump owns it)
-- ❌ Trust an existing wiki claim while editing near it — verify or flag, half the wiki predates 1.1.0
+- ❌ Hand-edit `site/reference/`, `docs/*.preview.md`, `docs/dashy.schema.json` or `src/skill/`: change the schema or `scripts/build-skill.cjs` and rebuild
+- ❌ Relative links or images in README: Obsidian's plugin browser cannot resolve them
+- ❌ Change `manifest.json` description in a docs-only commit
 - ❌ Bulk-restyle prose or reformat tables you aren't changing
-- ❌ Change `manifest.json` description outside a release
-- ❌ Let the README defaults table drift from `src/presets.ts` — if they disagree, the code wins and the table gets fixed in the same pass
 - ❌ Add Co-Authored-By / AI mentions to docs commits or PRs

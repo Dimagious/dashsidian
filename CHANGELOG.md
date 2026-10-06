@@ -54,6 +54,12 @@ removed public export.
   `range`, or none, `layout: calendar` warns and the grid is drawn, and so
   does an unknown `layout` value.
 
+### Changed
+
+- **The `progress` example (Insert block, the agent skill and the block
+  reference) sets its folder once, at the block root,** as the `stats`
+  example does, instead of repeating it on every bar.
+
 ## [1.6.0] - 2026-10-05
 
 ### Added
