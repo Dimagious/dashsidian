@@ -445,14 +445,6 @@ a.dashy-hm-cal-day:hover { outline: 1px solid var(--text-normal); outline-offset
 .dashy-chart-axis { stroke: var(--dashy-chart-grid); stroke-width: 1; }
 .dashy-chart-label { fill: var(--dashy-chart-text); font-size: 11px; }
 .dashy-chart-goal { stroke: var(--dashy-chart-goal); stroke-width: 1.5; stroke-dasharray: 5 4; }
-.dashy-chart-goal-label {
-  fill: var(--dashy-chart-goal);
-  font-size: 11px;
-  paint-order: stroke;
-  stroke: var(--dashy-chart-halo);
-  stroke-width: 3px;
-  stroke-linejoin: round;
-}
 .dashy-chart-line { stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .dashy-chart-bar.is-partial { fill-opacity: var(--dashy-chart-partial); }
 /* A hollow point for the still-running bucket: the page's own background
