@@ -23,6 +23,7 @@ import {
     dateFieldHasEffect,
     futureStart,
     windowLastDay,
+    windowIsOver,
     type DeltaTone,
 } from "../core/period";
 import { readStatsLayout, inlineLayoutDiagnostics } from "../core/stats-layout";
@@ -177,7 +178,8 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         // An inherited `period` that does not read was reported once at the root.
         if (!inherited.has("period")) diags.push(...periodDiags);
         // B-129: a window ahead of today draws a dash and says when it starts;
-        // a closed one counts `current_streak` and `trend` up to its last day.
+        // a closed one counts `current_streak` and `trend` up to its last day,
+        // and that day, being over, gets no grace from `current_streak` (B-173).
         const startsOn = periodSpec ? futureStart(periodSpec.period, today) : null;
         const future = startsOn !== null;
         if (startsOn !== null) {
@@ -241,6 +243,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
                 days: spec.days,
                 skipField: spec.skipField,
                 today: lastDay,
+                graceToday: !windowIsOver(periodSpec?.period, today),
             })
             : null;
 

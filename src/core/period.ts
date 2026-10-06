@@ -268,6 +268,16 @@ export function windowLastDay(period: Period | undefined, today: Date): Date {
 }
 
 /**
+ * True when a window ended before today, so its last day is over too. Such a
+ * day gets no grace from `current_streak` (B-173): unfilled, it breaks the
+ * run. A window still running, one that moves with today, or none at all is
+ * never over.
+ */
+export function windowIsOver(period: Period | undefined, today: Date): boolean {
+    return period !== undefined && windowTense(period, today) === "past";
+}
+
+/**
  * The first day of the week inside a window. A named week starts its week
  * where its own first day falls, which for a locale week (`gggg-[W]ww`) can
  * differ from the interface language's first day (ADR 0006). Every other

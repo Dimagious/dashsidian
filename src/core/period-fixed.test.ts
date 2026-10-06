@@ -7,6 +7,7 @@ import {
     windowTense,
     futureStart,
     windowLastDay,
+    windowIsOver,
     windowFirstDay,
     isWeekWindow,
     isMonthWindow,
@@ -177,6 +178,17 @@ describe("windowLastDay, windowFirstDay and the window's shape", () => {
         expect(dateKey(windowLastDay(week("2026-10-05", "2026-10-11"), TODAY))).toBe("2026-10-06");
         expect(windowLastDay({ kind: "year" }, TODAY)).toBe(TODAY);
         expect(windowLastDay(undefined, TODAY)).toBe(TODAY);
+    });
+
+    it("only a window that ended before today is over: its last day gets no `current_streak` grace (B-173)", () => {
+        expect(windowIsOver(week("2026-09-21", "2026-09-27"), TODAY)).toBe(true);
+        // One ending today, one still running, one ahead, one that moves with today, and none at all.
+        expect(windowIsOver(span("2026-09-30", "2026-10-06"), TODAY)).toBe(false);
+        expect(windowIsOver(week("2026-10-05", "2026-10-11"), TODAY)).toBe(false);
+        expect(windowIsOver(week("2026-10-12", "2026-10-18"), TODAY)).toBe(false);
+        expect(windowIsOver(span("2026-09-01"), TODAY)).toBe(false);
+        expect(windowIsOver({ kind: "week" }, TODAY)).toBe(false);
+        expect(windowIsOver(undefined, TODAY)).toBe(false);
     });
 
     it("a week window starts its week on its own first day; anything else keeps the locale's", () => {

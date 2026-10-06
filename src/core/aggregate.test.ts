@@ -849,6 +849,15 @@ describe("aggregate: current_streak (B-118)", () => {
         expect(current(ticked("2026-09-23", "2026-09-24"))).toBe(0);
     });
 
+    it("`graceToday: false` gives today no grace: unfilled it is 0, filled the whole run (B-173)", () => {
+        expect(current(ticked("2026-09-19", "2026-09-20", "2026-09-21"), { graceToday: false })).toBe(0);
+        expect(current(ticked("2026-09-20", "2026-09-21", "2026-09-22"), { graceToday: false })).toBe(3);
+        // A threshold day below `at_least` is unfilled too.
+        const steps = [day("2026-09-21", { steps: 7000 }), day("2026-09-22", { steps: 100 })];
+        expect(current(steps, { field: "steps", atLeast: 5000, graceToday: false })).toBe(0);
+        expect(current(steps, { field: "steps", atLeast: 5000, graceToday: true })).toBe(1);
+    });
+
     it("an unticked checkbox breaks the run like a missing day", () => {
         const notes = [day("2026-09-20", { v: true }), day("2026-09-21", { v: false })];
         expect(current(notes)).toBe(0);

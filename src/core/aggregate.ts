@@ -199,6 +199,13 @@ export interface AggregateSpec {
      */
     today?: Date;
     /**
+     * `agg: current_streak` only: whether an unfilled `today` is forgiven,
+     * the run then counted from the day before. Default true. A closed
+     * window passes its last day as `today` with this false (B-173): that
+     * day is over, so unfilled it breaks the run like any other.
+     */
+    graceToday?: boolean;
+    /**
      * `agg: streak`/`current_streak` only: an inclusive lower bound on a day's value, `field`'s
      * numbers summed for that day (two notes on the same day add up, same as
      * the heatmap's default `per_day: sum`). Requires `field`; ignored otherwise.
@@ -229,7 +236,8 @@ export interface AggregateSpec {
  * two or more notes landing on the same day count as that one day.
  * `current_streak` picks the same filled days and counts the run that
  * reaches `spec.today` instead, with today's grace (`core/calendar.ts`'s
- * `currentStreak`): an unfilled today counts the run from yesterday.
+ * `currentStreak`): an unfilled today counts the run from yesterday, unless
+ * `graceToday` is false.
  * The rest aggregate the numbers held in the field.
  *
  * With `atLeast`/`atMost` set (both need `field`), a day counts only when
@@ -292,7 +300,7 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
         const options = transparent ? { transparent } : {};
         if (spec.agg === "streak") return longestStreak(dates, options);
         if (!spec.today) throw new Error("aggregate: `current_streak` needs `today`");
-        return currentStreak(dates, dateKey(spec.today), options);
+        return currentStreak(dates, dateKey(spec.today), { ...options, graceToday: spec.graceToday });
     }
 
     if (!spec.field) return null;

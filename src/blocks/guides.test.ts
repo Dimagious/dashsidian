@@ -755,8 +755,8 @@ describe("guide: weekly-review-without-dataview", () => {
         // A locale week (Periodic Notes' default, Sunday first here) ends on Saturday: a missed Sunday is outside it.
         const sunday = REVIEW_DAYS.map((n) => n.path === "Diary/2026-10-04.md" ? { ...n, frontmatter: { ...n.frontmatter, meditate: false } } : n);
         expect(cards(render("stats", REVIEW_STATS, { notes: sunday, periodicNotes: { weekly: { enabled: true } } }, W40)).values[3]).toMatch(/^7\s/);
-        // The ISO week ends on that Sunday, which, like today in a running week, does not break the run.
-        expect(cards(render("stats", REVIEW_STATS, { notes: sunday }, W40)).values[3]).toMatch(/^6\s/);
+        // The ISO week ends on that Sunday. The week is over, so the missed day breaks the run (B-173).
+        expect(cards(render("stats", REVIEW_STATS, { notes: sunday }, W40)).values[3]).toMatch(/^0\s/);
     });
 
     it("step 2: the name is read the way Periodic Notes made it, else as ISO", () => {
