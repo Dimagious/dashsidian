@@ -3134,3 +3134,25 @@ describe("heatmap — layout: calendar, a month of days with dots (B-133)", () =
         expect(texts(el, ".dashy-hm-status")).toEqual([cell?.getAttribute("title")]);
     });
 });
+
+describe("heatmap: a source or tag that is not text is an error (B-160)", () => {
+    it("source: 2026 says to quote it", () => {
+        const el = map("source: 2026\nfield: sleep_score");
+        expect(diagnostics(el, "error")).toEqual([
+            '⛔ heatmap: `source` must be a folder name in text, got `2026`, so it was ignored and the whole vault is read. Put the folder name in quotes, as written: `source: "2024"`.',
+        ]);
+    });
+
+    it("a map as tag names the one-tag fix", () => {
+        const el = map("source: Diary\ntag: { a: 1 }\nfield: sleep_score");
+        expect(diagnostics(el, "error")).toEqual([
+            '⛔ heatmap: `tag` must be one tag name in text, got `{"a":1}`, so it was ignored and the tag filter is dropped. Name one tag, like `tag: book`.',
+        ]);
+    });
+
+    it("an empty source: is no error", () => {
+        const el = map("source:\nfield: sleep_score");
+        expect(diagnostics(el, "error")).toEqual([]);
+    });
+});
+

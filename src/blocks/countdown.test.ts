@@ -306,4 +306,27 @@ describe("countdown: a date read from a note (B-148)", () => {
         expect(diagnostics(el, "error")[0]).toContain("both `date:` and `field:`");
         expect(texts(el, ".dashy-countdown-value")).toEqual(["—"]);
     });
+
+    it("a source that is a number is an error saying to quote it (B-160)", () => {
+        const el = at("items:\n  - { label: Medical, field: valid_until, source: 2024 }", health);
+        expect(diagnostics(el, "error")).toEqual([
+            '⛔ countdown: `source` must be a folder name in text, got `2024`, so it was ignored and the whole vault is read. Put the folder name in quotes, as written: `source: "2024"`.',
+        ]);
+    });
+
+    it("quoted, a folder named 2024 is read without a word (B-160)", () => {
+        const el = at('items:\n  - { label: Medical, field: valid_until, source: "2024" }', [
+            { path: "2024/check.md", frontmatter: { valid_until: "2026-10-15" } },
+            ...health,
+        ]);
+        expect(diagnostics(el, "error")).toEqual([]);
+        expect(texts(el, ".dashy-countdown-value")).toEqual(["10"]);
+    });
+
+    it("a tag list is an error too (B-160)", () => {
+        const el = at("items:\n  - { label: Medical, field: valid_until, source: Health, tag: [a, b] }", health);
+        expect(diagnostics(el, "error")).toEqual([
+            '⛔ countdown: `tag` must be one tag name in text, got `["a","b"]`, so it was ignored and the tag filter is dropped. Name one tag, like `tag: book`.',
+        ]);
+    });
 });

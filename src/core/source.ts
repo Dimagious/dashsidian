@@ -1,5 +1,5 @@
 import { describeValue, type Diagnostic } from "../shared/parse";
-import { t } from "../i18n";
+import { t, type MessageKey } from "../i18n";
 import { readField } from "./field";
 
 /**
@@ -360,6 +360,7 @@ export function readSource(item: Record<string, unknown>): {
     if (source !== undefined) spec.source = source;
     const tag = readSelector(item.tag);
     if (tag !== undefined) spec.tag = tag;
+    diagnostics.push(...notTextDiagnostics(item));
 
     const where = readWhere(item.where);
     if (where.kind === "ok") {
@@ -369,4 +370,37 @@ export function readSource(item: Record<string, unknown>): {
     }
 
     return { spec, diagnostics };
+}
+
+/**
+ * `source` or `tag` written as something other than text.
+ *
+ * YAML reads `source: 2024` as a number and `source: [A, B]` as a list. Either
+ * one was dropped without a word, so the block read the whole vault and
+ * looked right doing it (B-160). The selection still drops it, but now says
+ * so, as an error: a number most likely names a folder or a tag that has to
+ * be quoted, so that is the fix offered for one.
+ *
+ * `null`, an empty `source:`, is not this: it is the blank case, warned about
+ * where a block root is read (B-154).
+ */
+export function isNotText(value: unknown): boolean {
+    return value !== undefined && value !== null && typeof value !== "string";
+}
+
+const NOT_TEXT: Record<"source" | "tag", { number: MessageKey; other: MessageKey }> = {
+    source: { number: "where.sourceNumber", other: "where.sourceNotText" },
+    tag: { number: "where.tagNumber", other: "where.tagNotText" },
+};
+
+function notTextDiagnostics(item: Record<string, unknown>): Diagnostic[] {
+    const out: Diagnostic[] = [];
+    for (const key of ["source", "tag"] as const) {
+        const value = item[key];
+        if (!isNotText(value)) continue;
+        const keys = NOT_TEXT[key];
+        const message = typeof value === "number" ? keys.number : keys.other;
+        out.push({ level: "error", message: t(message, { value: describeValue(value) }) });
+    }
+    return out;
 }

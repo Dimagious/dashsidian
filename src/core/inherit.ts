@@ -1,6 +1,6 @@
 import { describeValue, isRecord, type Diagnostic } from "../shared/parse";
 import { t, type MessageKey } from "../i18n";
-import { readSelector, readSource, readWhere, type SourceSpec } from "./source";
+import { isNotText, readSelector, readSource, readWhere, type SourceSpec } from "./source";
 import { parsePeriod } from "./period";
 import { readDateField } from "./note-date";
 
@@ -16,7 +16,8 @@ import { readDateField } from "./note-date";
 export interface BlockSelection {
     /**
      * The root's shared keys other than `where`, as written: a card's own
-     * value replaces them key by key. `where` is not here because it does not
+     * value replaces them key by key. A `source` or `tag` that is not text
+     * is left out, since it selects nothing. `where` is not here because it does not
      * replace, it narrows further (see `inheritSelection`).
      */
     defaults: Record<string, unknown>;
@@ -41,6 +42,9 @@ export function readBlockSelection(value: unknown, shared: readonly string[]): B
     const defaults: Record<string, unknown> = {};
     for (const key of shared) {
         if (key === "where" || !Object.prototype.hasOwnProperty.call(value, key)) continue;
+        // A `source` or `tag` that is not text selects nothing and is
+        // reported below, once; handed down, every card would repeat it (B-160).
+        if ((key === "source" || key === "tag") && isNotText(value[key])) continue;
         defaults[key] = value[key];
     }
     const { spec, diagnostics } = readSource(value);

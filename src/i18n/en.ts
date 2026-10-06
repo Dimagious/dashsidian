@@ -36,6 +36,14 @@ export const en = {
         "`where` lists `{value}`, which is not a condition, so the whole filter was ignored. The numbers below are unfiltered. Each item is one condition like `year = 2026`.",
     "where.emptyList":
         "`where` is an empty list, so the filter was ignored and the numbers below are unfiltered. List conditions like `[year = 2026, rating >= 4]`, or remove the key.",
+    "where.sourceNumber":
+        "`source` must be a folder name in text, got `{value}`, so it was ignored and the whole vault is read. Put the folder name in quotes, as written: `source: \"2024\"`.",
+    "where.sourceNotText":
+        "`source` must be one folder name in text, got `{value}`, so it was ignored and the whole vault is read. Name one folder, like `source: Journal`.",
+    "where.tagNumber":
+        "`tag` must be a tag name in text, got `{value}`, so it was ignored and the tag filter is dropped. Put the tag name in quotes, as written: `tag: \"2024\"`.",
+    "where.tagNotText":
+        "`tag` must be one tag name in text, got `{value}`, so it was ignored and the tag filter is dropped. Name one tag, like `tag: book`.",
 
     "inherit.rootPeriodInvalid":
         "`period` at the block root expects week, month, year or a rolling window such as 30d, got \"{value}\". Everything that inherits it is drawn unfiltered.",

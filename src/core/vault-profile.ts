@@ -8,6 +8,8 @@
  */
 
 import type { NoteRecord } from "./source";
+import { parse as parseYaml } from "yaml";
+import { isRecord } from "../shared/parse";
 import { numberAt, isBooleanMark, isDurationMark } from "./aggregate";
 
 export interface VaultProfile {
@@ -75,10 +77,30 @@ function mostCommon(counts: Map<string, number>): string | null {
 export function fitExample(example: string, profile: VaultProfile): string {
     let out = example;
     if (profile.folder) {
-        out = out.replace(FOLDER_KEYS, (_m, key: string, sep: string) => `${key}${sep}${profile.folder}`);
+        const folder = yamlText(profile.folder);
+        out = out.replace(FOLDER_KEYS, (_m, key: string, sep: string) => `${key}${sep}${folder}`);
     }
     if (profile.field) {
         out = out.replace(FIELD_KEYS, (_m, key: string, sep: string) => `${key}${sep}${profile.field}`);
     }
     return out;
+}
+
+/**
+ * A folder name as YAML that reads back as that same text, quoted only when
+ * it has to be.
+ *
+ * Written bare, a folder named `2024` reads as a number, which `source`
+ * refuses (B-160), and one with a comma splits the `{ ... }` maps the
+ * examples are written in. Checked inside such a map, the stricter of the two
+ * places an example puts it.
+ */
+function yamlText(text: string): string {
+    try {
+        const read: unknown = parseYaml(`{ k: ${text} }`, { logLevel: "error" });
+        if (isRecord(read) && read.k === text) return text;
+    } catch {
+        // Not readable bare: quoted below.
+    }
+    return JSON.stringify(text);
 }

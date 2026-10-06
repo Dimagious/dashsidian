@@ -1806,6 +1806,61 @@ items:
     });
 });
 
+describe("stats: a source or tag that is not text is an error, not the whole vault in silence (B-160)", () => {
+    const SOURCE_2024 = '⛔ stats: `source` must be a folder name in text, got `2024`, so it was ignored and the whole vault is read. Put the folder name in quotes, as written: `source: "2024"`.';
+    const years = mockContext({
+        notes: [
+            ...diary("2024", "2024-01-01", 3, () => ({})),
+            ...diary("Diary", "2026-01-01", 5, () => ({})),
+        ],
+    });
+    const render = (config: string): HTMLElement => {
+        const el = host();
+        renderStats(years, config, el);
+        return el;
+    };
+
+    it("a card's own source: 2024 says to quote it", () => {
+        const el = render("items:\n  - { label: Days, source: 2024, agg: count }");
+        expect(diagnostics(el, "error")).toEqual([SOURCE_2024]);
+    });
+
+    it("source: 01 names the value as parsed, but the hint never invents a folder named 1", () => {
+        const el = render("items:\n  - { label: Days, source: 01, agg: count }");
+        expect(diagnostics(el, "error")).toEqual([
+            '⛔ stats: `source` must be a folder name in text, got `1`, so it was ignored and the whole vault is read. Put the folder name in quotes, as written: `source: "2024"`.',
+        ]);
+    });
+
+    it("quoted, the same folder is read and nothing is said", () => {
+        const el = render('items:\n  - { label: Days, source: "2024", agg: count }');
+        expect(texts(el, ".dashy-stat-value")).toEqual(["3"]);
+        expect(diagnostics(el, "error")).toEqual([]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("at the root it is one error for the block, not one per card", () => {
+        const el = render("source: 2024\nitems:\n  - { label: A, agg: count }\n  - { label: B, agg: count }");
+        expect(diagnostics(el, "error")).toEqual([SOURCE_2024]);
+    });
+
+    it("a list of folders and a list of tags each name the one-name fix", () => {
+        const el = render("items:\n  - { label: A, source: [Diary, 2024], tag: [a, b], agg: count }");
+        expect(diagnostics(el, "error")).toEqual([
+            '⛔ stats: `source` must be one folder name in text, got `["Diary",2024]`, so it was ignored and the whole vault is read. Name one folder, like `source: Journal`.',
+            '⛔ stats: `tag` must be one tag name in text, got `["a","b"]`, so it was ignored and the tag filter is dropped. Name one tag, like `tag: book`.',
+        ]);
+    });
+
+    it("an empty source: stays the B-154 warning, not this error", () => {
+        const el = render("items:\n  - { label: All, source: , agg: count }");
+        expect(diagnostics(el, "error")).toEqual([]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: "All": `source` is empty, so it reads the whole vault. Name a folder, or remove the key if the whole vault is meant.',
+        ]);
+    });
+});
+
 // B-145: race times written to the second read as a clock, `H:MM:SS`.
 describe("stats: race times as a clock", () => {
     // Thursday. In English the week starts on Sunday: this week is 20..24
