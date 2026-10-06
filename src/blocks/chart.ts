@@ -11,7 +11,7 @@ import {
     type Bucket, type ChartSpec, type ChartFieldStatus, type ValueFormat,
 } from "../core/chart";
 import { chartDomain, niceTicks } from "../core/chart-scale";
-import { chartLayout, type ChartLayout } from "../core/chart-layout";
+import { chartLayout, placeXLabel, type ChartLayout } from "../core/chart-layout";
 import { parseDateKey } from "../core/calendar";
 import { rgba } from "../core/palette";
 import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
@@ -347,7 +347,7 @@ function drawChart(el: HTMLElement, spec: ChartSpec, buckets: readonly Bucket[],
         const layout = chartLayout(spec.goal ? { ...input, goal: spec.goal.value } : input);
         graphic.setAttribute("viewBox", `0 0 ${width} ${height}`);
         while (graphic.firstChild) graphic.removeChild(graphic.firstChild);
-        paintSvg(graphic, layout, spec, buckets, tickLabels, goalText);
+        paintSvg(graphic, layout, width, spec, buckets, tickLabels, goalText);
         for (const { hit, b } of hits) {
             const column = layout.columns[b];
             if (!column) continue;
@@ -375,6 +375,8 @@ function drawChart(el: HTMLElement, spec: ChartSpec, buckets: readonly Bucket[],
 function paintSvg(
     graphic: SVGSVGElement,
     layout: ChartLayout,
+    /** the drawing's width, the viewBox's: x labels stay inside it */
+    width: number,
     spec: ChartSpec,
     buckets: readonly Bucket[],
     tickLabels: readonly string[],
@@ -422,18 +424,14 @@ function paintSvg(
         }
     }
 
-    const lastIndex = buckets.length - 1;
     let previous: number | undefined;
     for (const index of layout.xLabels) {
         const column = layout.columns[index];
         if (!column) continue;
-        // The first label starts at its column and the last ends at its own,
-        // so neither is cut off by the edge of the plot.
-        const anchor = lastIndex === 0 ? "middle" : index === 0 ? "start" : index === lastIndex ? "end" : "middle";
-        const x = anchor === "start" ? column.left : anchor === "end" ? column.left + column.width : column.left + column.width / 2;
-        const tidyX = Math.round(x * 100) / 100;
-        svg(graphic, "text", { class: "dashy-chart-label", x: tidyX, y: bottom + 14, "text-anchor": anchor })
-            .textContent = xLabel(buckets, index, previous, spec);
+        const text = xLabel(buckets, index, previous, spec);
+        const { x, anchor } = placeXLabel(column.center, text.length, width);
+        svg(graphic, "text", { class: "dashy-chart-label", x, y: bottom + 14, "text-anchor": anchor })
+            .textContent = text;
         previous = index;
     }
 }
