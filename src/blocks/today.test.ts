@@ -65,7 +65,7 @@ describe("today — the links point at real paths", () => {
 
 describe("today — where the folder comes from", () => {
     const periodic = {
-        daily: { folder: "PN/Daily", format: "YYYY-MM-DD" },
+        daily: { enabled: true, folder: "PN/Daily", format: "YYYY-MM-DD" },
         weekly: { folder: "PN/Weekly", format: "gggg-[W]ww" },
     };
 
@@ -95,6 +95,52 @@ describe("today — where the folder comes from", () => {
         const href = nodes(el, "a")[0]?.getAttribute("data-href") ?? "";
         expect(href.startsWith("Core/")).toBe(true);
         expect(href).not.toContain(TODAY_KEY);
+    });
+
+    it("Periodic Notes' day switched on with nothing saved links its default name, not the core plugin's (B-172)", () => {
+        const el = row("daily: true", DEFAULT_SETTINGS, {
+            periodicNotes: { daily: { enabled: true, folder: "", format: "" } },
+            dailyNotes: { folder: "Core", format: "DD.MM.YYYY" },
+        });
+        expect(nodes(el, "a")[0]?.getAttribute("data-href")).toBe(`${TODAY_KEY}.md`);
+    });
+
+    it("Periodic Notes' day switched off yields to the core plugin, folder and format (B-172)", () => {
+        const el = row("daily: true", DEFAULT_SETTINGS, {
+            periodicNotes: { daily: { enabled: false, folder: "PN/Daily", format: "" } },
+            dailyNotes: { folder: "Core", format: "YYYY.MM.DD" },
+        });
+        expect(nodes(el, "a")[0]?.getAttribute("data-href")).toBe(`Core/${TODAY_KEY.replace(/-/g, ".")}.md`);
+    });
+
+    it("Periodic Notes 1.x settings in calendar sets are read (B-176)", () => {
+        const el = row("daily: true\nweekly: true", DEFAULT_SETTINGS, {
+            periodicNotesVersion: "1.0.0-beta.3",
+            periodicNotes: {
+                activeCalendarSet: "Default",
+                calendarSets: [{
+                    id: "Default",
+                    day: { enabled: true, folder: "Sets/Daily", format: "YYYY-MM-DD" },
+                    week: { enabled: true, folder: "Sets/Weekly", format: "gggg-[W]ww" },
+                }],
+            },
+        });
+        const hrefs = nodes(el, "a").map((a) => a.getAttribute("data-href") ?? "");
+        expect(hrefs[0]).toBe(`Sets/Daily/${TODAY_KEY}.md`);
+        expect(hrefs[1]?.startsWith("Sets/Weekly/")).toBe(true);
+    });
+
+    it("Periodic Notes 1.x settings held in a Svelte store are read (B-176)", () => {
+        const el = row("daily: true", DEFAULT_SETTINGS, {
+            periodicNotesVersion: "1.0.0-beta.3",
+            periodicNotesStore: true,
+            periodicNotes: {
+                activeCalendarSet: "Default",
+                calendarSets: [{ id: "Default", day: { enabled: true, folder: "Store/Daily", format: "YYYY-MM-DD" } }],
+                daily: { enabled: true, folder: "Flat/Daily", format: "YYYY-MM-DD" },
+            },
+        });
+        expect(nodes(el, "a")[0]?.getAttribute("data-href")).toBe(`Store/Daily/${TODAY_KEY}.md`);
     });
 
     it("with no neighbour at all the note lands in the vault root", () => {
