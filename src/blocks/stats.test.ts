@@ -1747,6 +1747,65 @@ items:
     });
 });
 
+describe("stats: a source or tag of only spaces is blank, not a silent zero (B-156)", () => {
+    // The vault holds 10 Diary notes and 2 Books, both tagged read.
+    it("a card's whitespace source reads and warns like an empty one", () => {
+        const el = card(`source: Diary
+items:
+  - { label: Days, agg: count }
+  - { label: Spaces, source: "   ", agg: count }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10", "12"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: "Spaces": `source` is empty, so it reads the whole vault instead of the folder at the block root. Remove the key to inherit that folder.',
+        ]);
+    });
+
+    it("a card's whitespace tag drops the tag filter and warns like an empty one", () => {
+        const el = card(`tag: read
+items:
+  - { label: Read, agg: count }
+  - { label: Spaces, tag: " ", agg: count }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["2", "12"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: "Spaces": `tag` is empty, so it has no tag filter instead of the tag at the block root. Remove the key to inherit that tag.',
+        ]);
+    });
+
+    it("a whitespace source at the root is one warning, and every card reads the whole vault", () => {
+        const el = card('source: "  "\nitems:\n  - { label: A, agg: count }\n  - { label: B, agg: count }');
+        expect(texts(el, ".dashy-stat-value")).toEqual(["12", "12"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            "⚠️ stats: `source` at the block root is empty, so the whole vault is read. Name a folder, or remove the key if the whole vault is meant.",
+        ]);
+    });
+
+    it("a whitespace card under a whitespace root warns with nothing to inherit", () => {
+        const el = card('tag: " "\nitems:\n  - { label: A, tag: "  ", agg: count }');
+        expect(texts(el, ".dashy-stat-value")).toEqual(["12"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            "⚠️ stats: `tag` at the block root is empty, so no tag filter applies. Name a tag, or remove the key if no tag filter is meant.",
+            '⚠️ stats: "A": `tag` is empty, so no tag filter applies. Name a tag, or remove the key if no tag filter is meant.',
+        ]);
+    });
+
+    it("a real folder or tag padded with spaces reads as written without them, with no warning", () => {
+        const el = card(`items:
+  - { label: Days, source: " Diary ", agg: count }
+  - { label: Read, tag: " #read ", agg: count }
+  - { label: Root, source: "Diary/ ", agg: count }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10", "2", "10"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("a padded folder that does not exist is still named, trimmed", () => {
+        const el = card('items:\n  - { label: X, source: " Nowhere ", agg: count }');
+        expect(texts(el, ".dashy-stat-value")).toEqual(["0"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            "⚠️ stats: Nothing is filed under `Nowhere`. The numbers below count nothing. Point `source` at a folder of your own.",
+        ]);
+    });
+});
+
 // B-145: race times written to the second read as a clock, `H:MM:SS`.
 describe("stats: race times as a clock", () => {
     // Thursday. In English the week starts on Sunday: this week is 20..24

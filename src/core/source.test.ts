@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-    parseWhere, selectNotes, readSource, readWhere, splitAnd, unmatchedSource, looksLikeConjunction, type NoteRecord,
+    parseWhere, selectNotes, readSource, readSelector, readWhere, splitAnd, unmatchedSource, looksLikeConjunction, type NoteRecord,
 } from "./source";
 
 const note = (over: Partial<NoteRecord>): NoteRecord => ({
@@ -48,6 +48,13 @@ describe("selectNotes", () => {
     it("a folder includes nested ones", () => {
         expect(selectNotes(vault, { source: "01-Areas" })).toHaveLength(2);
         expect(selectNotes(vault, { source: "01-Areas/Sport" })).toHaveLength(1);
+    });
+
+    it("a folder padded with spaces selects what unmatchedSource found for it (B-156)", () => {
+        // Both read the folder through one normalizer, so a selection that
+        // the missing-folder check let pass cannot come back empty.
+        expect(unmatchedSource(vault, { source: " 01-Areas/ " })).toBeNull();
+        expect(selectNotes(vault, { source: " 01-Areas/ " })).toHaveLength(2);
     });
 
     it("a folder does not catch prefix neighbours", () => {
@@ -307,6 +314,19 @@ describe("readSource", () => {
         expect(readSource({ source: 42, tag: null, where: [] }).spec).toEqual({});
     });
 
+    it("source and tag are trimmed, and whitespace alone is no selector at all (B-156)", () => {
+        expect(readSource({ source: " 01-Areas ", tag: " #sport " }).spec).toEqual({ source: "01-Areas", tag: "#sport" });
+        expect(readSource({ source: "   ", tag: "\t" }).spec).toEqual({});
+        expect(readSource({ source: "", tag: "" }).spec).toEqual({});
+    });
+
+    it("a whitespace source or tag selects what an empty one does, not nothing (B-156)", () => {
+        expect(selectNotes(vault, readSource({ source: "  " }).spec)).toHaveLength(vault.length);
+        expect(selectNotes(vault, readSource({ tag: " " }).spec)).toHaveLength(vault.length);
+        expect(selectNotes(vault, readSource({ source: " 01-Areas ", tag: " sport " }).spec).map((n) => n.name))
+            .toEqual(["run"]);
+    });
+
     it("a blank where is nothing to complain about", () => {
         const { spec, diagnostics } = readSource({ where: "   " });
         expect(spec.where).toBeUndefined();
@@ -351,6 +371,26 @@ describe("readSource", () => {
     it("the message quotes back what was written", () => {
         const { diagnostics } = readSource({ where: "nonsense here" });
         expect(diagnostics[0]?.message).toContain("nonsense here");
+    });
+});
+
+describe("readSelector (B-156)", () => {
+    it("trims a written name", () => {
+        expect(readSelector(" Diary ")).toBe("Diary");
+        expect(readSelector("Diary")).toBe("Diary");
+    });
+
+    it("empty text and whitespace alone select nothing", () => {
+        expect(readSelector("")).toBeUndefined();
+        expect(readSelector("   ")).toBeUndefined();
+        expect(readSelector("\t\n")).toBeUndefined();
+    });
+
+    it("a value that is not text is not a selector", () => {
+        expect(readSelector(null)).toBeUndefined();
+        expect(readSelector(undefined)).toBeUndefined();
+        expect(readSelector(42)).toBeUndefined();
+        expect(readSelector(["Diary"])).toBeUndefined();
     });
 });
 

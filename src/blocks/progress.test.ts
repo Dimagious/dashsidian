@@ -731,6 +731,21 @@ items:
         ]);
     });
 
+    it("a bar's whitespace source is blank too: whole vault and a warning, not a silent 0% (B-156)", () => {
+        const wide = mockContext({
+            notes: [...diary("Diary", "2026-01-01", 2, () => ({})), { path: "Other/x.md", frontmatter: {} }],
+        });
+        const el = host();
+        renderProgress(wide, `source: Diary
+items:
+  - { label: Days, agg: count, goal: 4 }
+  - { label: All, source: "  ", agg: count, goal: 4 }`, el);
+        expect(texts(el, ".dashy-progress-percent")).toEqual(["50%", "75%"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ progress: "All": `source` is empty, so it reads the whole vault instead of the folder at the block root. Remove the key to inherit that folder.',
+        ]);
+    });
+
     it("a blank tag at the root is one warning for the block", () => {
         const el = bars("source: Diary\ntag: \"\"\nitems:\n  - { label: A, agg: count, goal: 10 }\n  - { label: B, agg: count, goal: 10 }");
         expect(diagnostics(el, "warning")).toEqual([
