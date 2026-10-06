@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 160" width="900" height="160" role="img" aria-labelledby="dashy-banner-title-dark">
-  <title id="dashy-banner-title-dark">Dashy: a dashboard inside an Obsidian note, built from seven markdown blocks</title>
+  <title id="dashy-banner-title-dark">Dashy: describe the dashboard you want, and your AI agent builds it in your Obsidian note</title>
   <rect x="0.5" y="0.5" width="899" height="159" rx="20" fill="#1e1e1e" stroke="#363636"/>
   <g transform="translate(32,32) scale(3)">
     <rect x="2" y="2" width="28" height="28" rx="7" fill="#8b6cef"/>
@@ -13,6 +13,6 @@
     <text x="0" y="0" font-family="Inter, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
       <tspan font-weight="700" font-size="36" fill="#dadada">Dashy</tspan><tspan dx="12" font-size="15" fill="#707070" font-family="'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace">dashsidian</tspan>
     </text>
-    <text x="0" y="32" font-family="Inter, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" fill="#a8a8a8">A dashboard inside an Obsidian note, built from seven markdown blocks.</text>
+    <text x="0" y="32" font-family="Inter, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" fill="#a8a8a8">Describe the dashboard. Your agent builds it in your note.</text>
   </g>
 </svg>
