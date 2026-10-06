@@ -238,6 +238,17 @@ export interface StreakOptions {
     transparent?: (day: string) => boolean;
 }
 
+/** What `currentStreak` takes on top of `StreakOptions`. */
+export interface CurrentStreakOptions extends StreakOptions {
+    /**
+     * Whether `today` is the real today, still going, and so is forgiven
+     * when unfilled. Default true. False when the run ends on a day that is
+     * over, a closed window's last day (B-173): unfilled, that day breaks the
+     * run like any other.
+     */
+    graceToday?: boolean;
+}
+
 /** True when every day strictly between `a` and `b` (both YYYY-MM-DD) is transparent. */
 function bridgesGap(a: string, b: string, transparent: (day: string) => boolean): boolean {
     const gap = daysBetween(a, b);
@@ -301,8 +312,12 @@ export function isWeekend(day: string): boolean {
  * skipped, neither counted nor breaking the run, and that includes today and
  * yesterday themselves (a Monday under `days: weekdays` still sees a run that
  * ended on Friday). Days after `today` are ignored.
+ *
+ * With `graceToday: false`, `today` is the last day of a stretch already
+ * over and gets no grace: unfilled, the run is 0 (or, when it is
+ * transparent, counted from the day before as usual).
  */
-export function currentStreak(dates: readonly string[], today: string, options: StreakOptions = {}): number {
+export function currentStreak(dates: readonly string[], today: string, options: CurrentStreakOptions = {}): number {
     const transparent = options.transparent ?? (() => false);
     const filled = new Set(dates.filter((d) => d <= today && !transparent(d)));
     if (!filled.size) return 0;
@@ -311,7 +326,7 @@ export function currentStreak(dates: readonly string[], today: string, options: 
     let earliest = today;
     for (const d of filled) if (d < earliest) earliest = d;
     const cursor = new Date(`${today}T00:00:00`);
-    if (!filled.has(today)) cursor.setDate(cursor.getDate() - 1);
+    if (!filled.has(today) && options.graceToday !== false) cursor.setDate(cursor.getDate() - 1);
     let run = 0;
     for (;;) {
         const key = dateKey(cursor);

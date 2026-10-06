@@ -136,7 +136,8 @@ removed public export.
   before it, June against all of May, while `from`/`to` compares against as
   many days right before `from`; a window still running behaves as `week` or
   `month` does. `current_streak` counts back from the window's last day and
-  `trend` ends there. A window that has not started yet draws no numbers,
+  `trend` ends there; in a window already over that day is not forgiven the
+  way today is, so a closed week with its last day unticked reads `0`. A window that has not started yet draws no numbers,
   only the day it starts, and is not an error. A `chart` without `bucket`
   picks one by the window's length (`day` up to 31 days, `week` up to 182,
   `month` beyond), names the window in its heading, `October 2026`, draws no

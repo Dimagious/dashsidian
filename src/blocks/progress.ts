@@ -8,7 +8,7 @@ import { aggregate, classifyField, classifyValues } from "../core/aggregate";
 import { readDateField, readDateFormat, unmatchedDateFormat, type DateFormats } from "../core/note-date";
 import { formatReading, showsDuration, showsClock, durationDiagnostics } from "../core/stat";
 import { readProgress, percentOf, barWidth, type ProgressSpec } from "../core/progress";
-import { readPeriod, filterByPeriod, dateFieldHasEffect, futureStart, windowLastDay } from "../core/period";
+import { readPeriod, filterByPeriod, dateFieldHasEffect, futureStart, windowLastDay, windowIsOver } from "../core/period";
 import { firstDayOfWeek } from "../adapters/datetime";
 import { noteDateFormats, periodContext } from "../adapters/periodic";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
@@ -169,7 +169,8 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
 
         const waiting = broken ? "broken" : startsOn !== null ? "future" : null;
         const lastDay = windowLastDay(periodSpec?.period, today);
-        bars.push(toBar(counted, spec, label, item, lastDay, duration, clock, dateField, formats, waiting));
+        const graceToday = !windowIsOver(periodSpec?.period, today);
+        bars.push(toBar(counted, spec, label, item, lastDay, graceToday, duration, clock, dateField, formats, waiting));
     }
 
     diags.push(...undatedRootDiagnostics(block, undatedCards));
@@ -218,6 +219,8 @@ function toBar(
     label: string,
     item: Record<string, unknown>,
     today: Date,
+    /** B-173: false when `today` is a closed window's last day, which `current_streak` does not forgive */
+    graceToday: boolean,
     duration: boolean,
     clock: boolean,
     dateField?: string,
@@ -252,6 +255,7 @@ function toBar(
         days: spec.days,
         skipField: spec.skipField,
         today,
+        graceToday,
     });
 
     bar.value = formatReading(current, spec.precision, duration, clock);
