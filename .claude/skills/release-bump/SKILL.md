@@ -87,6 +87,11 @@ in it. The one honest exception is the first release, where the section for the
 version may already be written by hand — check before promoting, or you will
 end up with two headings for one version.
 
+If the release's "instructions review" backlog item is not `done`, **stop**.
+Every release reviews the user-facing skill (hand-written parts of
+`scripts/build-skill.cjs`), `.claude/agents/`, `.claude/skills/` and
+`CLAUDE.md` against what ships; see CLAUDE.md, "Каждый релиз".
+
 | Conventional type | Default bump | CHANGELOG bucket |
 |---|---|---|
 | `feat:` | MINOR | Added |
