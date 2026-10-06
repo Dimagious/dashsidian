@@ -161,6 +161,10 @@ removed public export.
   reference) sets its folder once, at the block root,** as the `stats`
   example does, instead of repeating it on every bar.
 
+- **The agent skill names weekly and monthly reviews among what it is for,**
+  so an agent asked for a review note reaches for Dashy and its
+  `period: note` recipe.
+
 ## [1.6.0] - 2026-10-05
 
 ### Added

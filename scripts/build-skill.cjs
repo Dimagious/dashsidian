@@ -110,8 +110,8 @@ description: >-
   asked for a dashboard, a home page, a tile grid, cards with counters or
   averages, a goal or progress bar, days until a date or the next birthday,
   a link to today's note, a day calendar, a heatmap, a habit tracker, a
-  chart or graph of a number over time, or a visual entry point into the
-  vault.
+  chart or graph of a number over time, a weekly or monthly review that
+  counts its own week or month, or a visual entry point into the vault.
 version: ${schema.version}
 ---
 

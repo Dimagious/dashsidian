@@ -65,7 +65,7 @@ CHANGELOG.md ..................... Written per change under [Unreleased]; releas
 | Shipped change | Doc(s) to touch |
 |---|---|
 | New block key or new value | schema `doc` (+ `notes`/`example` if an agent needs a recipe), then `build:skill` and `build:reference`; README if it changes the one example; the guide that covers that problem |
-| Changed default or behaviour of a key | schema `doc`/`notes`; every guide and `site/index.html` example that relies on the old behaviour |
+| Changed default or behaviour of a key | schema `doc`/`notes`; every guide and `site/index.html` example that relies on the old behaviour, the block descriptions on `site/index.html`, and the guides' troubleshooting rows that quote a changed warning or its fix (`grep` the old wording: in 1.8.0 "Rename the daily notes" and "Write the date as `YYYY-MM-DD`" went stale once `date_format` existed) |
 | Insert block example changed | it comes from the schema `example`; check README and guides that show the same block |
 | New guide | `site/guides/<slug>/`, `site/guides/index.html`, `site/llms.txt`, `site/sitemap.xml` |
 | Settings tab change | README section that mentions settings; quote labels from `src/i18n/en.ts` |
@@ -79,8 +79,11 @@ If a change touches several axes, it gets several updates: normal.
 Every factual claim added to README or the site must name (in the PR/commit
 body, not the prose) the code it mirrors, for example "root `source` inherited
 by cards ← `core/inherit.ts`". If you cannot point at the code, the claim does
-not go in. Every YAML block in a guide must render without a warning: paste it
-into the preview stand (`src/preview/cases.ts`) or a vault.
+not go in. Every YAML block in a guide must render without a warning:
+`src/blocks/guides.test.ts` renders the blocks of the guides it has a
+`describe` for against a vault shaped like their example and pins the numbers
+their prose promises. A new guide gets a `describe` there; an older guide
+without one, a paste into the preview stand (`src/preview/cases.ts`) or a vault.
 
 ## Style rules
 
