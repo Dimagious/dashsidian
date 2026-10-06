@@ -35,11 +35,15 @@ and tag that lead up to it.
 - The block schema has its own version, `version` in `src/blocks/schema.json`.
   It is what the settings tab compares with the installed agent skill, by
   string, so without a bump an installed skill never learns about the change.
-  Policy from 1.7.0 on: a new key or value, or changed behaviour, moves the
-  minor digit; a wording-only change to `doc`, `notes` or `example` moves the
-  patch digit. (1.5.1 and 1.5.2 shipped note edits without a bump and left
-  installed skills stale.) Then rebuild with `npm run build:skill` and
-  `npm run build:reference`.
+  Policy from 1.8.0 on (1.7.0 was never tagged; its work ships in 1.8.0): a
+  new key or value, or changed behaviour, moves the minor digit; a
+  wording-only change to `doc`, `notes` or `example` moves the patch digit.
+  (1.5.1 and 1.5.2 shipped note edits without a bump and left installed
+  skills stale.) The schema version is its own number, not the plugin's:
+  1.6.0 shipped schema 1.8.0, and plugin 1.8.0, which adds keys and values
+  (`pick`, `layout`, `date_format`, `compare: usual`, `period: note`,
+  `range: note`, literal periods, `from`/`to`), raises it to 1.9.0. Then
+  rebuild with `npm run build:skill` and `npm run build:reference`.
   The release commit also updates "Состояние" in `CLAUDE.md`.
 - The end-to-end suite never runs in CI: it drives a real Obsidian through a
   project-local Electron. Before a release, run it locally (`npm run e2e`) — it
@@ -200,7 +204,7 @@ git diff -- package.json manifest.json versions.json CHANGELOG.md
 
 ```bash
 git add package.json package-lock.json manifest.json versions.json CHANGELOG.md CLAUDE.md
-git add src/blocks/schema.json src/skill/skill-content.ts docs/SKILL.preview.md docs/AGENTS.preview.md docs/dashy.schema.json   # when the schema version moved
+git add src/blocks/schema.json src/skill/ docs/SKILL.preview.md docs/AGENTS.preview.md docs/dashy.schema.json   # when the schema version moved
 git commit -m "chore(release): $NEW_VERSION"   # body: why, if the bump was overridden
 git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
 ```

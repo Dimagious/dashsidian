@@ -744,7 +744,7 @@ title: Gym
         <p><code>sum</code> counts the ticked days. <code>streak</code> finds the longest run on record, and an unticked day breaks it the way a missing note does; the run you are on now is <a href="#current-streak"><code>current_streak</code></a>. <code>period: week</code> narrows a card to the current week, which starts on Monday or Sunday as your language has it. <code>compare: true</code> sets it against the same days of last week, and with <code>better: up</code> a rise shows green. The heatmap paints the ticked days.</p>
         <div class="callout tip">
           <div class="callout-title"><svg><use href="#i-flame"/></svg>Written once</div>
-          <p><code>period</code> counts from today. "This week" is always this week, and a <code>period: year</code> card starts over on 1 January without an edit.</p>
+          <p><code>period: week</code> counts from today. "This week" is always this week, and a <code>period: year</code> card starts over on 1 January without an edit.</p>
         </div>
 
         <h3 id="current-streak">The streak you are on right now</h3>
@@ -921,7 +921,7 @@ items:
             </figure>
           </div>
         </div>
-        <p><code>period: week</code>, <code>month</code> or <code>year</code> narrows a card to the current calendar one, ending today; <code>period: 30d</code> is a rolling count of days instead. A note's date is its name, as long as it starts with <code>YYYY-MM-DD</code> (<code>2026-03-02 Monday</code> and <code>2026-03-02_standup</code> both count), unless <code>date_field</code> names a frontmatter date property instead. <code>streak</code>, <code>current_streak</code>, <code>latest</code> and <code>trend</code> resolve a note's date the same way, whether or not <code>period</code> is even set, and two or more notes landing on the same day always count as that one day, not two.</p>
+        <p><code>period: week</code>, <code>month</code> or <code>year</code> narrows a card to the current calendar one, ending today; <code>period: 30d</code> is a rolling count of days instead. A note's date is its name, as long as it starts with <code>YYYY-MM-DD</code> (<code>2026-03-02 Monday</code> and <code>2026-03-02_standup</code> both count) or with a date in the Daily notes day format or in <code>date_format: DD.MM.YYYY</code>, unless <code>date_field</code> names a frontmatter date property instead. <code>streak</code>, <code>current_streak</code>, <code>latest</code> and <code>trend</code> resolve a note's date the same way, whether or not <code>period</code> is even set, and two or more notes landing on the same day always count as that one day, not two. <code>compare: true</code> sets a card against the period before it, and <code>compare: usual</code>, on <code>agg: avg</code>, against your usual level: the average of every earlier note.</p>
         <p><code>where</code> is a condition on frontmatter: <code>where: "rating &gt;= 4"</code>, <code>where: "tags contains books"</code>. Several conditions must all hold, as a list, <code>where: [year = 2026, "rating &gt;= 4"]</code>, or joined by <code>and</code>, <code>where: "year = 2026 and rating &gt;= 4"</code>. <code>or</code> is not supported: it warns and the filter is ignored.</p>
         <div class="callout quote">
           <div class="callout-title"><svg><use href="#i-quote"/></svg>A dash, not a zero</div>
@@ -993,7 +993,7 @@ items:
       <section class="file" id="heatmap" data-title="heatmap" data-path="Blocks / heatmap">
         <div class="crumb">Blocks/heatmap.md</div>
         <h2><code class="h-code">heatmap</code>: the year</h2>
-        <p>A cell per day, coloured by a number from frontmatter. A note's date is its name, as long as it starts with <code>YYYY-MM-DD</code> (<code>2026-01-05 Monday</code> counts, <code>2026-01-051</code> does not), unless <code>date_field</code> names a frontmatter date property instead. <code>bands</code> set the colour thresholds. Clicking a cell opens that day's note. The week starts where your language starts it.</p>
+        <p>A cell per day, coloured by a number from frontmatter. A note's date is its name, as long as it starts with <code>YYYY-MM-DD</code> (<code>2026-01-05 Monday</code> counts, <code>2026-01-051</code> does not) or with a date in the Daily notes day format or in <code>date_format</code>, unless <code>date_field</code> names a frontmatter date property instead. <code>bands</code> set the colour thresholds. Clicking a cell opens that day's note. The week starts where your language starts it.</p>
         <div class="pair side">
           <div class="codeblock" data-code>
             <div class="bar"><span>heatmap</span><button class="copy" type="button">Copy</button></div>

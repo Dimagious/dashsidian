@@ -43,11 +43,20 @@
 при включённом Obsidian Charts `chart` уступается ему, наш — `dashy-chart`
 (ADR 0007). Схема блоков — 1.8.0. Длительности (`5h 58min`, `7:30`) читаются
 как минуты, `core/duration.ts`. В `stats` и `progress` выборка (`source`, `tag`,
-`where`, `period`, `date_field`) пишется раз на корне блока и наследуется
+`where`, `period`, `date_field`, `date_format`) пишется раз на корне блока и наследуется
 карточками, `core/inherit.ts` (B-131).
 
-Не выпущено (1.7.0): в `heatmap` — `pick: max` и `layout: calendar` (месяц
-календарём). Новые ключи, поэтому версия схемы поднимается в релизном коммите.
+Не выпущено (1.8.0; 1.7.0 отдельно не выходит): в `heatmap` — `pick: max`
+и `layout: calendar` (месяц календарём); `date_format` и формат дня из
+настроек Daily notes / Periodic Notes (даты не только ISO, `core/note-date.ts`);
+окно из имени заметки — `period: note` / `range: note`, период словом
+(`2026-W40`, `2026-Q4`, `2026` — теперь год) и `{ from, to }`
+(`core/period-name.ts`, ADR 0006); у закрытого окна последний день не
+прощается (B-173); `compare: usual` против своего обычного уровня; форматы
+Periodic Notes по умолчанию; `source`/`tag` не текстом — ошибка, из одних
+пробелов — пусто, как и `path` плитки; подписи оси `chart` под точками;
+предупреждение «одна корзина» в `chart` смотрит на всё окно. Новые ключи и значения,
+поэтому версия схемы поднимается в релизном коммите: 1.8.0 → 1.9.0.
 
 Сайт (`site/`, GitHub Pages) — витрина, гайды под поисковые запросы
 (`site/guides/`) и справочник блоков (`site/reference/`, генерируется из схемы).
@@ -65,8 +74,10 @@ src/
   app/
     plugin.ts            регистрация блоков, события хранилища, перерисовка
     refresh.ts           реестр живых блоков; чистый, без Obsidian
+    renames.ts           куда переехала переименованная заметка (`period: note`)
   i18n/                каталоги сообщений; en.ts — источник правды по ключам
   core/                ЧИСТЫЙ слой: ни Obsidian, ни DOM. Сюда — всю логику.
+                       (ниже не все файлы, а главные)
     calendar.ts          раскладка года, первый день недели, streak
     source.ts            отбор заметок: source/tag/where + микроязык where
     aggregate.ts         count/sum/avg/min/max/latest/streak, series
@@ -83,6 +94,9 @@ src/
     layers.ts            слои heatmap и `pick`
     month-calendar.ts    heatmap `layout: calendar`: месяц сеткой по дням недели
     folder-tile.ts       куда ведёт плитка с папкой
+    note-date.ts         дата заметки: ISO, `date_format`, формат из настроек; `ParseDate` внедряется
+    period.ts            окна `period`/`range`: бегущие и закрытые, `compare`
+    period-name.ts       какой день/неделю/месяц/квартал/год значит имя `2026-W40`
     periodic.ts          папка/формат/путь периодических заметок
     palette.ts           именованные цвета → rgb
     vault-profile.ts     подгонка примера под чужое хранилище
@@ -90,10 +104,11 @@ src/
   adapters/            единственное место, где блоки трогают Obsidian
     vault.ts             снимок metadataCache + его кэш, существование заметки
     periodic.ts          настройки Periodic Notes / Daily notes
-    datetime.ts          moment: формат даты, названия дней и месяцев
+    datetime.ts          moment: формат даты, названия дней и месяцев, разбор `ParseDate`
     locale.ts            язык Obsidian → i18n, один раз на загрузке
   blocks/              отрисовка, по файлу на блок
     context.ts           что блок получает: app, снимок, настройки
+    window.ts            подписи закрытого окна и «ещё не началось»
     schema.json          ЕДИНЫЙ ИСТОЧНИК ПРАВДЫ по ключам блоков
   preview/             стенд всех состояний блока для `npm run preview` (пишет в `.preview/`)
   shared/parse.ts      YAML + синонимы ключей + диагностика
