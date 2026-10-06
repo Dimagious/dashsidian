@@ -115,8 +115,8 @@ removed public export.
   no key at all, and a block can name its own
   with `date_format: DD.MM.YYYY` (moment notation, matched strictly). It reads
   note names and `date_field` values alike, on `stats` and `progress` (at the
-  root for every card, or on one card), `heatmap`, `chart` and `countdown`;
-  `tiles` follows the settings format for `period`. `YYYY-MM-DD` is still
+  root for every card, or on one card), `heatmap`, `chart`, `countdown`
+  and a `tiles` count badge with `period` (on the tile). `YYYY-MM-DD` is still
   tried first, then `date_format`, then the settings format. A name or a
   value only has to start with the date (`05.10.2026 Monday` and
   `05.10.2026 14:30` count). Month and weekday names are read in Obsidian's

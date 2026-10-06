@@ -31,7 +31,7 @@
         <div class="props" aria-label="Properties">
           <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
           <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>code block</div><div class="v"><code>tiles</code></div></div>
-          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">2 on the block, 11 on each tile</div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">2 on the block, 12 on each tile</div></div>
           <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
         </div>
 
@@ -110,7 +110,7 @@ items:
 
         <h2 id="item-keys">Keys on each tile</h2>
         <p>Each entry under <code>items</code> is one tile.</p>
-        <div class="keys"><a href="#label"><code>label</code></a><a href="#path"><code>path</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#period"><code>period</code></a><a href="#date_field"><code>date_field</code></a><a href="#icon"><code>icon</code></a><a href="#sub"><code>sub</code></a><a href="#badge"><code>badge</code></a><a href="#accent"><code>accent</code></a><a href="#image"><code>image</code></a></div>
+        <div class="keys"><a href="#label"><code>label</code></a><a href="#path"><code>path</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#period"><code>period</code></a><a href="#date_field"><code>date_field</code></a><a href="#date_format"><code>date_format</code></a><a href="#icon"><code>icon</code></a><a href="#sub"><code>sub</code></a><a href="#badge"><code>badge</code></a><a href="#accent"><code>accent</code></a><a href="#image"><code>image</code></a></div>
         <div class="keytab-wrap">
           <table class="keytab">
             <thead><tr><th>Key</th><th>What it does</th><th>Type</th><th>Default</th></tr></thead>
@@ -147,7 +147,13 @@ items:
               </tr>
               <tr id="date_field">
                 <td class="k"><a class="key" href="#date_field"><code>date_field</code></a></td>
-                <td class="d">a date frontmatter property to read instead of the note name for <code>period</code>: <code>2026-03-02</code> or <code>2026-03-02T10:30</code>, or in the Daily notes day format, or a dotted path into a nested property like <code>meta.date</code>; has no effect without <code>period</code></td>
+                <td class="d">a date frontmatter property to read instead of the note name for <code>period</code>: <code>2026-03-02</code> or <code>2026-03-02T10:30</code>, or in <code>date_format</code> or the Daily notes day format, or a dotted path into a nested property like <code>meta.date</code>; has no effect without <code>period</code></td>
+                <td class="t" data-h="type">text</td>
+                <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
+              <tr id="date_format">
+                <td class="k"><a class="key" href="#date_format"><code>date_format</code></a></td>
+                <td class="d">a date format for note names and <code>date_field</code> values not written as <code>YYYY-MM-DD</code>, in moment notation: <code>DD.MM.YYYY</code>, <code>MM/DD/YYYY</code>, <code>YYYYMMDD</code>. Tried after <code>YYYY-MM-DD</code> and before the day format of the Daily notes or Periodic Notes settings, which is read without this key. A name or a value only has to start with the date (<code>05.10.2026 Monday</code> counts); the match is strict, so <code>5.10.2026</code> is no date under <code>DD.MM.YYYY</code>. Needs a year, a month and a day, and warns when no selected note fits it; has no effect without <code>period</code></td>
                 <td class="t" data-h="type">text</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
@@ -189,6 +195,7 @@ items:
         <h2 id="how-it-counts">How it behaves</h2>
         <ul class="notes">
           <li><code>period: note</code> on a <code>badge: count</code> tile counts the notes dated in the day, week, month, quarter or year the name of the note the block sits in stands for: in a note named <code>2026-W40</code>, <code>{ label: Workouts, path: Training, badge: count, period: note }</code> counts that week's workouts. <code>period: 2026-10</code> or <code>period: { from: 2026-09-01, to: 2026-09-30 }</code> names the window outright. A note not named for a period is an error; a window that has not started yet shows no badge and says the day it starts.</li>
+          <li>A <code>badge: count</code> tile with <code>period</code> dates its notes by name, <code>YYYY-MM-DD</code> first, then the day format set in the Daily notes or Periodic Notes settings. Daily notes named another way with no such setting need the tile's own format: <code>{ label: Diary, path: Diary, badge: count, period: week, date_format: DD.MM.YYYY }</code> counts <code>05.10.2026.md</code> and its neighbours of this week.</li>
         </ul>
 
 

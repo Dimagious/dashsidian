@@ -1,6 +1,6 @@
 import type { BlockContext } from "./context";
 import { selectNotes, readSelector, readSource, unmatchedSource } from "../core/source";
-import { readDateField } from "../core/note-date";
+import { readDateField, readDateFormat, unmatchedDateFormat } from "../core/note-date";
 import { readPeriod, filterByPeriod, dateFieldHasEffect, futureStart } from "../core/period";
 import { classifyImage } from "../core/image";
 import { tileTarget, type TileTarget } from "../core/folder-tile";
@@ -86,7 +86,7 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
         const isCountBadge = item.badge === "count" || item.badge === true;
         const hasSelectionKeys =
             item.tag !== undefined || item.where !== undefined ||
-            item.period !== undefined || item.date_field !== undefined;
+            item.period !== undefined || item.date_field !== undefined || item.date_format !== undefined;
 
         const tile: Tile = { label: label || path, accent: item.accent === true };
         // A folder is not a link target: linked as is, it reads as unresolved
@@ -127,21 +127,30 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
             const selected = selectNotes(notes, selection);
 
             const dateField = readDateField(item);
+            // B-174: the tile's own day format for names and `date_field`
+            // values, tried before the settings one, as on a `stats` card.
+            const { format: dateFormat, diagnostics: formatDiags } = readDateFormat(item);
+            diags.push(...formatDiags);
+            const formats = noteDateFormats(ctx.app, dateFormat);
             const { spec: periodSpec, diagnostics: periodDiags, broken } = readPeriod(item, label, dateField, periodCtx);
             diags.push(...periodDiags);
             const startsOn = periodSpec ? futureStart(periodSpec.period, today) : null;
             if (startsOn !== null) notices.push(notStartedNotice(startsOn));
 
             // Only `period` reads a note's date here; there is no `streak`,
-            // `latest` or `trend` on a tile for `date_field` to steer.
+            // `latest` or `trend` on a tile for `date_field` or `date_format` to steer.
             if (dateField && !dateFieldHasEffect(item.period !== undefined)) {
                 diags.push({ level: "warning", message: t("tiles.dateFieldUnused", { card: cardLabel }) });
+            }
+            if (dateFormat !== undefined && item.period === undefined) {
+                diags.push({ level: "warning", message: t("tiles.dateFormatUnused", { card: cardLabel }) });
             }
 
             let counted = selected;
             if (periodSpec) {
+                diags.push(...unmatchedDateFormat(selected, periodSpec.dateField, formats));
                 const windowed = filterByPeriod(
-                    selected, periodSpec.period, today, firstDay, periodSpec.dateField, noteDateFormats(ctx.app),
+                    selected, periodSpec.period, today, firstDay, periodSpec.dateField, formats,
                 );
                 if (selected.length && !windowed.anyDated) {
                     diags.push({
@@ -160,7 +169,7 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
                 tile.badge = { text: String(count), empty: count === 0 };
             }
         } else {
-            // `tag`, `where`, `period` and `date_field` only mean something
+            // `tag`, `where`, `period`, `date_field` and `date_format` only mean something
             // next to `badge: count`; a custom badge never counts anything.
             if (hasSelectionKeys) {
                 diags.push({ level: "warning", message: t("tiles.selectionUnused", { card: cardLabel }) });
