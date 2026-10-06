@@ -1,7 +1,7 @@
 import { Plugin, debounce, type Debouncer } from "obsidian";
 import { DEFAULT_SETTINGS, type DashySettings } from "../types";
 import { applyLocale } from "../adapters/locale";
-import { VaultSnapshot } from "../adapters/vault";
+import { VaultSnapshot, notesPending, whenIndexed } from "../adapters/vault";
 import { mergeSettings } from "../core/settings";
 import { createDayRollover, type DayRollover } from "../core/day-rollover";
 import { buildContext, type BlockContext } from "../blocks/context";
@@ -13,6 +13,7 @@ import { renderStats } from "../blocks/stats";
 import { renderToday } from "../blocks/today";
 import { renderTiles } from "../blocks/tiles";
 import { BlockRefresher } from "./refresh";
+import { IndexGate, gateBlocks } from "./indexing";
 import { RenameTrail } from "./renames";
 import { DashyBlock, type Draw } from "./block";
 import { fenceName, registerBlocks } from "./register";
@@ -41,6 +42,8 @@ export default class DashyPlugin extends Plugin {
     private refresher!: BlockRefresher;
     private scheduled: Debouncer<[], void> | null = null;
     private dayRollover!: DayRollover;
+    /** Holds blocks on a waiting line while Obsidian is still parsing the vault at startup (B-179). */
+    private index!: IndexGate;
     /** Where a note renamed since its blocks were drawn lives now: `period: note` reads its name. */
     private readonly renames = new RenameTrail();
 
@@ -59,10 +62,16 @@ export default class DashyPlugin extends Plugin {
             // and must not vanish without a word either.
             (error) => console.error("[dashy] a block failed to redraw", error),
         );
+        this.index = new IndexGate(
+            () => notesPending(this.app),
+            (done) => whenIndexed(this.app, done),
+            () => this.snapshot.invalidate(),
+            () => this.refresher.refresh(),
+        );
 
         // With Obsidian Charts enabled, `chart` is left to it on purpose (B-137):
         // that is the expected setup, not something to warn about.
-        const { taken, yielded } = registerBlocks(BLOCKS, (name, draw) => {
+        const { taken, yielded } = registerBlocks(gateBlocks(BLOCKS, this.index), (name, draw) => {
             this.registerMarkdownCodeBlockProcessor(name, (source, el, ctx) => {
                 ctx.addChild(new DashyBlock(el, this.refresher, draw, () => this.context(this.renames.current(ctx.sourcePath)), source));
             });
@@ -99,11 +108,12 @@ export default class DashyPlugin extends Plugin {
     /**
      * Redraw whenever the data underneath the blocks moves.
      *
-     * `resolved` is the one that matters most: it fires when the initial
-     * metadata scan finishes, which on a cold start happens well after the
-     * first render. Without it a dashboard opened right after Obsidian starts
-     * keeps showing the numbers of a half-read vault until something else
-     * forces a redraw.
+     * A half-read vault at startup is `IndexGate`'s business (B-179): blocks
+     * that read it wait until Obsidian has parsed every note. `resolved` and
+     * `changed` stay as the fallback that redraws them after a cold index,
+     * alongside the gate's own watch, and they keep the blocks in step with
+     * every edit afterwards. `resolved` fires each time link resolution
+     * drains, not only once.
      *
      * Debounced because indexing fires `changed` once per file, and a large
      * vault would otherwise redraw every block thousands of times.

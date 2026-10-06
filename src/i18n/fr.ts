@@ -15,6 +15,7 @@ export const fr: Catalog = {
     "parse.unknownKeyHint": "Clé inconnue « {key} ». Dans ce bloc, elle s'appelle « {hint} ».",
 
     "render.line": "ligne {line}",
+    "render.indexing": "Obsidian indexe encore le coffre. Le bloc s'affichera une fois l'indexation terminée.",
 
     "bands.hasData": "avec données",
     "bands.from": "à partir de {min}",

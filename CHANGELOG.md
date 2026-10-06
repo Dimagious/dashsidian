@@ -22,6 +22,17 @@ removed public export.
   there. The goal's value, written at the right end of its dashed line, sat
   on top of the last bar and repeated the legend under the chart; it is now
   named in the legend only.
+- **A block opened while Obsidian is still indexing no longer warns about
+  fields that are there.** On a cold start (a vault opened for the first
+  time, or after its cache was cleared) Obsidian lists every note before it
+  has read their frontmatter, and a block drawn in that gap said, for
+  example, that no note in the selection has `sleep_duration` in a vault
+  full of it, until indexing finished and the block redrew. Until Obsidian
+  has parsed every note it found at startup, a block that reads notes now
+  shows "Obsidian is still indexing the vault" instead of numbers and
+  warnings, and draws itself once indexing is done. `today` needs no
+  frontmatter and draws at once. A warm start, with nothing left to parse,
+  draws every block at once as before.
 - **`chart` no longer warns about a single bucket on the first day of the
   week or month.** `range: week` or `range: month` by day warned "The window
   holds a single bucket" whenever only one day of it had passed, though the

@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { Platform, type App } from "obsidian";
-import { snapshot, noteExists, VaultSnapshot, pathKind, revealFolder } from "./vault";
+import { snapshot, noteExists, VaultSnapshot, pathKind, revealFolder, notesPending, whenIndexed } from "./vault";
 import { discoverPeriodics, dailyNoteFormat, noteDateFormats, periodNameFormats, periodContext } from "./periodic";
 import {
     formatDate, currentLocale, weekdayNamesShort, monthNamesShort, firstDayOfWeek, monthYearShort, formatDayMedium,
@@ -577,6 +577,44 @@ describe("locale wiring", () => {
         // `setLocale` lands on English; the dates must not be left in Japanese.
         expect(applyLocale("ja")).toBe("en");
         expect(formatDate(new Date(2026, 0, 15), "MMMM")).toBe("January");
+    });
+});
+
+describe("startup indexing (B-179)", () => {
+    /** An app whose metadata cache carries the given private fields. */
+    function withCache(fields: Record<string, unknown>): App {
+        const app = mockApp();
+        Object.assign(app.metadataCache, fields);
+        return app;
+    }
+
+    it("notes are pending while Obsidian has any queued to parse", () => {
+        const onCleanCache = (): void => undefined;
+        expect(notesPending(withCache({ inProgressTaskCount: 1258, onCleanCache }))).toBe(true);
+        expect(notesPending(withCache({ inProgressTaskCount: 1, onCleanCache }))).toBe(true);
+        expect(notesPending(withCache({ inProgressTaskCount: 0, onCleanCache }))).toBe(false);
+    });
+
+    it("an unexpected shape reads as nothing pending, so blocks draw as before", () => {
+        expect(notesPending(mockApp())).toBe(false);
+        expect(notesPending(withCache({ inProgressTaskCount: 5 })), "no way to wait").toBe(false);
+        expect(notesPending(withCache({ inProgressTaskCount: "5", onCleanCache: () => undefined }))).toBe(false);
+    });
+
+    it("waits through Obsidian's own clean-cache callback", () => {
+        const queued: (() => void)[] = [];
+        const app = withCache({ inProgressTaskCount: 3, onCleanCache: (cb: () => void) => queued.push(cb) });
+        const done = vi.fn();
+        whenIndexed(app, done);
+        expect(done).not.toHaveBeenCalled();
+        queued.forEach((cb) => cb());
+        expect(done).toHaveBeenCalledTimes(1);
+    });
+
+    it("calls back at once when it cannot tell", () => {
+        const done = vi.fn();
+        whenIndexed(mockApp(), done);
+        expect(done).toHaveBeenCalledTimes(1);
     });
 });
 
