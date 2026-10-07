@@ -208,7 +208,7 @@
         },
         "unit": {
           "type": "string",
-          "doc": "a suffix after the number: km, %, d. Ignored, with a warning, on a value shown as a duration, which carries its own units."
+          "doc": "a suffix after the number: km, %, d. Ignored, with a warning, on a value shown as a duration, which carries its own units. The count nouns day, week, month, year, night and time agree with the number: `1 day`, `2 days`; any other unit stays as written."
         },
         "precision": {
           "type": "number",
@@ -368,7 +368,7 @@
         },
         "unit": {
           "type": "string",
-          "doc": "a suffix after the numbers: km, %, d. Ignored, with a warning, on a value shown as a duration, which carries its own units."
+          "doc": "a suffix after the numbers: km, %, d. Ignored, with a warning, on a value shown as a duration, which carries its own units. The count nouns day, week, month, year, night and time agree with the goal: `3 / 1 day`, `10 / 30 days`; any other unit stays as written."
         },
         "precision": {
           "type": "number",

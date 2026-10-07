@@ -25,6 +25,13 @@ describe("progress — the bar says what the number says", () => {
         expect(texts(el, ".dashy-progress-value")[0]).toContain("10 / 40");
     });
 
+    it("a count noun as the unit follows the goal: 10 / 1 time would not read (B-169)", () => {
+        expect(texts(bars("items:\n  - { label: Days, source: Diary, agg: count, goal: 1, unit: times }"), ".dashy-progress-value")[0])
+            .toBe("10 / 1 time 1000%");
+        expect(texts(bars("items:\n  - { label: Days, source: Diary, agg: count, goal: 30, unit: day }"), ".dashy-progress-value")[0])
+            .toBe("10 / 30 days 33%");
+    });
+
     it("a unit follows both numbers, once", () => {
         const el = bars("items:\n  - { label: Run, source: Diary, field: km, agg: sum, goal: 100, unit: km }");
         expect(texts(el, ".dashy-progress-value")[0]).toBe("55 / 100 km 55%");

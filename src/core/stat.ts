@@ -211,6 +211,42 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
 }
 
 /**
+ * English count nouns a `unit` is often written as, singular to plural.
+ *
+ * `unit` is free text, so "km" or "дн." stays as written; these few agree
+ * with the number instead, because "1 days" under a streak of one reads as a
+ * mistake (B-169). Only these: guessing the plural of any word would turn
+ * "1 kms" into "1 km" today and "2 sheep" into "2 sheeps" tomorrow.
+ */
+// Maps, not object literals: the key is the user's own text, and `unit:
+// constructor` must not find Object's constructor on the prototype.
+const COUNT_NOUNS: ReadonlyMap<string, string> = new Map([
+    ["day", "days"],
+    ["week", "weeks"],
+    ["month", "months"],
+    ["year", "years"],
+    ["night", "nights"],
+    ["time", "times"],
+]);
+const SINGULAR_OF: ReadonlyMap<string, string> = new Map(
+    Array.from(COUNT_NOUNS, ([one, many]) => [many, one]),
+);
+
+/**
+ * The unit as it reads after `shown`, the number as drawn: `1 day`,
+ * `2 days`, `1.5 days`. Only a number drawn as exactly one is singular. The
+ * first letter keeps the case it was written in.
+ */
+export function unitFor(unit: string, shown: string): string {
+    const lower = unit.toLowerCase();
+    const one = /^[-\u2212]?1$/.test(shown.trim());
+    const target = one ? SINGULAR_OF.get(lower) : COUNT_NOUNS.get(lower);
+    if (!target) return unit;
+    const capital = unit[0] !== unit[0]?.toLowerCase();
+    return capital ? target.charAt(0).toUpperCase() + target.slice(1) : target;
+}
+
+/**
  * The number as it will be displayed, before grouping: same rounding
  * `formatValue` applies, exposed as a number rather than text.
  *

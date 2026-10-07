@@ -10,6 +10,13 @@ removed public export.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A streak of one day reads "1 day", not "1 days".** In `stats` and
+  `progress`, a `unit` that is one of the count nouns day, week, month,
+  year, night or time now agrees with the number drawn: `1 day`, `2 days`,
+  `1 night`. Any other unit (`km`, `steps`, `дн.`) is shown as written.
+
 ### Changed
 
 - **The agent skill is a way of working, not only a list of keys.** The

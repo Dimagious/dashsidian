@@ -175,8 +175,8 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
         expect(texts(stats, ".dashy-stat-value")).toEqual([
             // 1 to 5 October less the 4th
             "4",
-            // today only: yesterday was skipped
-            "1 days",
+            // today only: yesterday was skipped; one day, not "1 days" (B-169)
+            "1 day",
             // nine days between two skipped ones
             "9 days",
             // all 69 weekdays since 1 July but the vacation day; Saturdays never break it
