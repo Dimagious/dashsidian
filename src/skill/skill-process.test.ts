@@ -113,6 +113,10 @@ const VAULT: FakeVault = {
         ...DIARY,
         ...READING,
         { path: "People/Anna.md", frontmatter: { name: "Anna", birthday: "1991-11-02" } },
+        // One race behind, two ahead, listed out of order (B-170).
+        { path: "Races/2027 Seville Marathon.md", frontmatter: { date: "2027-02-21" } },
+        { path: "Races/2026 Berlin Marathon.md", frontmatter: { date: "2026-09-27" } },
+        { path: "Races/2026 IRONMAN Barcelona.md", frontmatter: { date: "2026-10-18" } },
         { path: "Inbox/idea.md" },
         { path: "Projects/Garden.md" },
     ],
@@ -195,7 +199,9 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
         expect(texts(progress, ".dashy-progress-value")).toEqual(["2 / 24 8%", "820 / 8000 10%"]);
 
         const countdown = render("countdown", birthday?.source ?? "");
-        expect(texts(countdown, ".dashy-countdown-value")).toEqual(["28", "258"]);
+        // The next race is Barcelona, 13 days on; Berlin is behind, Seville further.
+        expect(texts(countdown, ".dashy-countdown-value")).toEqual(["28", "258", "13"]);
+        expect(texts(countdown, ".dashy-countdown-sub")).toEqual(["35 years", "12 years", "2026 IRONMAN Barcelona"]);
     });
 
     it("numeric habits: a sum, a threshold streak and a count compared with last week (B-177)", () => {

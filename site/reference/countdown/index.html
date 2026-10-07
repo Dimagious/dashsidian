@@ -31,7 +31,7 @@
         <div class="props" aria-label="Properties">
           <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
           <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>code block</div><div class="v"><code>countdown</code></div></div>
-          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">3 on the block, 9 on each date</div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>keys</div><div class="v">3 on the block, 10 on each date</div></div>
           <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
         </div>
 
@@ -117,7 +117,7 @@ items:
 
         <h2 id="item-keys">Keys on each date</h2>
         <p>Each entry under <code>items</code> is one date.</p>
-        <div class="keys"><a href="#label"><code>label</code></a><a href="#date"><code>date</code></a><a href="#field"><code>field</code></a><a href="#source"><code>source</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#repeat"><code>repeat</code></a><a href="#icon"><code>icon</code></a><a href="#sub"><code>sub</code></a></div>
+        <div class="keys"><a href="#label"><code>label</code></a><a href="#date"><code>date</code></a><a href="#field"><code>field</code></a><a href="#source"><code>source</code></a><a href="#tag"><code>tag</code></a><a href="#where"><code>where</code></a><a href="#pick"><code>pick</code></a><a href="#repeat"><code>repeat</code></a><a href="#icon"><code>icon</code></a><a href="#sub"><code>sub</code></a></div>
         <div class="keytab-wrap">
           <table class="keytab">
             <thead><tr><th>Key</th><th>What it does</th><th>Type</th><th>Default</th></tr></thead>
@@ -136,7 +136,7 @@ items:
               </tr>
               <tr id="field">
                 <td class="k"><a class="key" href="#field"><code>field</code></a><span class="also">also <code>property</code>, <code>prop</code></span></td>
-                <td class="d">a date property to read the date from instead of writing it: <code>2026-03-02</code>, with or without a time after it, one in the block's <code>date_format</code>, or an Obsidian date property; dotted for a nested one like <code>meta.expires</code>. Read from the newest note in the selection that has it filled in, the way <code>agg: latest</code> picks one: by the date in the note's name, and a note without one, like <code>Passport.md</code>, after every dated note. A value that is not a date, or no note having the property at all, is an error on the card that names it</td>
+                <td class="d">a date property to read the date from instead of writing it: <code>2026-03-02</code>, with or without a time after it, one in the block's <code>date_format</code>, or an Obsidian date property; dotted for a nested one like <code>meta.expires</code>. By default read from the newest note in the selection that has it filled in, the way <code>agg: latest</code> picks one: by the date in the note's name, and a note without one, like <code>Passport.md</code>, after every dated note; <code>pick: next</code> reads every note instead and counts to the soonest date. A value that is not a date, or no note having the property at all, is an error on the card that names it; with <code>pick: next</code> a value that is not a date is skipped with a warning instead</td>
                 <td class="t" data-h="type">text</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
               </tr>
@@ -157,6 +157,12 @@ items:
                 <td class="d">with <code>field</code> only: a condition the note must meet, like <code>type = passport</code>, or several joined with <code>and</code> or written as a list, the same language as on a <code>stats</code> card</td>
                 <td class="t" data-h="type">text or list</td>
                 <td class="v" data-h="default"><span class="none">none</span></td>
+              </tr>
+              <tr id="pick">
+                <td class="k"><a class="key" href="#pick"><code>pick</code></a></td>
+                <td class="d">with <code>field</code> only: which note in the selection the date comes from. <code>latest</code> reads the newest note, as described under <code>field</code>. <code>next</code> reads <code>field</code> in every selected note, dated name or not, and counts to the soonest date from today on, today included, for the next race in a folder of races; the card shows that note's name as its <code>sub</code> unless you write one. With <code>repeat: yearly</code> each note's date moves to its next anniversary first, so a folder of people counts to the next birthday among them. A tie goes to the first note by path. A note whose value is not a date is skipped with a warning naming one; when every date has passed, the card shows an error naming the latest one. Any other value is an error. Next to <code>date</code> a valid value warns and is ignored; an invalid one is an error</td>
+                <td class="t" data-h="type">text</td>
+                <td class="v" data-h="default"><code>latest</code></td>
               </tr>
               <tr id="repeat">
                 <td class="k"><a class="key" href="#repeat"><code>repeat</code></a></td>
@@ -187,6 +193,7 @@ items:
           <li>The day count is whole days, so a daylight saving switch cannot shift it.</li>
           <li>A birthday or an anniversary repeats with <code>repeat: yearly</code>. A date kept in a note, like a passport's expiry, is read with <code>field</code> and stays current when the note changes: <code>{ label: Passport, field: expires, where: &quot;type = passport&quot; }</code>.</li>
           <li>A <code>field</code> written as <code>15.11.2026</code> is read once the block names its format: <code>date_format: DD.MM.YYYY</code> next to <code>items:</code>.</li>
+          <li>The next of many dates, one per note, is <code>pick: next</code>: <code>{ label: Next race, field: date, source: Races, pick: next }</code> counts to the soonest race still ahead in <code>Races</code> and shows that note's name on the card. With <code>repeat: yearly</code> the same card over <code>People</code> counts to the next birthday.</li>
         </ul>
 
 

@@ -468,7 +468,7 @@
         },
         "field": {
           "type": "string",
-          "doc": "a date property to read the date from instead of writing it: `2026-03-02`, with or without a time after it, one in the block's `date_format`, or an Obsidian date property; dotted for a nested one like `meta.expires`. Read from the newest note in the selection that has it filled in, the way `agg: latest` picks one: by the date in the note's name, and a note without one, like `Passport.md`, after every dated note. A value that is not a date, or no note having the property at all, is an error on the card that names it",
+          "doc": "a date property to read the date from instead of writing it: `2026-03-02`, with or without a time after it, one in the block's `date_format`, or an Obsidian date property; dotted for a nested one like `meta.expires`. By default read from the newest note in the selection that has it filled in, the way `agg: latest` picks one: by the date in the note's name, and a note without one, like `Passport.md`, after every dated note; `pick: next` reads every note instead and counts to the soonest date. A value that is not a date, or no note having the property at all, is an error on the card that names it; with `pick: next` a value that is not a date is skipped with a warning instead",
           "aliases": [
             "property",
             "prop"
@@ -489,6 +489,11 @@
         "where": {
           "type": "string|list",
           "doc": "with `field` only: a condition the note must meet, like `type = passport`, or several joined with `and` or written as a list, the same language as on a `stats` card"
+        },
+        "pick": {
+          "type": "string",
+          "default": "latest",
+          "doc": "with `field` only: which note in the selection the date comes from. `latest` reads the newest note, as described under `field`. `next` reads `field` in every selected note, dated name or not, and counts to the soonest date from today on, today included, for the next race in a folder of races; the card shows that note's name as its `sub` unless you write one. With `repeat: yearly` each note's date moves to its next anniversary first, so a folder of people counts to the next birthday among them. A tie goes to the first note by path. A note whose value is not a date is skipped with a warning naming one; when every date has passed, the card shows an error naming the latest one. Any other value is an error. Next to `date` a valid value warns and is ignored; an invalid one is an error"
         },
         "repeat": {
           "type": "string",
@@ -511,7 +516,8 @@
         "A date that has passed is shown too, counting up instead of down. What happened yesterday is still worth seeing.",
         "The day count is whole days, so a daylight saving switch cannot shift it.",
         "A birthday or an anniversary repeats with `repeat: yearly`. A date kept in a note, like a passport's expiry, is read with `field` and stays current when the note changes: `{ label: Passport, field: expires, where: \"type = passport\" }`.",
-        "A `field` written as `15.11.2026` is read once the block names its format: `date_format: DD.MM.YYYY` next to `items:`."
+        "A `field` written as `15.11.2026` is read once the block names its format: `date_format: DD.MM.YYYY` next to `items:`.",
+        "The next of many dates, one per note, is `pick: next`: `{ label: Next race, field: date, source: Races, pick: next }` counts to the soonest race still ahead in `Races` and shows that note's name on the card. With `repeat: yearly` the same card over `People` counts to the next birthday."
       ]
     },
     "heatmap": {

@@ -94,6 +94,13 @@ describe("preview cases", () => {
         expect(labels).toEqual(["goal 7h"]);
     });
 
+    it("the pick: next case counts to the nearest race and warns about the undated one (B-170)", () => {
+        const el = render(CASES.findIndex((c) => c.title.includes("pick: next")));
+        expect(Array.from(el.querySelectorAll(".dashy-countdown-value"), (n) => n.textContent)).toEqual(["12"]);
+        expect(Array.from(el.querySelectorAll(".dashy-countdown-sub"), (n) => n.textContent)).toEqual(["City 10k"]);
+        expect(el.querySelectorAll(".dashy-diag-warning")).toHaveLength(1);
+    });
+
     it("the fake vault has gaps, so a heatmap is not a solid wall", () => {
         const notes = fakeVault().filter((n) => n.folder === "Diary");
         expect(notes.length).toBeLessThan(120);

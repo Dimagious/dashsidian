@@ -8,7 +8,7 @@ import { readField } from "./field";
 import { isRealDate, resolveNoteDate, unmatchedDateFormat, type DateFormats } from "./note-date";
 import { readSource, selectNotes, unmatchedSource, type NoteRecord } from "./source";
 import { describeValue, type Diagnostic } from "../shared/parse";
-import { t } from "../i18n";
+import { t, tPlural } from "../i18n";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -16,12 +16,25 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 export const REPEATS = ["yearly"] as const;
 export type Repeat = (typeof REPEATS)[number];
 
+/**
+ * The values `pick:` takes: which of the notes in a `field` card's selection
+ * the date is read from. `latest`, the default, is the newest note by the
+ * date in its name; `next` is the note whose date comes round soonest.
+ */
+export const PICKS = ["latest", "next"] as const;
+export type CountdownPick = (typeof PICKS)[number];
+
 export interface CountdownSpec {
     /** YYYY-MM-DD, as written in `date` or read from `field` */
     date: string;
     repeat?: Repeat;
     /** path of the note the date was read from, when it came from `field` */
     note?: string;
+    /**
+     * that note's name, set by `pick: next` only: there the note changes as
+     * dates pass, so the card names the one it is counting to
+     */
+    noteName?: string;
 }
 
 export interface CountdownOutcome {
@@ -62,12 +75,17 @@ export function readDateKey(raw: unknown): string | null {
  * Exactly one of the two. Both, or neither, is an error on the card rather
  * than a guess at which one was meant. `notes` is asked for only when the card
  * reads a field, so a block of written dates never walks the vault.
+ *
+ * `today` (YYYY-MM-DD) is needed by `pick: next` alone, to tell the dates
+ * still ahead from those gone by; a caller that reads such a card without it
+ * is a bug, and it throws rather than counting from a wrong day.
  */
 export function readCountdown(
     item: Record<string, unknown>,
     label: string,
     notes: () => readonly NoteRecord[],
     formats?: DateFormats,
+    today?: string,
 ): CountdownOutcome {
     const diagnostics: Diagnostic[] = [];
     const card = label ? `"${label}"` : t("stats.unlabeledCard");
@@ -95,11 +113,27 @@ export function readCountdown(
         repeat = item.repeat;
     }
 
+    let pick: CountdownPick = "latest";
+    if (item.pick !== undefined && item.pick !== null) {
+        if (!isPick(item.pick)) {
+            diagnostics.push({
+                level: "error",
+                message: t("countdown.pickInvalid", { card, value: describeValue(item.pick) }),
+            });
+            return { spec: null, diagnostics };
+        }
+        pick = item.pick;
+    }
+
     if (hasDate) {
         // `source`, `tag` and `where` pick the note a `field` is read from; next
         // to a written date they would be ignored, and silently is the wrong way.
         if (isSet(item.source) || isSet(item.tag) || isSet(item.where)) {
             diagnostics.push({ level: "warning", message: t("countdown.selectionUnused", { card }) });
+        }
+        // `pick` likewise chooses among notes, and a written date has none.
+        if (item.pick !== undefined && item.pick !== null) {
+            diagnostics.push({ level: "warning", message: t("countdown.pickUnused", { card }) });
         }
         const date = readDateKey(item.date);
         if (!date) {
@@ -120,7 +154,13 @@ export function readCountdown(
         return { spec: null, diagnostics };
     }
     const field = item.field.trim();
-    const found = readFieldDate(notes(), item, field, formats);
+    let found: FieldDate & { diagnostics: Diagnostic[] };
+    if (pick === "next") {
+        if (today === undefined) throw new Error("countdown: `pick: next` needs `today`");
+        found = readNextFieldDate(notes(), item, field, formats, today, repeat);
+    } else {
+        found = readFieldDate(notes(), item, field, formats);
+    }
     diagnostics.push(...found.diagnostics);
 
     if (found.kind === "missing") {
@@ -139,7 +179,27 @@ export function readCountdown(
         });
         return { spec: null, diagnostics };
     }
-    return { spec: withRepeat({ date: found.date, note: found.note.path }, repeat), diagnostics };
+    if (found.skipped) {
+        diagnostics.push({
+            level: "warning",
+            message: tPlural("countdown.pickSkipped", found.skipped.count, {
+                card,
+                field,
+                note: found.skipped.note.name,
+                value: describeValue(found.skipped.value),
+            }),
+        });
+    }
+    if (found.kind === "past") {
+        diagnostics.push({
+            level: "error",
+            message: t("countdown.nothingAhead", { card, field, date: found.date, note: found.note.name }),
+        });
+        return { spec: null, diagnostics };
+    }
+    const spec: CountdownSpec = { date: found.date, note: found.note.path };
+    if (pick === "next") spec.noteName = found.note.name;
+    return { spec: withRepeat(spec, repeat), diagnostics };
 }
 
 /** Present and not blank: an empty `date:` is a key with nothing in it, not a date. */
@@ -151,14 +211,43 @@ function isRepeat(value: unknown): value is Repeat {
     return typeof value === "string" && (REPEATS as readonly string[]).includes(value);
 }
 
+function isPick(value: unknown): value is CountdownPick {
+    return typeof value === "string" && (PICKS as readonly string[]).includes(value);
+}
+
 function withRepeat(spec: CountdownSpec, repeat: Repeat | undefined): CountdownSpec {
     return repeat ? { ...spec, repeat } : spec;
 }
 
+/** A note whose `field` held something other than a date, and how many such were passed over. */
+interface Skipped {
+    count: number;
+    note: NoteRecord;
+    value: unknown;
+}
+
 type FieldDate =
-    | { kind: "ok"; date: string; note: NoteRecord }
+    | { kind: "ok"; date: string; note: NoteRecord; skipped?: Skipped }
     | { kind: "invalid"; value: unknown; note: NoteRecord }
+    /** `pick: next` found dates, all of them gone by; the latest of them */
+    | { kind: "past"; date: string; note: NoteRecord; skipped?: Skipped }
     | { kind: "missing" };
+
+/** The notes a `field` card selects, with what the selection had to say about itself. */
+function selectForField(
+    all: readonly NoteRecord[],
+    item: Record<string, unknown>,
+    field: string,
+    formats: DateFormats | undefined,
+): { selected: NoteRecord[]; diagnostics: Diagnostic[] } {
+    const { spec: source, diagnostics } = readSource(item);
+    const missing = unmatchedSource(all, source);
+    if (missing) diagnostics.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
+
+    const selected = selectNotes(all, source);
+    diagnostics.push(...unmatchedDateFormat(selected, field, formats));
+    return { selected, diagnostics };
+}
 
 /**
  * The date a card's `field` holds, from the newest note in its selection that
@@ -180,12 +269,7 @@ function readFieldDate(
     field: string,
     formats: DateFormats | undefined,
 ): FieldDate & { diagnostics: Diagnostic[] } {
-    const { spec: source, diagnostics } = readSource(item);
-    const missing = unmatchedSource(all, source);
-    if (missing) diagnostics.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
-
-    const selected = selectNotes(all, source);
-    diagnostics.push(...unmatchedDateFormat(selected, field, formats));
+    const { selected, diagnostics } = selectForField(all, item, field, formats);
     const dated = newestFirst(selected, undefined, formats);
     const datedSet = new Set(dated);
     const undated = selected
@@ -203,6 +287,63 @@ function readFieldDate(
             : { kind: "invalid", value, note, diagnostics };
     }
     return { kind: "missing", diagnostics };
+}
+
+/**
+ * `pick: next`: the note in the selection whose date comes round soonest,
+ * today included.
+ *
+ * Every selected note with the field filled in takes part, dated name or
+ * not, and the order of the names does not matter. Each date goes through
+ * `countdownTarget` first, so with `repeat: yearly` a folder of people counts
+ * to the next birthday among them. A tie goes to the first note by path.
+ *
+ * A value that is not a date is skipped here, unlike with `latest`: one
+ * stray note in a folder of races must not take the card down. The first
+ * skipped note and the count are reported, also when nothing is ahead. When there are dates and none is
+ * still ahead, the card says so and names the latest, rather than counting
+ * up from it: "the next race" was 40 days ago is not an answer.
+ */
+function readNextFieldDate(
+    all: readonly NoteRecord[],
+    item: Record<string, unknown>,
+    field: string,
+    formats: DateFormats | undefined,
+    today: string,
+    repeat: Repeat | undefined,
+): FieldDate & { diagnostics: Diagnostic[] } {
+    const { selected, diagnostics } = selectForField(all, item, field, formats);
+    const byPath = [...selected].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+
+    let next: { target: string; date: string; note: NoteRecord } | undefined;
+    let latest: { date: string; note: NoteRecord } | undefined;
+    let skipped: Skipped | undefined;
+
+    for (const note of byPath) {
+        const value = readField(note.frontmatter, field);
+        if (!isSet(value)) continue;
+        const date = resolveNoteDate(note, field, formats);
+        if (!date) {
+            if (skipped) skipped.count += 1;
+            else skipped = { count: 1, note, value };
+            continue;
+        }
+        const target = countdownTarget(withRepeat({ date }, repeat), today).date;
+        if (target >= today && (!next || target < next.target)) next = { target, date, note };
+        if (!latest || date > latest.date) latest = { date, note };
+    }
+
+    if (!latest) {
+        // Filled in everywhere with something that is not a date: the same
+        // error `latest` gives, since there is no date to skip to.
+        return skipped
+            ? { kind: "invalid", value: skipped.value, note: skipped.note, diagnostics }
+            : { kind: "missing", diagnostics };
+    }
+    const found: FieldDate = next
+        ? { kind: "ok", date: next.date, note: next.note }
+        : { kind: "past", date: latest.date, note: latest.note };
+    return skipped ? { ...found, skipped, diagnostics } : { ...found, diagnostics };
 }
 
 /**

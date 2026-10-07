@@ -266,6 +266,7 @@ data is there.
 | a number: a count, a sum, an average, a streak | \`stats\` |
 | how far along a goal is | \`progress\`, with \`goal\` |
 | days until or since a date, the next birthday | \`countdown\`, \`repeat: yearly\` for a birthday |
+| days until the next of many events, one note each (races, trips) | \`countdown\` with \`field\` and \`pick: next\` |
 | today's date with links to the daily, weekly, monthly note | \`today\` |
 | a grid of links to folders or notes | \`tiles\` |
 | a year of days coloured by a value, a habit year | \`heatmap\` |
@@ -380,12 +381,14 @@ items:
   - { label: Pages this year, field: pages, agg: sum, goal: 8000 }
 \`\`\`
 
-The next birthday, read from a person's note, and a written date:
+The next birthday, read from a person's note, a written date, and the next
+race among the notes in \`Races\`, each with its date in a \`date\` property:
 
 \`\`\`countdown
 items:
   - { label: Anna, field: birthday, repeat: yearly, source: People, where: "name = Anna" }
   - { label: Our wedding, date: 2015-06-20, repeat: yearly }
+  - { label: Next race, field: date, source: Races, pick: next }
 \`\`\`
 
 A home page: today's notes and a grid of folders with note counts:

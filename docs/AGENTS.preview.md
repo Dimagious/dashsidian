@@ -62,6 +62,7 @@ data is there.
 | a number: a count, a sum, an average, a streak | `stats` |
 | how far along a goal is | `progress`, with `goal` |
 | days until or since a date, the next birthday | `countdown`, `repeat: yearly` for a birthday |
+| days until the next of many events, one note each (races, trips) | `countdown` with `field` and `pick: next` |
 | today's date with links to the daily, weekly, monthly note | `today` |
 | a grid of links to folders or notes | `tiles` |
 | a year of days coloured by a value, a habit year | `heatmap` |
@@ -176,12 +177,14 @@ items:
   - { label: Pages this year, field: pages, agg: sum, goal: 8000 }
 ```
 
-The next birthday, read from a person's note, and a written date:
+The next birthday, read from a person's note, a written date, and the next
+race among the notes in `Races`, each with its date in a `date` property:
 
 ```countdown
 items:
   - { label: Anna, field: birthday, repeat: yearly, source: People, where: "name = Anna" }
   - { label: Our wedding, date: 2015-06-20, repeat: yearly }
+  - { label: Next race, field: date, source: Races, pick: next }
 ```
 
 A home page: today's notes and a grid of folders with note counts:
@@ -456,10 +459,11 @@ Cards counting the days to a date.
 |---|---|---|---|---|---|
 | `label` | string | yes | — | `title`, `name` | what the date is |
 | `date` | string | — | — | — | the date itself, YYYY-MM-DD. Required unless `field` is set, and not allowed together with it: exactly one of the two |
-| `field` | string | — | — | `property`, `prop` | a date property to read the date from instead of writing it: `2026-03-02`, with or without a time after it, one in the block's `date_format`, or an Obsidian date property; dotted for a nested one like `meta.expires`. Read from the newest note in the selection that has it filled in, the way `agg: latest` picks one: by the date in the note's name, and a note without one, like `Passport.md`, after every dated note. A value that is not a date, or no note having the property at all, is an error on the card that names it |
+| `field` | string | — | — | `property`, `prop` | a date property to read the date from instead of writing it: `2026-03-02`, with or without a time after it, one in the block's `date_format`, or an Obsidian date property; dotted for a nested one like `meta.expires`. By default read from the newest note in the selection that has it filled in, the way `agg: latest` picks one: by the date in the note's name, and a note without one, like `Passport.md`, after every dated note; `pick: next` reads every note instead and counts to the soonest date. A value that is not a date, or no note having the property at all, is an error on the card that names it; with `pick: next` a value that is not a date is skipped with a warning instead |
 | `source` | string | — | — | `folder`, `from` | with `field` only: folder to look for the note in; includes nested ones. Without it, the whole vault |
 | `tag` | string | — | — | — | with `field` only: tag the note carries, with or without the hash |
 | `where` | string\|list | — | — | — | with `field` only: a condition the note must meet, like `type = passport`, or several joined with `and` or written as a list, the same language as on a `stats` card |
+| `pick` | string | — | `latest` | — | with `field` only: which note in the selection the date comes from. `latest` reads the newest note, as described under `field`. `next` reads `field` in every selected note, dated name or not, and counts to the soonest date from today on, today included, for the next race in a folder of races; the card shows that note's name as its `sub` unless you write one. With `repeat: yearly` each note's date moves to its next anniversary first, so a folder of people counts to the next birthday among them. A tie goes to the first note by path. A note whose value is not a date is skipped with a warning naming one; when every date has passed, the card shows an error naming the latest one. Any other value is an error. Next to `date` a valid value warns and is ignored; an invalid one is an error |
 | `repeat` | string | — | — | — | `yearly` counts to the next time the date's month and day come round, today included, for a birthday or an anniversary, and shows how many years that one is: `37 years`. 29 February falls on the 28th in a year without one. A date still ahead counts to itself, with no years shown. Works with `date` and `field` alike; any other value is an error |
 | `icon` | string | — | — | `emoji` | emoji |
 | `sub` | string | — | — | — | small caption under the label; with `repeat: yearly` it comes before the years |
@@ -480,6 +484,7 @@ items:
 - The day count is whole days, so a daylight saving switch cannot shift it.
 - A birthday or an anniversary repeats with `repeat: yearly`. A date kept in a note, like a passport's expiry, is read with `field` and stays current when the note changes: `{ label: Passport, field: expires, where: "type = passport" }`.
 - A `field` written as `15.11.2026` is read once the block names its format: `date_format: DD.MM.YYYY` next to `items:`.
+- The next of many dates, one per note, is `pick: next`: `{ label: Next race, field: date, source: Races, pick: next }` counts to the soonest race still ahead in `Races` and shows that note's name on the card. With `repeat: yearly` the same card over `People` counts to the next birthday.
 
 ### `heatmap`
 
