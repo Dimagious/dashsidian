@@ -59,6 +59,7 @@
             <li><a href="#tiles">Tiles for your folders</a></li>
             <li><a href="#coming">What is coming up</a></li>
             <li><a href="#full">The whole note</a></li>
+            <li><a href="#ask-your-agent">Ask your agent</a></li>
             <li><a href="#other-ways">With dataviewjs</a></li>
             <li><a href="#variations">Variations</a></li>
             <li><a href="#errors">If a block shows an error</a></li>
@@ -181,6 +182,15 @@ items:
           <div class="callout-title"><svg><use href="#i-info"/></svg>Opening it when Obsidian starts</div>
           <p>Dashy draws the note; it does not choose which note Obsidian opens first. If the Homepage plugin does that for you, keep it and point it at <code>Home.md</code>.</p>
         </div>
+
+        <!-- ============ ask your agent ============ -->
+        <h2 id="ask-your-agent" data-short="Ask your agent">Ask your agent</h2>
+        <p>With Dashy's skill installed, an AI agent can write this from a request in plain words: it looks at your property names and folders first, then writes the blocks. Open the note in Reading view and paste any error a block shows back to the agent.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span>Prompt</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">Make a new note called Home my home page. Put the time and today's date at the top, with links to my daily and weekly notes. Then a line of counts (all my notes, notes in the inbox, diary days this month, books read this year), a tile for each of my main folders with how many notes it holds (for the Diary, only this week's), and the days left until my holiday on 20 January, Anna's birthday and my passport expiry.</code></pre>
+        </div>
+        <p>What comes back is something like the note above. The agent's YAML may differ from the guide's, with your own property names and labels, but it should do the same, and this guide is the reference to compare it against. <a href="../ai-agent-dashboard/">More on working with an agent</a>.</p>
 
         <!-- ============ other ways ============ -->
         <h2 id="other-ways" data-short="With dataviewjs">The same home note with dataviewjs</h2>

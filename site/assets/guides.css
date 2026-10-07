@@ -28,7 +28,9 @@ h2.step .n {
 .codeblock .bar .file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .codeblock.other { background: var(--bg-2); border-style: dashed; border-color: var(--border-strong); }
 .codeblock.other .bar { color: var(--muted); }
-pre code.plain { color: var(--text); }
+/* a prompt is prose a reader has to read in full, so it wraps instead of scrolling */
+pre code.plain { color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.codeblock:has(code.plain) + p { margin-top: 14px; }
 
 /* key notes under a block: key on the left, plain words on the right */
 .keynotes { list-style: none; padding: 0; margin: 14px 0 0; border-top: 1px solid var(--border); }
