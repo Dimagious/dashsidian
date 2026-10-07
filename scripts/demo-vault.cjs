@@ -16,7 +16,6 @@ const key = (d) =>
     [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
 
 // Knobs the snippets on the site have to match, kept in one place.
-const HERO_RANGE = "182d";
 const SERIES_RANGE = "";
 const STREAK_COLUMNS = "2";
 
@@ -561,37 +560,6 @@ items:
 source: Diary
 field: sleep_score
 layers: [sleep_score]
-\`\`\`
-`);
-
-    // The opening picture of the README and the site: a week of training and
-    // a year of sleep on one page, the way someone would actually keep it.
-    fs.writeFileSync(path.join(out, "Training.md"), `\`\`\`stats
-columns: 4
-items:
-  - { label: Sleep this week, source: Diary, field: sleep, agg: avg, period: week, compare: true, better: up, icon: 🌙 }
-  - { label: Days in a row, source: Diary, field: meditate, agg: current_streak, unit: days, icon: 🔥 }
-  - { label: Run this week, source: Diary, field: run_km, agg: sum, period: week, compare: true, better: up, unit: km, icon: 🏃 }
-  - { label: Gym days, source: Diary, field: gym, agg: sum, period: month, icon: 🏋️ }
-\`\`\`
-
-\`\`\`chart
-source: Diary
-field: run_km
-type: bar
-bucket: week
-unit: km
-goal: 30
-title: Running, last six months
-\`\`\`
-
-\`\`\`heatmap
-source: Diary
-field: sleep
-color: purple
-bands: [8h, 7h, 6h]
-range: ${HERO_RANGE}
-title: Sleep
 \`\`\`
 `);
 

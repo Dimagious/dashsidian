@@ -191,18 +191,6 @@ for (const theme of ["obsidian", "moonstone"] as const) {
         await setUp(win, theme);
         const view = win.locator(READING_VIEW);
 
-        // The opening picture: the whole window, cut under the last block
-        // rather than mid-card, with the note's title in it.
-        await openNote(win, "Training.md", ".dashy-chart-svg");
-        const heat = await view.locator(".block-language-heatmap").last().boundingBox();
-        if (!heat) throw new Error("capture: the hero heatmap is not on screen");
-        const heroBottom = heat.y + heat.height + 24;
-        if (heroBottom > HEIGHT) throw new Error(`capture: the hero runs to ${Math.round(heroBottom)}px, past the window`);
-        await win.screenshot({
-            path: path.join(SHOTS, `hero-${suffix}.png`),
-            clip: { x: 0, y: 0, width: WIDTH, height: Math.round(heroBottom) },
-        });
-
         await openNote(win, "Charts.md", ".dashy-chart-svg");
         const crops: [string, import("@playwright/test").Locator][] = [
             ["chart-weekly", view.locator(".dashy-chart").nth(0)],
