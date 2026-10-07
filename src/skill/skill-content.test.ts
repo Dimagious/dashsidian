@@ -186,7 +186,9 @@ describe("the skill is a process file and a reference file (B-164)", () => {
     it("SKILL.md links reference.md and tells the agent to read the block's section first", () => {
         expect(SKILL_MARKDOWN).toContain(
             "Key tables for every block are in [reference.md](reference.md); "
-            + "read the section of the block you are about to write before writing it.",
+            + "read the section of the block you are about to write before writing it, "
+            + "and the \"Keys shared by several blocks\" section at its top, "
+            + "where `where`, `date_field` and `date_format` are explained once.",
         );
     });
 
@@ -225,5 +227,76 @@ describe("the skill is a process file and a reference file (B-164)", () => {
         expect(COMBINED_MARKDOWN).not.toContain("reference.md");
         expect(COMBINED_MARKDOWN).toContain("Key tables for every block are in the block reference below");
         expect(COMBINED_MARKDOWN.startsWith("---")).toBe(false);
+    });
+});
+
+/**
+ * B-177: a key doc repeated across blocks (`where`, `date_field`,
+ * `date_format`) is printed once, in its own section near the top of the
+ * reference, and each block's row points there and keeps what is its own.
+ * Nothing the schema says may be lost on the way.
+ */
+describe("the reference prints a key doc shared by several blocks once (B-177)", () => {
+    const TITLE = "### Keys shared by several blocks";
+    const section = REFERENCE_MARKDOWN.split(TITLE)[1]?.split("\n### ")[0] ?? "";
+
+    /** The sentences of a doc, split after a full stop and a space outside backticks. */
+    function sentences(doc: string): string[] {
+        const out: string[] = [];
+        let tick = false;
+        let start = 0;
+        for (let i = 0; i < doc.length; i++) {
+            if (doc[i] === "`") tick = !tick;
+            else if (!tick && doc[i] === "." && doc[i + 1] === " ") {
+                out.push(doc.slice(start, i));
+                start = i + 2;
+            }
+        }
+        out.push(doc.slice(start).replace(/\.$/, ""));
+        return out;
+    }
+
+    const cell = (text: string): string => text.replace(/\|/g, "\\|");
+
+    it("sits before the first block and names where, date_field and date_format", () => {
+        expect(REFERENCE_MARKDOWN.indexOf(TITLE)).toBeGreaterThan(0);
+        expect(REFERENCE_MARKDOWN.indexOf(TITLE)).toBeLessThan(REFERENCE_MARKDOWN.indexOf("### `tiles`"));
+        const keys = Array.from(section.matchAll(/^\| `([a-z_]+)` \|/gm), (m) => m[1]);
+        expect(keys).toEqual(["where", "date_field", "date_format"]);
+    });
+
+    it("prints the shared text once, and each block that shares it points to it", () => {
+        const where = "`or` is not supported; quote a value holding the word `and` or `or`";
+        expect(REFERENCE_MARKDOWN.split(where).length - 1).toBe(1);
+        // Five places share `where`; each keeps its own last sentence.
+        expect(REFERENCE_MARKDOWN.split("Same as `where` in Keys shared by several blocks").length - 1).toBe(5);
+        expect(REFERENCE_MARKDOWN).toContain(
+            "Same as `where` in Keys shared by several blocks; here also: One unreadable condition drops "
+            + "the whole filter with a warning, and the grid is drawn unfiltered",
+        );
+        // `stats` keeps the sentence the other blocks do not have.
+        expect(REFERENCE_MARKDOWN).toContain(
+            "Same as `date_format` in Keys shared by several blocks; here also: Steers the same readings `date_field` does",
+        );
+        // A block whose doc says something else is left whole: the root's
+        // "conditions every card must meet" is not a card's `where`.
+        expect(REFERENCE_MARKDOWN).toContain("conditions every card must meet, written like a card's `where`");
+    });
+
+    it("loses no sentence of any key doc in the schema", () => {
+        const blocks = schema.blocks as Record<string, Record<string, Record<string, { doc: string }> | undefined>>;
+        for (const [name, block] of Object.entries(blocks)) {
+            for (const level of ["root", "item"]) {
+                for (const [key, f] of Object.entries(block[level] ?? {})) {
+                    for (const sentence of sentences(f.doc)) {
+                        expect(REFERENCE_MARKDOWN, `${name} ${level} ${key}: ${sentence}`).toContain(cell(sentence));
+                    }
+                }
+            }
+        }
+    });
+
+    it("AGENTS.md carries the same section", () => {
+        expect(AGENTS_SECTION).toContain(section);
     });
 });

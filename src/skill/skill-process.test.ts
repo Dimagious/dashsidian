@@ -86,7 +86,10 @@ function fencedBlocks(markdown: string): { lang: string; source: string }[] {
  * Diary notes from Wednesday 1 July to today: 97 days, every habit the
  * recipes name. Gym is skipped on every day ending in 5 (index 5, 15, ...,
  * 95 = 4 October); deep work only on Saturdays; day 40 (Monday 10 August)
- * is a vacation day.
+ * is a vacation day. Steps stay under 10 000 on every day ending in 2 (the
+ * last one 1 October), sleep under 80 every ninth day from index 4, and
+ * reading reaches 20 minutes every other day from index 0 and also on
+ * Sunday 4 October.
  */
 const DIARY = diary("Diary", "2026-07-01", 97, (i) => ({
     gym: i % 10 !== 5,
@@ -94,6 +97,9 @@ const DIARY = diary("Diary", "2026-07-01", 97, (i) => ({
     read: i % 3 === 0,
     run_km: 4 + (i % 5),
     vacation: i === 40,
+    steps: i % 10 === 2 ? 7000 : 12000,
+    sleep_score: i % 9 === 4 ? 70 : 85,
+    read_min: i % 2 === 0 || i === 95 ? 30 : 10,
 }));
 
 const READING: FakeNote[] = [
@@ -126,7 +132,7 @@ const RECIPES = fencedBlocks(SKILL_MARKDOWN);
 describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
     it("SKILL.md carries the recipes, one per site guide and the month calendar", () => {
         expect(RECIPES.map((r) => r.lang)).toEqual([
-            "stats", "heatmap", "heatmap", "chart", "progress", "countdown", "today", "tiles",
+            "stats", "stats", "stats", "heatmap", "heatmap", "chart", "progress", "countdown", "today", "tiles",
         ]);
     });
 
@@ -168,7 +174,7 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
     });
 
     it("the recipes draw the numbers their captions promise", () => {
-        const [habits, , , , goal, birthday] = RECIPES;
+        const [habits, , , , , , goal, birthday] = RECIPES;
         const stats = render("stats", habits?.source ?? "");
         expect(texts(stats, ".dashy-stat-label"))
             .toEqual(["Gym this month", "Days in a row", "Best streak", "Workdays in a row"]);
@@ -190,6 +196,51 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
 
         const countdown = render("countdown", birthday?.source ?? "");
         expect(texts(countdown, ".dashy-countdown-value")).toEqual(["28", "258"]);
+    });
+
+    it("numeric habits: a sum, a threshold streak and a count compared with last week (B-177)", () => {
+        const numbers = render("stats", RECIPES[1]?.source ?? "");
+        expect(texts(numbers, ".dashy-stat-label")).toEqual(["Steps this week", "10k steps in a row", "Days read 20+ min"]);
+        expect(texts(numbers, ".dashy-stat-value")).toEqual([
+            // The week starts on Sunday in English: 4 and 5 October, 12 000 each.
+            "24\u202f000",
+            // 2 to 5 October; 1 October stayed under 10 000.
+            "4 days",
+            // 4 and 5 October; of 27 and 28 September only the 27th.
+            "2",
+        ]);
+        // The count's delta against the same days last week.
+        expect(texts(numbers, ".dashy-stat-delta")).toEqual(["▲ +1"]);
+        expect(numbers.querySelector(".dashy-stat-delta")?.getAttribute("title")).toBe("vs the same days last week: 1");
+    });
+
+    it("two conditions: a day `where` leaves out ends the run, it does not bridge it (B-177)", () => {
+        const source = RECIPES[2]?.source ?? "";
+        // 15 to 22 July: 10 000 steps and sleep 80+, between the short sleep
+        // on 14 July and the short steps on 23 July.
+        expect(texts(render("stats", source), ".dashy-stat-value")).toEqual(["8 days"]);
+        // Steps alone run nine days, 14 to 22 July among them: it is the
+        // short sleep `where` leaves out that cuts the run to eight.
+        const stepsOnly = source.replace('where: "sleep_score >= 80"\n', "");
+        expect(stepsOnly).not.toContain("where");
+        expect(texts(render("stats", stepsOnly), ".dashy-stat-value")).toEqual(["9 days"]);
+    });
+
+    it("a heatmap draws a grid only for a year in which some note holds the field (B-177)", () => {
+        const el = host();
+        const vault: FakeVault = {
+            notes: [
+                ...DIARY,
+                // 2023: one with it ticked; 2024: a note without `gym` at all,
+                // so a gap year; 2025: one with it unticked.
+                { path: "Diary/2023-03-01.md", frontmatter: { gym: true } },
+                { path: "Diary/2024-03-01.md", frontmatter: { other: 1 } },
+                { path: "Diary/2025-03-01.md", frontmatter: { gym: false } },
+            ],
+        };
+        renderHeatmap(mockContext(vault), "source: Diary\nfield: gym", el);
+        const grids = Array.from(el.querySelectorAll("[data-grid-key]"), (n) => n.getAttribute("data-grid-key"));
+        expect(grids).toEqual(["2026", "2025", "2023"]);
     });
 
     it("the same check catches a key the plugin does not have", () => {

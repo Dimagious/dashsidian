@@ -21,7 +21,7 @@ fenced code blocks, YAML inside, no JavaScript and no Dataview. You write the
 blocks, the user asks and reviews. You cannot see the rendered note, so the
 work goes: look, pick, write, check.
 
-Key tables for every block are in [reference.md](reference.md); read the section of the block you are about to write before writing it.
+Key tables for every block are in [reference.md](reference.md); read the section of the block you are about to write before writing it, and the "Keys shared by several blocks" section at its top, where `where`, `date_field` and `date_format` are explained once.
 
 ## 1. Look before writing
 
@@ -33,12 +33,16 @@ About, Override config folder.
 - `<configDir>/types.json`: the vault's property names and their types
   (`checkbox`, `number`, `date`).
 - `<configDir>/daily-notes.json` (core Daily notes: `folder`, `format`) and,
-  if present, `<configDir>/plugins/periodic-notes/data.json` (`daily`,
-  `weekly`, `monthly`, each with `folder` and `format`; version 1.x
-  keeps them under `calendarSets`, in the set `activeCalendarSet` names,
-  and when the file holds both shapes, the installed version in
-  `plugins/periodic-notes/manifest.json` decides). The `today` block links
-  the notes they describe; Periodic Notes wins over Daily notes.
+  if present, `<configDir>/plugins/periodic-notes/data.json`: version 0.x
+  keeps `daily`, `weekly`, `monthly`, each with `enabled`, `folder`
+  and `format`; version 1.x keeps `day`, `week`, `month` under
+  `calendarSets`, in the set `activeCalendarSet` names (else the first).
+  When the file holds both shapes, the installed version in
+  `plugins/periodic-notes/manifest.json` decides. The `today` block links
+  the notes they describe, the daily note from Periodic Notes when its day is
+  switched on there, otherwise from Daily notes. A week named in
+  `gggg-[W]ww` is a locale week, read in Obsidian's interface language;
+  `GGGG-[W]WW` is the ISO week.
 - `<configDir>/plugins/dashsidian/data.json`: Dashy's own settings.
   `dailyFolder`, `weeklyFolder` and `monthlyFolder`, when not empty,
   replace the folders above; `startDayHour` (0 to 6) moves the start of
@@ -54,6 +58,13 @@ Then settle how a note's date is known. A name starting with `YYYY-MM-DD`
 streaks, `chart` and `heatmap` find no dates. Daily notes named in
 another format (`02.03.2026`) are read by the format set in Daily notes or
 Periodic Notes; if neither names it, write it: `date_format: DD.MM.YYYY`.
+
+If the vault lacks what the block needs (no note for the coming race, no
+property for the habit), say so before writing: ask for the date, or offer
+the property to add to their notes, with its type. Do not leave a block
+that draws an error as a placeholder. Write it anyway only when the
+user asks for that after hearing it will show an error or a dash until the
+data is there.
 
 ## 2. Pick the block
 
@@ -82,6 +93,10 @@ with the same keys.
   (`source`, `tag`, `where`, `period`, `date_field`) once on the block
   root. Every card inherits it; a card's own value replaces the root's, and a
   card's `where` narrows the root's further.
+- No `period` value means all time, so a card cannot leave the root's
+  window: a card that must count all time, like `current_streak` in a
+  weekly review with `period: note` at the root, goes in a block of its
+  own without `period`.
 - Quote a value holding a colon, a comma or a hash:
   `label: "Home: entry"`, `label: "Books, read"`.
 - Write titles and labels in the language the user writes to you in.
@@ -105,6 +120,30 @@ items:
   - { label: Workdays in a row, field: deep_work, agg: current_streak, days: weekdays, skip_field: vacation, unit: days }
 ```
 
+Habits kept as numbers in the same notes: `sum` adds them up, `at_least`
+counts a day towards a streak only from that value up, and `compare` on a
+`count` sets this week's days against last week's, to date:
+
+```stats
+source: Diary
+columns: 3
+items:
+  - { label: Steps this week, field: steps, agg: sum, period: week }
+  - { label: 10k steps in a row, field: steps, agg: current_streak, at_least: 10000, unit: days }
+  - { label: Days read 20+ min, agg: count, where: "read_min >= 20", period: week, compare: true, better: up }
+```
+
+A streak over two conditions, 10 000 steps and a sleep score of 80 or more:
+`where` keeps only the days that pass the second, and a day it leaves out
+ends the run the way a day under 10 000 steps does:
+
+```stats
+source: Diary
+where: "sleep_score >= 80"
+items:
+  - { label: Best run of 10k steps and sleep 80+, field: steps, agg: streak, at_least: 10000, unit: days }
+```
+
 Two activities on one heatmap, then one habit as this month's calendar:
 
 ```heatmap
@@ -121,6 +160,10 @@ field: gym
 range: month
 layout: calendar
 ```
+
+Without `range`, a heatmap draws a grid for each year up to this one in
+which some note holds the field, so a year with none gets no grid;
+`range: year` draws this year alone.
 
 Kilometres per week as bars with a goal:
 
@@ -181,5 +224,7 @@ ask for its text and fix the block from it rather than guessing.
 ## 6. When Dashy cannot do it
 
 If the request is on the list under "What the plugin does NOT do" in
-reference.md, say so and name what does the job. Do not improvise
-DataviewJS, and do not invent a block or a key.
+reference.md, say that Dashy does not draw it and name what does the job.
+Write nothing for that part: write DataviewJS or another plugin's block only if the user
+asks for it after that, even when the vault already holds an example to copy.
+Do not invent a block or a key.
