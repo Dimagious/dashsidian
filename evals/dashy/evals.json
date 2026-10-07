@@ -1,0 +1,180 @@
+{
+  "skill_name": "dashy",
+  "vault": "the demo vault built by scripts/demo-vault.cjs (dates end today; Obsidian Charts not enabled, so a chart is written as `chart`)",
+  "common_expectations": [
+    "[script] Every Dashy block the agent wrote parses and renders against the demo vault with zero errors and zero warnings",
+    "[script] Every key in every Dashy block is a canonical key of that block at the level it is written (no synonyms, no invented keys)",
+    "[script] No `dataviewjs` or `dataview` block was written",
+    "[script] No note other than the one the prompt names was created or changed",
+    "[judge] The final reply asks the user to open the note in Reading view and to paste the text of any error a block shows"
+  ],
+  "evals": [
+    {
+      "id": 1,
+      "name": "books-goal",
+      "prompt": "Count the books I finished this year in my Reading folder against a goal of 24. Put it in a new note called Books goal.",
+      "expected_output": "A progress bar over the Reading folder, dated by `date_read`, this year, goal 24. (The vault holds two book logs, Books and Reading; an unnamed request makes a good agent ask which, so the prompt names the folder.)",
+      "files": [],
+      "expectations": [
+        "[script] Books goal.md holds a `progress` block",
+        "[script] The block selects `source: Reading` with `date_field: date_read` and `period: year`",
+        "[script] The bar counts notes (`agg: count`) against `goal: 24`",
+        "[script] The rendered bar reads `N / 24` with N greater than 0"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "sleep-30d-and-weekly-chart",
+      "prompt": "Show my average sleep over the last 30 days and a chart of it by week, in a new note called Sleep check.",
+      "expected_output": "A stats card averaging the `sleep` duration over 30d (drawn as hours and minutes), and a chart of `sleep` with `bucket: week`.",
+      "files": [],
+      "expectations": [
+        "[script] Sleep check.md holds a `stats` block with a card `field: sleep`, `agg: avg`, `period: 30d`",
+        "[script] The card renders as a duration like `7h 20m`, not a bare number and without a `unit`",
+        "[script] Sleep check.md holds a `chart` block with `field: sleep` and `bucket: week`"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "checkbox-habit-tracker",
+      "prompt": "A gym habit tracker: gym days this month, the streak I'm on now and my best streak. New note: Gym.",
+      "expected_output": "One stats block over Diary with three cards on the `gym` checkbox: sum this month, current_streak, streak; the shared selection on the block root.",
+      "files": [],
+      "expectations": [
+        "[script] Gym.md holds a `stats` block with `source: Diary` on the block root, not repeated on every card",
+        "[script] Its cards use `field: gym` with `agg: sum` + `period: month`, `agg: current_streak` and `agg: streak`",
+        "[judge] The labels tell the current streak and the best streak apart"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "numeric-threshold-streak",
+      "prompt": "How many days in a row have I walked at least 10,000 steps? Put the answer in a new note called Steps streak.",
+      "expected_output": "A current_streak on `steps` with `at_least: 10000`.",
+      "files": [],
+      "expectations": [
+        "[script] Steps streak.md holds a `stats` card with `field: steps`, `agg: current_streak` and `at_least: 10000`",
+        "[script] The rendered number is a whole number followed by `day` or `days` agreeing with it"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "two-condition-streak",
+      "prompt": "What's my longest run of days with 10k steps and a sleep score of 80 or more? New note: Good days.",
+      "expected_output": "A streak on steps with `at_least: 10000`, narrowed by `where: \"sleep_score >= 80\"`.",
+      "files": [],
+      "expectations": [
+        "[script] Good days.md holds a `stats` card with `agg: streak`, `field: steps`, `at_least: 10000`",
+        "[script] A `where` on the block root or the card keeps `sleep_score >= 80`",
+        "[script] The rendered streak is not a dash"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "heatmap-two-layers",
+      "prompt": "A year heatmap of gym and reading in different colours, in a new note called Year.",
+      "expected_output": "A heatmap over Diary with two layers, `gym` and `read`, each with its own colour.",
+      "files": [],
+      "expectations": [
+        "[script] Year.md holds a `heatmap` block with `layers` naming `gym` and `read`, and no root `field`",
+        "[script] The two layers have different colours"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "month-habit-calendar",
+      "prompt": "A habit calendar for this month: meditation and deep work. New note: October habits.",
+      "expected_output": "A heatmap with `range: month`, `layout: calendar` and layers `meditate` and `deep_work`.",
+      "files": [],
+      "expectations": [
+        "[script] October habits.md holds a `heatmap` block with `range: month` and `layout: calendar`",
+        "[script] Its layers name `meditate` and `deep_work`, the properties the vault actually uses"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "weekly-review-own-week",
+      "prompt": "In my weekly review note Reviews/2026-W40, add cards for gym days this week against last week, and my sleep score against my usual.",
+      "expected_output": "Blocks added to Reviews/2026-W40.md: `period: note` on the root of a stats block; gym `agg: sum` with `compare: true`; sleep_score `agg: avg` with `compare: usual`.",
+      "files": [],
+      "expectations": [
+        "[script] Reviews/2026-W40.md gained a `stats` block with `period: note` on the block root, and kept its previous text",
+        "[script] A gym card has `compare: true`",
+        "[script] A `sleep_score` card has `agg: avg` and `compare: usual`",
+        "[script] No other note was changed"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "home-page",
+      "prompt": "Make me a home note: today's date with links to my daily and weekly notes, tiles for my folders with note counts, and a couple of counters. Call it Home 2.",
+      "expected_output": "today (daily, weekly) + tiles with `badge: count` over folders that exist + a stats block.",
+      "files": [],
+      "expectations": [
+        "[script] Home 2.md holds a `today` block with `daily: true` and `weekly: true`",
+        "[script] Home 2.md holds a `tiles` block whose every `path` exists in the vault, with `badge: count`",
+        "[script] Home 2.md holds a `stats` block"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "missing-data-race-countdown",
+      "prompt": "How many days until my next race? Put it on a new note called Race.",
+      "expected_output": "The vault holds no race. The agent says so and asks for the race and its date (or offers the property to add) instead of writing a block that will show an error.",
+      "files": [],
+      "expectations": [
+        "[script] No `countdown` block that renders an error was written",
+        "[judge] The reply says the vault holds no race or race date",
+        "[judge] The reply asks for the race's name and date, or offers the note or property to add"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "missing-data-journaling-habit",
+      "prompt": "Track my journaling streak in a new note called Journaling.",
+      "expected_output": "No `journaling` property in the vault. The agent says so and offers the checkbox property to add to daily notes, without leaving a block that errors.",
+      "files": [],
+      "expectations": [
+        "[script] No Dashy block that renders an error was written",
+        "[judge] The reply says no note holds a journaling property",
+        "[judge] The reply offers a checkbox property (name and type) to add to the daily notes"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "unsupported-pie-with-dataviewjs-nearby",
+      "prompt": "Make a pie chart of gym days versus reading days this year, in a new note called Pie.",
+      "expected_output": "Dashy draws no pie. The agent says so and names what does (Obsidian Charts), and does not write DataviewJS even though the vault holds a DataviewJS example (Dataview compare.md).",
+      "files": [],
+      "expectations": [
+        "[script] No `dataviewjs`, `dataview` or Obsidian Charts `chart` block with `type: pie` was written",
+        "[judge] The reply says Dashy does not draw pie charts",
+        "[judge] The reply names Obsidian Charts (or another tool) as what does the job",
+        "[judge] If the agent offers a Dashy alternative (two cards, bars), it says so as an option rather than as the pie"
+      ]
+    },
+    {
+      "id": 13,
+      "name": "birthdays-from-people",
+      "prompt": "Show the next birthdays of the people in my People folder, in a new note called Birthdays 2.",
+      "expected_output": "A countdown with `repeat: yearly` reading `birthday` from People notes (one item per person, with `where` or per-note selection).",
+      "files": [],
+      "expectations": [
+        "[script] Birthdays 2.md holds a `countdown` block whose items use `field: birthday`, `source: People` and `repeat: yearly`",
+        "[script] It renders a card for each person in People (Anna, Leo)"
+      ]
+    },
+    {
+      "id": 14,
+      "name": "russian-prompt-labels",
+      "prompt": "Сколько книг я прочитал в этом году и какой средний рейтинг? Новая заметка: Книги.",
+      "expected_output": "progress or stats over Books by `finished` this year: a count and `rating` avg; labels in Russian.",
+      "files": [],
+      "expectations": [
+        "[script] Книги.md holds a block counting Books notes by `date_field: finished` with `period: year`",
+        "[script] A card averages `rating` (`agg: avg`)",
+        "[judge] The labels are in Russian, the keys in English"
+      ]
+    }
+  ]
+}
