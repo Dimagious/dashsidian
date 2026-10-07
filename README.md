@@ -19,7 +19,7 @@ Plain YAML you can read and edit. No JavaScript, no Dataview, works on your phon
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/agent-hero-dark.png">
-  <img alt="Left, a request to an AI agent: a running dashboard with weekly distance as bars against a 40 km goal, this week's distance, the current streak and a countdown to a marathon on May 17. Right, the Obsidian note it wrote: a countdown with 223 days left, two cards for this week's 20.8 km and the current streak, and weekly bars under a dashed 40 km line."
+  <img alt="Left, a request to an AI agent: a running dashboard with weekly distance as bars against a 40 km goal, this week's distance, the current streak and a countdown to a marathon on May 17. Right, the Obsidian note it wrote: a countdown to the marathon, two cards for this week's distance and the current streak, and weekly bars under a dashed 40 km line."
        src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/agent-hero-light.png">
 </picture>
 
