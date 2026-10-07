@@ -10,6 +10,8 @@ removed public export.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-07
+
 ### Added
 
 - **Two commands install the agent files from the command palette.**

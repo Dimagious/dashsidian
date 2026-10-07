@@ -1,4 +1,4 @@
-<!-- Dashy skill reference, version 1.9.0. Generated from the
+<!-- Dashy skill reference, version 1.10.0. Generated from the
      block schema by the Dashy plugin; read it together with SKILL.md. -->
 
 # Dashy block reference

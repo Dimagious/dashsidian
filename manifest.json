@@ -1,7 +1,7 @@
 {
   "name": "Dashy",
   "id": "dashsidian",
-  "version": "1.8.0",
+  "version": "2.0.0",
   "minAppVersion": "1.13.0",
   "description": "Charts, number cards, streaks, goals, countdowns and heatmaps from note properties. Plain YAML blocks that you write, or that your AI agent writes with the skill from the settings. No JavaScript, no Dataview.",
   "author": "Dimagious",
