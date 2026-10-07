@@ -36,6 +36,10 @@ Review dimensions, in priority order:
 5. **Tests.** Bug fixes have a regression test that fails without the fix: verify by reasoning or by reverting the source change locally (`git stash push -- <src file>`, run the test, `git stash pop`). New features: happy path + ≥ 3 boundary cases. Deterministic (no wall clock, `today` passed in), using the existing stubs. Tests assert values, not just that a word appears. The question is "would this test fail if the contract broke?".
 6. **Diff hygiene.** Anything the task didn't require (reformatting, drive-by refactors, unrelated files, build artifacts like `main.js`, `styles.css`, `coverage/`, `.preview/`, `*.zip`). Nothing under `.claude/brain/` must ever be tracked.
 
+**No runs.** Do not start `npm run e2e`, `npm run capture`, agent runs (`claude -p`) or skill evals: they steal the author's focus or cost money, and need an explicit go. List what they would have shown under "Not verifiable locally". The hard gates above are unit gates and are always yours to run.
+
+For a change to the skill or to what an agent is told (`scripts/build-skill.cjs`, schema `notes`/`example`, guide prompts), read the generated `docs/SKILL.preview.md` and `docs/reference.preview.md` as an agent would: does the new text tell it the right thing, and does every YAML example render without a warning (`src/skill/skill-process.test.ts`, `src/blocks/guides.test.ts`)?
+
 Be adversarial: for each significant claim in the maker's report, try to refute it against the actual code. Do not accept "tests pass" without evidence.
 
 Return a verdict report:

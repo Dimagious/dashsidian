@@ -37,11 +37,11 @@
 
 ## Состояние
 
-1.8.0, опубликован в каталоге Obsidian (1.7.0 отдельно не выходил). Трекер
+1.8.0 в каталоге Obsidian (1.7.0 отдельно не выходил); готовится 2.0.0, мажор по позиционированию (ADR 0008): агент ИИ главный автор YAML-блоков, фичи плагина инструменты для агента. Трекер
 привычек: чекбоксы как 1/0, `period`, `compare`, `current_streak`. Шесть блоков
 ТЗ (`tiles`, `stats`, `progress`, `today`, `countdown`, `heatmap`) и седьмой,
 `chart` (ADR 0005); при включённом Obsidian Charts `chart` уступается ему, наш —
-`dashy-chart` (ADR 0007). Схема блоков — 1.9.0. Длительности (`5h 58min`, `7:30`)
+`dashy-chart` (ADR 0007). Схема блоков — 1.9.0 (в 2.0 добавлен `pick: next` у `countdown`: ближайшая дата из папки). Длительности (`5h 58min`, `7:30`)
 читаются как минуты, `core/duration.ts`. В `stats` и `progress` выборка (`source`,
 `tag`, `where`, `period`, `date_field`, `date_format`) пишется раз на корне блока
 и наследуется карточками, `core/inherit.ts` (B-131).
@@ -52,6 +52,8 @@ Notes, включая Periodic Notes 1.0 beta (`core/note-date.ts`, `adapters/pe
 окно из имени заметки — `period: note` / `range: note`, период словом (`2026-W40`,
 `2026-Q4`, `2026` — год) и `{ from, to }` (`core/period-name.ts`, ADR 0006);
 `compare: usual`; на холодном старте блоки ждут индексации (`app/indexing.ts`).
+
+Скилл для агентов в 2.0 — продукт: два файла (`SKILL.md` — процесс «посмотри, выбери, напиши, проверь», `reference.md` — таблицы ключей), ставятся кнопкой в настройках или командами палитры (`app/agent-files.ts`), пишут только по вызову. Процесс пишется руками в `scripts/build-skill.cjs`, рецепты проверяет `src/skill/skill-process.test.ts`. У каждого гайда на сайте есть блок «Ask your agent» с промптом (`src/test/guide-prompts.test.ts`). Героя README снимает `npm run capture` (промпт-карточка + заметка, которую написал агент, `scripts/agent-hero.cjs`).
 
 Сайт (`site/`, GitHub Pages) — витрина, гайды под поисковые запросы
 (`site/guides/`) и справочник блоков (`site/reference/`, генерируется из схемы).
@@ -67,7 +69,8 @@ README — короткий лендинг со ссылками на сайт: 
 src/
   main.ts              реэкспорт app/plugin
   app/
-    plugin.ts            регистрация блоков, события хранилища, перерисовка
+    plugin.ts            регистрация блоков и команд, события хранилища, перерисовка
+    agent-files.ts       установка скилла и секции AGENTS.md в хранилище (кнопки и команды)
     refresh.ts           реестр живых блоков; чистый, без Obsidian
     renames.ts           куда переехала переименованная заметка (`period: note`)
   i18n/                каталоги сообщений; en.ts — источник правды по ключам
@@ -109,7 +112,7 @@ src/
   shared/parse.ts      YAML + синонимы ключей + диагностика
   shared/render.ts     вывод диагностики, внутренние ссылки
   ui/settings.ts       настройки + кнопка установки скилла
-  skill/               СГЕНЕРИРОВАНО, руками не править
+  skill/               СГЕНЕРИРОВАНО, руками не править (SKILL.md, reference.md, AGENTS-секция)
   styles/              main → variables + blocks
 ```
 
@@ -270,6 +273,7 @@ Backlog: B-003
 | `npm run release` | полный гейт + zip |
 | `npm run dev:vault` | сборка в тестовое хранилище с watch |
 | `npm run e2e` | спеки против настоящего Obsidian; в CI не гоняется |
+| `npm run capture` | скриншоты для README и сайта, включая agent-hero; запускать только по слову автора |
 
 ## Ссылки
 
