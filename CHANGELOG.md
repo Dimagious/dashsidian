@@ -31,6 +31,16 @@ removed public export.
   writing. **Install** or **Update** in the settings writes both; an older
   install updates in place. The `AGENTS.md` section and **Copy markdown**
   stay one text holding both parts.
+- **The agent asks before writing a block your vault has no data for.** With
+  no note for the coming race or no property for the habit, the skill now
+  has the agent say so and ask for the date or offer the property to add,
+  rather than leave a block that shows an error. For something Dashy does
+  not draw, it names what does and writes DataviewJS only if you then ask.
+  New recipes cover habits kept as numbers (a weekly sum, a streak that
+  counts a day from `at_least` up, `compare` on a `count`) and a streak over
+  two conditions, like 10 000 steps and a sleep score of 80 or more. The
+  key reference prints the `where`, `date_field` and `date_format` text
+  shared by several blocks once, at the top.
 
 ## [1.8.0] - 2026-10-06
 

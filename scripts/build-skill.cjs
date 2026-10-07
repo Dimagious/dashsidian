@@ -49,21 +49,106 @@ function cell(v) {
     return String(v).replace(/\|/g, "\\|");
 }
 
-function fields(map) {
+function fields(map, docs = {}) {
     const rows = Object.entries(map).map(([key, f]) => {
         const req = f.required ? "yes" : "—";
         const def = f.default !== undefined ? `\`${cell(f.default)}\`` : "—";
         const alias = f.aliases ? f.aliases.map((a) => `\`${a}\``).join(", ") : "—";
-        return `| \`${key}\` | ${cell(f.type)} | ${req} | ${def} | ${alias} | ${cell(f.doc)} |`;
+        return `| \`${key}\` | ${cell(f.type)} | ${req} | ${def} | ${alias} | ${cell(docs[key] ?? f.doc)} |`;
     });
     return ["| key | type | required | default | synonyms | what it does |",
             "|---|---|---|---|---|---|", ...rows].join("\n");
 }
 
-function blockSection(name, b) {
+/**
+ * Sentences of a key doc: split after a full stop and a space outside
+ * backticks (`DD.MM.YYYY` holds full stops too), the stop itself dropped.
+ */
+function sentences(doc) {
+    const out = [];
+    let tick = false;
+    let start = 0;
+    for (let i = 0; i < doc.length; i++) {
+        if (doc[i] === "`") tick = !tick;
+        else if (!tick && doc[i] === "." && doc[i + 1] === " ") {
+            out.push(doc.slice(start, i));
+            start = i + 2;
+        }
+    }
+    out.push(doc.slice(start).replace(/\.$/, ""));
+    return out;
+}
+
+const SHARED_TITLE = "Keys shared by several blocks";
+/** The fewest places a text must repeat in, and its shortest length, to be printed once. */
+const SHARED_MIN_PLACES = 3;
+const SHARED_MIN_CHARS = 150;
+
+/**
+ * Key docs the reference would print several times over: `where`,
+ * `date_format`, `date_field` read the same in four or five blocks, apart
+ * from a sentence about what each block does with them. For every key name,
+ * the sentences its docs have in common in at least three places (block root
+ * or list item), starting with each doc's first sentence, the set saving the
+ * most text, are printed once in their own section; each of those places
+ * keeps its own sentences after a pointer.
+ *
+ * Returns the shared rows and, per block and level, the rewritten docs.
+ */
+function sharedDocs(blocks) {
+    const places = new Map();
+    for (const [name, b] of blocks) {
+        for (const level of ["root", "item"]) {
+            for (const [key, f] of Object.entries(b[level] ?? {})) {
+                if (!places.has(key)) places.set(key, []);
+                places.get(key).push({ name, level, sentences: sentences(f.doc) });
+            }
+        }
+    }
+    const rows = [];
+    const docs = {};
+    for (const [key, list] of places) {
+        let best = null;
+        for (let mask = 1; mask < 1 << list.length; mask++) {
+            const group = list.filter((_, i) => mask & (1 << i));
+            if (group.length < SHARED_MIN_PLACES) continue;
+            const common = group[0].sentences.filter((s) => group.every((p) => p.sentences.includes(s)));
+            // The pointer stands where the doc starts, so the shared text has
+            // to be how each doc starts too, its definition, not a detail.
+            if (!group.every((p) => common.includes(p.sentences[0]))) continue;
+            const chars = common.join(". ").length;
+            if (chars < SHARED_MIN_CHARS) continue;
+            const saved = (group.length - 1) * chars;
+            if (!best || saved > best.saved) best = { group, common, saved };
+        }
+        if (!best) continue;
+        rows.push({
+            key,
+            where: best.group.map((p) => `\`${p.name}\` ${p.level === "root" ? "root" : "item"}`).join(", "),
+            doc: best.common.join(". "),
+        });
+        for (const p of best.group) {
+            const own = p.sentences.filter((s) => !best.common.includes(s)).join(". ");
+            const pointer = `Same as \`${key}\` in ${SHARED_TITLE}`;
+            ((docs[p.name] ??= {})[p.level] ??= {})[key] = own ? `${pointer}; here also: ${own}` : pointer;
+        }
+    }
+    return { rows, docs };
+}
+
+function sharedSection(rows) {
+    if (!rows.length) return "";
+    return [`### ${SHARED_TITLE}`, "",
+        "These keys read the same in several blocks, so their text is here once. A block's table",
+        `says \`Same as\` and adds what is its own; type, default and synonyms stay in the block's table.`, "",
+        "| key | in | what it does |", "|---|---|---|",
+        ...rows.map((r) => `| \`${r.key}\` | ${r.where} | ${cell(r.doc)} |`), "", ""].join("\n");
+}
+
+function blockSection(name, b, docs = {}) {
     const parts = [`### \`${name}\``, "", b.summary, ""];
-    if (b.root) parts.push("**Block root**", "", fields(b.root), "");
-    if (b.item) parts.push("**List item**", "", fields(b.item), "");
+    if (b.root) parts.push("**Block root**", "", fields(b.root, docs.root), "");
+    if (b.item) parts.push("**List item**", "", fields(b.item, docs.item), "");
     // Keys an agent carries over from a neighbouring block (`layers` from the
     // heatmap in a chart): the parser names the right key when it sees one,
     // and so does the reference, before the agent writes it.
@@ -77,6 +162,7 @@ function blockSection(name, b) {
 }
 
 const blocks = Object.entries(schema.blocks);
+const shared = sharedDocs(blocks);
 
 /**
  * The key reference: every block's tables, examples and notes, then what the
@@ -90,7 +176,7 @@ Dataview required.
 
 Blocks in total: ${blocks.length}.
 
-${blocks.map(([n, b]) => blockSection(n, b)).join("\n")}
+${sharedSection(shared.rows)}${blocks.map(([n, b]) => blockSection(n, b, shared.docs[n])).join("\n")}
 ## What the plugin does NOT do
 
 Do not invent blocks that do not exist. If asked for something on this list,
@@ -140,12 +226,16 @@ About, Override config folder.
 - \`<configDir>/types.json\`: the vault's property names and their types
   (\`checkbox\`, \`number\`, \`date\`).
 - \`<configDir>/daily-notes.json\` (core Daily notes: \`folder\`, \`format\`) and,
-  if present, \`<configDir>/plugins/periodic-notes/data.json\` (\`daily\`,
-  \`weekly\`, \`monthly\`, each with \`folder\` and \`format\`; version 1.x
-  keeps them under \`calendarSets\`, in the set \`activeCalendarSet\` names,
-  and when the file holds both shapes, the installed version in
-  \`plugins/periodic-notes/manifest.json\` decides). The \`today\` block links
-  the notes they describe; Periodic Notes wins over Daily notes.
+  if present, \`<configDir>/plugins/periodic-notes/data.json\`: version 0.x
+  keeps \`daily\`, \`weekly\`, \`monthly\`, each with \`enabled\`, \`folder\`
+  and \`format\`; version 1.x keeps \`day\`, \`week\`, \`month\` under
+  \`calendarSets\`, in the set \`activeCalendarSet\` names (else the first).
+  When the file holds both shapes, the installed version in
+  \`plugins/periodic-notes/manifest.json\` decides. The \`today\` block links
+  the notes they describe, the daily note from Periodic Notes when its day is
+  switched on there, otherwise from Daily notes. A week named in
+  \`gggg-[W]ww\` is a locale week, read in Obsidian's interface language;
+  \`GGGG-[W]WW\` is the ISO week.
 - \`<configDir>/plugins/dashsidian/data.json\`: Dashy's own settings.
   \`dailyFolder\`, \`weeklyFolder\` and \`monthlyFolder\`, when not empty,
   replace the folders above; \`startDayHour\` (0 to 6) moves the start of
@@ -161,6 +251,13 @@ Then settle how a note's date is known. A name starting with \`YYYY-MM-DD\`
 streaks, \`chart\` and \`heatmap\` find no dates. Daily notes named in
 another format (\`02.03.2026\`) are read by the format set in Daily notes or
 Periodic Notes; if neither names it, write it: \`date_format: DD.MM.YYYY\`.
+
+If the vault lacks what the block needs (no note for the coming race, no
+property for the habit), say so before writing: ask for the date, or offer
+the property to add to their notes, with its type. Do not leave a block
+that draws an error as a placeholder. Write it anyway only when the
+user asks for that after hearing it will show an error or a dash until the
+data is there.
 
 ## 2. Pick the block
 
@@ -189,6 +286,10 @@ with the same keys.
   (\`source\`, \`tag\`, \`where\`, \`period\`, \`date_field\`) once on the block
   root. Every card inherits it; a card's own value replaces the root's, and a
   card's \`where\` narrows the root's further.
+- No \`period\` value means all time, so a card cannot leave the root's
+  window: a card that must count all time, like \`current_streak\` in a
+  weekly review with \`period: note\` at the root, goes in a block of its
+  own without \`period\`.
 - Quote a value holding a colon, a comma or a hash:
   \`label: "Home: entry"\`, \`label: "Books, read"\`.
 - Write titles and labels in the language the user writes to you in.
@@ -212,6 +313,30 @@ items:
   - { label: Workdays in a row, field: deep_work, agg: current_streak, days: weekdays, skip_field: vacation, unit: days }
 \`\`\`
 
+Habits kept as numbers in the same notes: \`sum\` adds them up, \`at_least\`
+counts a day towards a streak only from that value up, and \`compare\` on a
+\`count\` sets this week's days against last week's, to date:
+
+\`\`\`stats
+source: Diary
+columns: 3
+items:
+  - { label: Steps this week, field: steps, agg: sum, period: week }
+  - { label: 10k steps in a row, field: steps, agg: current_streak, at_least: 10000, unit: days }
+  - { label: Days read 20+ min, agg: count, where: "read_min >= 20", period: week, compare: true, better: up }
+\`\`\`
+
+A streak over two conditions, 10 000 steps and a sleep score of 80 or more:
+\`where\` keeps only the days that pass the second, and a day it leaves out
+ends the run the way a day under 10 000 steps does:
+
+\`\`\`stats
+source: Diary
+where: "sleep_score >= 80"
+items:
+  - { label: Best run of 10k steps and sleep 80+, field: steps, agg: streak, at_least: 10000, unit: days }
+\`\`\`
+
 Two activities on one heatmap, then one habit as this month's calendar:
 
 \`\`\`heatmap
@@ -228,6 +353,10 @@ field: gym
 range: month
 layout: calendar
 \`\`\`
+
+Without \`range\`, a heatmap draws a grid for each year up to this one in
+which some note holds the field, so a year with none gets no grid;
+\`range: year\` draws this year alone.
 
 Kilometres per week as bars with a goal:
 
@@ -288,18 +417,20 @@ ask for its text and fix the block from it rather than guessing.
 ## 6. When Dashy cannot do it
 
 If the request is on the list under "What the plugin does NOT do" in
-${tables.name}, say so and name what does the job. Do not improvise
-DataviewJS, and do not invent a block or a key.
+${tables.name}, say that Dashy does not draw it and name what does the job.
+Write nothing for that part: write DataviewJS or another plugin's block only if the user
+asks for it after that, even when the vault already holds an example to copy.
+Do not invent a block or a key.
 `;
 }
 
 const skillProcess = processPart({
     name: "reference.md",
-    pointer: "Key tables for every block are in [reference.md](reference.md); read the section of the block you are about to write before writing it.",
+    pointer: "Key tables for every block are in [reference.md](reference.md); read the section of the block you are about to write before writing it, and the \"Keys shared by several blocks\" section at its top, where `where`, `date_field` and `date_format` are explained once.",
 });
 const inlineProcess = processPart({
     name: "the block reference below",
-    pointer: "Key tables for every block are in the block reference below; read the section of the block you are about to write before writing it.",
+    pointer: "Key tables for every block are in the block reference below; read the section of the block you are about to write before writing it, and the \"Keys shared by several blocks\" section at its top, where `where`, `date_field` and `date_format` are explained once.",
 });
 
 const markdown = `---

@@ -10,7 +10,7 @@ fenced code blocks, YAML inside, no JavaScript and no Dataview. You write the
 blocks, the user asks and reviews. You cannot see the rendered note, so the
 work goes: look, pick, write, check.
 
-Key tables for every block are in the block reference below; read the section of the block you are about to write before writing it.
+Key tables for every block are in the block reference below; read the section of the block you are about to write before writing it, and the "Keys shared by several blocks" section at its top, where `where`, `date_field` and `date_format` are explained once.
 
 ## 1. Look before writing
 
@@ -22,12 +22,16 @@ About, Override config folder.
 - `<configDir>/types.json`: the vault's property names and their types
   (`checkbox`, `number`, `date`).
 - `<configDir>/daily-notes.json` (core Daily notes: `folder`, `format`) and,
-  if present, `<configDir>/plugins/periodic-notes/data.json` (`daily`,
-  `weekly`, `monthly`, each with `folder` and `format`; version 1.x
-  keeps them under `calendarSets`, in the set `activeCalendarSet` names,
-  and when the file holds both shapes, the installed version in
-  `plugins/periodic-notes/manifest.json` decides). The `today` block links
-  the notes they describe; Periodic Notes wins over Daily notes.
+  if present, `<configDir>/plugins/periodic-notes/data.json`: version 0.x
+  keeps `daily`, `weekly`, `monthly`, each with `enabled`, `folder`
+  and `format`; version 1.x keeps `day`, `week`, `month` under
+  `calendarSets`, in the set `activeCalendarSet` names (else the first).
+  When the file holds both shapes, the installed version in
+  `plugins/periodic-notes/manifest.json` decides. The `today` block links
+  the notes they describe, the daily note from Periodic Notes when its day is
+  switched on there, otherwise from Daily notes. A week named in
+  `gggg-[W]ww` is a locale week, read in Obsidian's interface language;
+  `GGGG-[W]WW` is the ISO week.
 - `<configDir>/plugins/dashsidian/data.json`: Dashy's own settings.
   `dailyFolder`, `weeklyFolder` and `monthlyFolder`, when not empty,
   replace the folders above; `startDayHour` (0 to 6) moves the start of
@@ -43,6 +47,13 @@ Then settle how a note's date is known. A name starting with `YYYY-MM-DD`
 streaks, `chart` and `heatmap` find no dates. Daily notes named in
 another format (`02.03.2026`) are read by the format set in Daily notes or
 Periodic Notes; if neither names it, write it: `date_format: DD.MM.YYYY`.
+
+If the vault lacks what the block needs (no note for the coming race, no
+property for the habit), say so before writing: ask for the date, or offer
+the property to add to their notes, with its type. Do not leave a block
+that draws an error as a placeholder. Write it anyway only when the
+user asks for that after hearing it will show an error or a dash until the
+data is there.
 
 ## 2. Pick the block
 
@@ -71,6 +82,10 @@ with the same keys.
   (`source`, `tag`, `where`, `period`, `date_field`) once on the block
   root. Every card inherits it; a card's own value replaces the root's, and a
   card's `where` narrows the root's further.
+- No `period` value means all time, so a card cannot leave the root's
+  window: a card that must count all time, like `current_streak` in a
+  weekly review with `period: note` at the root, goes in a block of its
+  own without `period`.
 - Quote a value holding a colon, a comma or a hash:
   `label: "Home: entry"`, `label: "Books, read"`.
 - Write titles and labels in the language the user writes to you in.
@@ -94,6 +109,30 @@ items:
   - { label: Workdays in a row, field: deep_work, agg: current_streak, days: weekdays, skip_field: vacation, unit: days }
 ```
 
+Habits kept as numbers in the same notes: `sum` adds them up, `at_least`
+counts a day towards a streak only from that value up, and `compare` on a
+`count` sets this week's days against last week's, to date:
+
+```stats
+source: Diary
+columns: 3
+items:
+  - { label: Steps this week, field: steps, agg: sum, period: week }
+  - { label: 10k steps in a row, field: steps, agg: current_streak, at_least: 10000, unit: days }
+  - { label: Days read 20+ min, agg: count, where: "read_min >= 20", period: week, compare: true, better: up }
+```
+
+A streak over two conditions, 10 000 steps and a sleep score of 80 or more:
+`where` keeps only the days that pass the second, and a day it leaves out
+ends the run the way a day under 10 000 steps does:
+
+```stats
+source: Diary
+where: "sleep_score >= 80"
+items:
+  - { label: Best run of 10k steps and sleep 80+, field: steps, agg: streak, at_least: 10000, unit: days }
+```
+
 Two activities on one heatmap, then one habit as this month's calendar:
 
 ```heatmap
@@ -110,6 +149,10 @@ field: gym
 range: month
 layout: calendar
 ```
+
+Without `range`, a heatmap draws a grid for each year up to this one in
+which some note holds the field, so a year with none gets no grid;
+`range: year` draws this year alone.
 
 Kilometres per week as bars with a goal:
 
@@ -170,8 +213,10 @@ ask for its text and fix the block from it rather than guessing.
 ## 6. When Dashy cannot do it
 
 If the request is on the list under "What the plugin does NOT do" in
-the block reference below, say so and name what does the job. Do not improvise
-DataviewJS, and do not invent a block or a key.
+the block reference below, say that Dashy does not draw it and name what does the job.
+Write nothing for that part: write DataviewJS or another plugin's block only if the user
+asks for it after that, even when the vault already holds an example to copy.
+Do not invent a block or a key.
 
 # Dashy block reference
 
@@ -180,6 +225,17 @@ markdown blocks. The config is YAML inside the block. No JavaScript, and no
 Dataview required.
 
 Blocks in total: 7.
+
+### Keys shared by several blocks
+
+These keys read the same in several blocks, so their text is here once. A block's table
+says `Same as` and adds what is its own; type, default and synonyms stay in the block's table.
+
+| key | in | what it does |
+|---|---|---|
+| `where` | `tiles` item, `stats` item, `progress` item, `heatmap` root, `chart` root | a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, "rating >= 4"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or` |
+| `date_field` | `stats` item, `progress` item, `heatmap` root, `chart` root | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or in `date_format`, or a dotted path into a nested property like `meta.date` |
+| `date_format` | `stats` item, `progress` item, `heatmap` root, `chart` root | a date format for note names and `date_field` values not written as `YYYY-MM-DD`, in moment notation: `DD.MM.YYYY`, `MM/DD/YYYY`, `YYYYMMDD`. Tried after `YYYY-MM-DD` and before the day format of the Daily notes or Periodic Notes settings, which is read without this key. A name or a value only has to start with the date (`05.10.2026 Monday` and `05.10.2026 14:30` count); the match is strict, so `5.10.2026` and `31.02.2026` are no date under `DD.MM.YYYY`. Needs a year, a month and a day, and warns when no selected note fits it. Month and weekday names (`MMMM`, `dddd`) are read in Obsidian's language, or in the Plugin language setting when one is picked |
 
 ### `tiles`
 
@@ -199,7 +255,7 @@ A grid of link tiles for navigating the vault.
 | `label` | string | yes | — | `title`, `name` | caption |
 | `path` | string | yes | — | — | where it leads: a note, File.base#View, or a folder. A folder opens its folder note, `Folder/Folder.md` or else `Folder.md` next to it, and without one shows the folder in the file explorer. A name YAML reads as a number goes in quotes, `path: "2024"`: a number, a list, a map or a boolean is an error, and the tile has no link and no count badge |
 | `tag` | string | — | — | — | tag, with or without the hash; narrows `badge: count` |
-| `where` | string\|list | — | — | — | a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, "rating >= 4"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or`. One unreadable condition drops the whole filter with a warning, and the count is drawn unfiltered. Narrows `badge: count` |
+| `where` | string\|list | — | — | — | Same as `where` in Keys shared by several blocks; here also: One unreadable condition drops the whole filter with a warning, and the count is drawn unfiltered. Narrows `badge: count` |
 | `period` | string\|number\|map | — | — | — | narrow `badge: count` to a window: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`, all ending today; `note`, the day, week, month, quarter or year the name of the note this block sits in stands for, like `2026-W40`; a period written out the same way: `2026-10-01`, `2026-W40`, `2026-10`, `2026-Q4` or `2026`; or `{ from: 2026-09-01, to: 2026-09-30 }`, both days included, `from` alone running to today. Notes without a date are left out first. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages; a week named like `2026-W40` is the seven days its name stands for |
 | `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name for `period`: `2026-03-02` or `2026-03-02T10:30`, or in `date_format` or the Daily notes day format, or a dotted path into a nested property like `meta.date`; has no effect without `period` |
 | `date_format` | string | — | — | — | a date format for note names and `date_field` values not written as `YYYY-MM-DD`, in moment notation: `DD.MM.YYYY`, `MM/DD/YYYY`, `YYYYMMDD`. Tried after `YYYY-MM-DD` and before the day format of the Daily notes or Periodic Notes settings, which is read without this key. A name or a value only has to start with the date (`05.10.2026 Monday` counts); the match is strict, so `5.10.2026` is no date under `DD.MM.YYYY`. Needs a year, a month and a day, and warns when no selected note fits it; has no effect without `period` |
@@ -248,10 +304,10 @@ Number cards: one value per card, computed over a selection of notes.
 | `label` | string | yes | — | `title`, `name` | caption under the number, or after it with `layout: inline` |
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
-| `where` | string\|list | — | — | — | a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, "rating >= 4"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or`. One unreadable condition drops the whole filter with a warning, and the numbers are drawn unfiltered |
+| `where` | string\|list | — | — | — | Same as `where` in Keys shared by several blocks; here also: One unreadable condition drops the whole filter with a warning, and the numbers are drawn unfiltered |
 | `period` | string\|number\|map | — | — | — | narrow to a window: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`, all ending today; `note`, the day, week, month, quarter or year the name of the note this block sits in stands for, like `2026-W40`; a period written out the same way: `2026-10-01`, `2026-W40`, `2026-10`, `2026-Q4` or `2026`; or `{ from: 2026-09-01, to: 2026-09-30 }`, both days included, `from` alone running to today. Notes without a date are left out first, then every agg, count included, runs on what remains. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages; a week named like `2026-W40` is the seven days its name stands for |
-| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or in `date_format`, or a dotted path into a nested property like `meta.date`. Feeds `period`'s window and the `streak`, `current_streak`, `latest` and `trend` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` |
-| `date_format` | string | — | — | — | a date format for note names and `date_field` values not written as `YYYY-MM-DD`, in moment notation: `DD.MM.YYYY`, `MM/DD/YYYY`, `YYYYMMDD`. Tried after `YYYY-MM-DD` and before the day format of the Daily notes or Periodic Notes settings, which is read without this key. A name or a value only has to start with the date (`05.10.2026 Monday` and `05.10.2026 14:30` count); the match is strict, so `5.10.2026` and `31.02.2026` are no date under `DD.MM.YYYY`. Needs a year, a month and a day, and warns when no selected note fits it. Steers the same readings `date_field` does. Month and weekday names (`MMMM`, `dddd`) are read in Obsidian's language, or in the Plugin language setting when one is picked |
+| `date_field` | string | — | — | — | Same as `date_field` in Keys shared by several blocks; here also: Feeds `period`'s window and the `streak`, `current_streak`, `latest` and `trend` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` |
+| `date_format` | string | — | — | — | Same as `date_format` in Keys shared by several blocks; here also: Steers the same readings `date_field` does |
 | `compare` | boolean\|string | — | — | — | `true` shows the delta against the same stretch of the previous period, to date: this week compares against the same weekdays last week, not the whole of last week. A fixed `period` already over compares against the whole period before it, June against all of May; a `from`/`to` against as many days right before `from`. `usual` shows the delta against the usual level instead: the average of the same field over every note in the card's selection dated before the window starts, the window itself left out. `usual` works with `agg: avg` only and warns with any other aggregate; with no note before the window the card says there is no history yet instead of a delta, as a tooltip on the number under `layout: inline`. Only with `period` set, and not with `agg: streak` or `current_streak` |
 | `better` | string | — | — | — | `up` colours a rise green and a fall red; `down` reverses that for a number where less is better. No change stays neutral either way. Only with `compare: true` or `compare: usual` |
 | `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0), dotted for a nested one like `health.sleep`; required for everything but count, streak and current_streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: "field contains ..."` and `agg: count`. A duration string like `5h 58min`, `1h30m`, `45m`, `90 min` or `7:30` counts as minutes, and `sum`, `avg`, `min`, `max` or `latest` over a field of durations shows `5h 58m`. When every value of the field across the selected notes carries seconds, like `2:16:32` or `2h 16m 32s`, the card shows a clock to the second instead: `2:16:32`, `0:18:51`, and so does a `compare` delta. `H:MM` is always hours and minutes, never a time of day or minutes and seconds: a 5 km time written `18:51` reads as 18 hours, so write race times as `0:18:51`. A field mixing durations and plain numbers counts both as minutes, shows a plain number and warns naming a note of each kind |
@@ -317,10 +373,10 @@ Bars towards a goal: how far a number has come against a target.
 | `goal` | number\|string | yes | — | `target` | the target to fill towards; must be above zero; a duration like `8h` or `7:30` works too, read as minutes, and a plain number against a field of durations means minutes |
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
-| `where` | string\|list | — | — | — | a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, "rating >= 4"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or`. One unreadable condition drops the whole filter with a warning, and the numbers are drawn unfiltered |
+| `where` | string\|list | — | — | — | Same as `where` in Keys shared by several blocks; here also: One unreadable condition drops the whole filter with a warning, and the numbers are drawn unfiltered |
 | `period` | string\|number\|map | — | — | — | narrow to a window: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`, all ending today; `note`, the day, week, month, quarter or year the name of the note this block sits in stands for, like `2026-W40`; a period written out the same way: `2026-10-01`, `2026-W40`, `2026-10`, `2026-Q4` or `2026`; or `{ from: 2026-09-01, to: 2026-09-30 }`, both days included, `from` alone running to today. The goal is measured against the period's value; notes without a date are left out first. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages; a week named like `2026-W40` is the seven days its name stands for |
-| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or in `date_format`, or a dotted path into a nested property like `meta.date`. Feeds `period`'s window and the `streak`, `current_streak` and `latest` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` |
-| `date_format` | string | — | — | — | a date format for note names and `date_field` values not written as `YYYY-MM-DD`, in moment notation: `DD.MM.YYYY`, `MM/DD/YYYY`, `YYYYMMDD`. Tried after `YYYY-MM-DD` and before the day format of the Daily notes or Periodic Notes settings, which is read without this key. A name or a value only has to start with the date (`05.10.2026 Monday` and `05.10.2026 14:30` count); the match is strict, so `5.10.2026` and `31.02.2026` are no date under `DD.MM.YYYY`. Needs a year, a month and a day, and warns when no selected note fits it. Steers the same readings `date_field` does. Month and weekday names (`MMMM`, `dddd`) are read in Obsidian's language, or in the Plugin language setting when one is picked |
+| `date_field` | string | — | — | — | Same as `date_field` in Keys shared by several blocks; here also: Feeds `period`'s window and the `streak`, `current_streak` and `latest` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` |
+| `date_format` | string | — | — | — | Same as `date_format` in Keys shared by several blocks; here also: Steers the same readings `date_field` does |
 | `field` | string | — | — | `property`, `prop` | numeric frontmatter property, or a checkbox (ticked counts as 1, unticked as 0), dotted for a nested one like `health.sleep`; required for everything but count, streak and current_streak. A field missing from the whole selection, or holding text rather than a number, shows a dash and a warning naming it; count text instead with `where: "field contains ..."` and `agg: count`. A duration string like `5h 58min`, `1h30m`, `45m`, `90 min` or `7:30` counts as minutes, and `sum`, `avg`, `min`, `max` or `latest` over a field of durations shows `5h 58m`. When every value of the field across the selected notes carries seconds, like `2:16:32` or `2h 16m 32s`, the card shows a clock to the second instead: `2:16:32`, `0:18:51`, and so does the goal. `H:MM` is always hours and minutes, never a time of day or minutes and seconds: a 5 km time written `18:51` reads as 18 hours, so write race times as `0:18:51`. A field mixing durations and plain numbers counts both as minutes, shows a plain number and warns naming a note of each kind |
 | `agg` | string | — | `count` | `aggregate` | count sum avg min max latest streak current_streak |
 | `at_least` | number\|string | — | — | — | with `agg: streak` or `current_streak` only: a day counts only once its notes' `field` values, summed for that day, reach this, like `at_least: 5000` steps; combine with `at_most` for a range. Needs `field`; ignored on any other aggregate. Takes a duration like `7h` or `7:30` too, read as minutes; a plain number against a field of durations means minutes |
@@ -435,11 +491,11 @@ A year by days, or a month as a calendar: one cell per day, coloured by a number
 |---|---|---|---|---|---|
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
-| `where` | string\|list | — | — | — | a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, "rating >= 4"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or`. One unreadable condition drops the whole filter with a warning, and the grid is drawn unfiltered |
+| `where` | string\|list | — | — | — | Same as `where` in Keys shared by several blocks; here also: One unreadable condition drops the whole filter with a warning, and the grid is drawn unfiltered |
 | `field` | string\|list | — | — | `property`, `prop` | required unless `layers` is set, and not allowed together with it: exactly one of the two. A numeric frontmatter property, or a checkbox: ticked days are painted, unticked stay empty; dotted for a nested one like `health.sleep`. Also takes a list, like `[mood_am, mood_pm]`, to collapse several properties from the same note into one day with `per_day`. A list of checkboxes, like `[gym, read]`, counts the ticked ones, a box missing from a note counting as unticked: with two, a day with both is full colour and a day with one is paler. A number in any of them turns the count off and warns. A field missing from the selection, or holding text rather than a number, errors and says which; count text elsewhere with a stats card's `where: "field contains ..."` and `agg: count`. A duration string like `5h 58min` or `7:30` counts as minutes, and tooltips, the caption's average and the legend then read `5h 58m`. When every value of the field across the selected notes carries seconds, like `2:16:32`, tooltips and the average read as a clock to the second; the legend stays `2h 15m`. `H:MM` is always hours and minutes, never a time of day or minutes and seconds: a 5 km time written `18:51` reads as 18 hours, so write race times as `0:18:51`. A field mixing durations and plain numbers counts both as minutes, shows plain numbers and warns |
 | `per_day` | string | — | `sum` | — | how several values landing on one day combine: sum, avg or max. Several values happen either from two or more notes on the same day, or from a `field` list on one note, or both at once. An unrecognised value warns and falls back to sum. With `layers`, it applies to each layer's own field(s) separately |
-| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or in `date_format`, or a dotted path into a nested property like `meta.date` |
-| `date_format` | string | — | — | — | a date format for note names and `date_field` values not written as `YYYY-MM-DD`, in moment notation: `DD.MM.YYYY`, `MM/DD/YYYY`, `YYYYMMDD`. Tried after `YYYY-MM-DD` and before the day format of the Daily notes or Periodic Notes settings, which is read without this key. A name or a value only has to start with the date (`05.10.2026 Monday` and `05.10.2026 14:30` count); the match is strict, so `5.10.2026` and `31.02.2026` are no date under `DD.MM.YYYY`. Needs a year, a month and a day, and warns when no selected note fits it. Month and weekday names (`MMMM`, `dddd`) are read in Obsidian's language, or in the Plugin language setting when one is picked |
+| `date_field` | string | — | — | — | Same as `date_field` in Keys shared by several blocks |
+| `date_format` | string | — | — | — | Same as `date_format` in Keys shared by several blocks |
 | `skip_field` | string | — | — | — | a property marking a day special, like `vacation: true` or `sick: flu`; a day is special once any note landing on it sets the property to anything other than `false`, a blank string, `0` or absent. Its cell gets a hatched overlay, on top of its painted colour when it has one. Works with `layers` too |
 | `color` | string | — | `blue` | `colour` | blue green cyan purple pink orange red gray, or #rrggbb. Ignored, with a warning, when `layers` is set: each layer carries its own colour instead |
 | `layers` | list | — | — | — | several activities on one grid, each in its own colour, instead of one `field`: `[{field, color, label}]`. Not used together with the block's own `field`. The first layer painted on a day colours that cell and supplies its value and link, or with `pick: max` the one with the largest value that day; the tooltip lists every layer with a value that day, in list order. The caption then counts days where any layer painted and drops the average, since averaging different fields together says nothing useful |
@@ -489,9 +545,9 @@ A number over time: a line or bars per day, week, month or year, for one propert
 |---|---|---|---|---|---|
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
-| `where` | string\|list | — | — | — | a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, "rating >= 4"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or`. One unreadable condition drops the whole filter with a warning, and the chart is drawn unfiltered |
-| `date_field` | string | — | — | — | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or in `date_format`, or a dotted path into a nested property like `meta.date` |
-| `date_format` | string | — | — | — | a date format for note names and `date_field` values not written as `YYYY-MM-DD`, in moment notation: `DD.MM.YYYY`, `MM/DD/YYYY`, `YYYYMMDD`. Tried after `YYYY-MM-DD` and before the day format of the Daily notes or Periodic Notes settings, which is read without this key. A name or a value only has to start with the date (`05.10.2026 Monday` and `05.10.2026 14:30` count); the match is strict, so `5.10.2026` and `31.02.2026` are no date under `DD.MM.YYYY`. Needs a year, a month and a day, and warns when no selected note fits it. Month and weekday names (`MMMM`, `dddd`) are read in Obsidian's language, or in the Plugin language setting when one is picked |
+| `where` | string\|list | — | — | — | Same as `where` in Keys shared by several blocks; here also: One unreadable condition drops the whole filter with a warning, and the chart is drawn unfiltered |
+| `date_field` | string | — | — | — | Same as `date_field` in Keys shared by several blocks |
+| `date_format` | string | — | — | — | Same as `date_format` in Keys shared by several blocks |
 | `field` | string | — | — | `property`, `prop` | required unless `series` is set or `agg` is `count`, and not allowed together with `series`. One numeric frontmatter property, or a checkbox (ticked is 1, unticked 0); dotted for a nested one like `health.sleep`. A duration string like `5h 58min` or `7:30` counts as minutes, and tooltips, the y axis and the goal's legend entry then read `5h 58m`. When every value of the field across the selected notes carries seconds, like `2:16:32`, tooltips read as a clock to the second; the axis and the goal's legend entry stay `2h 15m`. `H:MM` is always hours and minutes, so write a 5 km time as `0:18:51`, not `18:51`; a field mixing durations and plain numbers counts both as minutes, shows plain numbers and warns. One property only: a list here is an error, write `series` for several lines, or `series: [{field: [a, b]}]` to fold several properties into one line. A field missing from the selection, holding text rather than a number, or holding numbers only on undated notes errors and says which |
 | `series` | list | — | — | — | several lines, or groups of bars, instead of one `field`: `[{field, agg, label, color}]`, at most 4. Not used together with the block's own `field`. Every series is its own line, or its own bar beside the others, never stacked, and all of them share one y axis |
 | `agg` | string | — | `sum` | `aggregate` | how the values landing in one bucket collapse into one number: sum avg min max count. A bucket's values are every value the field(s) hold on every note dated in it, so two notes on one day both count and `avg` is over values, not days: the same number a stats card over that week shows. `sum` of a checkbox is the number of ticked days. `count` needs no `field` and counts the dated notes in the bucket; next to a `field` it warns and ignores it. With `series`, each entry may override it. An unknown value is an error |
