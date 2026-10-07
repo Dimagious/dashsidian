@@ -321,6 +321,8 @@ export const ru: Catalog = {
 
     "insert.name": "Вставить блок",
     "insert.placeholder": "Какой блок?",
+    "command.installSkill": "Установить скилл для агента",
+    "command.installAgents": "Добавить секцию для агента в AGENTS.md",
     "block.tiles": "Плитки навигации со счётчиками",
     "block.stats": "Карточки чисел по выборке заметок",
     "block.progress": "Полосы к цели",

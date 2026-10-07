@@ -323,6 +323,8 @@ export const fr: Catalog = {
 
     "insert.name": "Insérer un bloc",
     "insert.placeholder": "Quel bloc ?",
+    "command.installSkill": "Installer le skill pour agent IA",
+    "command.installAgents": "Ajouter la section agent à AGENTS.md",
     "block.tiles": "Tuiles de navigation avec le nombre de notes par dossier",
     "block.stats": "Cartes de chiffres sur une sélection de notes",
     "block.progress": "Barres vers un objectif",

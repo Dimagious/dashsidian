@@ -323,6 +323,8 @@ export const de: Catalog = {
 
     "insert.name": "Block einfügen",
     "insert.placeholder": "Welcher Block?",
+    "command.installSkill": "Agent-Skill installieren",
+    "command.installAgents": "Agent-Abschnitt zu AGENTS.md hinzufügen",
     "block.tiles": "Navigationskacheln mit Ordnerzählern",
     "block.stats": "Zahlenkarten über eine Auswahl von Notizen",
     "block.progress": "Balken auf ein Ziel hin",

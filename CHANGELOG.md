@@ -10,6 +10,14 @@ removed public export.
 
 ## [Unreleased]
 
+### Added
+
+- **Two commands install the agent files from the command palette.**
+  `Dashy: Install agent skill` writes `.claude/skills/dashy/` and
+  `Dashy: Add agent section to AGENTS.md` adds the section to your
+  `AGENTS.md`. They do exactly what the Install buttons in settings do, and
+  write only when you run them.
+
 ### Fixed
 
 - **A streak of one day reads "1 day", not "1 days".** In `stats` and

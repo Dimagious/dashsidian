@@ -323,6 +323,8 @@ export const es: Catalog = {
 
     "insert.name": "Insertar bloque",
     "insert.placeholder": "¿Qué bloque?",
+    "command.installSkill": "Instalar la skill del agente",
+    "command.installAgents": "Añadir la sección del agente a AGENTS.md",
     "block.tiles": "Mosaicos de navegación con el número de notas por carpeta",
     "block.stats": "Tarjetas de números sobre una selección de notas",
     "block.progress": "Barras hacia un objetivo",
