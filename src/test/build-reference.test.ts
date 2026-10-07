@@ -257,6 +257,12 @@ describe("build-reference — a block page with items", () => {
         expect(html).toContain("```cards\nitems:\n  - { label: Days, source: Diary, agg: count }\n```");
     });
 
+    it("points a reader who would rather ask an agent at the onboarding guide, from two folders down", () => {
+        expect(html).toContain(
+            '<p class="muted" style="font-size:14.5px">Prefer to have your agent write it? <a href="../../guides/ai-agent-dashboard/">Build a dashboard with an AI agent</a>.</p>'
+        );
+    });
+
     it("throws when a related guide has no title", () => {
         expect(() => blockPage(pages[1] as Page, cards, {})).toThrow(/no title for guide "g1" on cards/);
     });
@@ -287,6 +293,12 @@ describe("build-reference — index page and targets", () => {
         expect(html).toContain('<span class="pill">5 keys</span>');
         expect(html).toContain("<li><b>tables</b>: use <code>Bases</code></li>");
         expect(html).toContain(`<link rel="canonical" href="${SITE_URL}reference/">`);
+    });
+
+    it("points at the onboarding guide from one folder down", () => {
+        const html = indexPage(schema, pages);
+        expect(html).toContain('Prefer to have your agent write it? <a href="../guides/ai-agent-dashboard/">Build a dashboard with an AI agent</a>.');
+        expect(html).not.toContain("../../guides/ai-agent-dashboard/");
     });
 
     it("gives a wide picture the fit thumbnail and a tall one the cropped one", () => {
