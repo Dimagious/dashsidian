@@ -75,6 +75,19 @@ export function formatDate(date: Date, format: string): string {
     return (override ? at.locale(override) : at).format(format);
 }
 
+/**
+ * The name of a periodic note: `format` in the application's own moment
+ * locale, never the language picked in Dashy (B-185).
+ *
+ * Periodic Notes and Daily notes name their notes with Obsidian's moment, and
+ * `parsePeriodStart` reads them back in it, so a link built in another
+ * language can point at a note that is not there: a locale week (`gggg-[W]ww`)
+ * is numbered by the locale's first day, and `MMMM` or `dddd` spell the name.
+ */
+export function formatNoteName(date: Date, format: string): string {
+    return m(date).format(format);
+}
+
 /** What language Obsidian speaks, as a locale code: `en`, `ru`, `zh-cn`. */
 export function currentLocale(): string {
     return m.locale();
