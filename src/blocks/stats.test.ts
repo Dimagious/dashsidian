@@ -81,6 +81,23 @@ describe("stats — the numbers are the real ones", () => {
             .toBe("14 500");
     });
 
+    it("a count noun as the unit agrees with the number: 1 book, 10 days (B-169)", () => {
+        const el = card(`items:
+  - { label: Rated five, source: Books, where: "rating = 5", agg: count, unit: books }
+  - { label: Logged, source: Diary, agg: count, unit: day }
+  - { label: Read, tag: read, agg: count, unit: books }`);
+        // "books" is not one of the count nouns: only day, week, month, year,
+        // night and time agree, so it stays as written even after a one.
+        expect(texts(el, ".dashy-stat-unit")).toEqual(["books", "days", "books"]);
+        const one = card("items:\n  - { label: Rated five, source: Books, where: \"rating = 5\", agg: count, unit: days }");
+        expect(texts(one, ".dashy-stat-unit")).toEqual(["day"]);
+    });
+
+    it("the inline layout agrees too", () => {
+        const el = card("layout: inline\nitems:\n  - { label: rated five, source: Books, where: \"rating = 5\", agg: count, unit: Times }");
+        expect(texts(el, ".dashy-stat-inline-unit")).toEqual(["Time"]);
+    });
+
     it("the unit rides with the number but stays a separate element", () => {
         const el = card("items:\n  - { label: Steps, source: Diary, field: steps, agg: sum, unit: st }");
         expect(texts(el, ".dashy-stat-unit")).toEqual(["st"]);

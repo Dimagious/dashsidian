@@ -6,7 +6,7 @@ import {
 } from "../core/inherit";
 import { aggregate, classifyField, classifyValues } from "../core/aggregate";
 import { readDateField, readDateFormat, unmatchedDateFormat, type DateFormats } from "../core/note-date";
-import { formatReading, showsDuration, showsClock, durationDiagnostics } from "../core/stat";
+import { formatReading, showsDuration, showsClock, durationDiagnostics, unitFor } from "../core/stat";
 import { readProgress, percentOf, barWidth, type ProgressSpec } from "../core/progress";
 import { readPeriod, filterByPeriod, dateFieldHasEffect, futureStart, windowLastDay, windowIsOver } from "../core/period";
 import { firstDayOfWeek } from "../adapters/datetime";
@@ -241,7 +241,7 @@ function toBar(
     if (!spec) return bar;
     if (waiting) {
         bar.goal = formatReading(spec.goal, spec.precision, duration, clock);
-        if (spec.unit && !duration) bar.unit = spec.unit;
+        if (spec.unit && !duration) bar.unit = unitFor(spec.unit, bar.goal);
         return bar;
     }
 
@@ -263,6 +263,7 @@ function toBar(
     bar.percent = percentOf(current, spec.goal);
     bar.width = barWidth(bar.percent);
     // A duration already carries its units (`durationDiagnostics` warned).
-    if (spec.unit && !duration) bar.unit = spec.unit;
+    // The unit follows the goal: "3 / 1 day" is not a sentence anyone writes.
+    if (spec.unit && !duration) bar.unit = unitFor(spec.unit, bar.goal);
     return bar;
 }

@@ -7,7 +7,7 @@ import { aggregate, series, classifyField, classifyValues } from "../core/aggreg
 import { readDateField, readDateFormat, unmatchedDateFormat } from "../core/note-date";
 import { sparkBars } from "../core/sparkline";
 import {
-    readStat, formatReading, showsDuration, showsClock, durationDiagnostics, valueLengthClass, GROUP_SEPARATOR,
+    readStat, formatReading, showsDuration, showsClock, durationDiagnostics, valueLengthClass, unitFor, GROUP_SEPARATOR,
 } from "../core/stat";
 import {
     readPeriod,
@@ -256,7 +256,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         };
         if (typeof item.icon === "string") card.icon = item.icon;
         // A duration already carries its units (`durationDiagnostics` warned).
-        if (spec?.unit && !duration) card.unit = spec.unit;
+        if (spec?.unit && !duration) card.unit = unitFor(spec.unit, card.text);
         if (typeof item.sub === "string") card.sub = item.sub;
 
         // Compared to the same stretch of the previous period, on the same

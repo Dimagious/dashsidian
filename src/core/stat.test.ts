@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-    readStat, formatValue, valueLengthClass, showsDuration, showsClock, formatReading, durationDiagnostics,
+    readStat, formatValue, valueLengthClass, showsDuration, showsClock, formatReading, durationDiagnostics, unitFor,
 } from "./stat";
 
 describe("readStat — happy path", () => {
@@ -478,5 +478,54 @@ describe("durationDiagnostics", () => {
         expect(durationDiagnostics({ agg: "count", durationThresholds: goal }, { kind: "none" }, card)).toHaveLength(1);
         expect(durationDiagnostics({ agg: "sum", field: "sleep", durationThresholds: goal }, { kind: "duration" }, card))
             .toEqual([]);
+    });
+});
+
+describe("unitFor (B-169)", () => {
+    it("a count noun agrees with a number drawn as one", () => {
+        expect(unitFor("days", "1")).toBe("day");
+        expect(unitFor("days", "2")).toBe("days");
+        expect(unitFor("nights", "1")).toBe("night");
+        expect(unitFor("times", "1")).toBe("time");
+    });
+
+    it("a singular written by hand turns plural for any other number", () => {
+        expect(unitFor("day", "3")).toBe("days");
+        expect(unitFor("week", "0")).toBe("weeks");
+        expect(unitFor("year", "1")).toBe("year");
+    });
+
+    it("only exactly one is singular: a fraction, a grouped number or a dash stays plural", () => {
+        expect(unitFor("days", "1.0")).toBe("days");
+        expect(unitFor("days", "1.5")).toBe("days");
+        expect(unitFor("days", "11")).toBe("days");
+        expect(unitFor("days", "—")).toBe("days");
+    });
+
+    it("minus one is one too, written with either minus sign", () => {
+        expect(unitFor("days", "-1")).toBe("day");
+        expect(unitFor("days", "\u22121")).toBe("day");
+    });
+
+    it("keeps a capital first letter and matches regardless of case", () => {
+        expect(unitFor("Days", "1")).toBe("Day");
+        // Already the right form: left exactly as written.
+        expect(unitFor("DAYS", "2")).toBe("DAYS");
+        expect(unitFor("DAYS", "1")).toBe("Day");
+        expect(unitFor("Day", "4")).toBe("Days");
+    });
+
+    it("a unit named like an object property is just text", () => {
+        expect(unitFor("Constructor", "1")).toBe("Constructor");
+        expect(unitFor("constructor", "2")).toBe("constructor");
+        expect(unitFor("__proto__", "2")).toBe("__proto__");
+        expect(unitFor("toString", "1")).toBe("toString");
+    });
+
+    it("any other unit is left exactly as written", () => {
+        expect(unitFor("km", "1")).toBe("km");
+        expect(unitFor("дн.", "1")).toBe("дн.");
+        expect(unitFor("steps", "1")).toBe("steps");
+        expect(unitFor("d", "1")).toBe("d");
     });
 });
