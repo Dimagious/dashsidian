@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readCountdown, readDateKey, daysUntil, countdownTarget } from "./countdown";
 import type { NoteRecord } from "./source";
+import { dateFormats, type ParseDate } from "./note-date";
 
 const NONE = (): NoteRecord[] => [];
 
@@ -331,5 +332,244 @@ describe("countdownTarget", () => {
 
     it("one year on is the first anniversary", () => {
         expect(countdownTarget(yearly("2025-10-05"), "2026-10-05")).toEqual({ date: "2026-10-05", years: 1 });
+    });
+});
+
+describe("readCountdown: pick next (B-170)", () => {
+    const TODAY = "2026-10-07";
+    const races = [
+        noteAt("Races/2026-03-01 Half.md", { date: "2026-03-01" }),
+        noteAt("Races/2026-01-10 IRONMAN 70.3.md", { date: "2026-11-15" }),
+        noteAt("Races/2025-12-01 Marathon.md", { date: "2026-10-20" }),
+    ];
+    const next = (item: Record<string, unknown>, notes: NoteRecord[], today = TODAY) =>
+        readCountdown({ field: "date", pick: "next", ...item }, "Next race", () => notes, undefined, today);
+
+    it("picks the soonest date still ahead, whatever the dates in the names say", () => {
+        const { spec, diagnostics } = next({ source: "Races" }, races);
+        expect(spec).toEqual({
+            date: "2026-10-20",
+            note: "Races/2025-12-01 Marathon.md",
+            noteName: "2025-12-01 Marathon",
+        });
+        expect(diagnostics).toEqual([]);
+    });
+
+    it("the order the vault lists the notes in does not matter", () => {
+        expect(next({}, [...races].reverse()).spec?.date).toBe("2026-10-20");
+    });
+
+    it("a date today is the next one", () => {
+        const notes = [...races, noteAt("Races/Sprint.md", { date: TODAY })];
+        expect(next({}, notes).spec).toEqual({ date: TODAY, note: "Races/Sprint.md", noteName: "Sprint" });
+    });
+
+    it("yesterday is gone by, so the next one after it wins", () => {
+        const notes = [noteAt("Races/A.md", { date: "2026-10-06" }), noteAt("Races/B.md", { date: "2026-10-08" })];
+        expect(next({}, notes).spec?.note).toBe("Races/B.md");
+    });
+
+    it("notes without a date in their name take part like any other", () => {
+        const notes = [
+            noteAt("Races/2026-10-01 Club run.md", { date: "2026-12-01" }),
+            noteAt("Races/Berlin.md", { date: "2026-10-30" }),
+        ];
+        expect(next({}, notes).spec?.note).toBe("Races/Berlin.md");
+    });
+
+    it("`latest`, the default, still reads the newest note by name, past date or not", () => {
+        const latest = readCountdown({ field: "date", source: "Races" }, "R", () => races, undefined, TODAY);
+        expect(latest.spec).toEqual({ date: "2026-03-01", note: "Races/2026-03-01 Half.md" });
+        const named = readCountdown({ field: "date", pick: "latest" }, "R", () => races, undefined, TODAY);
+        expect(named.spec).toEqual(latest.spec);
+        expect(named.diagnostics).toEqual([]);
+    });
+
+    it("a tie goes to the first note by path", () => {
+        const notes = [noteAt("Races/B.md", { date: "2026-11-01" }), noteAt("Races/A.md", { date: "2026-11-01" })];
+        expect(next({}, notes).spec?.note).toBe("Races/A.md");
+        expect(next({}, [...notes].reverse()).spec?.note).toBe("Races/A.md");
+    });
+
+    it("when every date has passed, the card errors naming the latest one and its note", () => {
+        const past = [
+            noteAt("Races/A.md", { date: "2026-05-01" }),
+            noteAt("Races/B.md", { date: "2026-09-30" }),
+            noteAt("Races/C.md", { date: "2025-06-01" }),
+        ];
+        const { spec, diagnostics } = next({}, past);
+        expect(spec).toBeNull();
+        expect(diagnostics).toEqual([{
+            level: "error",
+            message: '"Next race": no date in "date" is still ahead. The latest is 2026-09-30, in "B".',
+        }]);
+    });
+
+    it("a value that is not a date is skipped, and one warning names the first and counts them", () => {
+        const notes = [
+            noteAt("Races/C.md", { date: "2026-11-01" }),
+            noteAt("Races/B.md", { date: "soon" }),
+            noteAt("Races/A.md", { date: "TBD" }),
+        ];
+        const { spec, diagnostics } = next({}, notes);
+        expect(spec?.note).toBe("Races/C.md");
+        expect(diagnostics).toEqual([{
+            level: "warning",
+            message: '"Next race": 2 notes were skipped, their "date" is not a date: "TBD" in "A", for one. Expected YYYY-MM-DD, or another format named with `date_format:` next to `items:`.',
+        }]);
+    });
+
+    it("one skipped note takes the singular", () => {
+        const notes = [noteAt("Races/A.md", { date: "TBD" }), noteAt("Races/B.md", { date: "2026-11-01" })];
+        expect(next({}, notes).diagnostics[0]?.message).toBe(
+            '"Next race": 1 note was skipped, its "date" is not a date: "TBD" in "A". Expected YYYY-MM-DD, or another format named with `date_format:` next to `items:`.',
+        );
+    });
+
+    it("a skipped value is still reported when every real date has passed", () => {
+        const notes = [noteAt("Races/A.md", { date: "TBD" }), noteAt("Races/B.md", { date: "2026-01-01" })];
+        const { spec, diagnostics } = next({}, notes);
+        expect(spec).toBeNull();
+        expect(diagnostics.map((d) => d.level)).toEqual(["warning", "error"]);
+        expect(diagnostics[0]?.message).toContain('1 note was skipped, its "date" is not a date: "TBD" in "A"');
+        expect(diagnostics[1]?.message).toContain("The latest is 2026-01-01");
+    });
+
+    it("blank values are not counted as skipped", () => {
+        const notes = [noteAt("Races/A.md", { date: "" }), noteAt("Races/B.md", { date: null }),
+            noteAt("Races/C.md", { date: "2026-11-01" })];
+        const { spec, diagnostics } = next({}, notes);
+        expect(spec?.note).toBe("Races/C.md");
+        expect(diagnostics).toEqual([]);
+    });
+
+    it("when no value is a date at all, the first is the error `latest` gives", () => {
+        const notes = [noteAt("Races/B.md", { date: "soon" }), noteAt("Races/A.md", { date: "TBD" })];
+        const { spec, diagnostics } = next({}, notes);
+        expect(spec).toBeNull();
+        expect(diagnostics).toEqual([{
+            level: "error",
+            message: '"Next race": "date" in "A" is "TBD", not a date. Expected YYYY-MM-DD, or another format named with `date_format:` next to `items:`.',
+        }]);
+    });
+
+    it("no note with the field filled in is the usual missing-field error", () => {
+        const { spec, diagnostics } = next({}, [noteAt("Races/A.md", { distance: 42 })]);
+        expect(spec).toBeNull();
+        expect(diagnostics[0]?.message).toBe(
+            '"Next race": no note in the selection has "date" filled in. Check the name, `source`, `tag` and `where`.',
+        );
+        expect(next({}, []).diagnostics[0]?.message).toContain("no note in the selection");
+    });
+
+    it("source, tag and where narrow the notes it chooses from", () => {
+        const notes = [
+            noteAt("Races/A.md", { date: "2026-10-10", type: "run" }, ["race"]),
+            noteAt("Races/B.md", { date: "2026-10-12", type: "tri" }, ["race"]),
+            noteAt("Races/C.md", { date: "2026-10-14", type: "tri" }),
+            noteAt("Trips/D.md", { date: "2026-10-08", type: "tri" }, ["race"]),
+        ];
+        expect(next({}, notes).spec?.note).toBe("Trips/D.md");
+        expect(next({ source: "Races" }, notes).spec?.note).toBe("Races/A.md");
+        expect(next({ source: "Races", where: "type = tri" }, notes).spec?.note).toBe("Races/B.md");
+        expect(next({ where: "type = tri", tag: "race", source: "Races" }, notes).spec?.note).toBe("Races/B.md");
+        expect(next({ where: "type = tri" }, notes.filter((n) => n.tags.length === 0)).spec?.note).toBe("Races/C.md");
+    });
+
+    it("with repeat yearly it counts to the next birthday among the people", () => {
+        const people = [
+            noteAt("People/Anna.md", { birthday: "1990-05-12" }),
+            noteAt("People/Boris.md", { birthday: "1985-10-04" }),
+            noteAt("People/Clara.md", { birthday: "2001-12-24" }),
+        ];
+        const { spec, diagnostics } = readCountdown(
+            { field: "birthday", pick: "next", repeat: "yearly", source: "People" },
+            "Next birthday", () => people, undefined, TODAY,
+        );
+        // Boris's was three days ago, so Clara's 24 December comes first. The
+        // original date is kept, so the block still works out the age.
+        expect(spec).toEqual({
+            date: "2001-12-24", repeat: "yearly", note: "People/Clara.md", noteName: "Clara",
+        });
+        expect(diagnostics).toEqual([]);
+        expect(countdownTarget(spec ?? { date: "" }, TODAY)).toEqual({ date: "2026-12-24", years: 25 });
+    });
+
+    it("a 29 February birthday lands on the 28th and can be the next one", () => {
+        const people = [
+            noteAt("People/Leap.md", { birthday: "2000-02-29" }),
+            noteAt("People/March.md", { birthday: "1999-03-01" }),
+        ];
+        const { spec } = readCountdown(
+            { field: "birthday", pick: "next", repeat: "yearly" }, "B", () => people, undefined, "2027-01-10",
+        );
+        expect(spec?.note).toBe("People/Leap.md");
+        expect(countdownTarget(spec ?? { date: "" }, "2027-01-10")).toEqual({ date: "2027-02-28", years: 27 });
+    });
+
+    it("with repeat yearly a birthday today wins over one tomorrow", () => {
+        const people = [
+            noteAt("People/A.md", { birthday: "1990-10-08" }),
+            noteAt("People/B.md", { birthday: "1980-10-07" }),
+        ];
+        const { spec } = readCountdown(
+            { field: "birthday", pick: "next", repeat: "yearly" }, "B", () => people, undefined, TODAY,
+        );
+        expect(spec?.note).toBe("People/B.md");
+    });
+
+    it("reads values in the block's date format", () => {
+        const notes = [noteAt("Races/A.md", { date: "20.11.2026" }), noteAt("Races/B.md", { date: "15.10.2026" })];
+        // A stand-in for moment: reads DD.MM.YYYY and nothing else.
+        const parse: ParseDate = (text, format) => {
+            const m = format === "DD.MM.YYYY" ? /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(text) : null;
+            return m ? `${m[3]}-${m[2]}-${m[1]}` : null;
+        };
+        const formats = dateFormats("DD.MM.YYYY", undefined, parse);
+        const { spec } = readCountdown({ field: "date", pick: "next" }, "R", () => notes, formats, TODAY);
+        expect(spec?.date).toBe("2026-10-15");
+    });
+
+    it("refuses any other value, naming it", () => {
+        for (const pick of ["soonest", "Next", "", true, 1]) {
+            const { spec, diagnostics } = readCountdown(
+                { field: "date", pick }, "Next race", () => races, undefined, TODAY,
+            );
+            expect(spec, String(pick)).toBeNull();
+            expect(diagnostics).toEqual([{
+                level: "error",
+                message: `"Next race": \`pick\` expects \`latest\` or \`next\`, got "${String(pick)}".`,
+            }]);
+        }
+    });
+
+    it("a bare `pick:` is the default", () => {
+        const { spec, diagnostics } = readCountdown({ field: "date", pick: null }, "R", () => races, undefined, TODAY);
+        expect(spec?.note).toBe("Races/2026-03-01 Half.md");
+        expect(diagnostics).toEqual([]);
+    });
+
+    it("next to a written date it warns and the date stands", () => {
+        const { spec, diagnostics } = readCountdown({ date: "2026-11-15", pick: "next" }, "Race", NONE);
+        expect(spec).toEqual({ date: "2026-11-15" });
+        expect(diagnostics).toEqual([{
+            level: "warning",
+            message: '"Race": `pick` only chooses among the notes `field` is read from. With `date:` it is ignored.',
+        }]);
+    });
+
+    it("an invalid value next to a written date is still an error, like `repeat`", () => {
+        const { spec, diagnostics } = readCountdown({ date: "2026-11-15", pick: "soonest" }, "Race", NONE);
+        expect(spec).toBeNull();
+        expect(diagnostics).toEqual([{
+            level: "error",
+            message: '"Race": `pick` expects `latest` or `next`, got "soonest".',
+        }]);
+    });
+
+    it("without today it is a caller's bug and throws, rather than counting from a wrong day", () => {
+        expect(() => readCountdown({ field: "date", pick: "next" }, "R", () => races)).toThrow(/needs `today`/);
+        // `latest` never needed it, and still does not.
+        expect(readCountdown({ field: "date" }, "R", () => races).spec?.date).toBe("2026-03-01");
     });
 });

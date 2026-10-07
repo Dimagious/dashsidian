@@ -370,3 +370,77 @@ describe("countdown — a field date not written as YYYY-MM-DD (B-120)", () => {
         expect(diagnostics(el, "warning")[0]).toContain("`date_format: MM.YYYY` has no year, month and day");
     });
 });
+
+describe("countdown: pick next (B-170)", () => {
+    // 7 October 2026.
+    const TODAY = new Date(2026, 9, 7, 12, 0, 0);
+    const races = [
+        { path: "Races/2026-01-10 IRONMAN 70.3.md", frontmatter: { date: "2026-11-15" } },
+        { path: "Races/2025-12-01 Marathon.md", frontmatter: { date: "2026-10-20" } },
+        { path: "Races/2026-03-01 Half.md", frontmatter: { date: "2026-03-01" } },
+    ];
+    const render = (config: string, notes = races) => {
+        const el = host();
+        renderCountdown({ ...mockContext({ notes }), today: () => TODAY }, config, el);
+        return el;
+    };
+
+    it("counts to the soonest race, names its note under the card and links the label to it", () => {
+        const el = render("items:\n  - { label: Next race, field: date, source: Races, pick: next }");
+        expect(diagnostics(el, "error")).toEqual([]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(texts(el, ".dashy-countdown-value")).toEqual(["13"]);
+        expect(texts(el, ".dashy-countdown-date")).toEqual(["October 20, 2026"]);
+        expect(texts(el, ".dashy-countdown-sub")).toEqual(["2025-12-01 Marathon"]);
+        expect(nodes(el, ".dashy-countdown-link")[0]?.getAttribute("data-href")).toBe("Races/2025-12-01 Marathon.md");
+    });
+
+    it("the user's own sub is kept instead of the note name", () => {
+        const el = render("items:\n  - { label: Next race, field: date, pick: next, sub: train! }");
+        expect(texts(el, ".dashy-countdown-sub")).toEqual(["train!"]);
+    });
+
+    it("`latest` shows no note name, and still counts up from a past date", () => {
+        const el = render("items:\n  - { label: Last race, field: date, source: Races }");
+        expect(texts(el, ".dashy-countdown-sub")).toEqual([]);
+        expect(texts(el, ".dashy-countdown-unit")).toEqual(["days ago"]);
+    });
+
+    it("a folder of people counts to the next birthday, with the age", () => {
+        const el = render("items:\n  - { label: Next birthday, field: birthday, source: People, pick: next, repeat: yearly }", [
+            { path: "People/Anna.md", frontmatter: { birthday: "1990-05-12" } },
+            { path: "People/Clara.md", frontmatter: { birthday: "2001-12-24" } },
+        ]);
+        expect(texts(el, ".dashy-countdown-value")).toEqual(["78"]);
+        const subs = Array.from(nodes(el, ".dashy-countdown-sub"), (n) => n.textContent);
+        expect(subs).toEqual(["Clara", "25 years"]);
+    });
+
+    it("every race behind is an error on the card, drawn as a dash", () => {
+        const el = render("items:\n  - { label: Next race, field: date, pick: next }", [
+            { path: "Races/A.md", frontmatter: { date: "2026-09-01" } },
+        ]);
+        expect(diagnostics(el, "error")).toEqual([
+            '⛔ countdown: "Next race": no date in "date" is still ahead. The latest is 2026-09-01, in "A".',
+        ]);
+        expect(texts(el, ".dashy-countdown-value")).toEqual(["—"]);
+        expect(nodes(el, ".dashy-countdown-card")[0]?.className).toContain("is-broken");
+        expect(texts(el, ".dashy-countdown-sub")).toEqual([]);
+    });
+
+    it("a stray value warns and the card still counts", () => {
+        const el = render("items:\n  - { label: Next race, field: date, pick: next }", [
+            ...races, { path: "Races/Someday.md", frontmatter: { date: "TBD" } },
+        ]);
+        expect(diagnostics(el, "warning")[0]).toContain('1 note was skipped, its "date" is not a date: "TBD" in "Someday"');
+        expect(texts(el, ".dashy-countdown-value")).toEqual(["13"]);
+    });
+
+    it("pick is a known key, and a wrong value is an error naming it", () => {
+        const el = render("items:\n  - { label: Next race, field: date, pick: soonest }");
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(diagnostics(el, "error")).toEqual([
+            '⛔ countdown: "Next race": `pick` expects `latest` or `next`, got "soonest".',
+        ]);
+    });
+});

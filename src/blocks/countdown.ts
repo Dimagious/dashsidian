@@ -63,7 +63,7 @@ export function renderCountdown(ctx: BlockContext, source: string, el: HTMLEleme
         diags.push(...unknownKeys(item, KNOWN_ITEM));
 
         const label = typeof item.label === "string" ? item.label : "";
-        const { spec, diagnostics: cardDiags } = readCountdown(item, label, () => ctx.notes(), formats);
+        const { spec, diagnostics: cardDiags } = readCountdown(item, label, () => ctx.notes(), formats, today);
         diags.push(...cardDiags);
 
         cards.push(toCard(item, spec, label, today));
@@ -109,6 +109,9 @@ function toCard(
     if (typeof item.sub === "string") card.sub = item.sub;
     if (!spec) return card;
     if (spec.note) card.note = spec.note;
+    // `pick: next` counts to whichever note is soonest, so the card names it
+    // unless the user wrote a caption of their own.
+    if (spec.noteName && card.sub === undefined) card.sub = spec.noteName;
 
     // `repeat: yearly` moves the date to its next occurrence; without it the
     // target is the date as written.

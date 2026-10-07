@@ -188,6 +188,12 @@ items:
   - { label: Битая дата, date: 15.11.2026 }`,
     },
     {
+        block: "countdown",
+        title: "countdown — ближайшая из папки (pick: next), пропущенная заметка",
+        source: `items:
+  - { label: Следующий старт, field: date, source: Races, pick: next, icon: 🏁 }`,
+    },
+    {
         block: "heatmap",
         title: "heatmap — полосы, свой заголовок",
         source: `source: Diary

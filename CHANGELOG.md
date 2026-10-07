@@ -17,6 +17,18 @@ removed public export.
   `Dashy: Add agent section to AGENTS.md` adds the section to your
   `AGENTS.md`. They do exactly what the Install buttons in settings do, and
   write only when you run them.
+- **A countdown can count to the next of many dates: `pick: next`.** A
+  `countdown` card with `field` used to read only the newest note by the
+  date in its name. With `pick: next` it reads the field in every note it
+  selects and counts to the soonest date from today on, today included:
+  `{ label: Next race, field: date, source: Races, pick: next }` is the
+  next race in a folder of races. The card shows that note's name under
+  the date unless you write your own `sub`, and the label opens the note.
+  With `repeat: yearly` each note's date moves to its next anniversary
+  first, so the same card over a `People` folder counts to the next
+  birthday, with the age. A note whose value is not a date is skipped with
+  a warning; when every date has passed, the card shows an error naming
+  the latest one. `pick: latest` is the default and works as before.
 
 ### Fixed
 

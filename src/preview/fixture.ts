@@ -42,6 +42,16 @@ export function fakeVault(): NoteRecord[] {
         { path: "Inbox/two.md", name: "two", folder: "Inbox", tags: [], frontmatter: {} },
     ];
     const today = new Date();
+    // Races, one note each, for `pick: next` (B-170): one behind, two ahead
+    // in the wrong order by name, and one with no date yet.
+    const inDays = (days: number): string =>
+        dayKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() + days));
+    const races: [string, string][] = [
+        ["Spring half", inDays(-30)], ["Autumn 70.3", inDays(60)], ["City 10k", inDays(12)], ["Ultra", "TBD"],
+    ];
+    for (const [name, date] of races) {
+        notes.push({ path: `Races/${name}.md`, name, folder: "Races", tags: [], frontmatter: { date } });
+    }
     for (let back = 0; back < 120; back++) {
         const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - back);
         // Skip a day here and there: a solid block of colour hides nothing.

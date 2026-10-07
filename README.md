@@ -99,7 +99,7 @@ page: a picture, an example, every key.
 
 - [`stats`](https://dimagious.github.io/dashsidian/reference/stats/): number cards, or one line of numbers for a page header. Count, sum, average, best and current streak, this week against last or against your usual level.
 - [`progress`](https://dimagious.github.io/dashsidian/reference/progress/): bars towards a goal, like 24 books this year.
-- [`countdown`](https://dimagious.github.io/dashsidian/reference/countdown/): days until a race, a holiday, the next birthday, or a date kept in a note.
+- [`countdown`](https://dimagious.github.io/dashsidian/reference/countdown/): days until a race, a holiday, the next birthday, a date kept in a note, or the soonest one in a folder of notes.
 - [`today`](https://dimagious.github.io/dashsidian/reference/today/): today's date, an optional live clock, and links to the daily, weekly and monthly notes.
 - [`tiles`](https://dimagious.github.io/dashsidian/reference/tiles/): link tiles into the vault, with live note counts.
 - [`heatmap`](https://dimagious.github.io/dashsidian/reference/heatmap/): a year of days coloured by a number or a checkbox, several habits on one grid, or [a month as a calendar](https://dimagious.github.io/dashsidian/guides/monthly-habit-calendar/) with a dot under every day you kept a habit.

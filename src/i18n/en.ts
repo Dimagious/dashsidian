@@ -166,6 +166,13 @@ export const en = {
     "countdown.fieldNotDate": "{card}: \"{field}\" in \"{note}\" is \"{value}\", not a date. Expected YYYY-MM-DD, or another format named with `date_format:` next to `items:`.",
     "countdown.repeatInvalid": "{card}: `repeat` expects `yearly`, got \"{value}\".",
     "countdown.selectionUnused": "{card}: `source`, `tag` and `where` only choose the note `field` is read from. With `date:` they are ignored.",
+    "countdown.pickInvalid": "{card}: `pick` expects `latest` or `next`, got \"{value}\".",
+    "countdown.pickUnused": "{card}: `pick` only chooses among the notes `field` is read from. With `date:` it is ignored.",
+    "countdown.nothingAhead": "{card}: no date in \"{field}\" is still ahead. The latest is {date}, in \"{note}\".",
+    "countdown.pickSkipped.one": "{card}: {count} note was skipped, its \"{field}\" is not a date: \"{value}\" in \"{note}\". Expected YYYY-MM-DD, or another format named with `date_format:` next to `items:`.",
+    "countdown.pickSkipped.few": "{card}: {count} notes were skipped, their \"{field}\" is not a date: \"{value}\" in \"{note}\", for one. Expected YYYY-MM-DD, or another format named with `date_format:` next to `items:`.",
+    "countdown.pickSkipped.many": "{card}: {count} notes were skipped, their \"{field}\" is not a date: \"{value}\" in \"{note}\", for one. Expected YYYY-MM-DD, or another format named with `date_format:` next to `items:`.",
+    "countdown.pickSkipped.other": "{card}: {count} notes were skipped, their \"{field}\" is not a date: \"{value}\" in \"{note}\", for one. Expected YYYY-MM-DD, or another format named with `date_format:` next to `items:`.",
     "countdown.today": "Today",
     // The count is drawn separately, in large type, so these carry the noun
     // alone and must read naturally under a number. English splits one from the

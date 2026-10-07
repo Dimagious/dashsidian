@@ -52,6 +52,7 @@ export type PluralKey =
     | "countdown.daysLeft"
     | "countdown.daysAgo"
     | "countdown.years"
+    | "countdown.pickSkipped"
     | "compare.vsDays"
     | "heatmap.notesCount"
     | "chart.days"
