@@ -336,6 +336,8 @@ export const en = {
 
     "insert.name": "Insert block",
     "insert.placeholder": "Which block?",
+    "command.installSkill": "Install agent skill",
+    "command.installAgents": "Add agent section to AGENTS.md",
     "block.tiles": "Navigation tiles with folder counts",
     "block.stats": "Number cards over a selection of notes",
     "block.progress": "Bars towards a goal",

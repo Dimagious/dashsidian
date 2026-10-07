@@ -21,6 +21,7 @@ import { isPluginEnabled } from "../adapters/plugins";
 import { t } from "../i18n";
 import { InsertBlockModal } from "../ui/insert-block";
 import { DashySettingTab } from "../ui/settings";
+import { installSkill, installAgents } from "./agent-files";
 
 const BLOCKS: Record<string, Draw> = {
     tiles: renderTiles,
@@ -87,6 +88,19 @@ export default class DashyPlugin extends Plugin {
             editorCallback: (editor) => {
                 new InsertBlockModal(this.app, editor, this.snapshot.get(), (name) => fenceName(name, yielded)).open();
             },
+        });
+
+        // The agent files, reachable without opening settings (B-186). Same
+        // code as the Install buttons, and as there, written only on this call.
+        this.addCommand({
+            id: "install-skill",
+            name: t("command.installSkill"),
+            callback: () => void installSkill(this.app, this),
+        });
+        this.addCommand({
+            id: "install-agents",
+            name: t("command.installAgents"),
+            callback: () => void installAgents(this.app, this),
         });
 
         this.watchVault();

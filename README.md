@@ -29,7 +29,7 @@ One request on the left, the note it wrote on the right: three blocks, `countdow
 
 Settings → **Community plugins** → **Browse** → search for **Dashy** → Install → Enable.
 
-Then install the agent skill from Dashy's settings, or run **Dashy: Insert block** to write a block yourself.
+Then install the agent skill from Dashy's settings or the command palette, or run **Dashy: Insert block** to write a block yourself.
 
 ## Ask your agent
 

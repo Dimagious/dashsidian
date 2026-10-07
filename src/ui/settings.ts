@@ -4,7 +4,6 @@ import {
     Platform,
     apiVersion,
     PluginSettingTab,
-    normalizePath,
     type SettingDefinitionItem,
     type SettingGroupItem,
 } from "obsidian";
@@ -12,19 +11,12 @@ import type DashyPlugin from "../app/plugin";
 import { discoverPeriodics } from "../adapters/periodic";
 import type { Period } from "../core/periodic";
 import {
-    SKILL_MARKDOWN,
     SKILL_VERSION,
     SKILL_DIR,
-    SKILL_PATH,
-    REFERENCE_MARKDOWN,
-    REFERENCE_PATH,
     COMBINED_MARKDOWN,
     AGENTS_PATH,
-    AGENTS_SECTION,
-    AGENTS_BEGIN,
-    AGENTS_END,
 } from "../skill/skill-content";
-import { upsertManagedSection, hasManagedSection } from "../core/agents-file";
+import { installSkill, installAgents } from "../app/agent-files";
 import { buildIssueUrl, DOCS_URL, FUNDING_URL, type IssueKind } from "../core/feedback";
 import { MIN_START_HOUR, MAX_START_HOUR, normalizeStartHour } from "../core/today";
 import { t, AVAILABLE_LOCALES } from "../i18n";
@@ -267,33 +259,8 @@ export class DashySettingTab extends PluginSettingTab {
         };
     }
 
-    /**
-     * Writes the files only on a click, never on its own.
-     *
-     * The adapter rather than the Vault API, unusually: `.claude/` is a dotted
-     * folder, which Obsidian does not index, so there is no TFile to get hold
-     * of and `vault.create` has nothing to file the result under.
-     *
-     * Two files (B-164): SKILL.md, the process, and reference.md next to it,
-     * the key tables SKILL.md links to. The reference goes first, so a write
-     * that fails halfway never leaves a SKILL.md pointing at a file that is
-     * not there. An install from before the split updates the same way:
-     * SKILL.md is overwritten and reference.md created.
-     */
     private async installSkill(): Promise<void> {
-        const adapter = this.app.vault.adapter;
-        const folder = normalizePath(SKILL_DIR);
-        try {
-            if (!(await adapter.exists(folder))) await adapter.mkdir(folder);
-            await adapter.write(normalizePath(REFERENCE_PATH), REFERENCE_MARKDOWN);
-            await adapter.write(normalizePath(SKILL_PATH), SKILL_MARKDOWN);
-            this.plugin.settings.installedSkillVersion = SKILL_VERSION;
-            await this.plugin.saveSettings();
-            new Notice(t("settings.written", { path: SKILL_DIR }));
-            this.update();
-        } catch (e) {
-            new Notice(t("settings.writeFailed", { message: (e as Error).message }));
-        }
+        if (await installSkill(this.app, this.plugin)) this.update();
     }
 
     /**
@@ -318,37 +285,7 @@ export class DashySettingTab extends PluginSettingTab {
         }
     }
 
-    /**
-     * AGENTS.md belongs to the vault, so the file is read first and only our
-     * fenced section is replaced. A file we cannot recognise comes back
-     * unchanged and the user is told, rather than being quietly overwritten.
-     */
     private async installAgents(): Promise<void> {
-        const markers = { begin: AGENTS_BEGIN, end: AGENTS_END };
-        const target = normalizePath(AGENTS_PATH);
-        try {
-            // A plain vault file, so it goes through the Vault API: Obsidian
-            // knows about it, indexes it, and shows the change straight away.
-            const file = this.app.vault.getFileByPath(target);
-            const existing = file ? await this.app.vault.read(file) : null;
-            const next = upsertManagedSection(existing, AGENTS_SECTION, markers);
-
-            if (existing !== null && next === existing && !hasManagedSection(existing, markers)) {
-                new Notice(t("settings.agentsUntouched", { path: AGENTS_PATH }));
-                return;
-            }
-
-            if (file) {
-                await this.app.vault.modify(file, next);
-            } else {
-                await this.app.vault.create(target, next);
-            }
-            this.plugin.settings.installedAgentsVersion = SKILL_VERSION;
-            await this.plugin.saveSettings();
-            new Notice(t("settings.written", { path: AGENTS_PATH }));
-            this.update();
-        } catch (e) {
-            new Notice(t("settings.writeFailed", { message: (e as Error).message }));
-        }
+        if (await installAgents(this.app, this.plugin)) this.update();
     }
 }
