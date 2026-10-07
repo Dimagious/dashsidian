@@ -32,6 +32,12 @@ removed public export.
 
 ### Fixed
 
+- **`today` links to the note Periodic Notes would name, whatever language
+  Dashy speaks.** With Dashy set to one language and Obsidian to another, a
+  weekly note named `gggg-[W]ww` could link to last week on a Sunday, and a
+  note named by `dddd` or `MMMM` was spelled in Dashy's language. Names are
+  now written in Obsidian's own language, the way Periodic Notes writes
+  them. The date line and everything else still follow Dashy's language.
 - **A streak of one day reads "1 day", not "1 days".** In `stats` and
   `progress`, a `unit` that is one of the count nouns day, week, month,
   year, night or time now agrees with the number drawn: `1 day`, `2 days`,

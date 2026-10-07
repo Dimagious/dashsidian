@@ -3,7 +3,7 @@ import { Platform, type App } from "obsidian";
 import { snapshot, noteExists, VaultSnapshot, pathKind, revealFolder, notesPending, whenIndexed } from "./vault";
 import { discoverPeriodics, dailyNoteFormat, noteDateFormats, periodNameFormats, periodContext } from "./periodic";
 import {
-    formatDate, currentLocale, weekdayNamesShort, monthNamesShort, firstDayOfWeek, monthYearShort, formatDayMedium,
+    formatDate, formatNoteName, currentLocale, weekdayNamesShort, monthNamesShort, firstDayOfWeek, monthYearShort, formatDayMedium,
     formatYear, timeFormats, parseDateWithFormat, parsePeriodStart,
 } from "./datetime";
 import { applyObsidianLocale, applyLocale } from "./locale";
@@ -505,6 +505,17 @@ describe("datetime", () => {
     it("formats a date by a moment pattern", () => {
         expect(formatDate(new Date(2026, 10, 15), "YYYY-MM-DD")).toBe("2026-11-15");
         expect(formatDate(new Date(2026, 8, 22), "gggg-[W]ww")).toBe("2026-W39");
+    });
+
+    it("names a periodic note in the app's locale, not the language picked in Dashy (B-185)", () => {
+        applyLocale("de");
+        const sunday = new Date(2026, 9, 4);
+        // The app's moment is English: weeks start on Sunday, so this Sunday opens week 41.
+        expect(formatNoteName(sunday, "gggg-[W]ww")).toBe("2026-W41");
+        expect(formatNoteName(sunday, "dddd")).toBe("Sunday");
+        // Dates shown to the reader still follow Dashy's language.
+        expect(formatDate(sunday, "gggg-[W]ww")).toBe("2026-W40");
+        expect(formatDate(sunday, "dddd")).toBe("Sonntag");
     });
 
     it("gives seven weekday names, Sunday first", () => {

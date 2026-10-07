@@ -10,7 +10,10 @@ const key = (d: Date) =>
     [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
 const TODAY_KEY = key(TODAY);
 
-afterEach(() => setLocale("en"));
+afterEach(() => {
+    setLocale("en");
+    applyLocale("");
+});
 
 const row = (config: string, settings = DEFAULT_SETTINGS, vault = {}) => {
     const el = host();
@@ -60,6 +63,18 @@ describe("today — the links point at real paths", () => {
     it("a custom title replaces the date and is left exactly as written", () => {
         const el = row("title: my day\ndaily: true");
         expect(texts(el, ".dashy-today-date")).toEqual(["my day"]);
+    });
+});
+
+describe("today: note names follow Obsidian's language, not Dashy's (B-185)", () => {
+    it("a daily note named by the weekday is spelled in the app's language", () => {
+        applyLocale("de");
+        const el = row("daily: true", { ...DEFAULT_SETTINGS, dailyFolder: "Diary" }, {
+            periodicNotes: { daily: { enabled: true, folder: "Diary", format: "dddd" } },
+        });
+        const weekday = new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(TODAY);
+        expect(nodes(el, "a.dashy-today-chip")[0]?.getAttribute("data-href")).toBe(`Diary/${weekday}.md`);
+        expect(texts(el, ".dashy-today-name")).toEqual([weekday]);
     });
 });
 

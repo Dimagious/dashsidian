@@ -1,7 +1,7 @@
 import type { BlockContext } from "./context";
 import { noteExists } from "../adapters/vault";
 import { discoverPeriodics } from "../adapters/periodic";
-import { formatDate, timeFormats } from "../adapters/datetime";
+import { formatDate, formatNoteName, timeFormats } from "../adapters/datetime";
 import { clockFormat, startClockTicker, type ClockPrecision } from "../core/clock";
 import { readToday, resolveConfig, notePath, type Period } from "../core/periodic";
 import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
@@ -93,7 +93,7 @@ export function renderToday(ctx: BlockContext, source: string, el: HTMLElement):
     const row = wrap.createDiv({ cls: "dashy-today-links" });
     for (const period of spec.periods) {
         const cfg = resolveConfig(period, ctx.settings[FOLDER_KEY[period]], discovered[period]);
-        const basename = formatDate(today, cfg.format);
+        const basename = formatNoteName(today, cfg.format);
         const path = notePath(cfg.folder, basename);
         const exists = noteExists(ctx.app, path);
 
