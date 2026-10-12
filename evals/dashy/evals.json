@@ -175,6 +175,46 @@
         "[script] A card averages `rating` (`agg: avg`)",
         "[judge] The labels are in Russian, the keys in English"
       ]
+    },
+    {
+      "id": 15,
+      "name": "migrate-weekly-review-template",
+      "prompt": "My weekly review notes are named like 2026-W40 and start with this DataviewJS. Make me a template at Templates/Weekly review.md that does the same with Dashy, so I can stop using Dataview:\n\n```dataviewjs\nconst name = dv.current().file.name;              // e.g. 2026-W40\nconst start = moment(name, \"GGGG-[W]WW\").startOf(\"isoWeek\");\nconst end = start.clone().endOf(\"isoWeek\");\nconst days = dv.pages('\"Diary\"').where(p => p.file.day && p.file.day >= start && p.file.day <= end);\nconst avg = f => { const v = days.map(p => p[f]).filter(x => typeof x === \"number\"); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : \"-\"; };\ndv.paragraph(`Sleep ${avg(\"sleep_score\")} · Steps ${avg(\"steps\")} · Gym ${days.where(p => p.gym).length} days`);\n```",
+      "expected_output": "A template with `stats` over Diary, `period: note`, avg `sleep_score`, avg `steps`, gym days as sum of `gym`. The reply explains that the window comes from the note's name, so the numbers appear in a note named like a week, not in the template itself.",
+      "files": [],
+      "expectations": [
+        "[script] Templates/Weekly review.md holds a `stats` block over Diary with `period: note`",
+        "[script] Cards: `sleep_score` avg, `steps` avg, `gym` counted as days (sum or count of ticked)",
+        "[script] Copied to Reviews/<a past ISO week>.md, the blocks render with zero diagnostics (the template note itself is exempt from the common zero-diagnostic check: its name is not a period, B-190)",
+        "[script] No `dataviewjs` block is left in the template",
+        "[judge] The reply says the template shows the week only once it is a note named like a week, and does not promise numbers inside the template itself",
+        "[judge] If the agent notices the DataviewJS uses ISO weeks (`GGGG-[W]WW`), it checks or mentions how Dashy reads the week name rather than assuming"
+      ]
+    },
+    {
+      "id": 16,
+      "name": "migrate-dataviewjs-heatmap-pick-max",
+      "prompt": "Replace this DataviewJS heatmap with Dashy, in a new note called Training year:\n\n```dataviewjs\n// Colour each day by the sport with the most minutes; darker = more minutes that day in total.\nconst mins = v => typeof v === \"number\" ? v : v ? dv.duration(String(v)).as(\"minutes\") : 0;\ndv.view(\"scripts/heatmap\", { pages: dv.pages('\"Diary\"'), sports: {\n  run: p => mins(p.run_time), bike: p => mins(p.bike_time), swim: p => mins(p.swim_time) } });\n```",
+      "expected_output": "A `heatmap` over Diary with three `layers` on `run_time`, `bike_time`, `swim_time` and `pick: max`. The reply names what differs from the script: shade follows the winning sport's minutes, not the day's total.",
+      "files": [],
+      "expectations": [
+        "[script] Training year.md holds a `heatmap` with `layers` on `run_time`, `bike_time` and `swim_time`",
+        "[script] The heatmap sets `pick: max`",
+        "[script] No `dataviewjs` block was written",
+        "[judge] The reply says what the Dashy version does differently from the script (shade by the winning layer's value, not the day's total), rather than claiming an exact match"
+      ]
+    },
+    {
+      "id": 17,
+      "name": "migrate-dataviewjs-unsupported-mtime",
+      "prompt": "Can you turn this DataviewJS into Dashy? It lists the notes I changed this week. Put it in a new note called Changed this week.\n\n```dataviewjs\nconst start = moment().startOf(\"isoWeek\");\ndv.list(dv.pages().where(p => p.file.mtime >= start).sort(p => p.file.mtime, \"desc\").file.link);\n```",
+      "expected_output": "Dashy does not read file modification time. The agent says so, does not fake it with a frontmatter date or a different list, and does not write new DataviewJS; it may offer to keep the original block.",
+      "files": [],
+      "expectations": [
+        "[script] No Dashy block pretending to list or count changed notes by a frontmatter date was written",
+        "[judge] The reply says Dashy cannot select notes by modification time",
+        "[judge] The reply suggests keeping the DataviewJS (or another tool) instead of writing a near miss"
+      ]
     }
   ]
 }
