@@ -16,8 +16,19 @@ import { t } from "../i18n";
 
 export interface StatSpec {
     agg: Agg;
-    /** required for everything but count, streak and current_streak */
+    /**
+     * Required for everything but count, streak and current_streak. The one
+     * field to read, or, for a list (B-193), its names joined with ` + `: what
+     * the card is called without a `label` and what a message names. Read
+     * the values through `statFields`, never from this.
+     */
     field?: string;
+    /**
+     * B-193: `field: [run_min, bike_min]`, two or more properties summed per
+     * note. Unset for a single field and for a list of one, which reads
+     * exactly like that one field.
+     */
+    fields?: string[];
     /** a suffix after the number: km, %, d. */
     unit?: string;
     /** decimal places; when unset we format the default way */
@@ -97,7 +108,14 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
         diagnostics.push({ level: "warning", message: t("stats.streakKeysIgnored", { card }) });
     }
 
-    const field = typeof item.field === "string" && item.field.trim() ? item.field.trim() : undefined;
+    const list = Array.isArray(item.field) ? readFieldList(item.field, card) : null;
+    if (list) diagnostics.push(...list.diagnostics);
+    if (list && !list.fields) return { spec: null, diagnostics };
+    const fields = list?.fields;
+    // A list of one is that one field, spelled out the same way.
+    const field = fields
+        ? fields.join(" + ")
+        : typeof item.field === "string" && item.field.trim() ? item.field.trim() : undefined;
     if (!field && !FIELDLESS.includes(rawAgg)) {
         diagnostics.push({
             level: "error",
@@ -108,6 +126,7 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
 
     const spec: StatSpec = { agg: rawAgg };
     if (field) spec.field = field;
+    if (fields && fields.length > 1) spec.fields = fields;
     if (typeof item.unit === "string" && item.unit.trim()) spec.unit = item.unit.trim();
 
     if (item.precision !== undefined) {
@@ -208,6 +227,43 @@ export function readStat(item: Record<string, unknown>, label: string): StatOutc
     }
 
     return { spec, diagnostics };
+}
+
+/** The properties a card reads its numbers from: none, the one `field`, or the list (B-193). */
+export function statFields(spec: Pick<StatSpec, "field" | "fields">): readonly string[] {
+    return spec.fields ?? (spec.field ? [spec.field] : []);
+}
+
+/**
+ * `field:` written as a list (B-193). An empty list or an item that is not a
+ * property name is an error: the list says the card wants numbers, and
+ * guessing which would hide the mistake. A repeated name is counted once and
+ * warned about, since summing one property twice is never what was meant.
+ */
+function readFieldList(raw: readonly unknown[], card: string): { fields: string[] | null; diagnostics: Diagnostic[] } {
+    if (raw.length === 0) {
+        return { fields: null, diagnostics: [{ level: "error", message: t("stats.fieldListEmpty", { card }) }] };
+    }
+    const fields: string[] = [];
+    const diagnostics: Diagnostic[] = [];
+    const repeated = new Set<string>();
+    for (const entry of raw) {
+        if (typeof entry !== "string" || entry.trim() === "") {
+            return {
+                fields: null,
+                diagnostics: [{ level: "error", message: t("stats.fieldListInvalid", { card, value: describeValue(entry) }) }],
+            };
+        }
+        const name = entry.trim();
+        if (fields.includes(name)) {
+            if (repeated.has(name)) continue;
+            repeated.add(name);
+            diagnostics.push({ level: "warning", message: t("stats.fieldListDuplicate", { card, field: name }) });
+        } else {
+            fields.push(name);
+        }
+    }
+    return { fields, diagnostics };
 }
 
 /**

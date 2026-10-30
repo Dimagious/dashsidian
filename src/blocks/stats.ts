@@ -7,7 +7,7 @@ import { aggregate, series, classifyField, classifyValues } from "../core/aggreg
 import { readDateField, readDateFormat, unmatchedDateFormat } from "../core/note-date";
 import { sparkBars } from "../core/sparkline";
 import {
-    readStat, formatReading, showsDuration, showsClock, durationDiagnostics, valueLengthClass, unitFor, GROUP_SEPARATOR,
+    readStat, statFields, formatReading, showsDuration, showsClock, durationDiagnostics, valueLengthClass, unitFor, GROUP_SEPARATOR,
 } from "../core/stat";
 import {
     readPeriod,
@@ -140,15 +140,17 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         // `period` narrows it: a field that is fine elsewhere but simply has
         // no data in this window is B-079's plain, unwarned zero/dash, not
         // this (B-111). `count` never reads a field and `streak` only when
-        // given one, so both are naturally skipped by `spec?.field`.
-        if (spec?.field && selected.length) {
-            const fieldStatus = classifyField(selected, spec.field);
+        // given one, so both are naturally skipped by `statFields`.
+        // A list (B-193) is checked field by field, so a typo in one of
+        // three names is not hidden by the two that sum.
+        for (const field of spec && selected.length ? statFields(spec) : []) {
+            const fieldStatus = classifyField(selected, field);
             if (fieldStatus !== "ok") {
                 diags.push({
                     level: "warning",
                     message: fieldStatus === "missing"
-                        ? t("stats.fieldMissing", { card: cardLabel, field: spec.field })
-                        : t("stats.fieldNotNumeric", { card: cardLabel, field: spec.field }),
+                        ? t("stats.fieldMissing", { card: cardLabel, field })
+                        : t("stats.fieldNotNumeric", { card: cardLabel, field }),
                 });
             }
         }
@@ -156,7 +158,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         // Durations (B-121): judged over the whole selection, before `period`
         // narrows it, the same way as above, so the card, its delta and the
         // previous window's tooltip all share one format.
-        const kinds = spec?.field ? classifyValues(selected, [spec.field]) : { kind: "none" as const };
+        const kinds = spec?.field ? classifyValues(selected, statFields(spec)) : { kind: "none" as const };
         const duration = spec ? showsDuration(spec.agg, kinds.kind) : false;
         // B-145: race times written to the second read as `2:16:32`.
         const clock = spec ? showsClock(spec.agg, kinds) : false;
@@ -239,7 +241,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         const current = spec && !broken && !future
             ? aggregate(counted, {
                 agg: spec.agg,
-                field: spec.field,
+                field: statFields(spec),
                 dateField,
                 formats,
                 atLeast: spec.atLeast,
@@ -255,7 +257,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
             label: label || spec?.field || "",
             text: formatReading(current, spec?.precision, duration, clock),
             trend: layout === "cards" && spec?.trend && spec.field && !broken && !future
-                ? sparkBars(series(selected, spec.field, spec.trend, lastDay, dateField, formats))
+                ? sparkBars(series(selected, statFields(spec), spec.trend, lastDay, dateField, formats))
                 : [],
         };
         if (typeof item.icon === "string") card.icon = item.icon;
@@ -281,7 +283,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
                 : previousPeriodWindow(periodSpec.period, today, firstDay);
             const previousFiltered = filterByWindow(selected, previousBounds, periodSpec.dateField, formats);
             const previous = previousFiltered.notes.length
-                ? aggregate(previousFiltered.notes, { agg: spec.agg, field: spec.field, dateField, formats })
+                ? aggregate(previousFiltered.notes, { agg: spec.agg, field: statFields(spec), dateField, formats })
                 : null;
             if (previous !== null) {
                 const format = formatDelta(current, previous, spec.precision, duration, clock);

@@ -84,6 +84,9 @@ export const fr: Catalog = {
         "{card} : aucune note de la sélection n'a « {field} ». Vérifiez le nom et `source`.",
     "stats.fieldNotNumeric":
         "{card} : « {field} » contient du texte ou une autre valeur qui n'est ni un nombre, ni une durée comme `7h 30m`, ni une case à cocher. Utilisez `where: \"{field} contains ...\"` avec `agg: count` pour le compter.",
+    "stats.fieldListEmpty": "{card} : `field` est une liste vide. Ajoutez au moins un nom de propriété.",
+    "stats.fieldListInvalid": "{card} : les éléments de la liste `field` doivent être des noms de propriété, reçu « {value} ».",
+    "stats.fieldListDuplicate": "{card} : « {field} » apparaît plus d'une fois dans `field`. Il est compté une seule fois.",
     "stats.badPrecision":
         "{card} : `precision` attend un entier de 0 à {max}, reçu « {value} ». Arrondi par défaut.",
     "stats.streakKeysIgnored":

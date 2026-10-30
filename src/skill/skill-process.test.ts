@@ -100,6 +100,11 @@ const DIARY = diary("Diary", "2026-07-01", 97, (i) => ({
     steps: i % 10 === 2 ? 7000 : 12000,
     sleep_score: i % 9 === 4 ? 70 : 85,
     read_min: i % 2 === 0 || i === 95 ? 30 : 10,
+    // The workouts recipe (B-193): one property per sport, a day holding any,
+    // all or none of them.
+    ...(i % 2 === 0 ? { run_min: 30 } : {}),
+    ...(i % 3 === 0 ? { bike_min: 60 } : {}),
+    ...(i % 7 === 5 ? { swim_min: 45 } : {}),
 }));
 
 const READING: FakeNote[] = [
@@ -146,7 +151,7 @@ const RECIPES = fencedBlocks(SKILL_MARKDOWN);
 describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
     it("SKILL.md carries the recipes, one per site guide and the month calendar", () => {
         expect(RECIPES.map((r) => r.lang)).toEqual([
-            "stats", "stats", "stats", "heatmap", "heatmap", "chart", "progress", "countdown", "today", "tiles", "stats", "stats",
+            "stats", "stats", "stats", "heatmap", "heatmap", "chart", "progress", "countdown", "today", "tiles", "stats", "stats", "stats",
         ]);
     });
 
@@ -300,6 +305,20 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
         expect(texts(el, ".dashy-stat-label")).toEqual(["No read date", "With a read date"]);
         // Piranesi without the property, Stoner with it blank; Dune, Solaris and Old read.
         expect(texts(el, ".dashy-stat-value")).toEqual(["2", "3"]);
+    });
+
+    it("all workouts: a field list sums each day's sports, a day with none left out (B-193)", () => {
+        const el = render("stats", RECIPES[12]?.source ?? "");
+        expect(texts(el, ".dashy-stat-label")).toEqual(["Workout minutes this week", "Average workout day"]);
+        expect(texts(el, ".dashy-stat-value")).toEqual([
+            // 4 October holds none; 5 October runs, rides and swims: 30 + 60 + 45.
+            "135",
+            // 1 to 5 October: 30, 60, 30, 135; the 4th holds none and is not a zero.
+            "63.8 min",
+        ]);
+        // 27 September ran 30, 28 September swam 45.
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +60"]);
+        expect(el.querySelector(".dashy-stat-delta")?.getAttribute("title")).toBe("vs the same days last week: 75");
     });
 
     it("the same check catches a key the plugin does not have", () => {

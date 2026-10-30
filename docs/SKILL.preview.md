@@ -75,6 +75,7 @@ data is there.
 | The user asks for | Block |
 |---|---|
 | a number: a count, a sum, an average, a streak | `stats` |
+| one number over several properties, like all workouts | `stats` with a `field` list |
 | how far along a goal is | `progress`, with `goal` |
 | days until or since a date, the next birthday | `countdown`, `repeat: yearly` for a birthday |
 | days until the next of many events, one note each (races, trips) | `countdown` with `field` and `pick: next` |
@@ -245,6 +246,19 @@ source: Reading
 items:
   - { label: No read date, agg: count, where: "date_read empty" }
   - { label: With a read date, agg: count, where: "date_read not empty" }
+```
+
+Minutes of all workouts, kept in one property per sport: a `field` list
+adds up the ones each note holds, a note with none of them is left out, and
+`agg` then works on those per-note totals, so `avg` is the average
+workout day. A list in the `field` of a chart series entry (or of a heatmap) pools every single value instead,
+so its `avg` averages the properties, not the days:
+
+```stats
+source: Diary
+items:
+  - { label: Workout minutes this week, field: [run_min, bike_min, swim_min], agg: sum, period: week, compare: true, better: up }
+  - { label: Average workout day, field: [run_min, bike_min, swim_min], agg: avg, period: month, unit: min }
 ```
 
 ## 5. Check before handing over

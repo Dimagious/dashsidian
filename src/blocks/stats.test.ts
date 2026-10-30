@@ -2264,3 +2264,118 @@ items:
         expect(bad).toHaveLength(1);
     });
 });
+
+describe("stats — a list of fields summed per note (B-193)", () => {
+    // 2026-09-24 is a Thursday; the English week runs Sun 20 .. Thu 24, and
+    // the previous one to date Sun 13 .. Thu 17.
+    const TODAY = new Date(2026, 8, 24);
+    afterEach(() => vi.useRealTimers());
+
+    const workouts = mockContext({
+        notes: [
+            { path: "Diary/2026-09-13.md", frontmatter: { run_min: 30, bike_min: 60 } }, // 90
+            { path: "Diary/2026-09-15.md", frontmatter: { swim_min: 45 } }, // 45
+            { path: "Diary/2026-09-18.md", frontmatter: { run_min: 100 } }, // past Thursday: not compared
+            { path: "Diary/2026-09-20.md", frontmatter: { run_min: 30, bike_min: 30, swim_min: 20 } }, // 80
+            { path: "Diary/2026-09-21.md", frontmatter: { mood: 3 } }, // none of them: skipped
+            { path: "Diary/2026-09-22.md", frontmatter: { bike_min: 60 } }, // 60
+            { path: "Diary/2026-09-24.md", frontmatter: { run_min: 40, swim_min: 20 } }, // 60
+        ],
+    });
+    const draw = (config: string, ctx = workouts) => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(ctx, config, el);
+        return el;
+    };
+
+    it("sums the listed fields per note, inside `period`, with a `compare` delta against the same days last week", () => {
+        const el = draw(
+            "items:\n  - { label: Workouts, source: Diary, field: [run_min, bike_min, swim_min], agg: sum, period: week, compare: true, unit: min }",
+        );
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["200 min"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +65"]);
+        expect(nodes(el, ".dashy-stat-delta")[0]?.getAttribute("title")).toBe("vs the same days last week: 135");
+    });
+
+    it("`avg` is the average of the per-note totals, a note holding none of the fields left out", () => {
+        const el = draw(
+            "items:\n  - { label: Per session, source: Diary, field: [run_min, bike_min, swim_min], agg: avg, period: week }",
+        );
+        // (80 + 60 + 60) / 3, not over the six single values or the four notes of the week.
+        expect(texts(el, ".dashy-stat-value")).toEqual(["66.7"]);
+    });
+
+    it("a fixed window that is over counts its own days only", () => {
+        const el = draw(
+            "items:\n  - { label: Workouts, source: Diary, field: [run_min, bike_min, swim_min], agg: sum, period: { from: 2026-09-13, to: 2026-09-17 } }",
+        );
+        expect(texts(el, ".dashy-stat-value")).toEqual(["135"]);
+    });
+
+    it("the trend draws one bar per day from the day's total", () => {
+        const el = draw(
+            "items:\n  - { label: Workouts, source: Diary, field: [run_min, bike_min, swim_min], agg: sum, trend: 7d }",
+        );
+        // 18th: 100, 20th: 80, 22nd: 60, 24th: 60; the 21st holds none of the fields.
+        expect(nodes(el, ".dashy-stat-bar").map((b) => b.style.height)).toEqual(["100%", "56%", "12%", "12%"]);
+    });
+
+    it("without a label the card is named after the fields", () => {
+        const el = draw("items:\n  - { source: Diary, field: [run_min, bike_min], agg: sum }");
+        expect(texts(el, ".dashy-stat-label")).toEqual(["run_min + bike_min"]);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["350"]);
+    });
+
+    it("a list of one draws exactly what the single field draws", () => {
+        const config = (field: string) =>
+            `items:\n  - { label: Run, source: Diary, field: ${field}, agg: sum, period: week, compare: true, trend: 7d }`;
+        const single = draw(config("run_min"));
+        const list = draw(config("[run_min]"));
+        expect(list.innerHTML).toBe(single.innerHTML);
+    });
+
+    it("a misspelt field in the list warns naming it, and the others still sum", () => {
+        const el = draw("items:\n  - { label: Workouts, source: Diary, field: [run_min, bike_mn], agg: sum, period: week }");
+        expect(diagnostics(el, "warning")).toEqual([
+            "⚠️ stats: \"Workouts\": no note in the selection has \"bike_mn\". Check the name and `source`.",
+        ]);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["70"]);
+    });
+
+    it("a field holding only text warns the way a single field does", () => {
+        const ctx = mockContext({
+            notes: [{ path: "Diary/2026-09-24.md", frontmatter: { run_min: 30, notes: "felt good" } }],
+        });
+        const el = draw("items:\n  - { label: Workouts, source: Diary, field: [run_min, notes], agg: sum }", ctx);
+        expect(diagnostics(el, "warning")).toHaveLength(1);
+        expect(diagnostics(el, "warning")[0]).toContain("\"Workouts\": \"notes\" holds text");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["30"]);
+    });
+
+    it("durations sum as time, and a mix with plain numbers warns naming the fields", () => {
+        const ctx = mockContext({
+            notes: [
+                { path: "Diary/2026-09-23.md", frontmatter: { run: "45m", swim: "1h 15m" } },
+                { path: "Diary/2026-09-24.md", frontmatter: { run: "30m", bike: 60 } },
+            ],
+        });
+        const time = draw("items:\n  - { label: Cardio, source: Diary, field: [run, swim], agg: sum }", ctx);
+        expect(texts(time, ".dashy-stat-value")).toEqual(["2h 30m"]);
+        expect(diagnostics(time, "warning")).toEqual([]);
+
+        const mixed = draw("items:\n  - { label: Cardio, source: Diary, field: [run, swim, bike], agg: sum }", ctx);
+        expect(texts(mixed, ".dashy-stat-value")).toEqual(["210"]);
+        expect(diagnostics(mixed, "warning")[0]).toContain("\"run + swim + bike\" mixes durations");
+    });
+
+    it("an empty list is an error on the card, not a silent dash", () => {
+        const el = draw("items:\n  - { label: Workouts, source: Diary, field: [], agg: sum }");
+        expect(diagnostics(el, "error")).toEqual([
+            "⛔ stats: \"Workouts\": `field` is an empty list. Add at least one property name.",
+        ]);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
+    });
+});

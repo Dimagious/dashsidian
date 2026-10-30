@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-    readStat, formatValue, valueLengthClass, showsDuration, showsClock, formatReading, durationDiagnostics, unitFor,
+    readStat, statFields, formatValue, valueLengthClass, showsDuration, showsClock, formatReading, durationDiagnostics, unitFor,
 } from "./stat";
 
 describe("readStat — happy path", () => {
@@ -225,6 +225,81 @@ describe("readStat — edges", () => {
     it("an unlabelled card still names itself in the message", () => {
         const { diagnostics } = readStat({ agg: "avg" }, "");
         expect(diagnostics[0]?.message).toContain("a card with no label");
+    });
+});
+
+describe("readStat — a list of fields (B-193)", () => {
+    it("keeps the list and names the card after the fields joined with a plus", () => {
+        const { spec, diagnostics } = readStat({ agg: "sum", field: ["run_min", " bike_min ", "swim_min"] }, "");
+        expect(diagnostics).toEqual([]);
+        expect(spec).toEqual({ agg: "sum", field: "run_min + bike_min + swim_min", fields: ["run_min", "bike_min", "swim_min"] });
+        expect(statFields(spec ?? { agg: "count" })).toEqual(["run_min", "bike_min", "swim_min"]);
+    });
+
+    it("a list of one is exactly that one field", () => {
+        for (const item of [
+            { agg: "avg", field: "sleep" },
+            { agg: "max", field: "steps", unit: "steps", precision: 0, trend: "7d" },
+            { agg: "streak", field: "steps", at_least: 5000, days: "weekdays" },
+            { agg: "current_streak", field: "gym" },
+            { agg: "count", field: "x" },
+        ]) {
+            const single = readStat(item, "X");
+            expect(readStat({ ...item, field: [item.field] }, "X")).toEqual(single);
+            expect(statFields(single.spec ?? { agg: "count" })).toEqual([item.field]);
+        }
+    });
+
+    it("statFields reads a single field as a list of one and no field as none", () => {
+        expect(statFields({ field: "steps" })).toEqual(["steps"]);
+        expect(statFields({})).toEqual([]);
+    });
+
+    it("an empty list is an error, whatever the aggregate", () => {
+        for (const agg of ["sum", "count"]) {
+            const { spec, diagnostics } = readStat({ agg, field: [] }, "Workouts");
+            expect(spec).toBeNull();
+            expect(diagnostics).toEqual([{
+                level: "error",
+                message: "\"Workouts\": `field` is an empty list. Add at least one property name.",
+            }]);
+        }
+    });
+
+    it("an item that is not a property name is an error naming it", () => {
+        for (const [bad, shown] of [[5, "5"], ["  ", "  "], [null, "null"]] as const) {
+            const { spec, diagnostics } = readStat({ agg: "sum", field: ["run_min", bad] }, "Workouts");
+            expect(spec).toBeNull();
+            expect(diagnostics).toHaveLength(1);
+            expect(diagnostics[0]?.level).toBe("error");
+            expect(diagnostics[0]?.message).toContain(`got "${shown}"`);
+        }
+    });
+
+    it("a repeated name is counted once and warned about once", () => {
+        const { spec, diagnostics } = readStat({ agg: "sum", field: ["run_min", "bike_min", "run_min", " run_min"] }, "Workouts");
+        expect(spec?.fields).toEqual(["run_min", "bike_min"]);
+        expect(spec?.field).toBe("run_min + bike_min");
+        expect(diagnostics).toEqual([{
+            level: "warning",
+            message: "\"Workouts\": \"run_min\" is listed more than once in `field`. It is counted once.",
+        }]);
+    });
+
+    it("a list that repeats one name reads as that one field, with the warning", () => {
+        const { spec, diagnostics } = readStat({ agg: "sum", field: ["steps", "steps"] }, "Steps");
+        expect(spec).toEqual({ agg: "sum", field: "steps" });
+        expect(diagnostics.map((d) => d.level)).toEqual(["warning"]);
+    });
+
+    it("the streak keys and trend take a list like a single field", () => {
+        const { spec, diagnostics } = readStat(
+            { agg: "streak", field: ["run_min", "bike_min"], at_least: "30m", trend: "14d" }, "Active",
+        );
+        expect(diagnostics).toEqual([]);
+        expect(spec?.atLeast).toBe(30);
+        expect(spec?.trend).toBe(14);
+        expect(spec?.fields).toEqual(["run_min", "bike_min"]);
     });
 });
 

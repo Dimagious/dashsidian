@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
     aggregate, numberAt, isFalseMark, isBooleanMark, classifyField, classifyValues, series, isAgg, isStreakAgg,
-    newestFirst,
+    newestFirst, sumAt,
 } from "./aggregate";
 import { filterByPeriod } from "./period";
 import type { NoteRecord } from "./source";
@@ -1038,5 +1038,97 @@ describe("newestFirst", () => {
             noteAt("y.md", "y", { on: "2026-02-01T09:00" }),
         ];
         expect(newestFirst(notes, "on").map((n) => n.path)).toEqual(["y.md", "x.md"]);
+    });
+});
+
+describe("a list of fields, summed per note (B-193)", () => {
+    const WORKOUTS = ["run_min", "bike_min", "swim_min"];
+    const workouts = [
+        day("2026-09-20", { run_min: 30, bike_min: 30, swim_min: 20 }), // all three: 80
+        day("2026-09-21", { mood: 3 }), // none: skipped, not a zero
+        day("2026-09-22", { bike_min: 60 }), // one of three: 60
+        day("2026-09-23", { run_min: 0, swim_min: 0 }), // present, zero: 0
+        day("2026-09-24", { run_min: "40m", swim_min: "1h" }), // durations: 100 minutes
+    ];
+
+    it("sumAt adds the fields a note holds and skips the ones it lacks", () => {
+        expect(workouts.map((n) => sumAt(n, WORKOUTS))).toEqual([80, null, 60, 0, 100]);
+    });
+
+    it("sumAt over one field is numberAt", () => {
+        for (const n of [...days, day("x", { v: "7:30" }), day("y", { v: false }), day("z", {})]) {
+            expect(sumAt(n, ["sleep_score"])).toBe(numberAt(n, "sleep_score"));
+            expect(sumAt(n, "v")).toBe(numberAt(n, "v"));
+        }
+    });
+
+    it("text in one field is skipped like text in a single field, the rest still sum", () => {
+        expect(sumAt(day("x", { run_min: "a long run", bike_min: 20 }), WORKOUTS)).toBe(20);
+        expect(sumAt(day("x", { run_min: "a long run" }), WORKOUTS)).toBeNull();
+    });
+
+    it("plain numbers and durations add up as minutes, with no other conversion", () => {
+        expect(sumAt(day("x", { run_min: 30, swim_min: "1h 15min" }), WORKOUTS)).toBe(105);
+    });
+
+    it("every aggregate reads the per-note totals, and a note with none of the fields is left out", () => {
+        const at = (agg: Parameters<typeof aggregate>[1]["agg"]): number | null =>
+            aggregate(workouts, { agg, field: WORKOUTS });
+        expect(at("sum")).toBe(240);
+        // The average of four per-note totals (80, 60, 0, 100), not of the seven single values.
+        expect(at("avg")).toBe(60);
+        expect(at("min")).toBe(0);
+        expect(at("max")).toBe(100);
+        expect(at("latest")).toBe(100);
+        // `count` counts notes, list or not.
+        expect(at("count")).toBe(5);
+    });
+
+    it("latest skips a newer note holding none of the fields", () => {
+        const notes = [...workouts, day("2026-09-25", { mood: 4 })];
+        expect(aggregate(notes, { agg: "latest", field: WORKOUTS })).toBe(100);
+    });
+
+    it("nothing usable in any of the fields is a dash, not a zero", () => {
+        const none = [day("2026-09-20", { mood: 3 }), day("2026-09-21", { run_min: "rest" })];
+        for (const agg of ["sum", "avg", "min", "max", "latest", "streak"] as const) {
+            expect(aggregate(none, { agg, field: WORKOUTS })).toBeNull();
+        }
+        expect(aggregate([], { agg: "sum", field: WORKOUTS })).toBeNull();
+    });
+
+    it("a list of one gives the single field's answer for every aggregate", () => {
+        const today = new Date(2026, 8, 23);
+        for (const agg of ["sum", "avg", "min", "max", "latest", "count", "streak", "current_streak"] as const) {
+            expect(aggregate(days, { agg, field: ["sleep_score"], today })).toBe(aggregate(days, { agg, field: "sleep_score", today }));
+        }
+    });
+
+    it("a streak day is filled when any listed field is, a zero included, an unticked box not", () => {
+        const notes = [
+            day("2026-09-20", { gym: true }),
+            day("2026-09-21", { gym: false, run_min: 0 }), // a plain 0 fills the day, as with one field
+            day("2026-09-22", { gym: false }), // only an unticked box: breaks the run
+            day("2026-09-23", { yoga: true }),
+            day("2026-09-24", { run_min: 20 }),
+        ];
+        const field = ["gym", "yoga", "run_min"];
+        expect(aggregate(notes, { agg: "streak", field })).toBe(2);
+        expect(aggregate(notes, { agg: "current_streak", field, today: new Date(2026, 8, 24) })).toBe(2);
+    });
+
+    it("a streak threshold compares each day's sum over all the fields", () => {
+        // Per day: 80, (none), 60, 0, 100; two notes on the 22nd add up to 60 + 10.
+        const notes = [...workouts, noteAt("Gym/2026-09-22.md", "2026-09-22", { swim_min: 10 })];
+        // Only the 22nd sums to exactly 70, and only because its two notes add up.
+        expect(aggregate(notes, { agg: "streak", field: WORKOUTS, atLeast: 70, atMost: 70 })).toBe(1);
+        // A day of zeros counts at 0; the 21st holds none of the fields and breaks the run before the 22nd.
+        expect(aggregate(notes, { agg: "streak", field: WORKOUTS, atLeast: 0 })).toBe(3);
+        expect(aggregate(notes, { agg: "streak", field: WORKOUTS, atLeast: 90 })).toBe(1);
+    });
+
+    it("a trend bar is the day's sum over the fields, a day with none of them left out", () => {
+        expect(series(workouts, WORKOUTS, 5, new Date(2026, 8, 24))).toEqual([80, 60, 0, 100]);
+        expect(series(days, ["sleep_score"], 5, new Date(2026, 8, 23))).toEqual(series(days, "sleep_score", 5, new Date(2026, 8, 23)));
     });
 });
