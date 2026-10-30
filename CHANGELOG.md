@@ -10,6 +10,13 @@ removed public export.
 
 ## [Unreleased]
 
+### Fixed
+
+- **On a phone a block with `columns: 1` keeps one column.** The phone layout
+  forced two columns whatever `columns` said, so a single card took half the
+  screen. A phone now shows at most two columns, and never more than
+  `columns` asks for.
+
 ### Changed
 
 - **The agent skill says which version it shows.** The version in settings

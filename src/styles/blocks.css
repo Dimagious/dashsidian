@@ -477,6 +477,16 @@ a.dashy-chart-hit { cursor: pointer; text-decoration: none; color: inherit; }
   .dashy-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashy-countdown { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashy-progress.is-multi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Two columns at most, never more than `columns` asked for: a single
+     card with `columns: 1` keeps the whole width (B-197). Behind @supports
+     because a math function in repeat() that a webview cannot read would
+     drop the grid to one column for every block; there the rule above holds.
+     `progress` needs no line here: `is-multi` already means 2 or more. */
+  @supports (grid-template-columns: repeat(min(1, 2), 1fr)) {
+    .dashy-tiles { grid-template-columns: repeat(min(var(--dashy-tile-columns, 4), 2), minmax(0, 1fr)); }
+    .dashy-stats { grid-template-columns: repeat(min(var(--dashy-stat-columns, 3), 2), minmax(0, 1fr)); }
+    .dashy-countdown { grid-template-columns: repeat(min(var(--dashy-countdown-columns, 3), 2), minmax(0, 1fr)); }
+  }
   /* Every pixel of gap is a pixel the bars do not get. */
   .dashy-stat-trend { gap: 0; }
   /* A card is about 156px wide here, so the same length classes shrink
