@@ -248,7 +248,7 @@ A grid of link tiles for navigating the vault.
 
 | key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
-| `columns` | number | — | `4` | — | columns in the grid, 1 to 8 |
+| `columns` | number | — | `4` | — | columns in the grid, 1 to 8. On a phone a block never shows more than two columns |
 | `items` | list | yes | — | — | the list of tiles |
 
 **List item**
@@ -290,7 +290,7 @@ Number cards: one value per card, computed over a selection of notes.
 
 | key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
-| `columns` | number | — | `3` | — | columns in the grid, 1 to 6 |
+| `columns` | number | — | `3` | — | columns in the grid, 1 to 6. On a phone a block never shows more than two columns |
 | `layout` | string | — | `cards` | — | `cards` draws a grid of cards; `inline` draws the same numbers as one line of text, like `1001 notes · 188 journal entries · 14 open tasks`, for a page header. Inline keeps `icon`, `unit` and the `compare` delta, but draws no `trend` and no `sub` and ignores `columns`, with one warning for each. An unrecognised value warns and falls back to cards |
 | `items` | list | yes | — | — | the list of cards |
 | `source` | string | — | — | `folder`, `from` | folder for every card that names none of its own; includes nested ones. A card's own `source` replaces it |
@@ -359,7 +359,7 @@ Bars towards a goal: how far a number has come against a target.
 
 | key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
-| `columns` | number | — | `1` | — | columns in the grid, 1 to 4; without it every bar is its own row |
+| `columns` | number | — | `1` | — | columns in the grid, 1 to 4; without it every bar is its own row. On a phone a block never shows more than two columns |
 | `items` | list | yes | — | — | the list of bars |
 | `source` | string | — | — | `folder`, `from` | folder for every bar that names none of its own; includes nested ones. A bar's own `source` replaces it |
 | `tag` | string | — | — | — | tag for every bar that names none of its own, with or without the hash. A bar's own `tag` replaces it |
@@ -449,7 +449,7 @@ Cards counting the days to a date.
 
 | key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
-| `columns` | number | — | `3` | — | columns in the grid, 1 to 6 |
+| `columns` | number | — | `3` | — | columns in the grid, 1 to 6. On a phone a block never shows more than two columns |
 | `date_format` | string | — | — | — | a date format for `field` values and for the note names that pick the newest note, when they are not written as `YYYY-MM-DD`, in moment notation like `DD.MM.YYYY`. Applies to every card, read the way a `stats` card reads it; a written `date` stays `YYYY-MM-DD`. Month and weekday names (`MMMM`, `dddd`) are read in Obsidian's language, or in the Plugin language setting when one is picked |
 | `items` | list | yes | — | — | the list of dates |
 

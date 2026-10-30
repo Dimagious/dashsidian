@@ -7,7 +7,7 @@
         "columns": {
           "type": "number",
           "default": 4,
-          "doc": "columns in the grid, 1 to 8"
+          "doc": "columns in the grid, 1 to 8. On a phone a block never shows more than two columns"
         },
         "items": {
           "type": "list",
@@ -86,7 +86,7 @@
         "columns": {
           "type": "number",
           "default": 3,
-          "doc": "columns in the grid, 1 to 6"
+          "doc": "columns in the grid, 1 to 6. On a phone a block never shows more than two columns"
         },
         "layout": {
           "type": "string",
@@ -251,7 +251,7 @@
         "columns": {
           "type": "number",
           "default": 1,
-          "doc": "columns in the grid, 1 to 4; without it every bar is its own row"
+          "doc": "columns in the grid, 1 to 4; without it every bar is its own row. On a phone a block never shows more than two columns"
         },
         "items": {
           "type": "list",
@@ -440,7 +440,7 @@
         "columns": {
           "type": "number",
           "default": 3,
-          "doc": "columns in the grid, 1 to 6"
+          "doc": "columns in the grid, 1 to 6. On a phone a block never shows more than two columns"
         },
         "date_format": {
           "type": "string",
