@@ -14,7 +14,14 @@ Key tables for every block are in the block reference below; read the section of
 
 ## 1. Look before writing
 
-Never guess a property name or a folder; read a few small files.
+Never guess a property name or a folder. Start with `.dashy/vault-profile.md`
+at the vault root: Dashy writes it when the user runs the command
+"Dashy: Write vault profile" from the command palette (its name is translated
+in other interface languages). It lists the properties with their kinds and
+a sample, the folders and how their notes are dated, the most used tags, and
+the settings below.
+If it is missing, or older than the notes you are about to count, ask the
+user to run the command, then read it. If they cannot, read a few small files.
 `<configDir>` is the vault's config folder: by default a dot followed by
 `obsidian`, at the vault root; the user may have renamed it in Settings,
 About, Override config folder.
@@ -273,9 +280,13 @@ items:
 3. Every `source` folder and tile `path` exists.
 4. Dates resolve: names start with `YYYY-MM-DD`, or `date_field` is set.
 
-Then ask the user to open the note in Reading view. A block draws its own
-errors and warnings in place, naming the key or the line. If one shows up,
-ask for its text and fix the block from it rather than guessing.
+Then ask the user to run "Dashy: Check blocks in this note" with the note
+open, and read `.dashy/block-check.md`. Its `Note:` line must be the note
+you wrote in. It lists every Dashy block by line with each error and warning
+the block shows, word for word. Fix every error and warning, ask for the
+command again, and repeat until the summary says 0 errors. A `notice` is
+not a problem. If the user cannot run the command, ask them to open the note in
+Reading view and tell you the text of any error the block draws.
 
 ## 6. When Dashy cannot do it
 
