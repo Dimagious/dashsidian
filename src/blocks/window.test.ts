@@ -89,7 +89,7 @@ items:
         const el = draw(renderStats, at({ notes }, "Reviews/2026-W40.md"),
             "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: note, compare: true }");
         expect(texts(el, ".dashy-stat-value")).toEqual(["3"]);
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▼ −2"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▼ −2 (was 5)"]);
         expect(nodes(el, ".dashy-stat-delta")[0]?.title).toBe("vs the week before: 5");
     });
 
@@ -98,7 +98,7 @@ items:
         const el = draw(renderStats, at({ notes }, "Reviews/2026-06.md"),
             "items:\n  - { label: Days, source: Diary, agg: count, period: note, compare: true }");
         expect(texts(el, ".dashy-stat-value")).toEqual(["30"]);
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▼ −1"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▼ −1 (was 31)"]);
         expect(nodes(el, ".dashy-stat-delta")[0]?.title).toBe("vs the month before: 31");
     });
 
@@ -108,7 +108,7 @@ items:
         const el = draw(renderStats, at({ notes }, "Home.md"),
             "items:\n  - { label: Days, source: Diary, agg: count, period: { from: 2026-09-01, to: 2026-09-10 }, compare: true }");
         expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +3"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +3 (was 7)"]);
         expect(nodes(el, ".dashy-stat-delta")[0]?.title).toBe("vs the 10 days before: 7");
     });
 
@@ -123,7 +123,7 @@ items:
         expect(texts(el, ".dashy-stat-value")).toEqual(["2"]);
         // The 14th, a Wednesday, is past the same days last week.
         expect(nodes(el, ".dashy-stat-delta")[0]?.title).toBe("vs the same days last week: 2");
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["= 0"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["= 0 (was 2)"]);
     });
 
     it("`current_streak` counts back from the window's last day, `streak` stays inside the window, `trend` ends there", () => {

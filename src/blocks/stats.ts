@@ -17,6 +17,7 @@ import {
     previousPeriodWindow,
     usualWindow,
     usualCaption,
+    previousCaption,
     formatDelta,
     deltaTone,
     compareCaption,
@@ -50,6 +51,8 @@ interface Delta {
     tone: DeltaTone;
     /** what the number compares with, e.g. "vs the same days last week: 1" */
     title: string;
+    /** `compare: true` only: the previous period's value, "(was 80)" (B-194) */
+    previous?: string;
 }
 
 interface Card {
@@ -294,6 +297,12 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
                     tone: deltaTone(format.direction, compareSpec.better),
                     title: usual ? usualCaption(previousText) : compareCaption(periodSpec.period, previousText, today),
                 };
+                // B-194: a review table keeps last period's number beside the
+                // delta. `compare: usual` keeps its level in the tooltip only.
+                const previousNote = usual
+                    ? null
+                    : previousCaption(previous, { precision: spec.precision, duration, clock, unit: spec.unit });
+                if (previousNote) card.delta.previous = previousNote;
             } else if (usual) {
                 // No history yet is not a mistake, only nothing to compare with.
                 card.deltaHint = t("compare.noHistory");
@@ -353,6 +362,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
             // the meaning, so a screen reader loses nothing by skipping it.
             deltaEl.createSpan({ cls: "dashy-stat-delta-arrow", attr: { "aria-hidden": "true" }, text: card.delta.arrow });
             deltaEl.appendText(` ${card.delta.text}`);
+            renderPreviousValue(deltaEl, card.delta);
         } else if (card.deltaHint) {
             box.createDiv({ cls: "dashy-stat-delta dashy-stat-delta-hint", text: card.deltaHint });
         }
@@ -415,8 +425,23 @@ function renderInline(el: HTMLElement, cards: readonly Card[]): void {
             });
             deltaEl.createSpan({ cls: "dashy-stat-delta-arrow", attr: { "aria-hidden": "true" }, text: card.delta.arrow });
             deltaEl.appendText(` ${card.delta.text}`);
+            renderPreviousValue(deltaEl, card.delta);
         }
     });
+}
+
+/**
+ * The previous period's value after the delta, "▲ +5 (was 80)" (B-194).
+ * The space before it is the one place the delta may wrap: it sits in a
+ * span that wraps normally even inside a `layout: inline` item, which is
+ * `nowrap`, and the value itself never splits, so a narrow card or pane
+ * moves "(was 80)" to the next line whole instead of overflowing.
+ */
+function renderPreviousValue(deltaEl: HTMLElement, delta: Delta): void {
+    if (!delta.previous) return;
+    const wrap = deltaEl.createSpan({ cls: "dashy-stat-delta-previous" });
+    wrap.appendText(" ");
+    wrap.createSpan({ cls: "dashy-stat-delta-previous-value", text: delta.previous });
 }
 
 /**

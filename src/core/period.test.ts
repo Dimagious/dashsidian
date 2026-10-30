@@ -12,9 +12,11 @@ import {
     deltaTone,
     compareCaption,
     usualCaption,
+    previousCaption,
     usualWindow,
     dateFieldHasEffect,
 } from "./period";
+import { setLocale } from "../i18n";
 import type { NoteRecord } from "./source";
 
 const note = (name: string, frontmatter: Record<string, unknown> = {}, folder = "Diary"): NoteRecord => ({
@@ -629,6 +631,52 @@ describe("usualWindow", () => {
 describe("usualCaption", () => {
     it("names the usual level and carries its value", () => {
         expect(usualCaption("85")).toBe("vs usual: 85");
+    });
+});
+
+// B-194: the previous period's value beside a `compare: true` delta.
+describe("previousCaption", () => {
+    it("a number reads with the card's precision", () => {
+        expect(previousCaption(80)).toBe("(was 80)");
+        expect(previousCaption(80.666, { precision: 2 })).toBe("(was 80.67)");
+        expect(previousCaption(7.25, { precision: 0 })).toBe("(was 7)");
+    });
+
+    it("a duration reads as one, and a clock keeps its seconds", () => {
+        expect(previousCaption(389, { duration: true })).toBe("(was 6h 29m)");
+        expect(previousCaption(137.9166, { duration: true, clock: true })).toBe("(was 2:17:55)");
+    });
+
+    it("the card's unit follows the number, singular for one; a duration takes none", () => {
+        expect(previousCaption(135, { unit: "min" })).toBe("(was 135 min)");
+        expect(previousCaption(1, { unit: "days" })).toBe("(was 1 day)");
+        expect(previousCaption(389, { duration: true, unit: "min" })).toBe("(was 6h 29m)");
+    });
+
+    it("a previous value of zero is a value, not a missing one", () => {
+        expect(previousCaption(0)).toBe("(was 0)");
+        expect(previousCaption(0, { duration: true })).toBe("(was 0m)");
+    });
+
+    it("a previous value above the current one, a fall, reads the same way next to a minus delta", () => {
+        expect(formatDelta(3, 5).text).toBe("−2");
+        expect(previousCaption(5)).toBe("(was 5)");
+        // A negative previous value prints as the card prints its own value.
+        expect(previousCaption(-4)).toBe("(was -4)");
+    });
+
+    it("no previous value: nothing is made up", () => {
+        expect(previousCaption(null)).toBeNull();
+        expect(previousCaption(null, { duration: true, unit: "min" })).toBeNull();
+    });
+
+    it("comes from the catalog, in the reader's language", () => {
+        setLocale("ru");
+        try {
+            expect(previousCaption(80)).toBe("(было 80)");
+        } finally {
+            setLocale("en");
+        }
     });
 });
 

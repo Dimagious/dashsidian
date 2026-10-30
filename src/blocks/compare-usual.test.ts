@@ -40,6 +40,17 @@ describe("stats — compare: usual (B-135)", () => {
         expect(diagnostics(el, "warning")).toEqual([]);
     });
 
+    it("draws no previous value beside the delta: the tooltip names the usual level (B-194)", () => {
+        const card = draw(sleep,
+            "items:\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, period: week, compare: usual }");
+        expect(texts(card, ".dashy-stat-delta")).toEqual(["▼ −3"]);
+        expect(nodes(card, ".dashy-stat-delta-previous")).toHaveLength(0);
+        const inline = draw(sleep,
+            "layout: inline\nitems:\n  - { label: sleep, source: Diary, field: sleep_score, agg: avg, period: week, compare: usual }");
+        expect(texts(inline, ".dashy-stat-inline")).toEqual(["82 sleep ▼ −3"]);
+        expect(nodes(inline, ".dashy-stat-delta-previous")).toHaveLength(0);
+    });
+
     it("better: down turns the same fall good", () => {
         const el = draw(sleep,
             "items:\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, period: week, compare: usual, better: down }");
@@ -59,7 +70,7 @@ describe("stats — compare: usual (B-135)", () => {
     it("compare: true on the same notes still compares with the same days last week", () => {
         const el = draw(sleep,
             "items:\n  - { label: Sleep, source: Diary, field: sleep_score, agg: avg, period: week, compare: true, better: up }");
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▼ −3"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▼ −3 (was 85)"]);
         expect(nodes(el, ".dashy-stat-delta")[0]?.getAttribute("title")).toBe("vs the same days last week: 85");
     });
 

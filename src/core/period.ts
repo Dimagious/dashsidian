@@ -12,7 +12,7 @@ import { dateKey, daysBetween, parseDateKey, weekdayRow } from "./calendar";
 import { isStreakAgg, type Agg } from "./aggregate";
 import { isRealDate, resolveNoteDate, type DateFormats } from "./note-date";
 import { expectedNames, readPeriodName, type NamedPeriod, type PeriodNames, type PeriodUnit } from "./period-name";
-import { formatValue, roundedValue } from "./stat";
+import { formatReading, formatValue, roundedValue, unitFor } from "./stat";
 import { formatDuration, roundedDuration } from "./duration";
 import { describeValue, isRecord, type Diagnostic } from "../shared/parse";
 import { t, tPlural } from "../i18n";
@@ -667,6 +667,25 @@ export type DeltaTone = "good" | "bad" | "neutral";
 export function deltaTone(direction: DeltaDirection, better?: BetterDirection): DeltaTone {
     if (direction === "flat" || !better) return "neutral";
     return direction === better ? "good" : "bad";
+}
+
+/**
+ * The previous period's value drawn beside a `compare: true` delta (B-194):
+ * "(was 80 min)", in the card's own format and with its `unit`, so a review
+ * table keeps both numbers. A duration carries its own units and takes no
+ * `unit`, as on the card. `null` when the previous window had nothing to
+ * count: no number is made up for it. `compare: usual` does not use it; its
+ * tooltip already names the usual level.
+ */
+export function previousCaption(
+    previous: number | null,
+    format: { precision?: number; duration?: boolean; clock?: boolean; unit?: string } = {},
+): string | null {
+    if (previous === null) return null;
+    const duration = format.duration ?? false;
+    const shown = formatReading(previous, format.precision, duration, format.clock ?? false);
+    const value = format.unit && !duration ? `${shown} ${unitFor(format.unit, shown)}` : shown;
+    return t("compare.previous", { value });
 }
 
 /** What a `compare: usual` delta compares with, for a tooltip: "vs usual: 85". */

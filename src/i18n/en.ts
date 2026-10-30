@@ -160,6 +160,7 @@ export const en = {
     "compare.vsDays.other": "vs the {count} days before: {value}",
     "compare.usualNeedsAvg": "{card}: `compare: usual` works only with `agg: avg`. The usual level is an average, so no delta is drawn.",
     "compare.vsUsual": "vs usual: {value}",
+    "compare.previous": "(was {value})",
     "compare.noHistory": "no history before this period",
 
     "countdown.empty": "No dates to draw. Expected `items:` or a list.",

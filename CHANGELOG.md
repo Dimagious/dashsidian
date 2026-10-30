@@ -12,6 +12,15 @@ removed public export.
 
 ### Added
 
+- **`compare: true` shows the previous period's value next to the delta.**
+  A card reads `▲ +1 (was 3)`, so a review table no longer loses last
+  week's or last month's number. The value is formatted like the card's own:
+  its `precision`, its `unit`, `6h 29m` for a duration and `2:17:55` for a
+  race time. For a window still running it is the same days of the
+  previous period to date. With no note in the previous window there is still no delta
+  and no value. On a narrow card or in `layout: inline` the `(was 3)` part
+  moves to the next line whole instead of overflowing. `compare: usual` is
+  unchanged: its tooltip names the usual level.
 - **`stats` and `progress` sum several properties in one card.** `field:
   [run_min, bike_min, swim_min]` adds up the listed properties each note
   holds, so one card shows the minutes of all workouts without DataviewJS. A
