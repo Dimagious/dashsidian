@@ -231,7 +231,7 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
             "2",
         ]);
         // The count's delta against the same days last week.
-        expect(texts(numbers, ".dashy-stat-delta")).toEqual(["▲ +1"]);
+        expect(texts(numbers, ".dashy-stat-delta")).toEqual(["▲ +1 (was 1)"]);
         expect(numbers.querySelector(".dashy-stat-delta")?.getAttribute("title")).toBe("vs the same days last week: 1");
     });
 
@@ -275,7 +275,7 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
             "82.9",
         ]);
         // 21 to 27 September skipped the 25th: 6 again.
-        expect(texts(review, ".dashy-stat-delta")).toEqual(["= 0"]);
+        expect(texts(review, ".dashy-stat-delta")).toEqual(["= 0 (was 6)"]);
 
         const template = render("stats", source, "Templates/Weekly review.md");
         expect(diagnostics(template, "error")).toEqual([]);
@@ -317,7 +317,7 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
             "63.8 min",
         ]);
         // 27 September ran 30, 28 September swam 45.
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +60"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +60 (was 75)"]);
         expect(el.querySelector(".dashy-stat-delta")?.getAttribute("title")).toBe("vs the same days last week: 75");
     });
 

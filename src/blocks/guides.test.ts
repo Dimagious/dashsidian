@@ -275,7 +275,7 @@ describe("guide: books-per-year", () => {
     it("step 2: compare is against last year to the same day, not the whole year", () => {
         // 2025 up to 5 October holds G, H, I; J (20 November) is left out.
         const el = render("stats", STATS_THIS_YEAR, { notes: BOOKS });
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +2"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +2 (was 3)"]);
         expect(nodes(el, ".dashy-stat-delta")[0]?.className).toContain("dashy-stat-delta-good");
     });
 
@@ -700,7 +700,7 @@ describe("guide: weekly-review-without-dataview", () => {
     });
     const WEEK_40 = {
         values: ["82", "4", "9000", "7 days"],
-        deltas: ["▼ −3", "▲ +1", "▲ +1000"],
+        deltas: ["▼ −3", "▲ +1 (was 3)", "▲ +1000 (was 8000)"],
         vs: ["vs usual: 85", "vs the week before: 3", "vs the week before: 8000"],
     };
 
@@ -831,7 +831,7 @@ describe("guide: weekly-review-without-dataview", () => {
     it("step 6: the same cards in a monthly note count the month, against the whole month before", () => {
         const el = render("stats", REVIEW_STATS, REVIEW_VAULT, SEPTEMBER);
         expect(texts(el, ".dashy-stat-value")[1]).toBe("13");
-        expect(texts(el, ".dashy-stat-delta")[1]).toBe("= 0");
+        expect(texts(el, ".dashy-stat-delta")[1]).toBe("= 0 (was 13)");
         expect(nodes(el, ".dashy-stat-delta")[1]?.getAttribute("title")).toBe("vs the month before: 13");
     });
 
@@ -850,11 +850,11 @@ describe("guide: weekly-review-without-dataview", () => {
     it("variations: a week written out, a season, and daily notes named DD.MM.YYYY", () => {
         const blocks = guideBlocks("weekly-review-without-dataview").map((b) => b.source);
         const written = render("stats", blocks[8] ?? "", REVIEW_VAULT, "Projects/Log.md");
-        expect(cards(written)).toEqual({ values: ["4"], deltas: ["▲ +1"], vs: ["vs the week before: 3"] });
+        expect(cards(written)).toEqual({ values: ["4"], deltas: ["▲ +1 (was 3)"], vs: ["vs the week before: 3"] });
 
         // 1 to 14 September against 18 to 31 August: six gym days each.
         const season = render("stats", blocks[9] ?? "", REVIEW_VAULT, "Projects/Log.md");
-        expect(cards(season)).toEqual({ values: ["6"], deltas: ["= 0"], vs: ["vs the 14 days before: 6"] });
+        expect(cards(season)).toEqual({ values: ["6"], deltas: ["= 0 (was 6)"], vs: ["vs the 14 days before: 6"] });
 
         const dotted = REVIEW_DAYS.map((n) => ({ ...n, path: n.path.replace(/(\d{4})-(\d{2})-(\d{2})/, "$3.$2.$1") }));
         expect(cards(render("stats", blocks[10] ?? "", { notes: dotted }, W40)))

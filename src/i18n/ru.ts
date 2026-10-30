@@ -156,6 +156,7 @@ export const ru: Catalog = {
     "compare.vsDays.other": "за предыдущие {count} дней: {value}",
     "compare.usualNeedsAvg": "{card}: `compare: usual` работает только с `agg: avg`. Обычный уровень считается как среднее, поэтому разница не показана.",
     "compare.vsUsual": "относительно обычного: {value}",
+    "compare.previous": "(было {value})",
     "compare.noHistory": "до этого периода данных нет",
 
     "countdown.empty": "Список дат пуст. Ожидается `items:` или массив.",

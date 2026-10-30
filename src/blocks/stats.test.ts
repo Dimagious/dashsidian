@@ -962,7 +962,7 @@ describe("stats — compare against the previous period", () => {
             "items:\n  - { label: Gym this week, source: Diary, field: gym, agg: sum, period: week, compare: true }",
         );
         expect(texts(el, ".dashy-stat-value")).toEqual(["4"]);
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +2"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +2 (was 2)"]);
         const delta = nodes(el, ".dashy-stat-delta")[0];
         expect(delta?.className).toContain("dashy-stat-delta-neutral");
         expect(delta?.getAttribute("title")).toBe("vs the same days last week: 2");
@@ -986,7 +986,7 @@ describe("stats — compare against the previous period", () => {
         const el = withToday(
             "items:\n  - { label: Mood, source: Diary, field: mood, agg: avg, period: week, compare: true, better: down }",
         );
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▼ −2"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▼ −2 (was 5)"]);
         expect(nodes(el, ".dashy-stat-delta")[0]?.className).toContain("dashy-stat-delta-good");
     });
 
@@ -994,8 +994,50 @@ describe("stats — compare against the previous period", () => {
         const el = withToday(
             "items:\n  - { label: Steps, source: Diary, field: steps, agg: sum, period: week, compare: true, better: up }",
         );
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["= 0"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["= 0 (was 500)"]);
         expect(nodes(el, ".dashy-stat-delta")[0]?.className).toContain("dashy-stat-delta-neutral");
+    });
+
+    // B-194: last period's number beside the delta, so a review table keeps both.
+    it("the previous value follows the delta in its own muted span, and the value never splits", () => {
+        const el = withToday(
+            "columns: 2\nitems:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up, unit: days }",
+        );
+        const delta = nodes(el, ".dashy-stat-delta")[0];
+        expect(delta?.textContent).toBe("▲ +2 (was 2 days)");
+        const previous = delta?.querySelector(".dashy-stat-delta-previous");
+        // The space is inside the wrapping span: the one place a narrow card breaks the line.
+        expect(previous?.textContent).toBe(" (was 2 days)");
+        expect(previous?.querySelector(".dashy-stat-delta-previous-value")?.textContent).toBe("(was 2 days)");
+        // The arrow stays the only hidden part; the tooltip still names the same value.
+        expect(delta?.getAttribute("title")).toBe("vs the same days last week: 2");
+    });
+
+    it("a previous period of zero is still shown: zero is a value", () => {
+        const zero = previousWeek.map((n) => ({ ...n, frontmatter: { ...n.frontmatter, gym: false } }));
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(mockContext({ notes: [...zero, ...currentWeek] }),
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: week, compare: true }", el);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +4 (was 0)"]);
+    });
+
+    it("no note in the previous window: no delta and no previous value made up", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(mockContext({ notes: currentWeek }),
+            "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: week, compare: true }", el);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["4"]);
+        expect(nodes(el, ".dashy-stat-delta")).toHaveLength(0);
+        expect(nodes(el, ".dashy-stat-delta-previous")).toHaveLength(0);
+    });
+
+    it("a redraw keeps one previous value per card", () => {
+        const el = withToday("items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: week, compare: true }");
+        renderStats(compareCtx, "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: week, compare: true }", el);
+        expect(texts(el, ".dashy-stat-delta-previous-value")).toEqual(["(was 2)"]);
     });
 
     it("nothing in the previous window means no delta at all, not a made-up one", () => {
@@ -1047,7 +1089,7 @@ describe("stats — compare against the previous period", () => {
             "items:\n  - { label: Gym, source: Diary, field: gym, agg: sum, period: week, compare: true, better: sideways }",
         );
         expect(diagnostics(el, "warning")[0]).toContain("sideways");
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +2"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +2 (was 2)"]);
         expect(nodes(el, ".dashy-stat-delta")[0]?.className).toContain("dashy-stat-delta-neutral");
     });
 
@@ -1117,7 +1159,7 @@ describe("stats — compare against the previous period", () => {
             el,
         );
         expect(texts(el, ".dashy-stat-value")).toEqual(["11"]);
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +1"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +1 (was 10)"]);
     });
 
     it("compare works with latest and date_field together, over notes with no dated name (B-081 round 2)", () => {
@@ -1142,7 +1184,7 @@ describe("stats — compare against the previous period", () => {
         );
         expect(diagnostics(el, "warning")).toHaveLength(0);
         expect(texts(el, ".dashy-stat-value")).toEqual(["5"]);
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +1"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +1 (was 4)"]);
     });
 });
 
@@ -1424,7 +1466,7 @@ describe("stats — durations", () => {
     it("compare: the delta and its tooltip read as durations too", () => {
         const el = render(
             "items:\n  - { label: Sleep, source: Diary, field: sleep, agg: avg, period: week, compare: true, better: up }");
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +36m"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +36m (was 6h 29m)"]);
         expect(nodes(el, ".dashy-stat-delta")[0]?.getAttribute("title")).toBe("vs the same days last week: 6h 29m");
     });
 
@@ -1460,7 +1502,7 @@ describe("stats — durations", () => {
         const el = render(
             "items:\n  - { label: Sleep, source: Diary, field: sleep, agg: avg, period: week, compare: true }");
         expect(texts(el, ".dashy-stat-value")).toEqual(["7\u00A0ч 5\u00A0мин"]);
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +36\u00A0мин"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +36\u00A0мин (было 6\u00A0ч 29\u00A0мин)"]);
     });
 });
 
@@ -1598,7 +1640,7 @@ items:
   - { label: Week, field: gym, agg: sum, compare: true }`);
         expect(diagnostics(el, "warning")).toEqual([]);
         // 3 this week (Sun 20 to Thu 24) against 1 on the same days before.
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +2"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +2 (was 1)"]);
     });
 
     it("cards inherit the root date_field, and a card's own replaces it", () => {
@@ -1980,7 +2022,7 @@ describe("stats: race times as a clock", () => {
     it("compare: the delta and its tooltip read as a clock too", () => {
         const el = render(
             "items:\n  - { label: Avg, source: Races, field: time, agg: avg, period: week, compare: true, better: down }");
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +0:14:38"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +0:14:38 (was 2:17:55)"]);
         expect(nodes(el, ".dashy-stat-delta")[0]?.getAttribute("title")).toBe("vs the same days last week: 2:17:55");
     });
 });
@@ -2113,7 +2155,7 @@ describe("stats — layout: inline (B-150)", () => {
 
         it("a rise: an up arrow and the delta after the label, coloured like a card's", () => {
             const el = render("  - { label: gym days, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }");
-            expect(texts(el, ".dashy-stat-inline")).toEqual(["4 gym days ▲ +2"]);
+            expect(texts(el, ".dashy-stat-inline")).toEqual(["4 gym days ▲ +2 (was 2)"]);
             const delta = nodes(el, ".dashy-stat-inline .dashy-stat-delta")[0];
             expect(delta?.className).toContain("dashy-stat-delta-good");
             expect(delta?.getAttribute("title")).toBe("vs the same days last week: 2");
@@ -2122,14 +2164,22 @@ describe("stats — layout: inline (B-150)", () => {
 
         it("a fall: a down arrow, a real minus sign, and `better: up` colours it bad", () => {
             const el = render("  - { label: mood, source: Diary, field: mood, agg: avg, period: week, compare: true, better: up }");
-            expect(texts(el, ".dashy-stat-delta")).toEqual(["▼ −2"]);
+            expect(texts(el, ".dashy-stat-delta")).toEqual(["▼ −2 (was 5)"]);
             expect(nodes(el, ".dashy-stat-delta")[0]?.className).toContain("dashy-stat-delta-bad");
         });
 
         it("no change: an equals sign, neutral even with `better` set", () => {
             const el = render("  - { label: steps, source: Diary, field: steps, agg: sum, period: week, compare: true, better: up }");
-            expect(texts(el, ".dashy-stat-inline")).toEqual(["500 steps = 0"]);
+            expect(texts(el, ".dashy-stat-inline")).toEqual(["500 steps = 0 (was 500)"]);
             expect(nodes(el, ".dashy-stat-delta")[0]?.className).toContain("dashy-stat-delta-neutral");
+        });
+
+        it("the previous value sits inside the item, after the delta, in a span that may wrap (B-194)", () => {
+            const el = render("  - { label: gym days, source: Diary, field: gym, agg: sum, period: week, compare: true, better: up }");
+            const item = nodes(el, ".dashy-stat-inline")[0];
+            const previous = item?.querySelector(".dashy-stat-delta .dashy-stat-delta-previous");
+            expect(previous?.textContent).toBe(" (was 2)");
+            expect(previous?.querySelector(".dashy-stat-delta-previous-value")?.textContent).toBe("(was 2)");
         });
     });
 });
@@ -2226,7 +2276,7 @@ items:
         });
         const el = render("source: Diary\nfield: steps\nagg: sum\nperiod: 7d\ncompare: true\ntrend: 14d\ndate_format: DD.MM.YYYY", vault({}, notes));
         expect(texts(el, ".dashy-stat-value")).toEqual([`14${GROUP_SEPARATOR}000`]);
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +7000"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +7000 (was 7000)"]);
         expect(nodes(el, ".dashy-stat-bar")).toHaveLength(14);
     });
 
@@ -2296,7 +2346,7 @@ describe("stats — a list of fields summed per note (B-193)", () => {
         );
         expect(diagnostics(el, "warning")).toEqual([]);
         expect(texts(el, ".dashy-stat-value")).toEqual(["200 min"]);
-        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +65"]);
+        expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +65 (was 135 min)"]);
         expect(nodes(el, ".dashy-stat-delta")[0]?.getAttribute("title")).toBe("vs the same days last week: 135");
     });
 

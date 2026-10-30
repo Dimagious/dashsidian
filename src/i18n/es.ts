@@ -158,6 +158,7 @@ export const es: Catalog = {
     "compare.vsDays.other": "respecto a los {count} días anteriores: {value}",
     "compare.usualNeedsAvg": "{card}: `compare: usual` solo funciona con `agg: avg`. El nivel habitual es una media, así que no se muestra la diferencia.",
     "compare.vsUsual": "respecto a lo habitual: {value}",
+    "compare.previous": "(antes {value})",
     "compare.noHistory": "sin historial antes de este periodo",
 
     "countdown.empty": "No hay fechas que dibujar. Se espera `items:` o una lista.",

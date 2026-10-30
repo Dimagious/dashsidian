@@ -116,6 +116,17 @@ items:
     },
     {
         block: "stats",
+        title: "stats — прошлое значение рядом с разницей, узкие карточки (compare: true)",
+        source: `source: Diary
+columns: 4
+items:
+  - { label: Сон, field: sleep_duration, agg: avg, period: week, compare: true, better: up }
+  - { label: Шагов, field: steps, agg: sum, period: week, compare: true, better: up, unit: шагов }
+  - { label: Дней, agg: count, period: LAST_WEEK, compare: true }
+  - { label: Обычный, field: sleep_score, agg: avg, period: week, compare: usual }`,
+    },
+    {
+        block: "stats",
         title: "stats — против обычного уровня (compare: usual)",
         source: `source: Diary
 items:
