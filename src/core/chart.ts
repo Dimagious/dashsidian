@@ -268,7 +268,8 @@ export function readChart(
 
     let given: Period | undefined;
     if (value.range !== undefined) {
-        const { period, problem } = readPeriodValue(value.range, "range", context);
+        const { period, problem, warning } = readPeriodValue(value.range, "range", context);
+        if (warning) warn(warning);
         if (period) given = period;
         else if (problem) {
             diagnostics.push({ level: "error", message: problem });

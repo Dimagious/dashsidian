@@ -126,6 +126,7 @@ export const ru: Catalog = {
     "period.boundsInvalid": "`{key}` в виде словаря принимает `from` и `to`, каждое датой вроде 2026-09-01, получено «{value}».",
     "period.boundsNoFrom": "У `{key}` есть `to`, но нет `from`. Окну нужно начало: добавьте `from:` с датой вроде 2026-09-01.",
     "period.boundsOrder": "`{key}` начинается позже, чем заканчивается: `from: {from}` позже `to: {to}`. Поменяйте их местами.",
+    "period.weekYearTrap": "`{key}`: `{name}` читается как неделя с {start} по {end}, она переходит через Новый год, а формат недельных заметок берёт год из календарного (`YYYY`). Около Нового года такое имя может указывать на неделю годом раньше или позже. Поставьте недельным форматом Periodic Notes `{format}`.",
     "period.atCard": "{card}: {message}",
     "period.noteFuture": "Это окно начинается {date}, считать пока нечего.",
     "period.windowSpan": "с {from} по {to}",

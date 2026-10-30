@@ -128,6 +128,7 @@ export const fr: Catalog = {
     "period.boundsInvalid": "`{key}` sous forme de map prend `from` et `to`, chacun une date comme 2026-09-01, reçu « {value} ».",
     "period.boundsNoFrom": "`{key}` a `to` mais pas `from`. Une fenêtre a besoin d'un début : ajoutez `from:` avec une date comme 2026-09-01.",
     "period.boundsOrder": "`{key}` commence après sa fin : `from: {from}` est postérieur à `to: {to}`. Inversez-les.",
+    "period.weekYearTrap": "`{key}` : `{name}` est lu comme la semaine du {start} au {end}, qui chevauche le Nouvel An, et le format des notes hebdomadaires prend son année dans l'année civile (`YYYY`). Autour du Nouvel An, un tel nom peut désigner une semaine décalée d'un an. Utilisez `{format}` comme format hebdomadaire de Periodic Notes.",
     "period.atCard": "{card} : {message}",
     "period.noteFuture": "Cette fenêtre commence le {date}, il n'y a encore rien à compter.",
     "period.windowSpan": "du {from} au {to}",

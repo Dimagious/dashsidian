@@ -1,7 +1,8 @@
 import { describe, it, expect, afterEach } from "vitest";
 import {
-    periodNames, readPeriodName, periodEnd, expectedNames, noteNameFromPath, ISO_PERIOD_FORMATS,
+    periodNames, readPeriodName, periodEnd, expectedNames, noteNameFromPath, ISO_PERIOD_FORMATS, weekYearFormat,
 } from "./period-name";
+import type { ParseDate } from "./note-date";
 import { parsePeriodStart, setDateLocale, firstDayOfWeek } from "../adapters/datetime";
 
 const iso = periodNames({}, parsePeriodStart);
@@ -95,6 +96,65 @@ describe("readPeriodName: Periodic Notes formats first, ISO after (B-129)", () =
     it("expectedNames lists a format once even when the settings repeat ISO", () => {
         expect(expectedNames(periodNames({ day: "YYYY-MM-DD", month: "YYYY-MM" }, parsePeriodStart)))
             .toBe("YYYY-MM-DD, GGGG-[W]WW, YYYY-MM, YYYY-[Q]Q, YYYY");
+    });
+});
+
+describe("weekYearFormat: the week-year a calendar-year weekly format should use (B-191)", () => {
+    it("puts the locale week-year beside `ww` and the ISO one beside `WW`", () => {
+        expect(weekYearFormat("YYYY-[W]ww")).toBe("gggg-[W]ww");
+        expect(weekYearFormat("YYYY-[W]WW")).toBe("GGGG-[W]WW");
+        expect(weekYearFormat("YY[w]w")).toBe("gg[w]w");
+    });
+
+    it("leaves text in brackets alone", () => {
+        expect(weekYearFormat("[Year] YYYY [Week] ww")).toBe("[Year] gggg [Week] ww");
+    });
+
+    it("is null for a format that already names the week-year, or names no week", () => {
+        expect(weekYearFormat("gggg-[W]ww")).toBeNull();
+        expect(weekYearFormat("GGGG-[W]WW")).toBeNull();
+        expect(weekYearFormat("YYYY-MM")).toBeNull();
+        expect(weekYearFormat("YYYY-[Week]")).toBeNull();
+    });
+});
+
+describe("readPeriodName: a week across New Year in a calendar-year format (B-191)", () => {
+    /** What moment returns for these names in English: the first day of the week each names. */
+    const starts: Record<string, string> = {
+        "YYYY-[W]ww 2026-W01": "2025-12-28",
+        "YYYY-[W]ww 2026-W52": "2026-12-20",
+        "YYYY-[W]ww 2026-W41": "2026-10-04",
+        "YYYY-[W]WW 2026-W01": "2025-12-29",
+        "YYYY-[W]WW 2026-W53": "2026-12-28",
+        "gggg-[W]ww 2026-W01": "2025-12-28",
+        "GGGG-[W]WW 2026-W01": "2025-12-29",
+        "GGGG-[W]WW 2027-W01": "2027-01-04",
+    };
+    const parse: ParseDate = (text, format) => starts[`${format} ${text}`] ?? null;
+    const weekly = (format: string): ReturnType<typeof periodNames> => periodNames({ week: format }, parse);
+
+    it("flags locale week 1 that starts in December, with the `gggg` format to use", () => {
+        expect(readPeriodName("2026-W01", weekly("YYYY-[W]ww"))).toEqual({
+            unit: "week", start: "2025-12-28", end: "2026-01-03", weekYearFormat: "gggg-[W]ww",
+        });
+    });
+
+    it("flags ISO week 1 starting in December and week 53 ending in January, with the `GGGG` format", () => {
+        expect(readPeriodName("2026-W01", weekly("YYYY-[W]WW"))?.weekYearFormat).toBe("GGGG-[W]WW");
+        expect(readPeriodName("2026-W53", weekly("YYYY-[W]WW"))).toEqual({
+            unit: "week", start: "2026-12-28", end: "2027-01-03", weekYearFormat: "GGGG-[W]WW",
+        });
+    });
+
+    it("does not flag a calendar-year week that stays inside one year, late December included", () => {
+        expect(readPeriodName("2026-W52", weekly("YYYY-[W]ww"))).toEqual({ unit: "week", start: "2026-12-20", end: "2026-12-26" });
+        expect(readPeriodName("2026-W41", weekly("YYYY-[W]ww"))).toEqual({ unit: "week", start: "2026-10-04", end: "2026-10-10" });
+    });
+
+    it("does not flag a week across New Year named by its week-year, set or ISO", () => {
+        expect(readPeriodName("2026-W01", weekly("gggg-[W]ww"))).toEqual({ unit: "week", start: "2025-12-28", end: "2026-01-03" });
+        // No settings: the ISO `GGGG-[W]WW` reads it.
+        expect(readPeriodName("2026-W01", periodNames({}, parse))).toEqual({ unit: "week", start: "2025-12-29", end: "2026-01-04" });
     });
 });
 

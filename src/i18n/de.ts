@@ -128,6 +128,7 @@ export const de: Catalog = {
     "period.boundsInvalid": "`{key}` als Map nimmt `from` und `to`, jeweils ein Datum wie 2026-09-01, bekommen „{value}“.",
     "period.boundsNoFrom": "`{key}` hat `to`, aber kein `from`. Ein Fenster braucht einen Anfang: füge `from:` mit einem Datum wie 2026-09-01 hinzu.",
     "period.boundsOrder": "`{key}` beginnt nach seinem Ende: `from: {from}` liegt nach `to: {to}`. Vertausche sie.",
+    "period.weekYearTrap": "`{key}`: `{name}` wird als die Woche {start} bis {end} gelesen, die über Neujahr reicht, und das Format der Wochennotizen nimmt sein Jahr aus dem Kalenderjahr (`YYYY`). Um Neujahr kann so ein Name eine Woche ein Jahr daneben meinen. Nutze `{format}` als Wochenformat in Periodic Notes.",
     "period.atCard": "{card}: {message}",
     "period.noteFuture": "Dieses Fenster beginnt am {date}, es gibt noch nichts zu zählen.",
     "period.windowSpan": "{from} bis {to}",

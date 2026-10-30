@@ -322,3 +322,38 @@ describe("readPeriod with a fixed window", () => {
         expect(diagnostics.map((d) => d.level)).toEqual(["warning"]);
     });
 });
+
+describe("a week across New Year in a calendar-year weekly format (B-191)", () => {
+    // `YYYY-[W]ww` in English: week 1 of 2026 runs Sunday 28 December 2025 to Saturday 3 January 2026.
+    const weekly: PeriodContext["names"] = periodNames({ week: "YYYY-[W]ww" }, parsePeriodStart);
+    const warning = "`period`: `2026-W01` is read as the week 2025-12-28 to 2026-01-03, which spans New Year, "
+        + "and the weekly note format takes its year from the calendar year (`YYYY`). "
+        + "Around New Year such a name can stand for a week a year away. Use `gggg-[W]ww` as the Periodic Notes weekly format.";
+
+    it("`note` builds the window and adds a warning naming the week and the format to use", () => {
+        expect(readPeriodValue("note", "period", { names: weekly, noteName: "2026-W01" })).toEqual({
+            period: { kind: "fixed", unit: "week", start: "2025-12-28", end: "2026-01-03" },
+            warning,
+        });
+    });
+
+    it("a written name warns the same way, under the key it was written in", () => {
+        expect(readPeriodValue("2026-W01", "range", { names: weekly }).warning)
+            .toBe(warning.replace("`period`", "`range`"));
+    });
+
+    it("a week inside one year, and the same week under `gggg`, do not warn", () => {
+        expect(readPeriodValue("note", "period", { names: weekly, noteName: "2026-W41" })).toEqual({
+            period: { kind: "fixed", unit: "week", start: "2026-10-04", end: "2026-10-10" },
+        });
+        const localeYear = periodNames({ week: "gggg-[W]ww" }, parsePeriodStart);
+        expect(readPeriodValue("note", "period", { names: localeYear, noteName: "2026-W01" }).warning).toBeUndefined();
+    });
+
+    it("readPeriod keeps the window and passes the warning on, not as an error", () => {
+        const { spec, diagnostics, broken } = readPeriod({ period: "note" }, "Gym", undefined, { names: weekly, noteName: "2026-W01" });
+        expect(spec?.period).toEqual({ kind: "fixed", unit: "week", start: "2025-12-28", end: "2026-01-03" });
+        expect(broken).toBe(false);
+        expect(diagnostics).toEqual([{ level: "warning", message: warning }]);
+    });
+});

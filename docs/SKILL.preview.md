@@ -42,8 +42,11 @@ About, Override config folder.
   `plugins/periodic-notes/manifest.json` decides. The `today` block links
   the notes they describe, the daily note from Periodic Notes when its day is
   switched on there, otherwise from Daily notes. A week named in
-  `gggg-[W]ww` is a locale week, read in Obsidian's interface language;
-  `GGGG-[W]WW` is the ISO week.
+  `gggg-[W]ww` is a locale week, by the rules of Obsidian's interface
+  language (in English it starts on Sunday); `GGGG-[W]WW` is the ISO week,
+  Monday first. `YYYY` is the calendar year, not the week's: with `ww` or
+  `WW` a week across New Year gets a name with the wrong year, and the block
+  warns when its week is one. Suggest `gggg` or `GGGG` to the user.
 - `<configDir>/plugins/dashsidian/data.json`: Dashy's own settings.
   `dailyFolder`, `weeklyFolder` and `monthlyFolder`, when not empty,
   replace the folders above; `startDayHour` (0 to 6) moves the start of
