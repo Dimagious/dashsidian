@@ -19,7 +19,8 @@ import { futureStart } from "../core/period";
 import { rgba } from "../core/palette";
 import { parseConfig, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, renderNotices, internalLink } from "../shared/render";
-import { notStartedNotice, windowLabel } from "./window";
+import { notStartedNotice, renderTemplateHint, windowLabel } from "./window";
+import { showsTemplateHint } from "../core/template-note";
 import { t } from "../i18n";
 import schema from "./schema.json";
 
@@ -66,10 +67,18 @@ export function renderChart(ctx: BlockContext, source: string, el: HTMLElement):
 
     // B-129: `range: note`, `2026-W40` and `from`/`to`, measured against one today.
     const today = ctx.today();
-    const { spec, diagnostics: specDiags } = readChart(value, KNOWN_ITEM, periodContext(ctx.app, ctx.sourcePath), today);
+    const periodCtx = periodContext(ctx.app, ctx.sourcePath);
+    // B-190: in a template, `range: note` waits for the note made from it.
+    // Everything else is still checked; only the chart gives way to a hint.
+    const template = showsTemplateHint(value, "range", periodCtx);
+    const report = (): void => {
+        if (template) renderTemplateHint(el, "chart", diags);
+        else renderDiagnostics(el, "chart", diags);
+    };
+    const { spec, diagnostics: specDiags } = readChart(value, KNOWN_ITEM, periodCtx, today);
     diags.push(...specDiags);
     if (!spec) {
-        renderDiagnostics(el, "chart", diags);
+        report();
         return;
     }
 
@@ -132,7 +141,7 @@ export function renderChart(ctx: BlockContext, source: string, el: HTMLElement):
             }
         }
         if (errors) {
-            renderDiagnostics(el, "chart", diags);
+            report();
             return;
         }
     } else {
@@ -177,6 +186,11 @@ export function renderChart(ctx: BlockContext, source: string, el: HTMLElement):
         diags.push({ level: "warning", message: t("chart.goalDurationOnPlain", { value: spec.goalText ?? "" }) });
     }
 
+    // The template's stand-in window is no one's: what it says about buckets is not said.
+    if (template) {
+        report();
+        return;
+    }
     diags.push(...bucketDiags);
     renderDiagnostics(el, "chart", diags);
 

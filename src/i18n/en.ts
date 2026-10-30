@@ -133,6 +133,7 @@ export const en = {
     "period.weekYearTrap": "`{key}`: `{name}` is read as the week {start} to {end}, which spans New Year, and the weekly note format takes its year from the calendar year (`YYYY`). Around New Year such a name can stand for a week a year away. Use `{format}` as the Periodic Notes weekly format.",
     "period.atCard": "{card}: {message}",
     "period.noteFuture": "This window starts on {date}, so there is nothing to count yet.",
+    "period.templateNote": "This note is a template, so there is nothing to count here yet. A note made from it and named for a period, like 2026-W40, counts that period.",
     "period.windowSpan": "{from} to {to}",
 
     "compare.notBoolean": "{card}: `compare` expects true, false or usual, got \"{value}\". Comparison skipped.",

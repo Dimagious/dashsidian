@@ -31,7 +31,8 @@ import { firstDayOfWeek } from "../adapters/datetime";
 import { noteDateFormats, periodContext } from "../adapters/periodic";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, renderNotices } from "../shared/render";
-import { notStartedNotice } from "./window";
+import { notStartedNotice, renderTemplateHint } from "./window";
+import { showsTemplateHint } from "../core/template-note";
 import { t } from "../i18n";
 import schema from "./schema.json";
 
@@ -95,6 +96,9 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
     const firstDay = firstDayOfWeek();
     // B-129: how `period: note`, `2026-W40` and `from`/`to` are read.
     const periodCtx = periodContext(ctx.app, ctx.sourcePath);
+    // B-190: in a template, `period: note` waits for the note made from it.
+    // Everything else is still checked; only the numbers give way to a hint.
+    const template = showsTemplateHint(value, "period", periodCtx);
     const cards: Card[] = [];
     // A window that has not started yet is not a mistake, only nothing to count.
     const notices: string[] = [];
@@ -300,6 +304,10 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
     diags.push(...undatedRootDiagnostics(block, undatedCards));
     diags.push(...unmatchedRootDateFormat(rootFormatted, noteDateFormats(ctx.app, rootFormat.format)));
 
+    if (template) {
+        renderTemplateHint(el, "stats", diags);
+        return;
+    }
     // Diagnostics before the cards: an error must be seen before a dash is.
     renderDiagnostics(el, "stats", diags);
     renderNotices(el, notices);

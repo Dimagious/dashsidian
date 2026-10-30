@@ -131,6 +131,7 @@ export const de: Catalog = {
     "period.weekYearTrap": "`{key}`: `{name}` wird als die Woche {start} bis {end} gelesen, die über Neujahr reicht, und das Format der Wochennotizen nimmt sein Jahr aus dem Kalenderjahr (`YYYY`). Um Neujahr kann so ein Name eine Woche ein Jahr daneben meinen. Nutze `{format}` als Wochenformat in Periodic Notes.",
     "period.atCard": "{card}: {message}",
     "period.noteFuture": "Dieses Fenster beginnt am {date}, es gibt noch nichts zu zählen.",
+    "period.templateNote": "Diese Notiz ist eine Vorlage, daher gibt es hier noch nichts zu zählen. Eine daraus erstellte Notiz, die nach einem Zeitraum benannt ist, etwa 2026-W40, zählt diesen Zeitraum.",
     "period.windowSpan": "{from} bis {to}",
 
     "compare.notBoolean": "{card}: `compare` erwartet true, false oder usual, bekommen „{value}“. Vergleich übersprungen.",

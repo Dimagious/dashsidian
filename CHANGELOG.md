@@ -23,6 +23,18 @@ removed public export.
 
 ### Fixed
 
+- **A review template no longer shows an error.** A block with
+  `period: note` or `range: note` in a template, such as
+  `Templates/Weekly review.md`, drew an error because the template's name is
+  no period, so everyone who opened the template saw it. In a note inside the
+  template folder of the core Templates plugin or of Templater, the block now
+  draws no numbers and shows one line: the note is a template, and a note
+  made from it and named for a period counts that period. Every other
+  problem in the block, such as a folder that does not exist or a missing
+  `field`, is still shown above that line. Anywhere else a
+  note name that is no period is still an error. The agent skill has a
+  weekly review template recipe that keeps the review notes out of the
+  block's `source`.
 - **On a phone a block with `columns: 1` keeps one column.** The phone layout
   forced two columns whatever `columns` said, so a single card took half the
   screen. A phone now shows at most two columns, and never more than

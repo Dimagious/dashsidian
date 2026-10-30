@@ -1,6 +1,8 @@
 import { formatDayMedium, formatYear, monthYearLong } from "../adapters/datetime";
 import { parseDateKey } from "../core/calendar";
 import { periodWindow, type Period } from "../core/period";
+import type { Diagnostic } from "../shared/parse";
+import { renderDiagnostics, renderNotices } from "../shared/render";
 import { t } from "../i18n";
 
 /**
@@ -10,6 +12,17 @@ import { t } from "../i18n";
  */
 export function notStartedNotice(start: string): string {
     return t("period.noteFuture", { date: formatDayMedium(parseDateKey(start)) });
+}
+
+/**
+ * What a block in a template note draws in place of its numbers when it
+ * reads `period: note` or `range: note` (B-190, `core/template-note.ts`):
+ * every diagnostic the rest of the config earned, then one quiet line. Not
+ * a diagnostic: the template is right, only not named for a period.
+ */
+export function renderTemplateHint(el: HTMLElement, blockName: string, diags: readonly Diagnostic[]): void {
+    renderDiagnostics(el, blockName, diags);
+    renderNotices(el, [t("period.templateNote")]);
 }
 
 /**

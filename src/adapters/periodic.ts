@@ -4,7 +4,9 @@ import { dateFormats, type DateFormats } from "../core/note-date";
 import { noteNameFromPath, periodNames, PERIOD_UNITS, PERIODIC_NOTES_FORMATS, type PeriodUnit } from "../core/period-name";
 import type { PeriodContext } from "../core/period";
 import { isRecord } from "../shared/parse";
+import { isInTemplateFolder } from "../core/template-note";
 import { parseDateWithFormat, parsePeriodStart } from "./datetime";
+import { templateFolders } from "./templates";
 
 /**
  * Where periodic notes live, according to the neighbouring plugins.
@@ -211,10 +213,14 @@ export function periodNameFormats(app: App): Partial<Record<PeriodUnit, string>>
 
 /**
  * What a block reads `period`/`range` with (B-129): the period name formats
- * and the name of the note at `sourcePath`, where the block sits.
+ * and the name of the note at `sourcePath`, where the block sits, and
+ * whether that note is in a template folder (B-190).
  */
 export function periodContext(app: App, sourcePath?: string): PeriodContext {
     const context: PeriodContext = { names: periodNames(periodNameFormats(app), parsePeriodStart) };
-    if (sourcePath !== undefined) context.noteName = noteNameFromPath(sourcePath);
+    if (sourcePath !== undefined) {
+        context.noteName = noteNameFromPath(sourcePath);
+        if (isInTemplateFolder(sourcePath, templateFolders(app))) context.inTemplateFolder = true;
+    }
     return context;
 }

@@ -108,7 +108,8 @@ page: a picture, an example, every key.
 A weekly or monthly review counts its own period: `period: note` on `stats` and `progress`,
 `range: note` on `chart` and `heatmap`, in a note named `2026-W40` or `2026-10`, however late
 you open it. The same keys take a period written out, `2026-Q4`, or two dates,
-`{ from: 2026-09-01, to: 2026-09-30 }`. Step by step: [a weekly review without Dataview](https://dimagious.github.io/dashsidian/guides/weekly-review-without-dataview/).
+`{ from: 2026-09-01, to: 2026-09-30 }`. The review template itself, kept in the Templates
+or Templater folder, shows a short hint instead of an error. Step by step: [a weekly review without Dataview](https://dimagious.github.io/dashsidian/guides/weekly-review-without-dataview/).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/chart-weekly-dark.png">

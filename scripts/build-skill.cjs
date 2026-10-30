@@ -407,6 +407,26 @@ items:
   - { label: Projects, path: Projects, badge: count }
 \`\`\`
 
+A weekly review template, \`Templates/Weekly review.md\`, from which the user
+makes \`Reviews/2026-W40.md\` and the weeks after it: \`period: note\` reads
+the week from the name of each note made from it. Keep the template in the
+folder set as the template folder in the core Templates plugin or in
+Templater; there the block says it is a template instead of counting, while
+anywhere else a note name that is no period is an error. Keep the review
+notes out of \`source\`: here they live in \`Reviews\`, not in \`Diary\`, so a
+card without a window, like a \`count\` in a block of its own, does not count
+the reviews as well. A \`where\` such as \`type != review\` does not keep them
+out: a note without the property never matches it, so the daily notes would
+drop out too.
+
+\`\`\`stats
+source: Diary
+period: note
+items:
+  - { label: Gym this week, field: gym, agg: sum, compare: true, better: up }
+  - { label: Sleep, field: sleep_score, agg: avg, precision: 1 }
+\`\`\`
+
 ## 5. Check before handing over
 
 1. Every key you wrote is in ${tables.name} for that block, at the level you
