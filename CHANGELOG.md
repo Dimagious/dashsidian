@@ -10,6 +10,8 @@ removed public export.
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-30
+
 ### Added
 
 - **Two commands give an agent eyes on the vault.** **Dashy: Check blocks
