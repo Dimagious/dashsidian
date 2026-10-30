@@ -176,8 +176,12 @@ lockfile whose version disagrees with `package.json` — so the lockfile belongs
 in the release commit with the rest.
 
 If the schema changed since the last tag (`git diff $LAST_TAG..HEAD -- src/blocks/schema.json`),
-raise its `version` (minor for keys, values or behaviour; patch for wording
-only, see the mental model), then:
+or the hand-written process text in `scripts/build-skill.cjs` did, raise the
+schema `version` (minor for keys, values or behaviour, and for a changed
+process an installed skill must learn about; patch for wording only, see the
+mental model). Whether or not it moved, rebuild after the version bump: the
+header of every generated file names the plugin version at build time (B-192),
+so the files from before the bump are stale.
 
 ```bash
 npm run build:skill && npm run build:reference
@@ -204,7 +208,7 @@ git diff -- package.json manifest.json versions.json CHANGELOG.md
 
 ```bash
 git add package.json package-lock.json manifest.json versions.json CHANGELOG.md CLAUDE.md
-git add src/blocks/schema.json src/skill/ docs/SKILL.preview.md docs/AGENTS.preview.md docs/dashy.schema.json   # when the schema version moved
+git add src/blocks/schema.json src/skill/ docs/ site/reference/   # always: the headers carry the plugin version
 git commit -m "chore(release): $NEW_VERSION"   # body: why, if the bump was overridden
 git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
 ```

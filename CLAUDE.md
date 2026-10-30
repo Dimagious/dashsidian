@@ -71,6 +71,7 @@ src/
   app/
     plugin.ts            регистрация блоков и команд, события хранилища, перерисовка
     agent-files.ts       установка скилла и секции AGENTS.md в хранилище (кнопки и команды)
+    agent-tools.ts       команды «Check blocks» и «Write vault profile»: пишут только `.dashy/*.md`, только по вызову
     refresh.ts           реестр живых блоков; чистый, без Obsidian
     renames.ts           куда переехала переименованная заметка (`period: note`)
   i18n/                каталоги сообщений; en.ts — источник правды по ключам
@@ -98,10 +99,15 @@ src/
     periodic.ts          папка/формат/путь периодических заметок
     palette.ts           именованные цвета → rgb
     vault-profile.ts     подгонка примера под чужое хранилище
+    vault-profile-file.ts  текст `.dashy/vault-profile.md` для агента: поля, папки, даты
+    block-check.ts       разбор блоков заметки в отчёт `.dashy/block-check.md`
+    origin.ts            `origin` у карточки `stats`: заметка или дата значения
+    template-note.ts     заметка в папке шаблонов: подсказка вместо ошибки имени
     feedback.ts          issue с подставленными версиями, сниппет блока
   adapters/            единственное место, где блоки трогают Obsidian
     vault.ts             снимок metadataCache + его кэш, существование заметки
     periodic.ts          настройки Periodic Notes / Daily notes
+    profile.ts, templates.ts  версии, язык, папки шаблонов для профиля хранилища
     datetime.ts          moment: формат даты, названия дней и месяцев, разбор `ParseDate`
     locale.ts            язык Obsidian → i18n, один раз на загрузке
   blocks/              отрисовка, по файлу на блок
