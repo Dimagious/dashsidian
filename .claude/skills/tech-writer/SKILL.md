@@ -70,6 +70,7 @@ CHANGELOG.md ..................... Written per change under [Unreleased]; releas
 | Changed default or behaviour of a key | schema `doc`/`notes`; every guide and `site/index.html` example that relies on the old behaviour, the block descriptions on `site/index.html`, and the guides' troubleshooting rows that quote a changed warning or its fix (`grep` the old wording: in 1.8.0 "Rename the daily notes" and "Write the date as `YYYY-MM-DD`" went stale once `date_format` existed) |
 | Insert block example changed | it comes from the schema `example`; check README and guides that show the same block |
 | New guide | `site/guides/<slug>/` (with its "Ask your agent" prompt), `site/guides/index.html`, `site/llms.txt`, `site/sitemap.xml` |
+| New palette command, or a file the plugin writes into the vault | README section on commands and agent files, the "Ask your agent" guides, `site/llms.txt`; say what is written, where, and that it happens only on the call |
 | Settings tab change | README section that mentions settings; quote labels from `src/i18n/en.ts` |
 | A new block | README, `site/index.html`, `site/llms.txt` (block count and list), manifest description in the same PR |
 | Network or privacy behaviour | The plugin makes no network calls today. A new one is a disclosure change for the store listing and the README: stop and ask |
