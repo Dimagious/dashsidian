@@ -32,18 +32,65 @@ function choices(notes: readonly NoteRecord[], fence: (name: string) => string):
     }));
 }
 
-export class InsertBlockModal extends SuggestModal<BlockChoice> {
-    private readonly offered: BlockChoice[];
+/**
+ * Whether Obsidian has read the vault's frontmatter yet, and how to hear when
+ * it has (B-181). The plugin passes its `IndexGate`, so the modal and the
+ * blocks agree on "ready".
+ */
+export interface IndexState {
+    ready: () => boolean;
+    whenReady: (done: () => void) => void;
+}
 
+export class InsertBlockModal extends SuggestModal<BlockChoice> {
+    private offered: BlockChoice[];
+    private notice: HTMLElement | null = null;
+    private closed = false;
+
+    /**
+     * `notes` is asked again once indexing is done: on a cold start the first
+     * snapshot has every note but no frontmatter, so the examples fall back to
+     * the schema's own folder and field until then.
+     */
     constructor(
         app: App,
         private readonly editor: Editor,
-        notes: readonly NoteRecord[],
-        fence: (name: string) => string = (name) => name,
+        private readonly notes: () => readonly NoteRecord[],
+        private readonly fence: (name: string) => string = (name) => name,
+        private readonly index: IndexState = { ready: () => true, whenReady: (done) => done() },
     ) {
         super(app);
-        this.offered = choices(notes, fence);
+        // Asked before the snapshot is taken: the gate drops a mid-index
+        // snapshot as it opens.
+        const ready = index.ready();
+        this.offered = choices(notes(), fence);
         this.setPlaceholder(t("insert.placeholder"));
+        if (!ready) this.waitForIndex();
+    }
+
+    onClose(): void {
+        super.onClose();
+        this.closed = true;
+    }
+
+    /** One quiet line above the list, and a refit of the examples once the vault is read. */
+    private waitForIndex(): void {
+        const notice = this.modalEl.createDiv({ cls: "dashy-notice", text: t("insert.indexing") });
+        this.modalEl.insertBefore(notice, this.resultContainerEl);
+        this.notice = notice;
+        this.index.whenReady(() => this.indexed());
+    }
+
+    private indexed(): void {
+        if (this.closed) return;
+        // A note queued in between: keep the line up and wait again.
+        if (!this.index.ready()) {
+            this.index.whenReady(() => this.indexed());
+            return;
+        }
+        this.offered = choices(this.notes(), this.fence);
+        this.notice?.remove();
+        this.notice = null;
     }
 
     getSuggestions(query: string): BlockChoice[] {
@@ -60,6 +107,8 @@ export class InsertBlockModal extends SuggestModal<BlockChoice> {
     }
 
     onChooseSuggestion(choice: BlockChoice): void {
-        this.editor.replaceSelection(blockSnippet(choice.name, choice.example));
+        // The list on screen may predate the refit: take the example by name.
+        const current = this.offered.find((c) => c.name === choice.name) ?? choice;
+        this.editor.replaceSelection(blockSnippet(current.name, current.example));
     }
 }

@@ -330,6 +330,7 @@ export const de: Catalog = {
 
     "insert.name": "Block einfügen",
     "insert.placeholder": "Welcher Block?",
+    "insert.indexing": "Obsidian indexiert den Vault noch, daher verwenden die Beispiele eventuell Standardordner und -felder.",
     "command.installSkill": "Agent-Skill installieren",
     "command.installAgents": "Agent-Abschnitt zu AGENTS.md hinzufügen",
     "block.tiles": "Navigationskacheln mit Ordnerzählern",

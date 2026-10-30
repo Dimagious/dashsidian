@@ -328,6 +328,7 @@ export const ru: Catalog = {
 
     "insert.name": "Вставить блок",
     "insert.placeholder": "Какой блок?",
+    "insert.indexing": "Obsidian ещё индексирует хранилище, поэтому в примерах могут быть папки и поля по умолчанию.",
     "command.installSkill": "Установить скилл для агента",
     "command.installAgents": "Добавить секцию для агента в AGENTS.md",
     "block.tiles": "Плитки навигации со счётчиками",

@@ -343,6 +343,7 @@ export const en = {
 
     "insert.name": "Insert block",
     "insert.placeholder": "Which block?",
+    "insert.indexing": "Obsidian is still indexing the vault, so the examples may use default folders and fields.",
     "command.installSkill": "Install agent skill",
     "command.installAgents": "Add agent section to AGENTS.md",
     "block.tiles": "Navigation tiles with folder counts",
