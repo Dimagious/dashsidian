@@ -86,6 +86,9 @@ export const en = {
         "{card}: no note in the selection has \"{field}\". Check the name and `source`.",
     "stats.fieldNotNumeric":
         "{card}: \"{field}\" holds text or another value that is not a number, a duration like `7h 30m` or a checkbox. Use `where: \"{field} contains ...\"` with `agg: count` to count it instead.",
+    "stats.fieldListEmpty": "{card}: `field` is an empty list. Add at least one property name.",
+    "stats.fieldListInvalid": "{card}: `field` list items must be plain property names, got \"{value}\".",
+    "stats.fieldListDuplicate": "{card}: \"{field}\" is listed more than once in `field`. It is counted once.",
     "stats.badPrecision":
         "{card}: `precision` expects a whole number from 0 to {max}, got \"{value}\". Rounding the default way.",
     "stats.streakKeysIgnored":

@@ -860,3 +860,45 @@ items:
         ]);
     });
 });
+
+describe("progress — a list of fields summed per note (B-193)", () => {
+    const workouts = mockContext({
+        notes: [
+            { path: "Diary/2026-09-20.md", frontmatter: { run: "30m", bike: "1h" } },
+            { path: "Diary/2026-09-21.md", frontmatter: { mood: 3 } },
+            { path: "Diary/2026-09-22.md", frontmatter: { swim: "45m" } },
+        ],
+    });
+    const draw = (config: string) => {
+        const el = host();
+        renderProgress(workouts, config, el);
+        return el;
+    };
+
+    it("sums the listed durations towards a duration goal", () => {
+        const el = draw("items:\n  - { label: Training, source: Diary, field: [run, bike, swim], agg: sum, goal: 5h }");
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(texts(el, ".dashy-progress-value")[0]).toBe("2h 15m / 5h 45%");
+    });
+
+    it("without a label the bar is named after the fields", () => {
+        const el = draw("items:\n  - { source: Diary, field: [run, bike], agg: sum, goal: 2h }");
+        expect(texts(el, ".dashy-progress-label")).toEqual(["run + bike"]);
+    });
+
+    it("a list of one draws exactly what the single field draws", () => {
+        expect(draw("items:\n  - { label: Run, source: Diary, field: [run], agg: sum, goal: 1h }").innerHTML)
+            .toBe(draw("items:\n  - { label: Run, source: Diary, field: run, agg: sum, goal: 1h }").innerHTML);
+    });
+
+    it("a misspelt field warns naming it, a non-string item is an error", () => {
+        const typo = draw("items:\n  - { label: Training, source: Diary, field: [run, bikee], agg: sum, goal: 5h }");
+        expect(diagnostics(typo, "warning")).toEqual([
+            "⚠️ progress: \"Training\": no note in the selection has \"bikee\". Check the name and `source`.",
+        ]);
+        const bad = draw("items:\n  - { label: Training, source: Diary, field: [run, 5], agg: sum, goal: 5h }");
+        expect(diagnostics(bad, "error")).toEqual([
+            "⛔ progress: \"Training\": `field` list items must be plain property names, got \"5\".",
+        ]);
+    });
+});

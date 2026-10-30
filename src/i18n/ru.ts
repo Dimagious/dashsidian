@@ -82,6 +82,9 @@ export const ru: Catalog = {
         "{card}: ни у одной заметки в выборке нет «{field}». Проверьте имя и `source`.",
     "stats.fieldNotNumeric":
         "{card}: «{field}» хранит текст или другое значение, а не число, длительность вроде `7h 30m` или чекбокс. Чтобы посчитать такие заметки, используйте `where: \"{field} contains ...\"` с `agg: count`.",
+    "stats.fieldListEmpty": "{card}: `field` задан пустым списком. Добавьте хотя бы одно имя свойства.",
+    "stats.fieldListInvalid": "{card}: в списке `field` должны быть имена свойств, а не «{value}».",
+    "stats.fieldListDuplicate": "{card}: «{field}» указано в `field` больше одного раза. Считается один раз.",
     "stats.badPrecision":
         "{card}: `precision` ожидает целое от 0 до {max}, получено «{value}». Округляю по умолчанию.",
     "stats.streakKeysIgnored":

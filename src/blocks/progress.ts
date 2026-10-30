@@ -6,7 +6,7 @@ import {
 } from "../core/inherit";
 import { aggregate, classifyField, classifyValues } from "../core/aggregate";
 import { readDateField, readDateFormat, unmatchedDateFormat, type DateFormats } from "../core/note-date";
-import { formatReading, showsDuration, showsClock, durationDiagnostics, unitFor } from "../core/stat";
+import { formatReading, showsDuration, showsClock, durationDiagnostics, unitFor, statFields } from "../core/stat";
 import { readProgress, percentOf, barWidth, type ProgressSpec } from "../core/progress";
 import { readPeriod, filterByPeriod, dateFieldHasEffect, futureStart, windowLastDay, windowIsOver } from "../core/period";
 import { firstDayOfWeek } from "../adapters/datetime";
@@ -103,21 +103,23 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
         // zero — checked before `period` narrows it, so an otherwise-fine
         // field that is merely absent from this window stays the B-079
         // plain, unwarned zero/dash.
-        if (spec?.field && selected.length) {
-            const fieldStatus = classifyField(selected, spec.field);
+        // A list (B-193) is checked field by field, so a typo in one of
+        // three names is not hidden by the two that sum.
+        for (const field of spec && selected.length ? statFields(spec) : []) {
+            const fieldStatus = classifyField(selected, field);
             if (fieldStatus !== "ok") {
                 diags.push({
                     level: "warning",
                     message: fieldStatus === "missing"
-                        ? t("stats.fieldMissing", { card: cardLabel, field: spec.field })
-                        : t("stats.fieldNotNumeric", { card: cardLabel, field: spec.field }),
+                        ? t("stats.fieldMissing", { card: cardLabel, field })
+                        : t("stats.fieldNotNumeric", { card: cardLabel, field }),
                 });
             }
         }
 
         // Durations (B-121), judged over the whole selection like the check
         // above: the value and the goal share one format.
-        const kinds = spec?.field ? classifyValues(selected, [spec.field]) : { kind: "none" as const };
+        const kinds = spec?.field ? classifyValues(selected, statFields(spec)) : { kind: "none" as const };
         const duration = spec ? showsDuration(spec.agg, kinds.kind) : false;
         // B-145: race times written to the second read as `0:18:51`, the goal too.
         const clock = spec ? showsClock(spec.agg, kinds) : false;
@@ -255,7 +257,7 @@ function toBar(
 
     const current = aggregate(selected, {
         agg: spec.agg,
-        field: spec.field,
+        field: statFields(spec),
         dateField,
         formats,
         atLeast: spec.atLeast,

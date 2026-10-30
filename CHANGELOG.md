@@ -12,6 +12,20 @@ removed public export.
 
 ### Added
 
+- **`stats` and `progress` sum several properties in one card.** `field:
+  [run_min, bike_min, swim_min]` adds up the listed properties each note
+  holds, so one card shows the minutes of all workouts without DataviewJS. A
+  note holding none of them is left out, not counted as 0, and `agg` then
+  works on the per-note totals: `avg` is the average of those totals, not of
+  the single values. Durations add up as minutes and show as `2h 30m`, the
+  same as one field; `period`, `compare` and `trend` work as before. For
+  `streak` and `current_streak` a day counts when any listed property is
+  filled, and `at_least`/`at_most` compare the day's total. A listed
+  property missing from the selection or holding only text warns by name; an
+  empty list or an item that is not a name is an error; a name listed twice
+  counts once and warns. A list of one reads exactly as that one field.
+  Without a `label` the card is named `run_min + bike_min + swim_min`. The
+  agent skill has a recipe for it.
 - **A weekly note named with the calendar year warns at New Year.** A
   Periodic Notes weekly format with `YYYY` and `ww` or `WW` names a week
   that spans New Year by the year of the day the note was made, so a note

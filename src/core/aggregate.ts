@@ -78,6 +78,20 @@ function readNumber(raw: unknown): ReadNumber | null {
 }
 
 /**
+ * B-193: a note's value over several fields, the ones it holds a number in
+ * summed; null when it holds none, so the note is skipped like a note
+ * without a single field. One field reads exactly as `numberAt`.
+ */
+export function sumAt(note: NoteRecord, fields: string | readonly string[]): number | null {
+    let total: number | null = null;
+    for (const field of typeof fields === "string" ? [fields] : fields) {
+        const v = numberAt(note, field);
+        if (v !== null) total = (total ?? 0) + v;
+    }
+    return total;
+}
+
+/**
  * True when the field's raw value is the YAML boolean `false` — a mark that
  * should not count as a filled day: it breaks a `streak` and stays unpainted
  * on a heatmap. Numeric `0` is not this: it keeps counting as data, so a
@@ -185,8 +199,12 @@ export function classifyValues(notes: readonly NoteRecord[], fields: readonly st
 
 export interface AggregateSpec {
     agg: Agg;
-    /** required for everything but count, streak and current_streak */
-    field?: string;
+    /**
+     * Required for everything but count, streak and current_streak. A list
+     * (B-193) sums its fields per note first (`sumAt`); every rule below
+     * then reads that sum where it reads one field's value.
+     */
+    field?: string | readonly string[];
     /** a date frontmatter property to resolve a note's date from, instead of its name */
     dateField?: string;
     /** the formats besides ISO a date is read in (core/note-date.ts) */
@@ -254,6 +272,7 @@ export interface AggregateSpec {
  */
 export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): number | null {
     if (spec.agg === "count") return notes.length;
+    const fields = typeof spec.field === "string" ? [spec.field] : spec.field ?? [];
 
     if (isStreakAgg(spec.agg)) {
         // A field asked for that no note here carries usably (missing,
@@ -268,14 +287,16 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
         // `streak` with no `field` at all is unaffected: without one it
         // counts every selected note's own date, and an empty selection
         // there is a plain, honest 0, the same as `count`.
-        if (spec.field && classifyField(notes, spec.field) !== "ok") return null;
+        // A list (B-193) needs one of its fields usable, the way a note
+        // below is filled by any one of them.
+        if (fields.length && !fields.some((f) => classifyField(notes, f) === "ok")) return null;
 
         const hasThreshold = spec.atLeast !== undefined || spec.atMost !== undefined;
-        const dates = spec.field && hasThreshold
-            ? thresholdDates(notes, spec.field, spec.dateField, spec.atLeast, spec.atMost, spec.formats)
+        const dates = fields.length && hasThreshold
+            ? thresholdDates(notes, fields, spec.dateField, spec.atLeast, spec.atMost, spec.formats)
             : notes
-                .filter((n) => (spec.field
-                    ? numberAt(n, spec.field) !== null && !isFalseMark(n, spec.field)
+                .filter((n) => (fields.length
+                    ? fields.some((f) => numberAt(n, f) !== null && !isFalseMark(n, f))
                     : true))
                 .map((n) => resolveNoteDate(n, spec.dateField, spec.formats))
                 .filter((d): d is string => d !== null);
@@ -303,11 +324,11 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
         return currentStreak(dates, dateKey(spec.today), { ...options, graceToday: spec.graceToday });
     }
 
-    if (!spec.field) return null;
+    if (!fields.length) return null;
 
     if (spec.agg === "latest") {
         for (const n of newestFirst(notes, spec.dateField, spec.formats)) {
-            const v = numberAt(n, spec.field);
+            const v = sumAt(n, fields);
             if (v !== null) return v;
         }
         return null;
@@ -315,7 +336,7 @@ export function aggregate(notes: readonly NoteRecord[], spec: AggregateSpec): nu
 
     const values: number[] = [];
     for (const n of notes) {
-        const v = numberAt(n, spec.field);
+        const v = sumAt(n, fields);
         if (v !== null) values.push(v);
     }
     if (!values.length) return null;
@@ -369,7 +390,7 @@ export function newestFirst(notes: readonly NoteRecord[], dateField?: string, fo
  */
 function thresholdDates(
     notes: readonly NoteRecord[],
-    field: string,
+    fields: readonly string[],
     dateField: string | undefined,
     atLeast: number | undefined,
     atMost: number | undefined,
@@ -379,7 +400,7 @@ function thresholdDates(
     for (const n of notes) {
         const day = resolveNoteDate(n, dateField, formats);
         if (day === null) continue;
-        const v = numberAt(n, field);
+        const v = sumAt(n, fields);
         if (v === null) continue;
         sums.set(day, (sums.get(day) ?? 0) + v);
     }
@@ -403,7 +424,7 @@ function thresholdDates(
  */
 export function series(
     notes: readonly NoteRecord[],
-    field: string,
+    field: string | readonly string[],
     days: number,
     today: Date,
     dateField?: string,
@@ -424,7 +445,7 @@ export function series(
     for (const n of notes) {
         const day = resolveNoteDate(n, dateField, formats);
         if (day === null || !wanted.has(day)) continue;
-        const v = numberAt(n, field);
+        const v = sumAt(n, field);
         if (v === null) continue;
         sums.set(day, (sums.get(day) ?? 0) + v);
     }

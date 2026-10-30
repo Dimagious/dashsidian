@@ -84,6 +84,9 @@ export const de: Catalog = {
         "{card}: keine Notiz in der Auswahl hat „{field}“. Prüfe den Namen und `source`.",
     "stats.fieldNotNumeric":
         "{card}: „{field}“ enthält Text oder einen anderen Wert, keine Zahl, Dauer wie `7h 30m` oder Checkbox. Verwende `where: \"{field} contains ...\"` mit `agg: count`, um das zu zählen.",
+    "stats.fieldListEmpty": "{card}: `field` ist eine leere Liste. Ergänze mindestens einen Eigenschaftsnamen.",
+    "stats.fieldListInvalid": "{card}: Einträge der `field`-Liste müssen Eigenschaftsnamen sein, erhalten: „{value}“.",
+    "stats.fieldListDuplicate": "{card}: „{field}“ steht mehr als einmal in `field`. Es wird einmal gezählt.",
     "stats.badPrecision":
         "{card}: `precision` erwartet eine ganze Zahl von 0 bis {max}, bekommen „{value}“. Es wird wie voreingestellt gerundet.",
     "stats.streakKeysIgnored":
