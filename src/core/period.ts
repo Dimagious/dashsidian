@@ -105,7 +105,7 @@ export function readPeriodValue(raw: unknown, key: string, context?: PeriodConte
 
     if (context && text === "note") {
         const name = context.noteName ?? "";
-        const named = readPeriodName(name, context.names);
+        const named = readPeriodName(name, context.names, { tail: true });
         if (named) return namedReading(named, key, name);
         if (context.inTemplateFolder === true) return { period: null, template: true };
         return {

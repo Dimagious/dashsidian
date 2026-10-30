@@ -775,9 +775,13 @@ describe("guide: weekly-review-without-dataview", () => {
         expect(texts(savedIso, ".dashy-chart-title")).toEqual(["Steps: sum per day, Sep 28, 2026 to Oct 4, 2026"]);
     });
 
-    it("step 2 and errors: a name with words after the week is not a week; the template itself is not one either", () => {
+    it("step 2: words after the week are fine, `2026-W40 review` is week 40 (B-198)", () => {
+        expect(cards(render("stats", REVIEW_STATS, REVIEW_VAULT, "Reviews/2026-W40 review.md"))).toEqual(WEEK_40);
+    });
+
+    it("step 2 and errors: a name with words before the week is not a week; the template itself is not one either", () => {
         const formats = "Name it in one of these formats: YYYY-MM-DD, GGGG-[W]WW, YYYY-MM, YYYY-[Q]Q, YYYY.";
-        for (const [path, name] of [["Reviews/2026-W40 review.md", "2026-W40 review"], ["Templates/Weekly review.md", "Weekly review"]] as const) {
+        for (const [path, name] of [["Reviews/Review 2026-W40.md", "Review 2026-W40"], ["Templates/Weekly review.md", "Weekly review"]] as const) {
             const el = render("stats", REVIEW_STATS, REVIEW_VAULT, path);
             expect(diagnostics(el, "error")).toEqual([
                 `⛔ stats: \`period: note\` needs a note named like a day, week, month, quarter or year, and this note is "${name}". ${formats}`,

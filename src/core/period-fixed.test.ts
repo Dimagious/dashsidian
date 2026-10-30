@@ -337,6 +337,13 @@ describe("a week across New Year in a calendar-year weekly format (B-191)", () =
         });
     });
 
+    it("a note named with words after the week warns the same way, quoting the whole name (B-198)", () => {
+        expect(readPeriodValue("note", "period", { names: weekly, noteName: "2026-W01 Weekly" })).toEqual({
+            period: { kind: "fixed", unit: "week", start: "2025-12-28", end: "2026-01-03" },
+            warning: warning.replace("`2026-W01`", "`2026-W01 Weekly`"),
+        });
+    });
+
     it("a written name warns the same way, under the key it was written in", () => {
         expect(readPeriodValue("2026-W01", "range", { names: weekly }).warning)
             .toBe(warning.replace("`period`", "`range`"));

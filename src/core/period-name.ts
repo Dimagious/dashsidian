@@ -138,26 +138,74 @@ export function weekYearFormat(format: string): string | null {
     return parts.map((part, i) => (i % 2 === 0 ? part.replace(/Y/g, year) : part)).join("");
 }
 
+export interface ReadNameOptions {
+    /**
+     * Let a day, week, month or quarter name go on after a separator
+     * (B-198): a note's own name, `2026-W41 Weekly`, not a value written
+     * in a block, where a tail would hide a typo.
+     */
+    readonly tail?: boolean;
+}
+
 /**
- * The period a whole name stands for, or null. The name must fit a format
- * exactly, strictly: `2026-W40 review` is not a week, and nothing is guessed.
+ * Where a name may stop and a tail begin: a run of spaces, `_` or `-`,
+ * followed by the end of the name or by anything but a digit. A digit there
+ * would join the period's own numbers, `2026-10-32` read as October. The
+ * lookahead also refuses another separator, so the run is the whole run and
+ * `2026-10 - 05` cannot stop it early to slip past its digit.
+ */
+const TAIL = /^[\s_-]+(?![\s_\d-])/;
+
+/**
+ * The period a name stands for, or null. The whole name is read first and
+ * must fit a format exactly, strictly: nothing is guessed. With `tail`, a
+ * name that fits nowhere whole is read again, every format in the same
+ * order, for a day, week, month or quarter name at its start followed by
+ * `TAIL`: `2026-W41 Weekly`, `2026-10_review`, `2026-Q4-plan`. A year never
+ * takes a tail, so `2026 goals` is no period; `2026-W41Weekly`, with no
+ * separator, is none either.
+ *
  * A week is the seven days from the day the parse returns, so a locale week
  * (`gggg-[W]ww`) starts where that locale starts it, not where the
  * interface language would. A week across New Year read in a calendar-year
  * format carries `weekYearFormat`, for a warning.
  */
-export function readPeriodName(text: string, names: PeriodNames): NamedPeriod | null {
+export function readPeriodName(text: string, names: PeriodNames, options: ReadNameOptions = {}): NamedPeriod | null {
     const name = text.trim();
     if (!name) return null;
     for (const { unit, format } of names.formats) {
         const start = names.parse(name, format);
-        if (start === null) continue;
-        const named: NamedPeriod = { unit, start, end: periodEnd(unit, start) };
-        const better = unit === "week" && start.slice(0, 4) !== named.end.slice(0, 4) ? weekYearFormat(format) : null;
-        if (better) named.weekYearFormat = better;
-        return named;
+        if (start !== null) return namedPeriod(unit, format, start);
+    }
+    if (!options.tail) return null;
+    for (const { unit, format } of names.formats) {
+        if (unit === "year") continue;
+        const start = startBeforeTail(name, format, names.parse);
+        if (start !== null) return namedPeriod(unit, format, start);
     }
     return null;
+}
+
+/**
+ * The first day of the period a name starts with in `format`, followed by a
+ * `TAIL`, or null. Every place a tail could begin is tried, the longest
+ * start first, so a format with a space in it (`MMMM YYYY`) keeps its year.
+ */
+function startBeforeTail(name: string, format: string, parse: ParseDate): string | null {
+    for (let end = name.length - 1; end > 0; end--) {
+        if (!TAIL.test(name.slice(end))) continue;
+        const start = parse(name.slice(0, end), format);
+        if (start !== null) return start;
+    }
+    return null;
+}
+
+/** The period of `unit` from `start`, with the week-year format a week across New Year should be named in. */
+function namedPeriod(unit: PeriodUnit, format: string, start: string): NamedPeriod {
+    const named: NamedPeriod = { unit, start, end: periodEnd(unit, start) };
+    const better = unit === "week" && start.slice(0, 4) !== named.end.slice(0, 4) ? weekYearFormat(format) : null;
+    if (better) named.weekYearFormat = better;
+    return named;
 }
 
 /** The formats a name is expected in, for an error message: each once, in reading order. */
