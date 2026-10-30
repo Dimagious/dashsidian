@@ -119,14 +119,21 @@ const VAULT: FakeVault = {
         { path: "Races/2026 IRONMAN Barcelona.md", frontmatter: { date: "2026-10-18" } },
         { path: "Inbox/idea.md" },
         { path: "Projects/Garden.md" },
+        // The weekly review recipe: the template and one review made from it (B-190).
+        { path: "Templates/Weekly review.md" },
+        { path: "Reviews/2026-W40.md", frontmatter: { type: "review" } },
     ],
+    templates: { folder: "Templates" },
 };
 
-function render(lang: string, source: string): HTMLElement {
+/** Where a recipe's block sits: the review note, which only `period: note` reads. */
+const REVIEW = "Reviews/2026-W40.md";
+
+function render(lang: string, source: string, sourcePath = REVIEW): HTMLElement {
     const draw = RENDERERS[lang];
     if (!draw) throw new Error(`no renderer for ${lang}`);
     const el = host();
-    const stop = draw(mockContext(VAULT), source, el);
+    const stop = draw({ ...mockContext(VAULT), sourcePath }, source, el);
     if (stop) stop();
     return el;
 }
@@ -136,7 +143,7 @@ const RECIPES = fencedBlocks(SKILL_MARKDOWN);
 describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
     it("SKILL.md carries the recipes, one per site guide and the month calendar", () => {
         expect(RECIPES.map((r) => r.lang)).toEqual([
-            "stats", "stats", "stats", "heatmap", "heatmap", "chart", "progress", "countdown", "today", "tiles",
+            "stats", "stats", "stats", "heatmap", "heatmap", "chart", "progress", "countdown", "today", "tiles", "stats",
         ]);
     });
 
@@ -247,6 +254,42 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
         renderHeatmap(mockContext(vault), "source: Diary\nfield: gym", el);
         const grids = Array.from(el.querySelectorAll("[data-grid-key]"), (n) => n.getAttribute("data-grid-key"));
         expect(grids).toEqual(["2026", "2025", "2023"]);
+    });
+
+    it("the weekly review template: the week in the review, a hint in the template, reviews kept out of `source` (B-190)", () => {
+        const source = RECIPES[10]?.source ?? "";
+        const review = render("stats", source);
+        expect(texts(review, ".dashy-stat-label")).toEqual(["Gym this week", "Sleep"]);
+        expect(texts(review, ".dashy-stat-value")).toEqual([
+            // 28 September to 4 October, the 4th skipped.
+            "6",
+            // six nights of 85 and one of 70 (2 October)
+            "82.9",
+        ]);
+        // 21 to 27 September skipped the 25th: 6 again.
+        expect(texts(review, ".dashy-stat-delta")).toEqual(["= 0"]);
+
+        const template = render("stats", source, "Templates/Weekly review.md");
+        expect(diagnostics(template, "error")).toEqual([]);
+        expect(texts(template, ".dashy-stat-value")).toEqual([]);
+        expect(texts(template, ".dashy-notice")).toHaveLength(1);
+        // Anywhere else, a name that is no period stays an error.
+        expect(diagnostics(render("stats", source, "Reviews/Weekly review.md"), "error")).toHaveLength(1);
+
+        // What the prose warns about: a review inside `source` is counted by
+        // a card without a window, and `type != review` drops every daily
+        // note with it, since a note without `type` never matches.
+        const count = (folder: string, where = ""): string[] => texts(
+            render("stats", `source: ${folder}\n${where}items:\n  - { label: Notes, agg: count }`), ".dashy-stat-value");
+        expect(count("Diary")).toEqual(["97"]);
+        const together: FakeVault = { ...VAULT, notes: [...DIARY, { path: "Diary/2026-W40.md", frontmatter: { type: "review" } }] };
+        const el = host();
+        renderStats({ ...mockContext(together), sourcePath: REVIEW }, "source: Diary\nitems:\n  - { label: Notes, agg: count }", el);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["98"]);
+        const dropped = host();
+        renderStats({ ...mockContext(together), sourcePath: REVIEW },
+            'source: Diary\nwhere: "type != review"\nitems:\n  - { label: Notes, agg: count }', dropped);
+        expect(texts(dropped, ".dashy-stat-value")).toEqual(["0"]);
     });
 
     it("the same check catches a key the plugin does not have", () => {

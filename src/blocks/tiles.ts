@@ -9,7 +9,8 @@ import { noteDateFormats, periodContext } from "../adapters/periodic";
 import { resolveImage, pathKind, revealFolder } from "../adapters/vault";
 import { parseConfig, asItems, isRecord, unknownKeys, describeValue, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, renderNotices, internalLink } from "../shared/render";
-import { notStartedNotice } from "./window";
+import { notStartedNotice, renderTemplateHint } from "./window";
+import { showsTemplateHint } from "../core/template-note";
 import { t } from "../i18n";
 import schema from "./schema.json";
 
@@ -63,6 +64,9 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
     const firstDay = firstDayOfWeek();
     // B-129: how `period: note`, `2026-W40` and `from`/`to` are read.
     const periodCtx = periodContext(ctx.app, ctx.sourcePath);
+    // B-190: in a template, `period: note` waits for the note made from it.
+    // Everything else is still checked; only the numbers give way to a hint.
+    const template = showsTemplateHint(value, "period", periodCtx);
     // A badge whose window has not started yet draws nothing and says when it starts.
     const notices: string[] = [];
 
@@ -193,6 +197,10 @@ export function renderTiles(ctx: BlockContext, source: string, el: HTMLElement):
 
     // Diagnostics before the grid: an error or a warning must be seen before
     // the tiles are, the same order every other block draws in.
+    if (template) {
+        renderTemplateHint(el, "tiles", diags);
+        return;
+    }
     renderDiagnostics(el, "tiles", diags);
     renderNotices(el, notices);
 

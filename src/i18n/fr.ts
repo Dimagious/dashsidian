@@ -131,6 +131,7 @@ export const fr: Catalog = {
     "period.weekYearTrap": "`{key}` : `{name}` est lu comme la semaine du {start} au {end}, qui chevauche le Nouvel An, et le format des notes hebdomadaires prend son année dans l'année civile (`YYYY`). Autour du Nouvel An, un tel nom peut désigner une semaine décalée d'un an. Utilisez `{format}` comme format hebdomadaire de Periodic Notes.",
     "period.atCard": "{card} : {message}",
     "period.noteFuture": "Cette fenêtre commence le {date}, il n'y a encore rien à compter.",
+    "period.templateNote": "Cette note est un modèle, il n'y a donc encore rien à compter ici. Une note créée à partir de lui et nommée d'après une période, comme 2026-W40, compte cette période.",
     "period.windowSpan": "du {from} au {to}",
 
     "compare.notBoolean": "{card} : `compare` attend true, false ou usual, reçu « {value} ». Comparaison ignorée.",

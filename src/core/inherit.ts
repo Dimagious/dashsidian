@@ -60,10 +60,11 @@ export function readBlockSelection(
     // A window that cannot be built (`note` in a note not named for a
     // period, B-129) is an error; a value that is no window at all warns.
     if (shared.includes("period") && value.period !== undefined) {
-        const { period, problem, warning } = readPeriodValue(value.period, "period", periodContext);
+        const { period, problem, warning, template } = readPeriodValue(value.period, "period", periodContext);
         if (warning) diagnostics.push({ level: "warning", message: warning });
         if (problem) diagnostics.push({ level: "error", message: problem });
-        else if (period === null) {
+        // A template's `note` is no mistake: the block shows its hint instead (B-190).
+        else if (period === null && !template) {
             diagnostics.push({
                 level: "warning",
                 message: t("inherit.rootPeriodInvalid", { value: describeValue(value.period) }),

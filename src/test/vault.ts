@@ -33,6 +33,10 @@ export interface FakeVault {
     dailyNotes?: unknown;
     /** the core File explorer plugin's entry (`{ enabled, instance }`), any shape */
     fileExplorer?: unknown;
+    /** options of the core Templates plugin (`{ folder }`), any shape */
+    templates?: unknown;
+    /** settings of the Templater community plugin (`{ templates_folder }`), any shape */
+    templater?: unknown;
 }
 
 /** A minimal Svelte writable store holding `value`. */
@@ -101,9 +105,14 @@ export function mockApp(vault: FakeVault = {}): App {
         },
     } as Record<string, unknown>;
 
+    const community: Record<string, unknown> = {};
     if (vault.periodicNotes !== undefined) {
+        community["periodic-notes"] = { settings: vault.periodicNotesStore ? store(vault.periodicNotes) : vault.periodicNotes };
+    }
+    if (vault.templater !== undefined) community["templater-obsidian"] = { settings: vault.templater };
+    if (Object.keys(community).length) {
         app.plugins = {
-            plugins: { "periodic-notes": { settings: vault.periodicNotesStore ? store(vault.periodicNotes) : vault.periodicNotes } },
+            plugins: community,
             manifests: vault.periodicNotesVersion === undefined
                 ? {}
                 : { "periodic-notes": { id: "periodic-notes", version: vault.periodicNotesVersion } },
@@ -112,6 +121,7 @@ export function mockApp(vault: FakeVault = {}): App {
     const internal: Record<string, unknown> = {};
     if (vault.dailyNotes !== undefined) internal["daily-notes"] = { instance: { options: vault.dailyNotes } };
     if (vault.fileExplorer !== undefined) internal["file-explorer"] = vault.fileExplorer;
+    if (vault.templates !== undefined) internal.templates = { instance: { options: vault.templates } };
     if (Object.keys(internal).length) app.internalPlugins = { plugins: internal };
 
     return app as unknown as App;

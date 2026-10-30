@@ -268,13 +268,15 @@ export function readChart(
 
     let given: Period | undefined;
     if (value.range !== undefined) {
-        const { period, problem, warning } = readPeriodValue(value.range, "range", context);
+        const { period, problem, warning, template } = readPeriodValue(value.range, "range", context);
         if (warning) warn(warning);
         if (period) given = period;
         else if (problem) {
             diagnostics.push({ level: "error", message: problem });
             ok = false;
-        } else warn(t("chart.rangeInvalid", { value: describeValue(value.range) }));
+        // A template's `note` (B-190): the default window stands in while the
+        // rest is checked, and the block draws its hint instead of the chart.
+        } else if (!template) warn(t("chart.rangeInvalid", { value: describeValue(value.range) }));
     }
     // A written `bucket` wins; a fixed window picks its own by its length.
     const bucket = written

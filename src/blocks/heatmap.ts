@@ -28,7 +28,8 @@ import { readBands, bandFor, autoBands, durationThresholdIn, type Band } from ".
 import { scrollEdges, resolveScrollRestore, isEndClamp, type ScrollSnapshot } from "../core/scroll";
 import { parseConfig, isRecord, unknownKeys, describeValue, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, renderNotices, internalLink } from "../shared/render";
-import { notStartedNotice, windowLabel } from "./window";
+import { notStartedNotice, renderTemplateHint, windowLabel } from "./window";
+import { showsTemplateHint } from "../core/template-note";
 import { t, tPlural } from "../i18n";
 import schema from "./schema.json";
 
@@ -140,6 +141,10 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
         return;
     }
     diags.push(...unknownKeys(value, KNOWN));
+    // B-190: in a template, `range: note` waits for the note made from it.
+    // Everything else is still checked; only the grid gives way to a hint.
+    const template = showsTemplateHint(value, "range", periodContext(ctx.app, ctx.sourcePath));
+    const report = (): void => reportDiagnostics(el, diags, template);
 
     const hasLayers = value.layers !== undefined;
     if (hasLayers && value.field !== undefined) {
@@ -147,7 +152,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
         // else about the config is worth reporting until the reader picks
         // one and tries again.
         diags.push({ level: "error", message: t("heatmap.layersAndField") });
-        renderDiagnostics(el, "heatmap", diags);
+        report();
         return;
     }
     if (hasLayers && value.color !== undefined) {
@@ -158,7 +163,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
         // is nothing to choose between, so say so rather than drop it quietly.
         diags.push({ level: "warning", message: t("heatmap.pickWithoutLayers") });
     }
-    if (hasLayers) return renderLayeredHeatmap(ctx, value, diags, el, restoreByKey);
+    if (hasLayers) return renderLayeredHeatmap(ctx, value, diags, el, restoreByKey, template);
 
     const { fields, diagnostics: fieldDiags } = readFields(value);
     diags.push(...fieldDiags);
@@ -168,7 +173,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
         // error; `field` simply absent is the one case it stays silent
         // about, left to the plain "no field given" here.
         if (!fieldDiags.length) diags.push({ level: "error", message: t("heatmap.fieldRequired") });
-        renderDiagnostics(el, "heatmap", diags);
+        report();
         return;
     }
     // Shown wherever a field name is shown to a reader — the caption, a
@@ -188,7 +193,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
         return;
     }
     const { layout, diagnostics: layoutDiags } = readLayout(value, range, firstDayOfWeek());
-    diags.push(...layoutDiags);
+    diags.push(...windowedLayoutDiagnostics(layoutDiags, template));
     const { perDay, diagnostics: perDayDiags } = readPerDay(value);
     diags.push(...perDayDiags);
 
@@ -236,7 +241,7 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
                     : t("heatmap.noData", { field });
             diags.push({ level: "error", message });
         }
-        renderDiagnostics(el, "heatmap", diags);
+        report();
         return;
     }
 
@@ -259,6 +264,10 @@ export function renderHeatmap(ctx: BlockContext, source: string, el: HTMLElement
     diags.push(...countDiags);
     const checkboxBands = count?.bands;
 
+    if (template) {
+        report();
+        return;
+    }
     renderDiagnostics(el, "heatmap", diags);
 
     // A week window lays its own seven days out from its own first day (B-129).
@@ -341,8 +350,10 @@ function readRange(
 ): { range: Period | undefined; broken: boolean } {
     const raw = value.range;
     if (raw === undefined) return { range: undefined, broken: false };
-    const { period, problem, warning } = readPeriodValue(raw, "range", periodContext(ctx.app, ctx.sourcePath));
+    const { period, problem, warning, template } = readPeriodValue(raw, "range", periodContext(ctx.app, ctx.sourcePath));
     if (warning) diags.push({ level: "warning", message: warning });
+    // A template's `note` (B-190): no window and no complaint; the block shows its hint.
+    if (template) return { range: undefined, broken: false };
     if (problem) {
         diags.push({ level: "error", message: problem });
         return { range: undefined, broken: true };
@@ -352,6 +363,24 @@ function readRange(
         return { range: undefined, broken: false };
     }
     return { range: period, broken: false };
+}
+
+/**
+ * The diagnostics, and in a template (B-190) the hint after them in place
+ * of the grid.
+ */
+function reportDiagnostics(el: HTMLElement, diags: readonly Diagnostic[], template: boolean): void {
+    if (template) renderTemplateHint(el, "heatmap", diags);
+    else renderDiagnostics(el, "heatmap", diags);
+}
+
+/**
+ * `layout` diagnostics, less "`calendar` needs a month or week `range`" in a
+ * template (B-190): its window is only known in a note made from it.
+ */
+function windowedLayoutDiagnostics(diags: readonly Diagnostic[], template: boolean): readonly Diagnostic[] {
+    const needsRange = t("heatmap.calendarNeedsRange");
+    return template ? diags.filter((d) => d.message !== needsRange) : diags;
 }
 
 /**
@@ -369,11 +398,13 @@ function renderLayeredHeatmap(
     diags: Diagnostic[],
     el: HTMLElement,
     restoreByKey: Map<string, ScrollSnapshot>,
+    template: boolean,
 ): void | (() => void) {
+    const report = (): void => reportDiagnostics(el, diags, template);
     const { layers, diagnostics: layersDiags } = readLayers(value, KNOWN_ITEM);
     diags.push(...layersDiags);
     if (!layers) {
-        renderDiagnostics(el, "heatmap", diags);
+        report();
         return;
     }
 
@@ -386,7 +417,7 @@ function renderLayeredHeatmap(
         return;
     }
     const { layout, diagnostics: layoutDiags } = readLayout(value, range, firstDayOfWeek());
-    diags.push(...layoutDiags);
+    diags.push(...windowedLayoutDiagnostics(layoutDiags, template));
     const { perDay, diagnostics: perDayDiags } = readPerDay(value);
     diags.push(...perDayDiags);
     const { pick, diagnostics: pickDiags } = readPick(value);
@@ -438,7 +469,7 @@ function renderLayeredHeatmap(
                     : t("heatmap.noData", { field });
             diags.push({ level: "error", message });
         }
-        renderDiagnostics(el, "heatmap", diags);
+        report();
         return;
     }
 
@@ -464,6 +495,10 @@ function renderLayeredHeatmap(
         diags.push(...heatmapDurationDiagnostics(allKinds, layers.map((l) => l.fieldLabel).join(", "), value.bands));
     }
 
+    if (template) {
+        report();
+        return;
+    }
     renderDiagnostics(el, "heatmap", diags);
 
     const firstDay = windowFirstDay(range, firstDayOfWeek());

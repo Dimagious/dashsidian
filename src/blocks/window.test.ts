@@ -507,3 +507,134 @@ items:
         expect(texts(el, ".dashy-stat-value")).toEqual(["3"]);
     });
 });
+
+describe("a block in a template note (B-190)", () => {
+    const vault: FakeVault = { notes: daily("2026-09-26", 25), templates: { folder: "99-Meta/Templates" } };
+    const TEMPLATE = "99-Meta/Templates/Weekly-Review.md";
+    const HINT = "This note is a template, so there is nothing to count here yet. "
+        + "A note made from it and named for a period, like 2026-W40, counts that period.";
+    /** The class of every top-level element the block drew. */
+    const drawn = (el: HTMLElement): string[] => Array.from(el.children, (c) => c.className);
+
+    it("`period: note` in the template draws only the hint, no error and no numbers", () => {
+        const el = draw(renderStats, at(vault, TEMPLATE),
+            "source: Diary\nperiod: note\nitems:\n  - { label: Days, agg: count }\n  - { label: Gym, field: gym, agg: sum, compare: true }");
+        expect(diagnostics(el, "error")).toEqual([]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(texts(el, ".dashy-notice")).toEqual([HINT]);
+        expect(drawn(el)).toEqual(["dashy-notice"]);
+    });
+
+    it("every block that reads `note` does the same: progress, tiles, heatmap with and without layers, chart", () => {
+        for (const [render, config] of [
+            [renderProgress, "items:\n  - { label: Days, source: Diary, agg: count, goal: 7, period: note }"],
+            [renderTiles, "items:\n  - { label: Diary, path: Diary, badge: count, period: note }"],
+            [renderHeatmap, "source: Diary\nfield: gym\nrange: note"],
+            [renderHeatmap, "source: Diary\nlayers: [{ field: gym }]\nrange: note"],
+            [renderChart, "source: Diary\nfield: n\nrange: note"],
+        ] as const) {
+            const el = draw(render, at(vault, TEMPLATE), config);
+            expect(drawn(el), config).toEqual(["dashy-notice"]);
+            expect(texts(el, ".dashy-notice"), config).toEqual([HINT]);
+        }
+    });
+
+    it("a problem in the config itself still shows above the hint", () => {
+        const el = draw(renderStats, at(vault, TEMPLATE), "source: Diary\nperiod: note\nitems:\n  - { label: Days, agg: count, perod: week }");
+        expect(diagnostics(el, "warning").join("\n")).toContain("perod");
+        expect(texts(el, ".dashy-notice")).toEqual([HINT]);
+    });
+
+    it("the rest of the config is still checked: a folder typo, a bad `agg`, an unreadable `where` show above the hint", () => {
+        const el = draw(renderStats, at(vault, TEMPLATE), `source: Diray
+where: "mood >"
+period: note
+items:
+  - { label: Days, agg: count }
+  - { label: Gym, field: gym, agg: total }`);
+        const said = [...diagnostics(el, "error"), ...diagnostics(el, "warning")].join("\n");
+        expect(said).toContain("Diray");
+        expect(said).toContain("mood >");
+        expect(said).toContain("total");
+        expect(said).not.toContain("needs a note named like a day");
+        expect(texts(el, ".dashy-notice")).toEqual([HINT]);
+        expect(texts(el, ".dashy-stat-value")).toEqual([]);
+    });
+
+    it("progress without `goal` says so above the hint", () => {
+        const el = draw(renderProgress, at(vault, TEMPLATE), "period: note\nitems:\n  - { label: Days, source: Diary, agg: count }");
+        const outside = draw(renderProgress, at(vault, "Reviews/2026-W40.md"), "period: note\nitems:\n  - { label: Days, source: Diary, agg: count }");
+        // The same complaint the bar earns in a review note, and the hint in place of the bar.
+        expect(diagnostics(el, "error").concat(diagnostics(el, "warning")))
+            .toEqual(diagnostics(outside, "error").concat(diagnostics(outside, "warning")));
+        expect(diagnostics(el, "error").length + diagnostics(el, "warning").length).toBeGreaterThan(0);
+        expect(texts(el, ".dashy-notice")).toEqual([HINT]);
+        expect(nodes(el, ".dashy-progress")).toHaveLength(0);
+    });
+
+    it("heatmap and chart without `field`, or with a folder typo, say so above the hint", () => {
+        for (const [render, config, word] of [
+            [renderHeatmap, "source: Diary\nrange: note", "field"],
+            [renderChart, "source: Diary\nrange: note", "field"],
+            [renderHeatmap, "source: Diray\nfield: gym\nrange: note", "Diray"],
+            [renderChart, "source: Diray\nfield: n\nrange: note", "Diray"],
+        ] as const) {
+            const el = draw(render, at(vault, TEMPLATE), config);
+            const said = [...diagnostics(el, "error"), ...diagnostics(el, "warning")].join("\n");
+            expect(said, config).toContain(word);
+            expect(said, config).not.toContain("needs a note named like a day");
+            expect(texts(el, ".dashy-notice"), config).toEqual([HINT]);
+            expect(nodes(el, ".dashy-hm-wrap"), config).toHaveLength(0);
+            expect(nodes(el, ".dashy-chart-hit"), config).toHaveLength(0);
+        }
+    });
+
+    it("an unknown key inside a heatmap layer or a chart series is reported above the hint", () => {
+        const hm = draw(renderHeatmap, at(vault, TEMPLATE), "source: Diary\nlayers: [{ field: gym, colr: red }]\nrange: note");
+        expect(diagnostics(hm, "warning").join("\n")).toContain("colr");
+        expect(texts(hm, ".dashy-notice")).toEqual([HINT]);
+        const chart = draw(renderChart, at(vault, TEMPLATE), "source: Diary\nseries: [{ field: n, colr: red }]\nrange: note");
+        expect(diagnostics(chart, "warning").join("\n")).toContain("colr");
+        expect(texts(chart, ".dashy-notice")).toEqual([HINT]);
+    });
+
+    it("`layout: calendar` in a template does not complain about the window it cannot know yet", () => {
+        const el = draw(renderHeatmap, at(vault, TEMPLATE), "source: Diary\nfield: gym\nrange: note\nlayout: calendar");
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(drawn(el)).toEqual(["dashy-notice"]);
+    });
+
+    it("a misspelt `note` in a template stays a warning about the value, with no hint", () => {
+        const el = draw(renderStats, at(vault, TEMPLATE), "source: Diary\nperiod: nte\nitems:\n  - { label: Days, agg: count }");
+        expect(diagnostics(el, "warning").join("\n")).toContain("nte");
+        expect(texts(el, ".dashy-notice")).toEqual([]);
+    });
+
+    it("a note outside the template folder with a name that is no period keeps the error", () => {
+        for (const path of ["Reviews/Weekly-Review.md", "99-Meta/Templates-old/Weekly-Review.md"]) {
+            const el = draw(renderStats, at(vault, path), "source: Diary\nperiod: note\nitems:\n  - { label: Days, agg: count }");
+            expect(diagnostics(el, "error")[0], path).toMatch(/^⛔ stats: `period: note` needs a note named like a day/);
+            expect(texts(el, ".dashy-notice"), path).toEqual([]);
+        }
+    });
+
+    it("without a template folder set, the template keeps the error too", () => {
+        const el = draw(renderStats, at({ notes: vault.notes }, TEMPLATE), "source: Diary\nperiod: note\nitems:\n  - { label: Days, agg: count }");
+        expect(diagnostics(el, "error")[0]).toMatch(/needs a note named like a day/);
+    });
+
+    it("Templater's folder counts the same", () => {
+        const el = draw(renderStats, at({ notes: vault.notes, templater: { templates_folder: "Templater/" } }, "Templater/Weekly.md"),
+            "source: Diary\nperiod: note\nitems:\n  - { label: Days, agg: count }");
+        expect(drawn(el)).toEqual(["dashy-notice"]);
+    });
+
+    it("a template named for a period, or one without `note`, draws its numbers as usual", () => {
+        const named = draw(renderStats, at(vault, "99-Meta/Templates/2026-W40.md"), "source: Diary\nperiod: note\nitems:\n  - { label: Days, agg: count }");
+        expect(texts(named, ".dashy-stat-value")).toEqual(["7"]);
+        expect(texts(named, ".dashy-notice")).toEqual([]);
+        const plain = draw(renderStats, at(vault, TEMPLATE), "source: Diary\nperiod: 2026-W40\nitems:\n  - { label: Days, agg: count }");
+        expect(texts(plain, ".dashy-stat-value")).toEqual(["7"]);
+        expect(texts(plain, ".dashy-notice")).toEqual([]);
+    });
+});

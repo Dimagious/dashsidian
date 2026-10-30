@@ -44,6 +44,8 @@ export interface PeriodContext {
     names: PeriodNames;
     /** the name of the note the block sits in, for `note`; absent when there is none */
     noteName?: string;
+    /** true when that note sits in the vault's template folder (B-190, `core/template-note.ts`) */
+    inTemplateFolder?: boolean;
 }
 
 export interface PeriodReading {
@@ -61,6 +63,13 @@ export interface PeriodReading {
      * from the calendar year (B-191). A warning; the window is still used.
      */
     warning?: string;
+    /**
+     * Set instead of `problem` when that note is a template (B-190,
+     * `core/template-note.ts`): `note` in a note inside the template folder
+     * whose name is no period. Not a mistake, only nothing to count until a
+     * note is made from it; the block shows a hint in place of its numbers.
+     */
+    template?: true;
 }
 
 /** A rolling window shorter than a day or longer than ten years is not a habit tracker anymore. */
@@ -98,6 +107,7 @@ export function readPeriodValue(raw: unknown, key: string, context?: PeriodConte
         const name = context.noteName ?? "";
         const named = readPeriodName(name, context.names);
         if (named) return namedReading(named, key, name);
+        if (context.inTemplateFolder === true) return { period: null, template: true };
         return {
             period: null,
             problem: t("period.noteNotAPeriod", { key, name, formats: expectedNames(context.names) }),
@@ -441,7 +451,8 @@ export interface PeriodOutcome {
     diagnostics: Diagnostic[];
     /**
      * True when `period` names a window that cannot be built (`problem` on
-     * `PeriodReading`): the card counts nothing rather than everything.
+     * `PeriodReading`), or a template's `note` (`template`): the card counts
+     * nothing rather than everything.
      */
     broken: boolean;
 }
@@ -464,8 +475,10 @@ export function readPeriod(
 
     if (item.period === undefined) return { spec: null, diagnostics, broken: false };
 
-    const { period, problem, warning } = readPeriodValue(item.period, "period", context);
+    const { period, problem, warning, template } = readPeriodValue(item.period, "period", context);
     if (warning) diagnostics.push({ level: "warning", message: warning });
+    // A template's `note` is no mistake: the block shows its hint instead (B-190).
+    if (template) return { spec: null, diagnostics, broken: true };
     if (!period) {
         const card = label ? `"${label}"` : t("stats.unlabeledCard");
         diagnostics.push(problem
