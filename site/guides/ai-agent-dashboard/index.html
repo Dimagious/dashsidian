@@ -84,6 +84,7 @@
           <li>In a terminal or an editor<span>Open the vault folder in Claude Code, Codex or Cursor. Keep Obsidian open next to it: each block redraws as soon as the agent saves the note.</span></li>
           <li>Inside Obsidian<span>The community plugin <a href="https://github.com/YishenTu/claudian">Claudian</a> runs Claude Code and other agents in an Obsidian pane, with the vault as the working folder, and loads the skills in the vault.</span></li>
         </ul>
+        <p>Before the first block, the agent asks you to run <b>Dashy: Write vault profile</b> from the command palette. It writes <code>.dashy/vault-profile.md</code>: your properties with their kinds and one real value of each from your notes, cut at 40 characters, your folders and how their notes are dated, your most used tags, and the periodic note settings Dashy reads, so the agent does not open note after note. No note text goes into it. Only a property named like a password, a token, a secret or a key shows no value; an email or a phone number shows, so read the file before you hand it to an agent you would not trust with it. Run it again when your notes change.</p>
 
         <!-- ============ 3 ============ -->
         <h2 class="step" id="prompts" data-short="Ask for what you want to see"><span class="n">3</span>Ask for what you want to see</h2>
@@ -224,11 +225,12 @@ items:
 
         <!-- ============ errors ============ -->
         <h2 id="errors" data-short="If a block shows an error">If a block shows an error</h2>
-        <p>The agent cannot see the note as Obsidian draws it. Open the note in Reading view. A block that cannot draw what was asked says why, in place: an unknown key with the one it probably meant, a field no note has, a line of YAML that does not parse. Copy that text and paste it to the agent; it fixes the block from the message instead of guessing. More on these messages on the <a href="../../#errors">home page</a>.</p>
+        <p>The agent cannot see the note as Obsidian draws it, so after writing a block it asks you to run <b>Dashy: Check blocks in this note</b> with that note open. The command writes <code>.dashy/block-check.md</code>: every Dashy block in the note by line, with each error and warning it shows, word for word. The agent reads the file, fixes the blocks and asks you to run the command again, until it reports no errors.</p>
+        <p>You can also look yourself: open the note in Reading view. A block that cannot draw what was asked says why, in place: an unknown key with the one it probably meant, a field no note has, a line of YAML that does not parse. Copy that text and paste it to the agent; it fixes the block from the message instead of guessing. More on these messages on the <a href="../../#errors">home page</a>.</p>
 
         <!-- ============ privacy ============ -->
         <h2 id="privacy" data-short="What the agent reads">What the agent reads</h2>
-        <p>The agent reads the notes and settings files it opens and sends them to its model provider, as it does with any file it works on. Check what your agent is allowed to open before you point it at a vault with private notes. Dashy itself sends nothing anywhere: it makes no network requests of its own, and it writes the skill files only when you press their buttons. The one thing a block loads from the internet is a tile <code>image</code> you set to an <code>https://</code> address, the way Obsidian loads an image in a note.</p>
+        <p>The agent reads the notes and settings files it opens and sends them to its model provider, as it does with any file it works on. Check what your agent is allowed to open before you point it at a vault with private notes. Dashy itself sends nothing anywhere: it makes no network requests of its own, and it writes the skill files only when you press their buttons, and the files in <code>.dashy/</code> only when you run their commands. The one thing a block loads from the internet is a tile <code>image</code> you set to an <code>https://</code> address, the way Obsidian loads an image in a note.</p>
 
         <!-- ============ related ============ -->
         <h2 id="related" data-short="Related guides">Related guides</h2>

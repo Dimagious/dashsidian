@@ -16,6 +16,10 @@
 if (!("activeWindow" in globalThis)) {
     (globalThis as unknown as { activeWindow: Window }).activeWindow = window;
 }
+/** Obsidian's global `createDiv()`: a detached div, nothing appended anywhere. */
+if (!("createDiv" in globalThis)) {
+    (globalThis as unknown as { createDiv: () => HTMLDivElement }).createDiv = () => document.createElement("div");
+}
 
 interface DomElementInfo {
     cls?: string | string[];

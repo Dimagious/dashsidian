@@ -39,6 +39,13 @@ same for Codex, Cursor and other agents. Once a file is written, its button read
 in your agent and say what you want to see. It reads your property names and folders, writes the
 blocks, and you open the note to check.
 
+Two commands give the agent eyes on the vault, and the skill asks you to run them.
+**Dashy: Write vault profile** writes `.dashy/vault-profile.md`: your properties with their kinds
+and a short sample, your folders and how their notes are dated, your most used tags, and the
+periodic note settings Dashy reads, so the agent does not open note after note. **Dashy: Check blocks in this note**
+writes `.dashy/block-check.md`: every block of the open note with the errors and warnings it
+shows, which the agent fixes until none are left.
+
 > Count the books I finished this year against a goal of 24.
 
 The agent first finds how a book note says when you finished it, here a `finished` date
@@ -160,7 +167,12 @@ tables and queries (Bases, Dataview), kanban, tasks. It reads frontmatter only, 
 Your agent reads the notes it opens and sends them to its model provider, as it does with any
 file it works on. Check what your agent is allowed to open before you point it at a vault with
 private notes. Dashy itself sends nothing anywhere: it makes no network requests of its own, and
-it writes the skill files only when you press their buttons. The one thing a block loads from
+it writes the skill files only when you press their buttons, and the files in `.dashy/` only when
+you run their commands. The vault profile holds property names, tags, counts and one real value
+of each property from your notes, cut at 40 characters. It never holds note text, and hides the
+value only of a property named like a password, token, secret or key: an `email` or `phone`
+shows. Read the file before you hand it to an agent you would not trust with those values.
+The one thing a block loads from
 the internet is a tile `image` you set to an `https://` address, the way Obsidian loads an
 image in a note. If you'd rather not open the vault at all, **Copy markdown** puts the skill on
 the clipboard, and you paste it into a chat with the frontmatter of a few notes.

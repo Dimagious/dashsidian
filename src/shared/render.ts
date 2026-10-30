@@ -30,7 +30,11 @@ export function renderDiagnostics(el: HTMLElement, blockName: string, diagnostic
 
     const box = el.createDiv({ cls: "dashy-diagnostics" });
     for (const d of unique) {
-        const row = box.createDiv({ cls: `dashy-diag dashy-diag-${d.level}` });
+        // The message and line as data too, for `Check blocks in this note`
+        // (B-168) to read back without taking the drawn line apart.
+        const attr: Record<string, string | number> = { "data-message": d.message };
+        if (d.line) attr["data-line"] = d.line;
+        const row = box.createDiv({ cls: `dashy-diag dashy-diag-${d.level}`, attr });
         const where = d.line ? ` (${t("render.line", { line: d.line })})` : "";
         row.setText(`${d.level === "error" ? "⛔" : "⚠️"} ${blockName}${where}: ${d.message}`);
     }

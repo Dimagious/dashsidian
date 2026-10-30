@@ -16,12 +16,15 @@ import { BlockRefresher } from "./refresh";
 import { IndexGate, gateBlocks } from "./indexing";
 import { RenameTrail } from "./renames";
 import { DashyBlock, type Draw } from "./block";
-import { fenceName, registerBlocks } from "./register";
+import { BLOCK_YIELDS, fenceName, registerBlocks } from "./register";
 import { isPluginEnabled } from "../adapters/plugins";
 import { t } from "../i18n";
 import { InsertBlockModal } from "../ui/insert-block";
 import { DashySettingTab } from "../ui/settings";
 import { installSkill, installAgents } from "./agent-files";
+import { registerAgentTools } from "./agent-tools";
+import { profileReading, profileSettings } from "../adapters/profile";
+import schema from "../blocks/schema.json";
 
 const BLOCKS: Record<string, Draw> = {
     tiles: renderTiles,
@@ -47,6 +50,8 @@ export default class DashyPlugin extends Plugin {
     private index!: IndexGate;
     /** Where a note renamed since its blocks were drawn lives now: `period: note` reads its name. */
     private readonly renames = new RenameTrail();
+    /** The draw behind every fence name Dashy registered, for `Check blocks in this note` (B-168). */
+    private readonly fences = new Map<string, Draw>();
 
     async onload(): Promise<void> {
         await this.loadSettings();
@@ -76,6 +81,8 @@ export default class DashyPlugin extends Plugin {
             this.registerMarkdownCodeBlockProcessor(name, (source, el, ctx) => {
                 ctx.addChild(new DashyBlock(el, this.refresher, draw, () => this.context(this.renames.current(ctx.sourcePath)), source));
             });
+            // Only once Obsidian took the name: a name it refused is not ours to check.
+            this.fences.set(name, draw);
         }, (id) => isPluginEnabled(this.app, id));
         if (taken.length > 0) {
             console.warn(`[dashy] another plugin already handles these code blocks: ${taken.join(", ")}. Use dashy-chart for a Dashy chart.`);
@@ -105,6 +112,24 @@ export default class DashyPlugin extends Plugin {
             id: "install-agents",
             name: t("command.installAgents"),
             callback: () => void installAgents(this.app, this),
+        });
+
+        // Eyes for an agent (B-168): what the open note's blocks report, and
+        // what the vault holds. Written to `.dashy/` only on these commands.
+        const elsewhere = new Map<string, string | null>([
+            ...yielded.map((name): [string, string | null] => [name, BLOCK_YIELDS[name] ?? null]),
+            ...taken.map((name): [string, string | null] => [name, null]),
+        ]);
+        const versions = { plugin: this.manifest.version, schema: schema.version };
+        registerAgentTools(this, {
+            app: this.app,
+            fences: () => this.fences,
+            elsewhere: () => elsewhere,
+            context: (sourcePath) => this.context(sourcePath),
+            whenIndexed: (done) => whenIndexed(this.app, done),
+            versions,
+            reading: () => profileReading(this.app),
+            settings: (today) => profileSettings(this.app, this.settings, versions, today),
         });
 
         this.watchVault();

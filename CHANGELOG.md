@@ -12,6 +12,26 @@ removed public export.
 
 ### Added
 
+- **Two commands give an agent eyes on the vault.** **Dashy: Check blocks
+  in this note** draws every Dashy block of the open note the way the note
+  does and writes `.dashy/block-check.md`: each block by the line of its
+  fence, `ok` or each error, warning and notice it shows, word for word and
+  in the plugin's language, at its line in the note, then a summary of
+  blocks, errors and warnings. A `dashy-` fence Dashy does not have counts
+  as an error; a `chart` left to Obsidian Charts is listed and not checked.
+  **Dashy: Write vault profile** writes `.dashy/vault-profile.md`: the 60
+  properties in the most notes with their kind as the blocks read it
+  (number, duration, checkbox, date, text, list), how many notes hold each
+  or leave it empty, a sample cut at 40 characters and the folders holding
+  it; the 40 largest folders and how their notes are dated (ISO names, the
+  daily note format, week or month names, date properties, and the
+  `date_format` a name in another format fits); the 30 most used tags; the
+  periodic note folders and formats, the template folders, the languages,
+  the first day of the week and the versions. No note text goes into it,
+  and a property named like a password, a token, a secret or a key shows no
+  value. Both files are overwritten on each run and written only when the
+  command runs. The agent skill now starts by reading the profile and ends
+  by running the check until it reports 0 errors.
 - **A `stats` card says where its value came from.** `origin: note` on a
   card with `agg: latest`, `min` or `max` shows the name of the note the
   value was taken from under the label, as a link: a best 10k names its

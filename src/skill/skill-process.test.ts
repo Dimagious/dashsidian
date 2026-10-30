@@ -12,6 +12,8 @@ import { renderHeatmap } from "../blocks/heatmap";
 import { renderChart } from "../blocks/chart";
 import { asItems, isRecord, parseConfig, unknownKeys } from "../shared/parse";
 import { mockContext, diary, host, diagnostics, texts, type FakeNote, type FakeVault } from "../test/vault";
+import { en } from "../i18n/en";
+import { BLOCK_CHECK_PATH, VAULT_PROFILE_PATH } from "../app/agent-tools";
 
 /**
  * The process part of the skill (B-164) teaches by example: the recipes are
@@ -377,5 +379,29 @@ describe("every key and block the process names exists (B-164)", () => {
                 expect(keys, `${row[1]}: ${span[1]}`).toContain(span[1]);
             }
         }
+    });
+});
+
+describe("the process sends the agent to the two commands (B-168)", () => {
+    const look = (md: string): string => md.split("## 1. Look before writing")[1]?.split("\n## ")[0] ?? "";
+    const check = (md: string): string => md.split("## 5. Check before handing over")[1]?.split("\n## ")[0] ?? "";
+
+    it("'look' reads the vault profile, or asks for the command that writes it, by its real name", () => {
+        for (const md of [SKILL_MARKDOWN, COMBINED_MARKDOWN]) {
+            expect(look(md)).toContain(`\`${VAULT_PROFILE_PATH}\``);
+            expect(look(md)).toContain(`"Dashy: ${en["command.vaultProfile"]}"`);
+        }
+    });
+
+    it("'check' asks for the block check, reads its file and repeats until it reports 0 errors", () => {
+        for (const md of [SKILL_MARKDOWN, COMBINED_MARKDOWN]) {
+            expect(check(md)).toContain(`"Dashy: ${en["command.checkBlocks"]}"`);
+            expect(check(md)).toContain(`\`${BLOCK_CHECK_PATH}\``);
+            expect(check(md)).toContain("until the summary says 0 errors");
+        }
+    });
+
+    it("names no command line: the commands are run from the palette", () => {
+        expect(SKILL_MARKDOWN).not.toMatch(/obsidian\s+(?:cli|command)|--vault/i);
     });
 });

@@ -59,7 +59,10 @@ export type PluralKey =
     | "chart.weeks"
     | "chart.months"
     | "chart.years"
-    | "chart.notesCount";
+    | "chart.notesCount"
+    | "command.blocks"
+    | "command.errors"
+    | "command.warnings";
 
 /**
  * A count with its noun, in the right form for the language.
