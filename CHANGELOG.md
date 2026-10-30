@@ -30,6 +30,15 @@ removed public export.
   year review. The same goes for `range: note` on `heatmap` and `chart`. A
   period written in the block, `period: 2026-W41`, still takes nothing after
   it.
+- **`where` finds notes that lack a property.** `where: "date empty"` keeps
+  the notes where `date` is missing, `null` (left empty in Obsidian), blank
+  text, or a list with nothing but blank items in it; `where: "date not
+  empty"` keeps the rest, a `0` and an unticked checkbox included. Before, a
+  missing property failed every condition, `!=` too, so notes without a
+  `date` could not be counted. Both combine with `and` like any other
+  condition. Every `where` that read before reads the same:
+  `status = empty` still compares with the text `empty`. The agent skill
+  has a recipe counting the notes with and without a property.
 
 ### Fixed
 

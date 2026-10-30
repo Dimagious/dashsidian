@@ -223,6 +223,18 @@ items:
   - { label: Sleep, field: sleep_score, agg: avg, precision: 1 }
 ```
 
+Which notes lack a property: `where: "date_read empty"` keeps the notes
+where it is missing, blank or an empty list, and `not empty` the notes
+where it holds a value, `0` and an unticked checkbox included. The books
+in `Reading` without a `date_read` yet, next to those with one:
+
+```stats
+source: Reading
+items:
+  - { label: No read date, agg: count, where: "date_read empty" }
+  - { label: With a read date, agg: count, where: "date_read not empty" }
+```
+
 ## 5. Check before handing over
 
 1. Every key you wrote is in the block reference below for that block, at the level you
@@ -259,7 +271,7 @@ says `Same as` and adds what is its own; type, default and synonyms stay in the 
 
 | key | in | what it does |
 |---|---|---|
-| `where` | `tiles` item, `stats` item, `progress` item, `heatmap` root, `chart` root | a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, "rating >= 4"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `or` is not supported; quote a value holding the word `and` or `or` |
+| `where` | `tiles` item, `stats` item, `progress` item, `heatmap` root, `chart` root | a condition like `year = 2026`, `rating >= 4`, `tags contains books`, or several that must all hold: joined with `and` (`year = 2026 and rating >= 4`) or written as a list (`[year = 2026, "rating >= 4"]`). The field name may be a dotted path into a nested property, like `health.sleep > 70`. `date empty` keeps the notes where a property is missing, blank or an empty list, and `date not empty` the notes where it holds a value, `0` and an unticked checkbox included. `or` is not supported; quote a value holding the word `and` or `or` |
 | `date_field` | `stats` item, `progress` item, `heatmap` root, `chart` root | a date frontmatter property to read instead of the note name: `2026-03-02` or `2026-03-02T10:30`, or in `date_format`, or a dotted path into a nested property like `meta.date` |
 | `date_format` | `stats` item, `progress` item, `heatmap` root, `chart` root | a date format for note names and `date_field` values not written as `YYYY-MM-DD`, in moment notation: `DD.MM.YYYY`, `MM/DD/YYYY`, `YYYYMMDD`. Tried after `YYYY-MM-DD` and before the day format of the Daily notes or Periodic Notes settings, which is read without this key. A name or a value only has to start with the date (`05.10.2026 Monday` and `05.10.2026 14:30` count); the match is strict, so `5.10.2026` and `31.02.2026` are no date under `DD.MM.YYYY`. Needs a year, a month and a day, and warns when no selected note fits it. Month and weekday names (`MMMM`, `dddd`) are read in Obsidian's language, or in the Plugin language setting when one is picked |
 

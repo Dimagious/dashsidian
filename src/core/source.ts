@@ -35,11 +35,33 @@ export interface SourceSpec {
 const OPS = [">=", "<=", "!=", "=", ">", "<"] as const;
 type Op = (typeof OPS)[number] | "contains";
 
-export interface WhereClause {
+/**
+ * A comparison holds a value; `empty` and `not empty` ask about the property
+ * alone, so they hold none.
+ */
+export type WhereClause = CompareClause | EmptyClause;
+
+export interface CompareClause {
     field: string;
     op: Op;
     value: string | number | boolean;
 }
+
+export interface EmptyClause {
+    field: string;
+    op: "empty" | "not empty";
+}
+
+/**
+ * `field empty` and `field not empty`, any case. Read only after every
+ * comparison and `contains` has failed, so no expression that read before
+ * changes meaning: `status = empty` still compares with the text `empty`,
+ * `a=b empty` is still `a` equal to `b empty`. Before, a condition with no
+ * operator was unreadable, so the new forms take nothing away. A field named
+ * `empty` or `not` still works: `empty empty`, `not not empty`. The field
+ * must not start with a quote, since a field is never quoted.
+ */
+const EMPTY = /^([^\s"']\S*)\s+(not\s+)?empty$/i;
 
 /**
  * A quote opens only where a value can start: at the beginning, after
@@ -104,7 +126,7 @@ export function splitAnd(expr: string): string[] {
 
 /**
  * Parses conditions like `year = 2026`, `rating >= 4`, `status != done`,
- * `tags contains books`. A deliberately tiny language: anything richer is
+ * `tags contains books`, `date empty`. A deliberately tiny language: anything richer is
  * Dataview territory, and we are not going there.
  *
  * Returns null when parsing fails — the caller shows a warning and draws the
@@ -136,6 +158,9 @@ export function parseWhere(expr: string): WhereClause | null {
         if (!field || !raw) return null;
         return { field, op, value: coerce(unquote(raw)) };
     }
+
+    const emptyMatch = EMPTY.exec(trimmed);
+    if (emptyMatch?.[1]) return { field: emptyMatch[1], op: emptyMatch[2] ? "not empty" : "empty" };
     return null;
 }
 
@@ -237,6 +262,15 @@ function matchesWhere(note: NoteRecord, clause: WhereClause): boolean {
     // frontmatter property. Any other field name may be a dotted path into a
     // nested object (`health.sleep > 70`); see core/field.ts.
     const actual = clause.field === "tags" ? note.tags : readField(note.frontmatter, clause.field);
+    if (isEmptyClause(clause)) return isEmptyValue(actual) === (clause.op === "empty");
+    return matchesComparison(actual, clause);
+}
+
+function isEmptyClause(clause: WhereClause): clause is EmptyClause {
+    return clause.op === "empty" || clause.op === "not empty";
+}
+
+function matchesComparison(actual: unknown, clause: CompareClause): boolean {
     if (actual === undefined || actual === null) return false;
 
     if (clause.op === "contains") {
@@ -269,6 +303,21 @@ function matchesWhere(note: NoteRecord, clause: WhereClause): boolean {
         case "<=": return a <= b;
         default: return false;
     }
+}
+
+/**
+ * What `field empty` holds for: a property absent or `null` (an empty
+ * property in Obsidian), text that is blank, a list whose every item is
+ * empty by this same rule (`[]`, and `[""]` or `[null]` from a list property
+ * with one blank row), or a map with no keys. A number, `0` included, and a
+ * boolean, `false` included, are values: an unticked checkbox is filled in.
+ */
+export function isEmptyValue(value: unknown): boolean {
+    if (value === undefined || value === null) return true;
+    if (typeof value === "string") return value.trim() === "";
+    if (Array.isArray(value)) return value.every(isEmptyValue);
+    if (typeof value === "object") return Object.keys(value).length === 0;
+    return false;
 }
 
 /**
