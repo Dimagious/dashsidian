@@ -127,6 +127,16 @@ items:
     },
     {
         block: "stats",
+        title: "stats — откуда значение (origin: note | date), с sub, узкие карточки",
+        source: `columns: 4
+items:
+  - { label: Лучшая 10k, source: Results, field: time, agg: min, origin: note }
+  - { label: С подписью, source: Results, field: time, agg: max, sub: медленнее всех, origin: note }
+  - { label: Последний сон, source: Diary, field: sleep_score, agg: latest, origin: date }
+  - { label: Не тот agg, source: Diary, field: steps, agg: avg, origin: note }`,
+    },
+    {
+        block: "stats",
         title: "stats — против обычного уровня (compare: usual)",
         source: `source: Diary
 items:

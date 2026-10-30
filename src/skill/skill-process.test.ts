@@ -125,6 +125,10 @@ const VAULT: FakeVault = {
         { path: "Races/2027 Seville Marathon.md", frontmatter: { date: "2027-02-21" } },
         { path: "Races/2026 Berlin Marathon.md", frontmatter: { date: "2026-09-27" } },
         { path: "Races/2026 IRONMAN Barcelona.md", frontmatter: { date: "2026-10-18" } },
+        // The records recipe (B-149): race results, the best one in the middle.
+        { path: "Results/2026-04-12 City 10k.md", frontmatter: { time: "0:50:30" } },
+        { path: "Results/2026-05-04 Spring 10k.md", frontmatter: { time: "0:48:05" } },
+        { path: "Results/2026-09-13 Trail 10k.md", frontmatter: { time: "1:01:00" } },
         { path: "Inbox/idea.md" },
         { path: "Projects/Garden.md" },
         // The weekly review recipe: the template and one review made from it (B-190).
@@ -151,7 +155,7 @@ const RECIPES = fencedBlocks(SKILL_MARKDOWN);
 describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
     it("SKILL.md carries the recipes, one per site guide and the month calendar", () => {
         expect(RECIPES.map((r) => r.lang)).toEqual([
-            "stats", "stats", "stats", "heatmap", "heatmap", "chart", "progress", "countdown", "today", "tiles", "stats", "stats", "stats",
+            "stats", "stats", "stats", "heatmap", "heatmap", "chart", "progress", "countdown", "today", "tiles", "stats", "stats", "stats", "stats",
         ]);
     });
 
@@ -319,6 +323,14 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
         // 27 September ran 30, 28 September swam 45.
         expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +60 (was 75)"]);
         expect(el.querySelector(".dashy-stat-delta")?.getAttribute("title")).toBe("vs the same days last week: 75");
+    });
+
+    it("records with where they came from: the race as a link, the last result's date (B-149)", () => {
+        const el = render("stats", RECIPES[13]?.source ?? "");
+        expect(texts(el, ".dashy-stat-label")).toEqual(["Best 10k", "Last 10k"]);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["0:48:05", "1:01:00"]);
+        expect(texts(el, ".dashy-stat-sub")).toEqual(["2026-05-04 Spring 10k", "Sep 13, 2026"]);
+        expect(el.querySelector(".dashy-stat-sub a")?.getAttribute("data-href")).toBe("Results/2026-05-04 Spring 10k.md");
     });
 
     it("the same check catches a key the plugin does not have", () => {

@@ -12,6 +12,18 @@ removed public export.
 
 ### Added
 
+- **A `stats` card says where its value came from.** `origin: note` on a
+  card with `agg: latest`, `min` or `max` shows the name of the note the
+  value was taken from under the label, as a link: a best 10k names its
+  race. `origin: date` shows that note's date instead, in the interface
+  language, read by the card's own `date_field`, `date_format` or note name:
+  a lab value shows when it was taken. No more typing either into `sub` by
+  hand; a `sub` written as well comes first, `personal best · City 10k`.
+  When several notes share the best value, the newest of them is named. The
+  origin describes the card's current window, not the previous one `compare`
+  reads. With another `agg` the key is ignored with a warning, and a note
+  with no readable date under `origin: date` shows no caption and a warning
+  naming it. `layout: inline` does not show it and says so.
 - **`compare: true` shows the previous period's value next to the delta.**
   A card reads `▲ +1 (was 3)`, so a review table no longer loses last
   week's or last month's number. The value is formatted like the card's own:

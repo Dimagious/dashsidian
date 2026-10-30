@@ -138,6 +138,16 @@ describe("canonicalize — a map-typed key's own map is taken as written (B-129)
     it("a text value of the same key is untouched as before", () => {
         expect(parseConfig("range: note\nfrom: Diary", HEATMAP).value).toEqual({ range: "note", source: "Diary" });
     });
+
+    it("a card's `origin` (B-149) stays `origin` next to `from`, which still means `source`", () => {
+        expect(KEY_ALIASES.origin).toBeUndefined();
+        const { value, diagnostics } = parseConfig(
+            "items:\n  - { label: Best, from: Races, field: time, agg: min, origin: note }", STATS,
+        );
+        expect(value).toEqual({ items: [{ label: "Best", source: "Races", field: "time", agg: "min", origin: "note" }] });
+        expect(unknownKeys((value as { items: Record<string, unknown>[] }).items[0] ?? {}, STATS.item)).toEqual([]);
+        expect(diagnostics).toEqual([]);
+    });
 });
 
 describe("canonicalize", () => {

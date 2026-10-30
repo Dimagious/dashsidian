@@ -3,7 +3,7 @@
  * text for a home page header (B-150). Pure layer.
  *
  * The inline line has no room for a sparkline or a caption under the label,
- * so it drops `trend` and `sub`. Dropping a setting the author wrote without
+ * so it drops `trend`, `sub` and `origin`. Dropping a setting the author wrote without
  * saying so is the one thing a block must never do, so each dropped key gets
  * one warning per block, naming the cards that set it.
  */
@@ -68,6 +68,11 @@ export function inlineLayoutDiagnostics(
     const withSub = items.filter((item) => item.sub !== undefined).map(cardName);
     if (withSub.length) {
         out.push({ level: "warning", message: t("stats.inlineSubHidden", { cards: withSub.join(", ") }) });
+    }
+    // B-149: the note or date a value came from is a caption too.
+    const withOrigin = items.filter((item) => item.origin !== undefined).map(cardName);
+    if (withOrigin.length) {
+        out.push({ level: "warning", message: t("stats.inlineOriginHidden", { cards: withOrigin.join(", ") }) });
     }
     return out;
 }
