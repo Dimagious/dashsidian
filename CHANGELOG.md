@@ -10,6 +10,17 @@ removed public export.
 
 ## [Unreleased]
 
+### Added
+
+- **A weekly note named with the calendar year warns at New Year.** A
+  Periodic Notes weekly format with `YYYY` and `ww` or `WW` names a week
+  that spans New Year by the year of the day the note was made, so a note
+  made in late December can be read as a week a year away. When
+  `period: note`, `range: note` or a written name like `2026-W01` reads such
+  a week in such a format, the block draws as before and shows a warning
+  with the format to use: `gggg-[W]ww` for a locale week, `GGGG-[W]WW` for
+  the ISO one. The agent skill explains `ww`/`gggg` against `WW`/`GGGG`.
+
 ### Fixed
 
 - **On a phone a block with `columns: 1` keeps one column.** The phone layout

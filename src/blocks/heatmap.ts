@@ -341,7 +341,8 @@ function readRange(
 ): { range: Period | undefined; broken: boolean } {
     const raw = value.range;
     if (raw === undefined) return { range: undefined, broken: false };
-    const { period, problem } = readPeriodValue(raw, "range", periodContext(ctx.app, ctx.sourcePath));
+    const { period, problem, warning } = readPeriodValue(raw, "range", periodContext(ctx.app, ctx.sourcePath));
+    if (warning) diags.push({ level: "warning", message: warning });
     if (problem) {
         diags.push({ level: "error", message: problem });
         return { range: undefined, broken: true };

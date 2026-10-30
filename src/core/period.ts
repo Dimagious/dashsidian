@@ -11,7 +11,7 @@ import type { NoteRecord } from "./source";
 import { dateKey, daysBetween, parseDateKey, weekdayRow } from "./calendar";
 import { isStreakAgg, type Agg } from "./aggregate";
 import { isRealDate, resolveNoteDate, type DateFormats } from "./note-date";
-import { expectedNames, readPeriodName, type PeriodNames, type PeriodUnit } from "./period-name";
+import { expectedNames, readPeriodName, type NamedPeriod, type PeriodNames, type PeriodUnit } from "./period-name";
 import { formatValue, roundedValue } from "./stat";
 import { formatDuration, roundedDuration } from "./duration";
 import { describeValue, isRecord, type Diagnostic } from "../shared/parse";
@@ -55,6 +55,12 @@ export interface PeriodReading {
      * leaves it unset and the caller says so in its own words.
      */
     problem?: string;
+    /**
+     * Set when the window was built but its name may stand for another week:
+     * a week across New Year read in a weekly format that takes its year
+     * from the calendar year (B-191). A warning; the window is still used.
+     */
+    warning?: string;
 }
 
 /** A rolling window shorter than a day or longer than ten years is not a habit tracker anymore. */
@@ -91,7 +97,7 @@ export function readPeriodValue(raw: unknown, key: string, context?: PeriodConte
     if (context && text === "note") {
         const name = context.noteName ?? "";
         const named = readPeriodName(name, context.names);
-        if (named) return { period: { kind: "fixed", unit: named.unit, start: named.start, end: named.end } };
+        if (named) return namedReading(named, key, name);
         return {
             period: null,
             problem: t("period.noteNotAPeriod", { key, name, formats: expectedNames(context.names) }),
@@ -100,13 +106,24 @@ export function readPeriodValue(raw: unknown, key: string, context?: PeriodConte
 
     if (context && !/d$/.test(text)) {
         const named = readPeriodName(written, context.names);
-        if (named) return { period: { kind: "fixed", unit: named.unit, start: named.start, end: named.end } };
+        if (named) return namedReading(named, key, written);
     }
 
     const match = /^(\d+)\s*d?$/.exec(text);
     if (!match?.[1]) return { period: null };
     const days = Number(match[1]);
     return { period: days >= MIN_DAYS && days <= MAX_DAYS ? { kind: "days", days } : null };
+}
+
+/** The window a name stands for, with the warning a week across New Year in a calendar-year format earns. */
+function namedReading(named: NamedPeriod, key: string, name: string): PeriodReading {
+    const reading: PeriodReading = { period: { kind: "fixed", unit: named.unit, start: named.start, end: named.end } };
+    if (named.weekYearFormat) {
+        reading.warning = t("period.weekYearTrap", {
+            key, name, start: named.start, end: named.end, format: named.weekYearFormat,
+        });
+    }
+    return reading;
 }
 
 /** A bound written as `YYYY-MM-DD`, or a Date a YAML date became; null for anything else. */
@@ -447,7 +464,8 @@ export function readPeriod(
 
     if (item.period === undefined) return { spec: null, diagnostics, broken: false };
 
-    const { period, problem } = readPeriodValue(item.period, "period", context);
+    const { period, problem, warning } = readPeriodValue(item.period, "period", context);
+    if (warning) diagnostics.push({ level: "warning", message: warning });
     if (!period) {
         const card = label ? `"${label}"` : t("stats.unlabeledCard");
         diagnostics.push(problem

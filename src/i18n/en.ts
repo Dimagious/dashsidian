@@ -130,6 +130,7 @@ export const en = {
     "period.boundsInvalid": "`{key}` as a map takes `from` and `to`, each a date like 2026-09-01, got \"{value}\".",
     "period.boundsNoFrom": "`{key}` has `to` but no `from`. A window needs a start: add `from:` with a date like 2026-09-01.",
     "period.boundsOrder": "`{key}` starts after it ends: `from: {from}` is later than `to: {to}`. Swap them.",
+    "period.weekYearTrap": "`{key}`: `{name}` is read as the week {start} to {end}, which spans New Year, and the weekly note format takes its year from the calendar year (`YYYY`). Around New Year such a name can stand for a week a year away. Use `{format}` as the Periodic Notes weekly format.",
     "period.atCard": "{card}: {message}",
     "period.noteFuture": "This window starts on {date}, so there is nothing to count yet.",
     "period.windowSpan": "{from} to {to}",

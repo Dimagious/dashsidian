@@ -60,7 +60,8 @@ export function readBlockSelection(
     // A window that cannot be built (`note` in a note not named for a
     // period, B-129) is an error; a value that is no window at all warns.
     if (shared.includes("period") && value.period !== undefined) {
-        const { period, problem } = readPeriodValue(value.period, "period", periodContext);
+        const { period, problem, warning } = readPeriodValue(value.period, "period", periodContext);
+        if (warning) diagnostics.push({ level: "warning", message: warning });
         if (problem) diagnostics.push({ level: "error", message: problem });
         else if (period === null) {
             diagnostics.push({

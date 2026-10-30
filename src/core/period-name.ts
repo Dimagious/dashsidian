@@ -54,6 +54,14 @@ export interface NamedPeriod {
     start: string;
     /** YYYY-MM-DD */
     end: string;
+    /**
+     * Set on a week read through a format that takes its year from the
+     * calendar year (`YYYY` with `ww` or `WW`) when that week spans New Year
+     * (B-191): the same format with the week-year in place of `YYYY`, such as
+     * `gggg-[W]ww`. Such a week has two names, one per calendar year, and the
+     * one a note was given late in December reads as a week a year away.
+     */
+    weekYearFormat?: string;
 }
 
 /**
@@ -117,18 +125,37 @@ export function periodEnd(unit: PeriodUnit, start: string): string {
 }
 
 /**
+ * The format a weekly `format` should be in when it pairs the calendar year
+ * (`Y`) with a week number (`w` locale, `W` ISO): the same format with the
+ * matching week-year (`g`, `G`) in its place. Null for a format that already
+ * names the week-year, or names no week. Text in brackets is left alone.
+ */
+export function weekYearFormat(format: string): string | null {
+    const parts = format.split(/(\[[^\]]*\])/);
+    const tokens = parts.filter((_, i) => i % 2 === 0).join("");
+    if (!/Y/.test(tokens) || !/[wW]/.test(tokens) || /[gG]/.test(tokens)) return null;
+    const year = /W/.test(tokens) ? "G" : "g";
+    return parts.map((part, i) => (i % 2 === 0 ? part.replace(/Y/g, year) : part)).join("");
+}
+
+/**
  * The period a whole name stands for, or null. The name must fit a format
  * exactly, strictly: `2026-W40 review` is not a week, and nothing is guessed.
  * A week is the seven days from the day the parse returns, so a locale week
  * (`gggg-[W]ww`) starts where that locale starts it, not where the
- * interface language would.
+ * interface language would. A week across New Year read in a calendar-year
+ * format carries `weekYearFormat`, for a warning.
  */
 export function readPeriodName(text: string, names: PeriodNames): NamedPeriod | null {
     const name = text.trim();
     if (!name) return null;
     for (const { unit, format } of names.formats) {
         const start = names.parse(name, format);
-        if (start !== null) return { unit, start, end: periodEnd(unit, start) };
+        if (start === null) continue;
+        const named: NamedPeriod = { unit, start, end: periodEnd(unit, start) };
+        const better = unit === "week" && start.slice(0, 4) !== named.end.slice(0, 4) ? weekYearFormat(format) : null;
+        if (better) named.weekYearFormat = better;
+        return named;
     }
     return null;
 }

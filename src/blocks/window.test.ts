@@ -459,3 +459,51 @@ describe("window captions", () => {
         expect(notStartedNotice("2026-11-02")).toBe("This window starts on Nov 2, 2026, so there is nothing to count yet.");
     });
 });
+
+describe("a weekly note named across New Year in a calendar-year format (B-191)", () => {
+    // Periodic Notes names weeks `YYYY-[W]ww`: under English, `2026-W01` is Sunday 28 December 2025 to Saturday 3 January 2026.
+    const notes = daily("2025-12-26", 12);
+    const vault: FakeVault = { notes, periodicNotes: { weekly: { enabled: true, folder: "Weekly", format: "YYYY-[W]ww" } } };
+    const jan10 = new Date(2026, 0, 10);
+    const warning = (key: string, block: string): string =>
+        `⚠️ ${block}: \`${key}\`: \`2026-W01\` is read as the week 2025-12-28 to 2026-01-03, which spans New Year, `
+        + "and the weekly note format takes its year from the calendar year (`YYYY`). "
+        + "Around New Year such a name can stand for a week a year away. Use `gggg-[W]ww` as the Periodic Notes weekly format.";
+
+    it("stats warns once for a root `period: note` and still counts the week", () => {
+        const el = draw(renderStats, at(vault, "Weekly/2026-W01.md", jan10), `source: Diary
+period: note
+items:
+  - { label: Days, agg: count }
+  - { label: First, field: n, agg: min }
+  - { label: Last, field: n, agg: max }`);
+        expect(diagnostics(el, "warning")).toEqual([warning("period", "stats")]);
+        expect(diagnostics(el, "error")).toEqual([]);
+        // 28 December (n = 2) to 3 January (n = 8).
+        expect(texts(el, ".dashy-stat-value")).toEqual(["7", "2", "8"]);
+    });
+
+    it("a card's own `period: note` warns the same way", () => {
+        const el = draw(renderProgress, at(vault, "Weekly/2026-W01.md", jan10),
+            "items:\n  - { label: Days, source: Diary, agg: count, goal: 7, period: note }");
+        expect(diagnostics(el, "warning")).toEqual([warning("period", "progress")]);
+        expect(texts(el, ".dashy-progress-value")).toEqual(["7 / 7 100%"]);
+    });
+
+    it("heatmap and chart warn on `range: note` and still draw the week", () => {
+        const hm = draw(renderHeatmap, at(vault, "Weekly/2026-W01.md", jan10), "source: Diary\nfield: gym\nrange: note\nlayout: calendar");
+        expect(diagnostics(hm, "warning")).toEqual([warning("range", "heatmap")]);
+        expect(texts(hm, ".dashy-hm-cal-num")).toHaveLength(7);
+        const chart = draw(renderChart, at(vault, "Weekly/2026-W01.md", jan10), "source: Diary\nfield: n\nrange: note");
+        expect(diagnostics(chart, "warning")).toEqual([warning("range", "chart")]);
+        expect(nodes(chart, ".dashy-chart-hit")).toHaveLength(7);
+    });
+
+    it("a week inside one year in the same format draws without a warning", () => {
+        const el = draw(renderStats, at(vault, "Weekly/2026-W02.md", jan10),
+            "source: Diary\nperiod: note\nitems:\n  - { label: Days, agg: count }");
+        expect(diagnostics(el, "warning")).toEqual([]);
+        // 4 to 10 January: the notes run to 6 January.
+        expect(texts(el, ".dashy-stat-value")).toEqual(["3"]);
+    });
+});
