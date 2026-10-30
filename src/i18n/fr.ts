@@ -330,6 +330,7 @@ export const fr: Catalog = {
 
     "insert.name": "Insérer un bloc",
     "insert.placeholder": "Quel bloc ?",
+    "insert.indexing": "Obsidian indexe encore le coffre, les exemples peuvent donc utiliser des dossiers et des champs par défaut.",
     "command.installSkill": "Installer le skill pour agent IA",
     "command.installAgents": "Ajouter la section agent à AGENTS.md",
     "block.tiles": "Tuiles de navigation avec le nombre de notes par dossier",

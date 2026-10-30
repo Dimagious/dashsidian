@@ -64,6 +64,27 @@ export class Setting {
     addButton(): this { return this; }
 }
 
+/** A modal never shown: `open` and `close` only run the hooks. */
+export class Modal {
+    modalEl: HTMLElement = document.createElement("div");
+    constructor(public app: unknown) {}
+    open(): void { this.onOpen(); }
+    close(): void { this.onClose(); }
+    onOpen(): void { /* no-op */ }
+    onClose(): void { /* no-op */ }
+}
+
+/** The input and the result list, in the order the real one lays them out. */
+export class SuggestModal extends Modal {
+    inputEl: HTMLInputElement = document.createElement("input");
+    resultContainerEl: HTMLElement = document.createElement("div");
+    constructor(app: unknown) {
+        super(app);
+        this.modalEl.append(this.inputEl, this.resultContainerEl);
+    }
+    setPlaceholder(placeholder: string): void { this.inputEl.placeholder = placeholder; }
+}
+
 export class Notice {
     constructor(public message: string) {}
 }

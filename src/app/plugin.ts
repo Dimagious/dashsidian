@@ -86,7 +86,11 @@ export default class DashyPlugin extends Plugin {
             id: "insert-block",
             name: t("insert.name"),
             editorCallback: (editor) => {
-                new InsertBlockModal(this.app, editor, this.snapshot.get(), (name) => fenceName(name, yielded)).open();
+                // Behind the same gate as the blocks: a cold start has no frontmatter yet (B-181).
+                new InsertBlockModal(this.app, editor, () => this.snapshot.get(), (name) => fenceName(name, yielded), {
+                    ready: () => this.index.isOpen(),
+                    whenReady: (done) => whenIndexed(this.app, done),
+                }).open();
             },
         });
 

@@ -330,6 +330,7 @@ export const es: Catalog = {
 
     "insert.name": "Insertar bloque",
     "insert.placeholder": "¿Qué bloque?",
+    "insert.indexing": "Obsidian todavía está indexando la bóveda, así que los ejemplos pueden usar carpetas y campos predeterminados.",
     "command.installSkill": "Instalar la skill del agente",
     "command.installAgents": "Añadir la sección del agente a AGENTS.md",
     "block.tiles": "Mosaicos de navegación con el número de notas por carpeta",

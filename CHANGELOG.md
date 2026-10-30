@@ -16,6 +16,10 @@ removed public export.
   forced two columns whatever `columns` said, so a single card took half the
   screen. A phone now shows at most two columns, and never more than
   `columns` asks for.
+- **Insert block opened while Obsidian is still indexing says so.** The
+  examples were fitted to a vault whose fields were not read yet. The window
+  now shows a line that they may use default folders and fields, and fits
+  them to the vault once indexing is done.
 
 ### Changed
 
