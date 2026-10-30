@@ -372,13 +372,13 @@ export const es: Catalog = {
     "settings.skillName": "Archivo de skill en esta bóveda",
     "settings.skillNotInstalled":
         "Escribe {path} para que un agente (Claude Code, Cursor) escriba estos bloques por ti.",
-    "settings.skillCurrent": "Instalado, versión {version}. Nada que hacer.",
-    "settings.skillOutdated": "Instalada la versión {installed}, disponible {available}.",
+    "settings.skillCurrent": "Instalado, versión del esquema {version}. Nada que hacer.",
+    "settings.skillOutdated": "Instalada la versión del esquema {installed}, disponible {available}.",
     "settings.agentsName": "AGENTS.md en la raíz de la bóveda",
     "settings.agentsNotInstalled":
         "Escribe {path} para agentes que no leen skills de Claude: Cursor, Codex y los demás. Solo la sección delimitada es nuestra; el resto del archivo se queda como está.",
-    "settings.agentsCurrent": "Escrito, versión {version}. Nada que hacer.",
-    "settings.agentsOutdated": "Escrito en la versión {installed}, disponible {available}.",
+    "settings.agentsCurrent": "Escrito, versión del esquema {version}. Nada que hacer.",
+    "settings.agentsOutdated": "Escrito en la versión del esquema {installed}, disponible {available}.",
     "settings.agentsUntouched":
         "{path} tiene una sección de Dashy a medio escribir y se dejó como estaba. Quita el marcador suelto e inténtalo de nuevo.",
 
