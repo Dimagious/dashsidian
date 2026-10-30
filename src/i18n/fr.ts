@@ -105,6 +105,10 @@ export const fr: Catalog = {
     "stats.inlineColumnsIgnored": "`columns` est sans effet avec `layout: inline`, qui tient sur une seule ligne.",
     "stats.inlineTrendHidden": "`trend` n'est pas dessiné avec `layout: inline` : {cards}. Utilisez `layout: cards` pour le voir.",
     "stats.inlineSubHidden": "`sub` n'est pas affiché avec `layout: inline` : {cards}. Utilisez `layout: cards` pour le voir.",
+    "stats.inlineOriginHidden": "`origin` n'est pas affiché avec `layout: inline` : {cards}. Utilisez `layout: cards` pour le voir.",
+    "stats.originInvalid": "{card} : `origin` attend `note` ou `date`, reçu « {value} ». Ignoré.",
+    "stats.originWrongAgg": "{card} : `origin` ne fonctionne qu'avec `agg: latest`, `min` ou `max`, pas `{agg}`. La carte est dessinée sans.",
+    "stats.originNoDate": "{card} : la valeur vient de « {note} », qui n'a pas de date à montrer pour `origin: date`.",
 
     "progress.empty": "Aucune barre à dessiner. Attendu : `items:` ou une liste.",
     "progress.goalRequired": "{card} : `goal:` a besoin d'un nombre ou d'une durée comme `7h 30m`. Il n'y a rien à mesurer.",

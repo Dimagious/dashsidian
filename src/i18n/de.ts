@@ -105,6 +105,10 @@ export const de: Catalog = {
     "stats.inlineColumnsIgnored": "`columns` hat bei `layout: inline` keine Wirkung, dort gibt es nur eine Zeile.",
     "stats.inlineTrendHidden": "`trend` wird bei `layout: inline` nicht gezeichnet: {cards}. Mit `layout: cards` ist er sichtbar.",
     "stats.inlineSubHidden": "`sub` wird bei `layout: inline` nicht angezeigt: {cards}. Mit `layout: cards` ist es sichtbar.",
+    "stats.inlineOriginHidden": "`origin` wird bei `layout: inline` nicht angezeigt: {cards}. Mit `layout: cards` ist es sichtbar.",
+    "stats.originInvalid": "{card}: `origin` erwartet `note` oder `date`, bekommen „{value}“. Ignoriert.",
+    "stats.originWrongAgg": "{card}: `origin` funktioniert nur mit `agg: latest`, `min` oder `max`, nicht mit `{agg}`. Die Karte wird ohne es gezeichnet.",
+    "stats.originNoDate": "{card}: Der Wert stammt aus „{note}“, die kein Datum für `origin: date` hat.",
 
     "progress.empty": "Keine Balken zu zeichnen. Erwartet wird `items:` oder eine Liste.",
     "progress.goalRequired": "{card}: `goal:` braucht eine Zahl oder eine Dauer wie `7h 30m`. Es gibt nichts, woran gemessen werden könnte.",

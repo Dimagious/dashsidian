@@ -28,10 +28,12 @@ import {
     type DeltaTone,
 } from "../core/period";
 import { readStatsLayout, inlineLayoutDiagnostics } from "../core/stats-layout";
-import { firstDayOfWeek } from "../adapters/datetime";
+import { readOrigin, originLabel } from "../core/origin";
+import { parseDateKey } from "../core/calendar";
+import { firstDayOfWeek, formatDayMedium } from "../adapters/datetime";
 import { noteDateFormats, periodContext } from "../adapters/periodic";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
-import { clearBlock, renderDiagnostics, renderNotices } from "../shared/render";
+import { clearBlock, renderDiagnostics, renderNotices, internalLink } from "../shared/render";
 import { notStartedNotice, renderTemplateHint } from "./window";
 import { showsTemplateHint } from "../core/template-note";
 import { t } from "../i18n";
@@ -67,6 +69,8 @@ interface Card {
     delta?: Delta;
     /** `compare: usual` with no history before the window: a muted line instead of a delta */
     deltaHint?: string;
+    /** `origin` (B-149): the note the value came from, as a link, or its date */
+    origin?: { text: string; path?: string };
 }
 
 export function renderStats(ctx: BlockContext, source: string, el: HTMLElement): void {
@@ -130,6 +134,9 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
         const { spec, diagnostics: statDiags } = readStat(item, label);
         diags.push(...statDiags);
+        // A card key only, like `agg`: the root has no `origin` to inherit.
+        const { origin, diagnostics: originDiags } = spec ? readOrigin(item, spec.agg, cardLabel) : { diagnostics: [] };
+        diags.push(...originDiags);
 
         diags.push(...sourceDiags, ...blankSelectionDiagnostics(own, block, cardLabel));
         // An inherited folder was checked above; only the card's own is checked here.
@@ -225,7 +232,9 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         // failed to parse: that too already has its own diagnostic. Only a
         // card's own `date_field` is judged: one set at the block root serves
         // the cards that read dates and is simply not needed by the rest.
-        if (dateField && spec && readDateField(own)
+        // An accepted `origin` reads the date too: it shows it, or picks the
+        // newest of a tie. One refused for its agg or value reads nothing.
+        if (dateField && spec && readDateField(own) && origin === undefined
             && !dateFieldHasEffect(item.period !== undefined, spec.agg, item.trend !== undefined)) {
             diags.push({ level: "warning", message: t("period.dateFieldUnused", { card: cardLabel }) });
         }
@@ -267,6 +276,17 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         // A duration already carries its units (`durationDiagnostics` warned).
         if (spec?.unit && !duration) card.unit = unitFor(spec.unit, card.text);
         if (typeof item.sub === "string") card.sub = item.sub;
+        // B-149: the note behind the number, from the same window the number
+        // counts (`compare`'s previous value is not described). Not drawn
+        // inline, which already warned that it drops it.
+        if (origin && spec?.field && current !== null && layout === "cards") {
+            const found = originLabel(counted, { agg: spec.agg, field: statFields(spec), dateField, formats }, origin);
+            if (found?.kind === "note") card.origin = { text: found.name, path: found.path };
+            else if (found?.kind === "date") card.origin = { text: formatDayMedium(parseDateKey(found.day)) };
+            else if (found?.kind === "undated") {
+                diags.push({ level: "warning", message: t("stats.originNoDate", { card: cardLabel, note: found.name }) });
+            }
+        }
 
         // Compared to the same stretch of the previous period, on the same
         // selection and the same aggregate. `count` and `streak` never
@@ -375,8 +395,22 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         }
 
         if (card.label) box.createDiv({ cls: "dashy-stat-label", text: card.label });
-        if (card.sub) box.createDiv({ cls: "dashy-stat-sub", text: card.sub });
+        if (card.sub || card.origin) renderSub(box, card);
     }
+}
+
+/**
+ * The caption under the label: the hand-written `sub` first, then where the
+ * value came from (B-149), joined by a middle dot. The note is a link
+ * Obsidian opens on click; its name is its only text, so nothing repeats it
+ * in a tooltip.
+ */
+function renderSub(box: HTMLElement, card: Card): void {
+    const sub = box.createDiv({ cls: "dashy-stat-sub", text: card.sub ?? "" });
+    if (!card.origin) return;
+    if (card.sub) sub.appendText(" · ");
+    if (card.origin.path) internalLink(sub, card.origin.path, "dashy-stat-origin").setText(card.origin.text);
+    else sub.createSpan({ cls: "dashy-stat-origin", text: card.origin.text });
 }
 
 /**

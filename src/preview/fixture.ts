@@ -52,6 +52,15 @@ export function fakeVault(): NoteRecord[] {
     for (const [name, date] of races) {
         notes.push({ path: `Races/${name}.md`, name, folder: "Races", tags: [], frontmatter: { date } });
     }
+    // Race results for `origin` (B-149): a long name, to see it wrap in a narrow card.
+    const results: [string, string][] = [
+        [`${inDays(-200)} City 10k`, "0:50:30"],
+        [`${inDays(-90)} Autumn Trail Championship Kilchberg-Rüschlikon 10k`, "0:48:05"],
+        [`${inDays(-20)} Hill 10k`, "0:55:10"],
+    ];
+    for (const [name, time] of results) {
+        notes.push({ path: `Results/${name}.md`, name, folder: "Results", tags: [], frontmatter: { time } });
+    }
     for (let back = 0; back < 120; back++) {
         const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - back);
         // Skip a day here and there: a solid block of colour hides nothing.

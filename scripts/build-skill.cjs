@@ -268,6 +268,7 @@ data is there.
 |---|---|
 | a number: a count, a sum, an average, a streak | \`stats\` |
 | one number over several properties, like all workouts | \`stats\` with a \`field\` list |
+| a record or a last reading with the note or date it came from | \`stats\` with \`origin\` |
 | how far along a goal is | \`progress\`, with \`goal\` |
 | days until or since a date, the next birthday | \`countdown\`, \`repeat: yearly\` for a birthday |
 | days until the next of many events, one note each (races, trips) | \`countdown\` with \`field\` and \`pick: next\` |
@@ -451,6 +452,20 @@ source: Diary
 items:
   - { label: Workout minutes this week, field: [run_min, bike_min, swim_min], agg: sum, period: week, compare: true, better: up }
   - { label: Average workout day, field: [run_min, bike_min, swim_min], agg: avg, period: month, unit: min }
+\`\`\`
+
+A record with the race it was set in, and the last result with its date:
+\`origin: note\` on a \`min\`, \`max\` or \`latest\` card links the note the
+value came from under the label, \`origin: date\` shows that note's date.
+Write it instead of typing a race name or a date into \`sub\`; a \`sub\`
+written as well comes first. Two races with the same best time name the
+newer one:
+
+\`\`\`stats
+source: Results
+items:
+  - { label: Best 10k, field: time, agg: min, origin: note }
+  - { label: Last 10k, field: time, agg: latest, origin: date }
 \`\`\`
 
 ## 5. Check before handing over

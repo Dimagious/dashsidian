@@ -29,8 +29,8 @@ describe("readStatsLayout", () => {
 describe("inlineLayoutDiagnostics", () => {
     const items = [
         { label: "Notes", sub: "all of them", trend: "30d" },
-        { label: "Tasks", sub: "open" },
-        { trend: "7d" },
+        { label: "Tasks", sub: "open", origin: "note" },
+        { trend: "7d", origin: "date" },
     ];
 
     it("says nothing for cards, whatever the cards set", () => {
@@ -46,6 +46,10 @@ describe("inlineLayoutDiagnostics", () => {
             {
                 level: "warning",
                 message: '`sub` is not shown with `layout: inline`: "Notes", "Tasks". Use `layout: cards` to see it.',
+            },
+            {
+                level: "warning",
+                message: '`origin` is not shown with `layout: inline`: "Tasks", a card with no label. Use `layout: cards` to see it.',
             },
         ]);
     });

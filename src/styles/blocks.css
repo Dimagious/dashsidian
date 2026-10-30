@@ -133,6 +133,21 @@
 }
 .dashy-stat-label { font-size: 0.85em; margin-top: 4px; }
 .dashy-stat-sub { font-size: 0.7em; opacity: 0.55; margin-top: 2px; }
+/* `origin` (B-149): a note name has no digit groups to protect, and a long
+   one without spaces must wrap inside a narrow card rather than spill out */
+.dashy-stat-origin { overflow-wrap: anywhere; }
+/* The note link is also Obsidian's `.internal-link`, whose accent colour and
+   underline (up to 0,4,0) would shout inside a muted caption. Same weight,
+   loaded later, wins: it reads like the countdown's note link, underlined on
+   hover only. */
+.dashy-stats .dashy-stat .dashy-stat-origin.internal-link {
+  color: inherit;
+  text-decoration-line: none;
+}
+.dashy-stats .dashy-stat .dashy-stat-origin.internal-link:hover {
+  color: inherit;
+  text-decoration-line: underline;
+}
 /* `layout: inline`: the same numbers as one line of text for a page header.
    An item never breaks inside itself, so a narrow pane wraps between items. */
 .dashy-stats-inline { margin: 0 0 24px; line-height: 1.6; }

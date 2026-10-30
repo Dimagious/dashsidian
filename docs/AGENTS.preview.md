@@ -64,6 +64,7 @@ data is there.
 |---|---|
 | a number: a count, a sum, an average, a streak | `stats` |
 | one number over several properties, like all workouts | `stats` with a `field` list |
+| a record or a last reading with the note or date it came from | `stats` with `origin` |
 | how far along a goal is | `progress`, with `goal` |
 | days until or since a date, the next birthday | `countdown`, `repeat: yearly` for a birthday |
 | days until the next of many events, one note each (races, trips) | `countdown` with `field` and `pick: next` |
@@ -249,6 +250,20 @@ items:
   - { label: Average workout day, field: [run_min, bike_min, swim_min], agg: avg, period: month, unit: min }
 ```
 
+A record with the race it was set in, and the last result with its date:
+`origin: note` on a `min`, `max` or `latest` card links the note the
+value came from under the label, `origin: date` shows that note's date.
+Write it instead of typing a race name or a date into `sub`; a `sub`
+written as well comes first. Two races with the same best time name the
+newer one:
+
+```stats
+source: Results
+items:
+  - { label: Best 10k, field: time, agg: min, origin: note }
+  - { label: Last 10k, field: time, agg: latest, origin: date }
+```
+
 ## 5. Check before handing over
 
 1. Every key you wrote is in the block reference below for that block, at the level you
@@ -358,7 +373,7 @@ Number cards: one value per card, computed over a selection of notes.
 | `tag` | string | — | — | — | tag, with or without the hash |
 | `where` | string\|list | — | — | — | Same as `where` in Keys shared by several blocks; here also: One unreadable condition drops the whole filter with a warning, and the numbers are drawn unfiltered |
 | `period` | string\|number\|map | — | — | — | narrow to a window: `week`, `month`, `year` (the current calendar one) or a rolling count of days like `30d`, all ending today; `note`, the day, week, month, quarter or year the name of the note this block sits in stands for, like `2026-W40`; a period written out the same way: `2026-10-01`, `2026-W40`, `2026-10`, `2026-Q4` or `2026`; or `{ from: 2026-09-01, to: 2026-09-30 }`, both days included, `from` alone running to today. Notes without a date are left out first, then every agg, count included, runs on what remains. A week starts on the first day of the interface language, Dashy's own when one is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages; a week named like `2026-W40` is the seven days its name stands for |
-| `date_field` | string | — | — | — | Same as `date_field` in Keys shared by several blocks; here also: Feeds `period`'s window and the `streak`, `current_streak`, `latest` and `trend` readings; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` |
+| `date_field` | string | — | — | — | Same as `date_field` in Keys shared by several blocks; here also: Feeds `period`'s window, the `streak`, `current_streak`, `latest` and `trend` readings and the date `origin` shows; has no effect on `count`, `sum`, `avg`, `min` or `max` without `period` or `origin` |
 | `date_format` | string | — | — | — | Same as `date_format` in Keys shared by several blocks; here also: Steers the same readings `date_field` does |
 | `compare` | boolean\|string | — | — | — | `true` shows the delta against the same stretch of the previous period, to date, and the previous value after it, formatted like the card: `▲ +1 (was 3)`. This week compares against the same weekdays last week, not the whole of last week. A fixed `period` already over compares against the whole period before it, June against all of May; a `from`/`to` against as many days right before `from`. `usual` shows the delta against the usual level instead: the average of the same field over every note in the card's selection dated before the window starts, the window itself left out. `usual` works with `agg: avg` only and warns with any other aggregate; with no note before the window the card says there is no history yet instead of a delta, as a tooltip on the number under `layout: inline`. Only with `period` set, and not with `agg: streak` or `current_streak` |
 | `better` | string | — | — | — | `up` colours a rise green and a fall red; `down` reverses that for a number where less is better. No change stays neutral either way. Only with `compare: true` or `compare: usual` |
@@ -373,6 +388,7 @@ Number cards: one value per card, computed over a selection of notes.
 | `trend` | string\|number | — | — | — | sketch the last N days ending today, or on the last day of a `period` window already over: `30d`. Needs `field`. Its own trailing window, independent of `period` |
 | `icon` | string | — | — | `emoji` | emoji |
 | `sub` | string | — | — | — | small caption under the title |
+| `origin` | string | — | — | — | with `agg: latest`, `min` or `max` only: say where the value came from, under the label. `note` shows the name of the note it was taken from, as a link; `date` shows that note's date in the interface language, read like the rest of the card (`date_field`, `date_format`, the note name). When several notes share the smallest or largest value, the newest of them is named. After `sub` when both are set. A card key only, not inherited from the block root; not shown with `layout: inline` |
 
 **Example**
 
@@ -400,6 +416,7 @@ items:
 - Daily notes named another way, like `05.10.2026`, are read in the day format set in the Daily notes or Periodic Notes settings, with no key at all. Without that setting, name the format: `date_format: DD.MM.YYYY`. A time after the date is fine (`2026-10-05-14:30`), but an order that could be read two ways, like `05-10-2026`, is never guessed: without a format it is not a date.
 - A weekly review: in a note named `2026-W40`, `period: note` at the block root counts that week and no other, however late the note is opened: `period: note` with `items: [{ label: Gym, field: gym, agg: sum, compare: true }, { label: Sleep, field: sleep_score, agg: avg }]`. A period written out works anywhere: `period: 2026-Q4`, or `period: { from: 2026-06-01, to: 2026-08-31 }` for a season. The name is read in the formats set in Periodic Notes for each period (one switched on there with no format saved, in the plugin's default, so a week is the locale week `gggg-[W]ww`), the day falling back to Daily notes, then as ISO: `YYYY-MM-DD`, `GGGG-[W]WW`, `YYYY-MM`, `YYYY-[Q]Q`, `YYYY`, the day first, so `2026` never takes `2026-10`. The note's name may go on after the day, week, month or quarter, past a space, `_` or `-` and not straight into a digit (so a time after the day, `2026-10-05 14:30`, is not read here): `2026-W41 Weekly` is that week, `2026-10 Monthly Review` that month; a year takes nothing after it, so `2026 goals` is no period, and a period written in the block, `period: 2026-W41`, takes nothing after it either. In a weekly format `ww` with `gggg` is the week by the rules of Obsidian's language, `WW` with `GGGG` the ISO week. `YYYY` is the calendar year: paired with `ww` or `WW` it names a week across New Year with the wrong year, and a block in such a week warns and suggests `gggg` or `GGGG`. A note named otherwise is an error that lists those formats; nothing is guessed. In a template, a note in the template folder of the core Templates plugin or of Templater, a name that is no period is no error: the block draws no numbers but a line saying the note is a template, under any other problem the config has, and a note made from it and named for a period counts that period. A window already over compares against the whole period before it, June against all of May however long each is; a `from`/`to` against as many days right before `from`; one still running against the same days of the period before, as `period: week` does. `current_streak` counts back from the window's last day, and `trend` ends there. A window already over does not forgive that day the way a running one forgives today: a closed week with its last day unticked reads `0`. A window that has not started yet, a note on next week, draws no cards, only the day it starts. `period: 2026` is the year 2026; write `2026d` for a count of days.
 - One number over several properties: `{ label: Workout minutes, field: [run_min, bike_min, swim_min], agg: sum, period: week }` adds up the three in each note, a note holding only `bike_min` counting that alone and a note with none of them left out; `agg: avg` on the same list averages those per-note totals. Without a `label` the card is named `run_min + bike_min + swim_min`.
+- Records with the race name: `{ label: Best 10k, source: Races, field: time, agg: min, origin: note }` reads `0:48:05` with the note it came from, `2025-09-14 Autumn 10k`, linked under the label; `{ label: Ferritin, source: Labs, field: ferritin, agg: latest, origin: date }` shows the date of the last analysis instead, like `Sep 22, 2026`. `origin` works with `latest`, `min` and `max` only and describes the value in the card's own window, never the previous one `compare` reads. Two races with the same best time name the newer one. With `origin: date`, a note with no readable date shows no caption and a warning naming it. A hand-written `sub` stays and comes first: `sub: personal best` with `origin: note` reads `personal best · 2025-09-14 Autumn 10k`.
 
 ### `progress`
 

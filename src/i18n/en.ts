@@ -107,6 +107,10 @@ export const en = {
     "stats.inlineColumnsIgnored": "`columns` has no effect with `layout: inline`, which draws one line.",
     "stats.inlineTrendHidden": "`trend` is not drawn with `layout: inline`: {cards}. Use `layout: cards` to see it.",
     "stats.inlineSubHidden": "`sub` is not shown with `layout: inline`: {cards}. Use `layout: cards` to see it.",
+    "stats.inlineOriginHidden": "`origin` is not shown with `layout: inline`: {cards}. Use `layout: cards` to see it.",
+    "stats.originInvalid": "{card}: `origin` expects `note` or `date`, got \"{value}\". Ignored.",
+    "stats.originWrongAgg": "{card}: `origin` works with `agg: latest`, `min` or `max` only, not `{agg}`. The card is drawn without it.",
+    "stats.originNoDate": "{card}: the value comes from \"{note}\", which has no date to show for `origin: date`.",
 
     "progress.empty": "No bars to draw. Expected `items:` or a list.",
     "progress.goalRequired": "{card}: `goal:` needs a number or a duration like `7h 30m`. There is nothing to measure against.",

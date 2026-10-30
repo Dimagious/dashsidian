@@ -103,6 +103,10 @@ export const ru: Catalog = {
     "stats.inlineColumnsIgnored": "`columns` не действует при `layout: inline`: там одна строка.",
     "stats.inlineTrendHidden": "`trend` не рисуется при `layout: inline`: {cards}. Чтобы его увидеть, нужен `layout: cards`.",
     "stats.inlineSubHidden": "`sub` не показывается при `layout: inline`: {cards}. Чтобы его увидеть, нужен `layout: cards`.",
+    "stats.inlineOriginHidden": "`origin` не показывается при `layout: inline`: {cards}. Чтобы его увидеть, нужен `layout: cards`.",
+    "stats.originInvalid": "{card}: `origin` ожидает `note` или `date`, получено «{value}». Пропущено.",
+    "stats.originWrongAgg": "{card}: `origin` работает только с `agg: latest`, `min` или `max`, а не `{agg}`. Карточка нарисована без него.",
+    "stats.originNoDate": "{card}: значение взято из «{note}», у которой нет даты для `origin: date`.",
 
     "progress.empty": "Список полос пуст. Ожидается `items:` или массив.",
     "progress.goalRequired": "{card}: `goal:` ожидает число или длительность вроде `7h 30m`. Иначе не к чему стремиться.",
