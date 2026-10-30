@@ -107,7 +107,7 @@ steps: 7300
         <ul class="keynotes">
           <li><code>2026-W40</code><span>Week 40 of 2026. This page uses ISO weeks, Monday 28 September to Sunday 4 October, as you get without Periodic Notes or with its weekly format set to <code>GGGG-[W]WW</code>. A month is <code>2026-09</code>, a quarter <code>2026-Q3</code>, a year <code>2026</code>.</span></li>
           <li>Periodic Notes<span>Dashy reads the name the way Periodic Notes made it: in the weekly format set there, or, with weekly notes on and no format saved, in its default <code>gggg-[W]ww</code>. That is a locale week: in an English interface it starts on Sunday, so <code>2026-W40</code> is 27 September to 3 October. Without Periodic Notes, the name is read as an ISO week.</span></li>
-          <li>The whole name<span>The name has to be the week and nothing else. <code>2026-W40 review</code> is not read as a week: the block says so instead of guessing.</span></li>
+          <li>Words after the week<span>The name starts with the week. Words after a space, <code>_</code> or <code>-</code> are fine: <code>2026-W40 review</code> is week 40. Words before it are not: <code>Review 2026-W40</code> is not read as a week, and the block says so instead of guessing.</span></li>
         </ul>
 
         <!-- ============ 3 ============ -->
@@ -362,7 +362,7 @@ items:
         <h2 id="errors" data-short="If a block shows an error">If a block shows an error</h2>
         <p>A block that cannot draw what you asked for says why, inside the note. The ones you are likely to see here:</p>
         <ul>
-          <li><b><code>period: note</code> needs a note named like a day, week, month, quarter or year, and this note is "Weekly review".</b> The block sits in a note whose name is not a period: the template itself, or a name with words after the week. The message lists the formats it reads.</li>
+          <li><b><code>period: note</code> needs a note named like a day, week, month, quarter or year, and this note is "Weekly review".</b> The block sits in a note whose name is not a period: the template itself, or a name with words before the week. The message lists the formats it reads.</li>
           <li><b><code>compare: usual</code> works only with <code>agg: avg</code>.</b> The usual level is an average. On a <code>sum</code> card, use <code>compare: true</code>.</li>
           <li><b>no history before this period</b>, in grey where the arrow would be. <code>compare: usual</code> found no earlier note to average: your first week of notes. It is not an error.</li>
         </ul>

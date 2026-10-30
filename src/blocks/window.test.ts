@@ -48,6 +48,25 @@ items:
         expect(diagnostics(el, "warning")).toEqual([]);
     });
 
+    it("a note named for a week with words after it, `2026-W41 Weekly`, counts that week (B-198)", () => {
+        const source = "source: Diary\nperiod: note\nitems:\n  - { label: Days, agg: count }\n  - { label: Positions, field: n, agg: sum }";
+        // ISO week 41: Monday 5 to Sunday 11 October, the days at positions 9 to 15 (sum 84); week 40 would sum to 35.
+        const el = draw(renderStats, at(vault, "Reviews/2026-W41 Weekly.md"), source);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["7", "84"]);
+        expect(diagnostics(el, "error")).toEqual([]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+        // A month with words after it is that month; a year with words after it stays no period.
+        expect(texts(draw(renderStats, at(vault, "Reviews/2026-09 Monthly Review.md"), source), ".dashy-stat-value")).toEqual(["5", "10"]);
+        expect(diagnostics(draw(renderStats, at(vault, "Reviews/2026 goals.md"), source), "error")[0])
+            .toMatch(/^⛔ stats: `period: note` needs a note named like a day, week, month, quarter or year, and this note is "2026 goals"/);
+    });
+
+    it("a written period takes no words after it: `period: 2026-W41 Weekly` is still unreadable (B-198)", () => {
+        const el = draw(renderStats, at(vault, "Home.md"), "items:\n  - { label: Days, source: Diary, agg: count, period: 2026-W41 Weekly }");
+        expect(diagnostics(el, "warning")[0]).toMatch(/`period` expects week, month, year, .* got "2026-W41 Weekly"/);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["25"]);
+    });
+
     it("every kind of written period works the same, `from`/`to` included", () => {
         const el = draw(renderStats, at(vault, "Home.md"), `source: Diary
 items:

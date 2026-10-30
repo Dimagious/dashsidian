@@ -158,6 +158,62 @@ describe("readPeriodName: a week across New Year in a calendar-year format (B-19
     });
 });
 
+describe("readPeriodName with `tail`: a note's name may go on after the period (B-198)", () => {
+    const tail = { tail: true } as const;
+
+    it("reads a week, month, quarter or day followed by a space, `_` or `-` and words", () => {
+        const week = { unit: "week", start: "2026-10-05", end: "2026-10-11" };
+        for (const name of ["2026-W41 Weekly", "2026-W41_notes", "2026-W41-notes", "2026-W41 - plan", "2026-W41  (draft)", "2026-W41_"]) {
+            expect(readPeriodName(name, iso, tail), name).toEqual(week);
+        }
+        expect(readPeriodName("2026-10 Monthly Review", iso, tail)).toEqual({ unit: "month", start: "2026-10-01", end: "2026-10-31" });
+        expect(readPeriodName("2026-Q4 review", iso, tail)).toEqual({ unit: "quarter", start: "2026-10-01", end: "2026-12-31" });
+        expect(readPeriodName("2026-10-05 Monday", iso, tail)).toEqual({ unit: "day", start: "2026-10-05", end: "2026-10-05" });
+    });
+
+    it("reads the names in the settings formats too, a locale week and a month spelled out", () => {
+        const names = periodNames({ week: "gggg-[W]ww", month: "MMMM YYYY" }, parsePeriodStart);
+        expect(readPeriodName("2026-W41 Weekly", names, tail)).toEqual({ unit: "week", start: "2026-10-04", end: "2026-10-10" });
+        // The longest start is tried first, so the space inside the format keeps the year.
+        expect(readPeriodName("October 2026 review", names, tail)).toEqual({ unit: "month", start: "2026-10-01", end: "2026-10-31" });
+    });
+
+    it("keeps the smallest unit first: a day with words after it is a day, not its month", () => {
+        expect(readPeriodName("2026-10-05 x", iso, tail)?.unit).toBe("day");
+        expect(readPeriodName("2026-10-05", iso, tail)?.unit).toBe("day");
+    });
+
+    it("a year takes no tail: `2026 goals` is no period, the bare `2026` still is", () => {
+        expect(readPeriodName("2026 goals", iso, tail)).toBeNull();
+        expect(readPeriodName("2026_goals", iso, tail)).toBeNull();
+        expect(readPeriodName("2026", iso, tail)?.unit).toBe("year");
+        const named = periodNames({ year: "[Year] YYYY" }, parsePeriodStart);
+        expect(readPeriodName("Year 2026 plan", named, tail)).toBeNull();
+    });
+
+    it("refuses a tail with no separator, a digit after the separator, an invalid period or words before it", () => {
+        for (const name of [
+            "2026-W41Weekly", "2026-W410", "2026-W4 x", "2026-13 x", "2026-Q5 x", "2026-Q0 x", "Weekly 2026-W41",
+            "2026-10-32 x", "2026-10 05", "2026-10_05 x", "2026-10 - 05", "2026-W41-3", "2026-10-1 x", "2026-1 x",
+        ]) {
+            expect(readPeriodName(name, iso, tail), name).toBeNull();
+        }
+    });
+
+    it("without `tail` a name with words after the period is still no period", () => {
+        expect(readPeriodName("2026-W41 Weekly", iso)).toBeNull();
+        expect(readPeriodName("2026-10 Monthly Review", iso, { tail: false })).toBeNull();
+    });
+
+    it("a week across New Year with words after it still carries the week-year format (B-191)", () => {
+        const names = periodNames({ week: "YYYY-[W]ww" }, parsePeriodStart);
+        expect(readPeriodName("2026-W01 Weekly", names, tail)).toEqual({
+            unit: "week", start: "2025-12-28", end: "2026-01-03", weekYearFormat: "gggg-[W]ww",
+        });
+        expect(readPeriodName("2026-W41 Weekly", names, tail)?.weekYearFormat).toBeUndefined();
+    });
+});
+
 describe("periodEnd", () => {
     it("ends a period on its own last day, across months, years and leap days", () => {
         expect(periodEnd("day", "2026-02-28")).toBe("2026-02-28");

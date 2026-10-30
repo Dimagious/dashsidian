@@ -20,6 +20,16 @@ removed public export.
   a week in such a format, the block draws as before and shows a warning
   with the format to use: `gggg-[W]ww` for a locale week, `GGGG-[W]WW` for
   the ISO one. The agent skill explains `ww`/`gggg` against `WW`/`GGGG`.
+- **`period: note` reads a note named with words after the period.** A
+  weekly review named `2026-W41 Weekly`, `2026-W41_notes` or `2026-W41-notes`
+  now counts week 41, `2026-10 Monthly Review` counts October and
+  `2026-Q4 review` the fourth quarter, the same way a daily note named
+  `2026-10-05 Monday` already had its date. The words go after a space, `_`
+  or `-`, and not straight into a digit. A year stays bare: `2026 goals` is
+  still no period, so a note that only starts with a year is not read as a
+  year review. The same goes for `range: note` on `heatmap` and `chart`. A
+  period written in the block, `period: 2026-W41`, still takes nothing after
+  it.
 
 ### Fixed
 
