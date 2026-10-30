@@ -10,6 +10,15 @@ removed public export.
 
 ## [Unreleased]
 
+### Changed
+
+- **The agent skill says which version it shows.** The version in settings
+  and in the agent files is the block schema's, not the plugin's, and it read
+  as an outdated plugin. The settings rows now say "schema version", and the
+  header comment of `SKILL.md`, `reference.md` and the `AGENTS.md` section
+  names the schema version and the plugin version that generated the file.
+  The `version` key in `SKILL.md` is unchanged.
+
 ## [2.0.0] - 2026-10-07
 
 ### Added

@@ -137,6 +137,38 @@ describe("DashySettingTab: installing the skill (B-164)", () => {
     });
 });
 
+/**
+ * The rows say whose version they show: the skill carries the block schema's
+ * version, which is not the plugin's, and a bare "version 1.10.0" next to a
+ * 2.0.0 plugin read as stale (B-192).
+ */
+describe("DashySettingTab: the agent file rows name the schema version (B-192)", () => {
+    function rows(settings: Partial<DashySettings>): { skill: string; agents: string } {
+        const tab = new DashySettingTab({} as App, fakePlugin({ ...DEFAULT_SETTINGS, ...settings }));
+        return { skill: String(tab["skillRow"]().desc), agents: String(tab["agentsRow"]().desc) };
+    }
+
+    it("an install at the current schema says so, naming the schema version", () => {
+        const { skill, agents } = rows({ installedSkillVersion: SKILL_VERSION, installedAgentsVersion: SKILL_VERSION });
+        expect(skill).toBe(`Installed, schema version ${SKILL_VERSION}. Nothing to do.`);
+        expect(agents).toBe(`Written, schema version ${SKILL_VERSION}. Nothing to do.`);
+    });
+
+    it("an older install names both schema versions", () => {
+        const { skill, agents } = rows({ installedSkillVersion: "1.7.0", installedAgentsVersion: "1.8.0" });
+        expect(skill).toBe(`Installed schema version 1.7.0, available ${SKILL_VERSION}.`);
+        expect(agents).toBe(`Written at schema version 1.8.0, available ${SKILL_VERSION}.`);
+    });
+
+    it("no install says no version at all", () => {
+        const { skill, agents } = rows({ installedSkillVersion: null, installedAgentsVersion: null });
+        expect(skill).toMatch(/^Writes \.claude\/skills\/dashy so an agent/);
+        expect(agents).toMatch(/^Writes .*AGENTS\.md /);
+        expect(skill).not.toContain("version");
+        expect(agents).not.toContain("version");
+    });
+});
+
 describe("DashySettingTab: Copy markdown (B-164)", () => {
     afterEach(() => {
         Reflect.deleteProperty(navigator, "clipboard");

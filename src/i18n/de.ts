@@ -372,13 +372,13 @@ export const de: Catalog = {
     "settings.skillName": "Skill-Datei in diesem Vault",
     "settings.skillNotInstalled":
         "Schreibt {path}, damit ein Agent (Claude Code, Cursor) diese Blöcke für dich schreiben kann.",
-    "settings.skillCurrent": "Installiert, Version {version}. Nichts zu tun.",
-    "settings.skillOutdated": "Installiert ist Version {installed}, verfügbar {available}.",
+    "settings.skillCurrent": "Installiert, Schemaversion {version}. Nichts zu tun.",
+    "settings.skillOutdated": "Installiert ist Schemaversion {installed}, verfügbar {available}.",
     "settings.agentsName": "AGENTS.md im Stammverzeichnis des Vaults",
     "settings.agentsNotInstalled":
         "Schreibt {path} für Agenten, die keine Claude-Skills lesen: Cursor, Codex und die übrigen. Nur der eingefasste Abschnitt gehört uns; alles andere in der Datei bleibt unangetastet.",
-    "settings.agentsCurrent": "Geschrieben, Version {version}. Nichts zu tun.",
-    "settings.agentsOutdated": "Geschrieben mit Version {installed}, verfügbar {available}.",
+    "settings.agentsCurrent": "Geschrieben, Schemaversion {version}. Nichts zu tun.",
+    "settings.agentsOutdated": "Geschrieben mit Schemaversion {installed}, verfügbar {available}.",
     "settings.agentsUntouched":
         "{path} enthält einen halb geschriebenen Dashy-Abschnitt und blieb unverändert. Entferne die übrig gebliebene Markierung und versuche es erneut.",
 

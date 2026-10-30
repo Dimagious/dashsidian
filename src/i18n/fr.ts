@@ -372,13 +372,13 @@ export const fr: Catalog = {
     "settings.skillName": "Fichier skill dans ce coffre",
     "settings.skillNotInstalled":
         "Écrit {path} pour qu'un agent (Claude Code, Cursor) écrive ces blocs à votre place.",
-    "settings.skillCurrent": "Installé, version {version}. Rien à faire.",
-    "settings.skillOutdated": "Version installée {installed}, disponible {available}.",
+    "settings.skillCurrent": "Installé, version du schéma {version}. Rien à faire.",
+    "settings.skillOutdated": "Version du schéma installée {installed}, disponible {available}.",
     "settings.agentsName": "AGENTS.md à la racine du coffre",
     "settings.agentsNotInstalled":
         "Écrit {path} pour les agents qui ne lisent pas les skills Claude: Cursor, Codex et les autres. Seule la section délimitée nous appartient ; le reste du fichier n'est pas touché.",
-    "settings.agentsCurrent": "Écrit, version {version}. Rien à faire.",
-    "settings.agentsOutdated": "Écrit en version {installed}, disponible {available}.",
+    "settings.agentsCurrent": "Écrit, version du schéma {version}. Rien à faire.",
+    "settings.agentsOutdated": "Écrit en version du schéma {installed}, disponible {available}.",
     "settings.agentsUntouched":
         "{path} contient une section Dashy à moitié écrite et a été laissé tel quel. Retirez le marqueur resté en place et réessayez.",
 

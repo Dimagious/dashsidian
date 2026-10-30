@@ -385,13 +385,13 @@ export const en = {
     "settings.skillName": "Skill file in this vault",
     "settings.skillNotInstalled":
         "Writes {path} so an agent (Claude Code, Cursor) can write these blocks for you.",
-    "settings.skillCurrent": "Installed, version {version}. Nothing to do.",
-    "settings.skillOutdated": "Installed version {installed}, available {available}.",
+    "settings.skillCurrent": "Installed, schema version {version}. Nothing to do.",
+    "settings.skillOutdated": "Installed schema version {installed}, available {available}.",
     "settings.agentsName": "AGENTS.md in the vault root",
     "settings.agentsNotInstalled":
         "Writes {path} for agents that do not read Claude skills: Cursor, Codex and the rest. Only the fenced section is ours; anything else in the file is left alone.",
-    "settings.agentsCurrent": "Written, version {version}. Nothing to do.",
-    "settings.agentsOutdated": "Written at version {installed}, available {available}.",
+    "settings.agentsCurrent": "Written, schema version {version}. Nothing to do.",
+    "settings.agentsOutdated": "Written at schema version {installed}, available {available}.",
     "settings.agentsUntouched":
         "{path} has a half-written Dashy section and was left as it is. Remove the stray marker and try again.",
 
