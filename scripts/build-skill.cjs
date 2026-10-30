@@ -427,6 +427,18 @@ items:
   - { label: Sleep, field: sleep_score, agg: avg, precision: 1 }
 \`\`\`
 
+Which notes lack a property: \`where: "date_read empty"\` keeps the notes
+where it is missing, blank or an empty list, and \`not empty\` the notes
+where it holds a value, \`0\` and an unticked checkbox included. The books
+in \`Reading\` without a \`date_read\` yet, next to those with one:
+
+\`\`\`stats
+source: Reading
+items:
+  - { label: No read date, agg: count, where: "date_read empty" }
+  - { label: With a read date, agg: count, where: "date_read not empty" }
+\`\`\`
+
 ## 5. Check before handing over
 
 1. Every key you wrote is in ${tables.name} for that block, at the level you

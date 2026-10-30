@@ -301,6 +301,124 @@ describe("readWhere", () => {
     });
 });
 
+describe("`empty` and `not empty` (B-199)", () => {
+    const has = (frontmatter: Record<string, unknown>, where: string): boolean =>
+        selectNotes([note({ frontmatter })], { where }).length === 1;
+
+    it("parses both forms, in any case, with a dotted field", () => {
+        expect(parseWhere("date empty")).toEqual({ field: "date", op: "empty" });
+        expect(parseWhere("date not empty")).toEqual({ field: "date", op: "not empty" });
+        expect(parseWhere("  Date   NOT   Empty  ")).toEqual({ field: "Date", op: "not empty" });
+        expect(parseWhere("health.sleep empty")).toEqual({ field: "health.sleep", op: "empty" });
+    });
+
+    // Each value kind against both operators: `not empty` is always the
+    // exact opposite of `empty`.
+    const KINDS: [string, Record<string, unknown>, boolean][] = [
+        ["absent", {}, true],
+        ["null, an empty property", { date: null }, true],
+        ["empty text", { date: "" }, true],
+        ["whitespace only", { date: "   " }, true],
+        ["an empty list", { date: [] }, true],
+        ["a list of one blank row", { date: [""] }, true],
+        ["a list of null and whitespace", { date: [null, " "] }, true],
+        ["an empty map", { date: {} }, true],
+        ["0", { date: 0 }, false],
+        ["false, an unticked checkbox", { date: false }, false],
+        ["true", { date: true }, false],
+        ["the text 0", { date: "0" }, false],
+        ["text", { date: "x" }, false],
+        ["a list with a value", { date: ["a"] }, false],
+        ["a list with a blank and a value", { date: ["", "a"] }, false],
+        ["a map with a key", { date: { day: 1 } }, false],
+    ];
+    for (const [kind, frontmatter, empty] of KINDS) {
+        it(`${kind}: empty is ${String(empty)}, not empty is ${String(!empty)}`, () => {
+            expect(has(frontmatter, "date empty")).toBe(empty);
+            expect(has(frontmatter, "date not empty")).toBe(!empty);
+        });
+    }
+
+    it("a nested path missing partway is empty", () => {
+        expect(has({ health: { mood: 3 } }, "health.sleep empty")).toBe(true);
+        expect(has({ health: { sleep: 80 } }, "health.sleep not empty")).toBe(true);
+        expect(has({ health: 5 }, "health.sleep empty")).toBe(true);
+    });
+
+    it("`tags` reads the note's tag list, as every other condition does", () => {
+        expect(selectNotes([note({ tags: [] })], { where: "tags empty" })).toHaveLength(1);
+        expect(selectNotes([note({ tags: ["books"] })], { where: "tags not empty" })).toHaveLength(1);
+        expect(selectNotes([note({ tags: ["books"] })], { where: "tags empty" })).toHaveLength(0);
+    });
+
+    it("combines with `and`, in a string and in a list, with any other condition", () => {
+        const notes = [
+            note({ path: "a.md", frontmatter: { rating: 5 } }),
+            note({ path: "b.md", frontmatter: { rating: 5, date: "2026-10-01" } }),
+            note({ path: "c.md", frontmatter: { rating: 2 } }),
+            note({ path: "d.md", frontmatter: { date: "" } }),
+        ];
+        const paths = (where: string | string[]): string[] => selectNotes(notes, { where }).map((n) => n.path);
+        expect(paths("date empty and rating >= 4")).toEqual(["a.md"]);
+        expect(paths("rating >= 4 and date not empty")).toEqual(["b.md"]);
+        expect(paths(["date empty", "rating not empty"])).toEqual(["a.md", "c.md"]);
+        expect(paths("date empty and rating empty")).toEqual(["d.md"]);
+        expect(readWhere("date empty AND rating not empty")).toEqual({
+            kind: "ok",
+            conditions: ["date empty", "rating not empty"],
+            clauses: [{ field: "date", op: "empty" }, { field: "rating", op: "not empty" }],
+        });
+    });
+
+    it("a field named `empty` or `not` works with both forms", () => {
+        expect(parseWhere("empty empty")).toEqual({ field: "empty", op: "empty" });
+        expect(parseWhere("empty not empty")).toEqual({ field: "empty", op: "not empty" });
+        expect(parseWhere("not empty")).toEqual({ field: "not", op: "empty" });
+        expect(parseWhere("not not empty")).toEqual({ field: "not", op: "not empty" });
+        expect(has({ not: "x" }, "not not empty")).toBe(true);
+        expect(has({ empty: "" }, "empty empty")).toBe(true);
+    });
+
+    it("expressions that read before keep their meaning, the word `empty` as a value included", () => {
+        // Every one of these parsed before B-199, and parses the same now.
+        expect(parseWhere("status = empty")).toEqual({ field: "status", op: "=", value: "empty" });
+        expect(parseWhere("status != empty")).toEqual({ field: "status", op: "!=", value: "empty" });
+        expect(parseWhere('status = "empty"')).toEqual({ field: "status", op: "=", value: "empty" });
+        expect(parseWhere('status = "not empty"')).toEqual({ field: "status", op: "=", value: "not empty" });
+        expect(parseWhere("note = not empty")).toEqual({ field: "note", op: "=", value: "not empty" });
+        expect(parseWhere("a=b empty")).toEqual({ field: "a", op: "=", value: "b empty" });
+        expect(parseWhere("tags contains empty")).toEqual({ field: "tags", op: "contains", value: "empty" });
+        expect(parseWhere("tags contains not empty")).toEqual({ field: "tags", op: "contains", value: "not empty" });
+        expect(parseWhere("empty = 1")).toEqual({ field: "empty", op: "=", value: 1 });
+        expect(parseWhere("not != done")).toEqual({ field: "not", op: "!=", value: "done" });
+        // `status = empty` still compares with the text, so a note without
+        // `status`, or with it blank, still does not match it.
+        expect(has({ status: "empty" }, "status = empty")).toBe(true);
+        expect(has({}, "status = empty")).toBe(false);
+        expect(has({ status: "" }, "status = empty")).toBe(false);
+        // And a missing field still fails `!=`, as before.
+        expect(has({}, "type != review")).toBe(false);
+    });
+
+    it("anything else around the word stays unreadable, with the same messages as before", () => {
+        const message = (where: string): string => {
+            const reading = readWhere(where);
+            return reading.kind === "error" ? reading.message : `not an error: ${reading.kind}`;
+        };
+        for (const bad of ["date emptyish", "date empty now", "date not", "date is empty", '"date" empty', "empty"]) {
+            expect(parseWhere(bad), bad).toBeNull();
+            expect(message(bad)).toBe(
+                `\`where: ${bad}\` could not be read and was ignored. The numbers below are unfiltered. Expected something like \`year = 2026\`, \`rating >= 4\` or \`tags contains books\`.`,
+            );
+        }
+        expect(message("date empty and rating maybe")).toBe(
+            "`rating maybe` in `where` could not be read, so the whole filter was ignored. The numbers below are unfiltered. Each condition looks like `year = 2026`, `rating >= 4` or `tags contains books`.",
+        );
+        expect(message("date empty or rating not empty")).toContain("uses `or`, which is not supported");
+        expect(message("date empty and")).toContain("`where: date empty and` could not be read");
+    });
+});
+
 describe("readSource", () => {
     it("carries the three keys through", () => {
         const { spec, diagnostics } = readSource({

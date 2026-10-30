@@ -64,6 +64,33 @@ describe("stats — the numbers are the real ones", () => {
         expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
     });
 
+    it("`date empty` counts the notes missing a property, `date not empty` the rest (B-199)", () => {
+        const notes: FakeNote[] = [
+            { path: "Log/a.md", frontmatter: { date: "2026-10-01" } },
+            { path: "Log/b.md", frontmatter: { date: null } },
+            { path: "Log/c.md", frontmatter: { date: "" } },
+            { path: "Log/d.md", frontmatter: { other: 1 } },
+            { path: "Log/e.md", frontmatter: { date: "2026-10-02", done: false } },
+        ];
+        const el = host();
+        renderStats(mockContext({ notes }), `source: Log
+items:
+  - { label: Without a date, agg: count, where: "date empty" }
+  - { label: With a date, agg: count, where: "date not empty" }
+  - { label: Dated and not done, agg: count, where: "date not empty and done not empty" }`, el);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["3", "2", "1"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+        expect(diagnostics(el, "error")).toEqual([]);
+    });
+
+    it("a misspelt `empty` warns and the count is drawn unfiltered (B-199)", () => {
+        const el = card('items:\n  - { label: Count, source: Diary, where: "steps emty", agg: count }');
+        expect(diagnostics(el, "warning")).toEqual([
+            "⚠️ stats: `where: steps emty` could not be read and was ignored. The numbers below are unfiltered. Expected something like `year = 2026`, `rating >= 4` or `tags contains books`.",
+        ]);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["10"]);
+    });
+
     it("a tag narrows it too", () => {
         expect(texts(card("items:\n  - { label: Read, tag: read, agg: count }"), ".dashy-stat-value"))
             .toEqual(["2"]);

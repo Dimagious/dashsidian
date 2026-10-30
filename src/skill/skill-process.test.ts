@@ -106,6 +106,9 @@ const READING: FakeNote[] = [
     { path: "Reading/Dune.md", frontmatter: { date_read: "2026-02-11", pages: 600 } },
     { path: "Reading/Solaris.md", frontmatter: { date_read: "2026-08-30", pages: 220 } },
     { path: "Reading/Old.md", frontmatter: { date_read: "2025-05-01", pages: 300 } },
+    // Not read yet: the property left out, and left blank (B-199).
+    { path: "Reading/Piranesi.md", frontmatter: { pages: 250 } },
+    { path: "Reading/Stoner.md", frontmatter: { date_read: null, pages: 290 } },
 ];
 
 const VAULT: FakeVault = {
@@ -143,7 +146,7 @@ const RECIPES = fencedBlocks(SKILL_MARKDOWN);
 describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
     it("SKILL.md carries the recipes, one per site guide and the month calendar", () => {
         expect(RECIPES.map((r) => r.lang)).toEqual([
-            "stats", "stats", "stats", "heatmap", "heatmap", "chart", "progress", "countdown", "today", "tiles", "stats",
+            "stats", "stats", "stats", "heatmap", "heatmap", "chart", "progress", "countdown", "today", "tiles", "stats", "stats",
         ]);
     });
 
@@ -290,6 +293,13 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
         renderStats({ ...mockContext(together), sourcePath: REVIEW },
             'source: Diary\nwhere: "type != review"\nitems:\n  - { label: Notes, agg: count }', dropped);
         expect(texts(dropped, ".dashy-stat-value")).toEqual(["0"]);
+    });
+
+    it("notes lacking a property: `empty` counts them, `not empty` the rest (B-199)", () => {
+        const el = render("stats", RECIPES[11]?.source ?? "");
+        expect(texts(el, ".dashy-stat-label")).toEqual(["No read date", "With a read date"]);
+        // Piranesi without the property, Stoner with it blank; Dune, Solaris and Old read.
+        expect(texts(el, ".dashy-stat-value")).toEqual(["2", "3"]);
     });
 
     it("the same check catches a key the plugin does not have", () => {
