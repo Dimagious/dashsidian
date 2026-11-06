@@ -5,7 +5,7 @@
   .b205w-head .dy-inline-title { margin: 0; }
   .b205-today { margin-bottom: 12px; }
   .b205-chips { display: flex; gap: 8px; margin-top: 3px; }
-  .b205-chip { padding: 5px 10px; border: 1px dashed #d6ccf3; border-radius: 10px; background: #faf8fe; font-size: 13px; line-height: 1.3; color: #8f73e8; white-space: nowrap; }
+  .b205-chip { padding: 5px 10px; border: 1px dashed var(--dy-card-line); border-radius: 10px; background: transparent; font-size: 13px; line-height: 1.3; color: #8f73e8; white-space: nowrap; }
   .b205-chip small { font-size: 12.5px; color: var(--dy-muted); }
   .b205-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .b205-t { margin-top: 10px; font-size: 13.5px; white-space: nowrap; }
