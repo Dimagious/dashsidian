@@ -13,7 +13,7 @@ import './dashy.css'
  */
 export function ObsidianApp({ tabs, children, className }: { tabs: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <div className={`dy-app${className ? ` ${className}` : ''}`}>
+    <div data-crop className={`dy-app${className ? ` ${className}` : ''}`}>
       {tabs}
       {children}
     </div>

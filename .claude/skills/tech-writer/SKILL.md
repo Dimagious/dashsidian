@@ -33,8 +33,8 @@ Skip docs work for:
 ```
 README.md ........................ Short landing page, also what Obsidian's plugin
                                    browser shows: links and images are absolute URLs
-                                   only. Each selling function is a heading, a GIF and a
-                                   line or two; details go to the site. One complete example.
+                                   only. A wide GIF at 100%, or two 4:5 GIFs at 49%, each
+                                   with a bold lead-in; details go to the site. One complete example.
                                    Checked by `npm run readme:check`.
 site/index.html .................. Showcase page with block examples, hand-written.
 site/guides/<slug>/ .............. One search-shaped problem per page, YAML to copy,
