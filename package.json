@@ -1,7 +1,7 @@
 {
   "name": "dashsidian",
   "version": "2.1.0",
-  "description": "Describe a dashboard, and your AI agent builds it in your note. Charts, habit streaks, heatmaps and goals from note properties, in plain YAML you can edit. No JavaScript, no Dataview, works on your phone.",
+  "description": "Describe a dashboard, and your AI agent builds it in your note. Charts, habit streaks, heatmaps and goals from note properties, in YAML you can edit. No JavaScript, no Dataview, works on your phone.",
   "main": "main.js",
   "type": "module",
   "license": "MIT",
