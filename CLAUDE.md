@@ -53,7 +53,7 @@ Notes, включая Periodic Notes 1.0 beta (`core/note-date.ts`, `adapters/pe
 `2026-Q4`, `2026` — год) и `{ from, to }` (`core/period-name.ts`, ADR 0006);
 `compare: usual`; на холодном старте блоки ждут индексации (`app/indexing.ts`).
 
-Скилл для агентов в 2.0 — продукт: два файла (`SKILL.md` — процесс «посмотри, выбери, напиши, проверь», `reference.md` — таблицы ключей), ставятся кнопкой в настройках или командами палитры (`app/agent-files.ts`), пишут только по вызову. Процесс пишется руками в `scripts/build-skill.cjs`, рецепты проверяет `src/skill/skill-process.test.ts`. У каждого гайда на сайте есть блок «Ask your agent» с промптом (`src/test/guide-prompts.test.ts`). Героя README снимает `npm run capture` (промпт-карточка + заметка, которую написал агент, `scripts/agent-hero.cjs`).
+Скилл для агентов в 2.0 — продукт: два файла (`SKILL.md` — процесс «посмотри, выбери, напиши, проверь», `reference.md` — таблицы ключей), ставятся кнопкой в настройках или командами палитры (`app/agent-files.ts`), пишут только по вызову. Процесс пишется руками в `scripts/build-skill.cjs`, рецепты проверяет `src/skill/skill-process.test.ts`. У каждого гайда на сайте есть блок «Ask your agent» с промптом (`src/test/guide-prompts.test.ts`). README показывает функции GIF-роликами (`docs/screens/film-*`, правила в `design/stageshow/README.md`), они нарисованы, а не сняты. Настоящий снимок `agent-hero` стоит в разделе блоков, его снимает `npm run capture` (промпт-карточка + заметка, которую написал агент, `scripts/agent-hero.cjs`).
 
 Сайт (`site/`, GitHub Pages) — витрина, гайды под поисковые запросы
 (`site/guides/`) и справочник блоков (`site/reference/`, генерируется из схемы).

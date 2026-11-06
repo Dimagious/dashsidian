@@ -15,41 +15,14 @@
 Charts, streaks, heatmaps and goals from your daily notes' properties.
 Plain YAML you can read and edit. No JavaScript, no Dataview, works on your phone.
 
-[Website](https://dimagious.github.io/dashsidian/) · [Build one with your agent](https://dimagious.github.io/dashsidian/guides/ai-agent-dashboard/) · [Every block and key](https://dimagious.github.io/dashsidian/reference/) · [Guides](https://dimagious.github.io/dashsidian/guides/) · [Changelog](https://github.com/Dimagious/dashsidian/blob/master/CHANGELOG.md)
+[Website](https://dimagious.github.io/dashsidian/) · [Every block and key](https://dimagious.github.io/dashsidian/reference/) · [Guides](https://dimagious.github.io/dashsidian/guides/) · [Changelog](https://github.com/Dimagious/dashsidian/blob/master/CHANGELOG.md)
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/agent-hero-dark.png">
-  <img alt="Left, a request to an AI agent: a running dashboard with weekly distance as bars against a 40 km goal, this week's distance, the current streak and a countdown to a marathon on May 17. Right, the Obsidian note it wrote: a countdown to the marathon, two cards for this week's distance and the current streak, and weekly bars under a dashed 40 km line."
-       src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/agent-hero-light.png">
-</picture>
+## Ask in plain words
 
-One request on the left, the note it wrote on the right: three blocks, `countdown`, `stats` and `chart`, in a demo vault. You open the note and check; a block that can't draw says why.
+<img alt="A terminal under an Obsidian note: the request &quot;Count the books I finished this year against a goal of 24&quot;, the agent reading the vault profile and editing the note, and a progress bar landing in the note at 16 of 24"
+     src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/film-agent-block.gif" width="360">
 
-## Install
-
-Settings → **Community plugins** → **Browse** → search for **Dashy** → Install → Enable.
-
-Then install the agent skill from Dashy's settings or the command palette, or run **Dashy: Insert block** to write a block yourself.
-
-## Ask your agent
-
-In Dashy's settings, under **AI agent skill**, the **Install** button on **Skill file in this
-vault** writes a skill for Claude Code, and the one on **AGENTS.md in the vault root** writes the
-same for Codex, Cursor and other agents. Once a file is written, its button reads **Update**: press it after updating Dashy. Open the vault
-in your agent and say what you want to see. It reads your property names and folders, writes the
-blocks, and you open the note to check.
-
-Two commands give the agent eyes on the vault, and the skill asks you to run them.
-**Dashy: Write vault profile** writes `.dashy/vault-profile.md`: your properties with their kinds
-and a short sample, your folders and how their notes are dated, your most used tags, and the
-periodic note settings Dashy reads, so the agent does not open note after note. **Dashy: Check blocks in this note**
-writes `.dashy/block-check.md`: every block of the open note with the errors and warnings it
-shows, which the agent fixes until none are left.
-
-> Count the books I finished this year against a goal of 24.
-
-The agent first finds how a book note says when you finished it, here a `finished` date
-property in the notes under `Books`, and writes:
+The agent reads your property names and folders and writes the block. Works with Claude Code, Codex, Cursor and other agents.
 
 ````markdown
 ```progress
@@ -61,103 +34,56 @@ items:
 ```
 ````
 
-Setup, six prompts to copy, and what to do when a block shows an error:
-[build an Obsidian dashboard with an AI agent](https://dimagious.github.io/dashsidian/guides/ai-agent-dashboard/).
+[Setup and six prompts to copy](https://dimagious.github.io/dashsidian/guides/ai-agent-dashboard/)
 
-## Or write it yourself: a habit tracker in two blocks
+## Tick a box, the numbers follow
 
-Tick `gym: true` in a daily note's Properties. Paste this into any other note:
+<img alt="The gym checkbox ticked in a daily note, and below it the week count and current streak rolling up by one while today's cell of the year heatmap fills with colour"
+     src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/film-one-tick.gif" width="360">
 
-````markdown
-```stats
-columns: 4
-source: Diary
-items:
-  - { label: Gym days, field: gym, agg: sum, icon: 🏋️ }
-  - { label: Longest gym streak, field: gym, agg: streak, unit: days, icon: 🔥 }
-  - { label: Gym this week, field: gym, agg: sum, period: week, icon: 📅, compare: true, better: up }
-  - { label: Gym this month, field: gym, agg: sum, period: month, icon: 🗓 }
-```
+Every block redraws when a note changes. No agent needed, two blocks are enough:
+[a habit tracker without Dataview](https://dimagious.github.io/dashsidian/guides/habit-tracker-without-dataview/).
 
-```heatmap
-source: Diary
-field: gym
-color: orange
-title: Gym
-```
-````
+## A broken block says why
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/habits-dark.png">
-  <img alt="Four cards: gym days, longest streak, this week against last week, this month; below them a year of days with the gym days in orange"
-       src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/habits-light.png">
-</picture>
+<img alt="A heatmap block loses a letter, field becomes fild, and in its place the note says: Unknown key &quot;fild&quot;. Did you mean &quot;field&quot;? The letter goes back and the heatmap returns"
+     src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/film-error-message.gif" width="360">
 
-`Diary` is the folder your daily notes live in, and each note's name starts with its date.
-Written once at the top, it applies to every card; a card with its own `source` reads that folder instead.
-A ticked box counts as 1. `period: week` is always the current week, and `compare: true` sets it
-against the same days of last week. The step-by-step version, with the same tracker in Tracker
-and dataviewjs next to it: [a habit tracker without Dataview](https://dimagious.github.io/dashsidian/guides/habit-tracker-without-dataview/).
+A typo gets a "did you mean", a broken YAML line gets its line number. Your agent can read the same messages and fix the block.
+
+## A review counts its own week
+
+<img alt="Two tabs, 2026-W40 and 2026-W41, with the same blocks: switching tabs changes the cards and the chart to the week each note is named for"
+     src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/film-review-week.gif" width="360">
+
+A note named `2026-W40` shows that week, however late you open it. The same template works every week:
+[a weekly review without Dataview](https://dimagious.github.io/dashsidian/guides/weekly-review-without-dataview/).
+
+<sub>These clips are drawn illustrations with made-up data. The picture below is a real note in a demo vault.</sub>
 
 ## Seven blocks
 
-Every block reads frontmatter through Obsidian's own metadata cache. Each name below opens its
-page: a picture, an example, every key.
-
-- [`stats`](https://dimagious.github.io/dashsidian/reference/stats/): number cards, or one line of numbers for a page header. Count, sum, average, best and current streak, this week against last or against your usual level.
-- [`progress`](https://dimagious.github.io/dashsidian/reference/progress/): bars towards a goal, like 24 books this year.
-- [`countdown`](https://dimagious.github.io/dashsidian/reference/countdown/): days until a race, a holiday, the next birthday, a date kept in a note, or the soonest one in a folder of notes.
-- [`today`](https://dimagious.github.io/dashsidian/reference/today/): today's date, an optional live clock, and links to the daily, weekly and monthly notes.
-- [`tiles`](https://dimagious.github.io/dashsidian/reference/tiles/): link tiles into the vault, with live note counts.
-- [`heatmap`](https://dimagious.github.io/dashsidian/reference/heatmap/): a year of days coloured by a number or a checkbox, several habits on one grid, or [a month as a calendar](https://dimagious.github.io/dashsidian/guides/monthly-habit-calendar/) with a dot under every day you kept a habit.
-- [`chart`](https://dimagious.github.io/dashsidian/reference/chart/): a line or bars of a number by day, week, month or year, with a goal line.
-
-A weekly or monthly review counts its own period: `period: note` on `stats` and `progress`,
-`range: note` on `chart` and `heatmap`, in a note named `2026-W40` or `2026-10`, however late
-you open it. The same keys take a period written out, `2026-Q4`, or two dates,
-`{ from: 2026-09-01, to: 2026-09-30 }`. The review template itself, kept in the Templates
-or Templater folder, shows a short hint instead of an error. Step by step: [a weekly review without Dataview](https://dimagious.github.io/dashsidian/guides/weekly-review-without-dataview/).
-
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/chart-weekly-dark.png">
-  <img alt="Weekly bars of running distance over half a year, a dashed goal line at 30 km, the current week drawn lighter"
-       src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/chart-weekly-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/agent-hero-dark.png">
+  <img alt="Left, a request to an AI agent: a running dashboard with weekly distance as bars against a 40 km goal, this week's distance, the current streak and a countdown to a marathon on May 17. Right, the Obsidian note it wrote: a countdown to the marathon, two cards for this week's distance and the current streak, and weekly bars under a dashed 40 km line."
+       src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/agent-hero-light.png">
 </picture>
 
-Dates read the way your daily notes are named: `2026-10-05`, or `05.10.2026` in the day format
-set in Daily notes or Periodic Notes, or in one a block names with `date_format: DD.MM.YYYY`.
-Durations read the way your watch writes them: `sleep: 7h 38min` counts as a number and comes
-back as `7h 38m`. Race times written to the second, `time: 2:16:32`, come back to the second
-as a clock; `H:MM` always means hours and minutes, so write a 5 km time as `0:18:51`. Every
-block redraws when a note changes and takes its colours from your theme. With Obsidian Charts
-turned on, write the chart block as `dashy-chart`.
+- [`stats`](https://dimagious.github.io/dashsidian/reference/stats/): number cards, streaks, this week against last.
+- [`progress`](https://dimagious.github.io/dashsidian/reference/progress/): bars towards a goal.
+- [`heatmap`](https://dimagious.github.io/dashsidian/reference/heatmap/): a year of days, several habits on one grid, or a month as a calendar.
+- [`chart`](https://dimagious.github.io/dashsidian/reference/chart/): a line or bars by day, week, month or year, with a goal line.
+- [`countdown`](https://dimagious.github.io/dashsidian/reference/countdown/): days until a race, a holiday or the next birthday.
+- [`today`](https://dimagious.github.io/dashsidian/reference/today/): the date and links to your daily, weekly and monthly notes.
+- [`tiles`](https://dimagious.github.io/dashsidian/reference/tiles/): link tiles into the vault, with live note counts.
 
-When the config is wrong, the block says so in the note: a typo gets a "did you mean", a broken
-YAML line gets its line number.
+Blocks take their colours from your theme and read frontmatter only, not inline `key:: value` fields. Pie charts, tables, kanban and tasks are left to other plugins: [what it leaves out](https://dimagious.github.io/dashsidian/#scope).
 
-<img alt="Messages inside a note: an unknown key with a suggestion, a missing field, an unknown aggregate, a filter using or, and a chart key borrowed from another block"
-     src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/diagnostics-dark.png">
+## Install
 
-## Guides
+Settings → **Community plugins** → **Browse** → search for **Dashy** → Install → Enable.
 
-One problem per page, with the notes, the block, and the Bases, Tracker or dataviewjs version beside it:
-
-- [Build an Obsidian dashboard with an AI agent](https://dimagious.github.io/dashsidian/guides/ai-agent-dashboard/)
-- [A habit tracker without Dataview](https://dimagious.github.io/dashsidian/guides/habit-tracker-without-dataview/)
-- [A habit streak that skips weekends](https://dimagious.github.io/dashsidian/guides/streak-weekdays/)
-- [Two activities on one heatmap](https://dimagious.github.io/dashsidian/guides/heatmap-two-activities/)
-- [A monthly habit calendar without Dataview](https://dimagious.github.io/dashsidian/guides/monthly-habit-calendar/)
-- [A weekly review without Dataview](https://dimagious.github.io/dashsidian/guides/weekly-review-without-dataview/)
-- [A weekly chart without Tracker](https://dimagious.github.io/dashsidian/guides/weekly-chart-tracker-alternative/)
-- [Countdown to a birthday](https://dimagious.github.io/dashsidian/guides/countdown-birthday/)
-- [Books per year: a reading log chart](https://dimagious.github.io/dashsidian/guides/books-per-year/)
-- [A homepage dashboard without code](https://dimagious.github.io/dashsidian/guides/homepage-dashboard/)
-
-## What it leaves out
-
-Pie, radar and scatter charts and stacked bars ([Obsidian Charts](https://github.com/phibr0/obsidian-charts)),
-tables and queries (Bases, Dataview), kanban, tasks. It reads frontmatter only, not inline
-`key:: value` fields or tags with values. If that stops you, [say what you tried](https://github.com/Dimagious/dashsidian/issues).
+Then install the agent skill from Dashy's settings, under **AI agent skill**. To write a block yourself, run **Dashy: Insert block**.
 
 ## Questions
 
@@ -165,34 +91,19 @@ tables and queries (Bases, Dataview), kanban, tasks. It reads frontmatter only, 
 <summary>What does my agent see, and where does it go?</summary>
 
 Your agent reads the notes it opens and sends them to its model provider, as it does with any
-file it works on. Check what your agent is allowed to open before you point it at a vault with
-private notes. Dashy itself sends nothing anywhere: it makes no network requests of its own, and
-it writes the skill files only when you press their buttons, and the files in `.dashy/` only when
-you run their commands. The vault profile holds property names, tags, counts and one real value
-of each property from your notes, cut at 40 characters. It never holds note text, and hides the
-value only of a property named like a password, token, secret or key: an `email` or `phone`
-shows. Read the file before you hand it to an agent you would not trust with those values.
-The one thing a block loads from
-the internet is a tile `image` you set to an `https://` address, the way Obsidian loads an
-image in a note. If you'd rather not open the vault at all, **Copy markdown** puts the skill on
-the clipboard, and you paste it into a chat with the frontmatter of a few notes.
+file it works on. Check what it is allowed to open before you point it at a vault with private
+notes. Dashy makes no network requests, apart from a tile `image` you set to an
+`https://` address. It writes the skill files and `.dashy/` only when you ask, and
+`.dashy/vault-profile.md` holds one real value of each property, so read it before you hand it
+over. [The details](https://dimagious.github.io/dashsidian/guides/ai-agent-dashboard/#privacy).
 
 </details>
 
 <details>
 <summary>Do I need an AI agent?</summary>
 
-You don't need one. Run **Dashy: Insert block**, pick a block, and a working example lands at
-the cursor, already pointed at a folder and a property from your vault. Every block is a few
-lines of YAML, and every key is on the [reference page](https://dimagious.github.io/dashsidian/reference/).
-The agent is the fast way in, not the only one.
-
-</details>
-
-<details>
-<summary>Do I need Dataview?</summary>
-
-No. Dashy reads frontmatter from Obsidian's own metadata cache. Nothing else to install.
+No. **Dashy: Insert block** puts a working example at the cursor, already pointed at a folder and
+a property from your vault. Every block is a few lines of YAML.
 
 </details>
 
@@ -206,10 +117,8 @@ Yes. A tap on a heatmap cell or a chart bar shows its value, and a second tap op
 <details>
 <summary>How does a block know a note's date?</summary>
 
-From its name, when it starts with `YYYY-MM-DD`: `2026-01-05 Monday` counts. Names written
-another way, like `05.01.2026`, are read in the day format set in the Daily notes or Periodic
-Notes settings, or in one the block names with `date_format: DD.MM.YYYY`. Otherwise add
-`date_field` to the block and keep the date in a property.
+From its name. `2026-01-05 Monday` counts, and so does `05.01.2026` when that is the day format in
+your Daily notes or Periodic Notes settings. A block can also name a format with `date_format`, or read a property with `date_field`.
 
 </details>
 
@@ -217,16 +126,15 @@ Notes settings, or in one the block names with `date_format: DD.MM.YYYY`. Otherw
 <summary>Which languages does it speak?</summary>
 
 English, Russian, German, French and Spanish, following Obsidian or picked in the settings.
-Corrections to a translation are welcome: copy [`src/i18n/en.ts`](https://github.com/Dimagious/dashsidian/blob/master/src/i18n/en.ts) and translate the values.
 
 </details>
 
 ## Bugs and ideas
 
-The settings tab has a row for each. It opens a GitHub issue with your plugin and Obsidian
-versions filled in. Or go straight to [the issue tracker](https://github.com/Dimagious/dashsidian/issues).
+The settings tab has a row for each, and it fills in your versions. Or go straight to [the issue tracker](https://github.com/Dimagious/dashsidian/issues).
 
-## Development
+<details>
+<summary>Development</summary>
 
 ```bash
 npm install
@@ -235,15 +143,13 @@ npm run lint         # eslint + eslint-plugin-obsidianmd
 npm run typecheck
 npm run build        # main.js + styles.css
 npm run dev:vault    # build into a test vault and watch
-npm run build:skill  # regenerate the agent skill from the schema
-npm run build:reference  # regenerate the site's block reference
 ```
 
-`npm run preview` shows every block in every state in a browser. `npm run e2e` runs the suite
-against a real Obsidian, and `npm run capture` retakes the pictures. Logic lives in `src/core/`,
-which imports neither Obsidian nor the DOM. Block keys live in
+Logic lives in `src/core/`, which imports neither Obsidian nor the DOM. Block keys live in
 [`src/blocks/schema.json`](https://github.com/Dimagious/dashsidian/blob/master/src/blocks/schema.json); the agent skill and the site's
 reference pages are generated from it. Design notes: [`docs/SPEC.md`](https://github.com/Dimagious/dashsidian/blob/master/docs/SPEC.md).
+
+</details>
 
 ## License
 
