@@ -103,6 +103,11 @@ describe("site-check — a clean page", () => {
 });
 
 describe("site-check — findMissingImages", () => {
+    it("checks a video's file and its poster", () => {
+        const html = '<video src="../../img/film.mp4" poster="../../img/gone.png"></video>';
+        expect(findMissingImages(html, new Set(["film.mp4"]), "guides/x/index.html")).toEqual(["img/gone.png"]);
+    });
+
     it("flags an img/ reference with no matching file under docs/screens/", () => {
         const html = `<img src="img/does-not-exist.png">`;
         expect(findMissingImages(html, new Set(["dashboard-light.png"]))).toEqual(["img/does-not-exist.png"]);

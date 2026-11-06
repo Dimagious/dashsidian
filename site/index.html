@@ -320,6 +320,13 @@ h2 code.h-code { font-size: .92em; background: none; border: 0; padding: 0; colo
 }
 .shot img { width: 100%; height: auto; }
 .shot figcaption { font-size: 13px; color: var(--faint); padding: 8px 12px; border-top: 1px solid var(--border); background: var(--bg); }
+.shot video { width: 100%; height: auto; display: block; }
+.film { max-width: 340px; margin: 18px 0; }
+.film-column { display: grid; gap: 18px; justify-items: start; }
+.film-column .film { margin: 0; }
+.with-film { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; margin: 18px 0; }
+.with-film > div > p:first-child { margin-top: 0; }
+.with-film .film { margin: 0; }
 .crop-top { overflow: hidden; aspect-ratio: 1280 / 790; }
 .crop-top img { margin-top: -6.4%; }
 .plain { border: 0; box-shadow: none; background: transparent; border-radius: 0; }
@@ -468,6 +475,7 @@ footer.note-foot a { color: var(--muted); }
   .lede { font-size: 17px; }
   .six { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .two { grid-template-columns: minmax(0, 1fr); }
+  .with-film { grid-template-columns: minmax(0, 1fr); }
   .prop { grid-template-columns: 118px minmax(0, 1fr); }
   .statusbar { display: none; }
   .view-header { display: none; }
@@ -742,10 +750,16 @@ items:
             </div>
             <p><a href="guides/ai-agent-dashboard/">Setup, six requests to copy, and what to do when a block shows an error</a>.</p>
           </div>
+          <div class="film-column">
+            <figure class="shot film">
+              <video data-film src="img/film-agent-block.mp4" poster="img/film-agent-block-poster.png" width="960" height="1200" muted loop playsinline preload="none" aria-label="A terminal under an Obsidian note: the request &quot;Count the books I finished this year against a goal of 24&quot;, the agent reading the vault profile and editing the note, and a progress bar landing in the note at 16 of 24"></video>
+              <figcaption>Illustration with made-up data.</figcaption>
+            </figure>
           <figure class="shot">
             <img src="img/settings-dark.png" width="1350" height="1340" loading="lazy" alt="Dashy settings: periodic note folders, and buttons that install the agent skill and AGENTS.md">
             <figcaption>Dashy's settings tab.</figcaption>
           </figure>
+          </div>
         </div>
       </section>
 
@@ -753,7 +767,16 @@ items:
       <section class="file" id="habits" data-title="Habit tracker" data-path="Habit tracker">
         <div class="crumb">Habit tracker.md</div>
         <h2>A habit tracker from daily note checkboxes</h2>
-        <p>Tick a checkbox property in a daily note, say <code>gym: true</code>, and that note already feeds a habit tracker. Any block that reads a <code>field</code> counts a ticked day as 1 and an unticked one as 0.</p>
+        <div class="with-film">
+          <div>
+          <p>Tick a checkbox property in a daily note, say <code>gym: true</code>, and that note already feeds a habit tracker. Any block that reads a <code>field</code> counts a ticked day as 1 and an unticked one as 0.</p>
+            <p>The numbers do not wait for a refresh: tick the box and every block on the page that reads it redraws.</p>
+          </div>
+          <figure class="shot film">
+            <video data-film src="img/film-one-tick.mp4" poster="img/film-one-tick-poster.png" width="960" height="1200" muted loop playsinline preload="none" aria-label="The gym checkbox ticked in a daily note, and below it the week count and current streak rolling up by one while today's cell of the year heatmap fills with colour"></video>
+            <figcaption>Illustration with made-up data.</figcaption>
+          </figure>
+        </div>
 
         <div class="pair">
           <div class="codeblock" data-code>
@@ -968,7 +991,15 @@ items:
           </div>
         </div>
         <p><code>period: week</code>, <code>month</code> or <code>year</code> narrows a card to the current calendar one, ending today; <code>period: 30d</code> is a rolling count of days instead. A note's date is its name, as long as it starts with <code>YYYY-MM-DD</code> (<code>2026-03-02 Monday</code> and <code>2026-03-02_standup</code> both count) or with a date in the Daily notes day format or in <code>date_format: DD.MM.YYYY</code>, unless <code>date_field</code> names a frontmatter date property instead. <code>streak</code>, <code>current_streak</code>, <code>latest</code> and <code>trend</code> resolve a note's date the same way, whether or not <code>period</code> is even set, and two or more notes landing on the same day always count as that one day, not two. <code>compare: true</code> sets a card against the period before it, and <code>compare: usual</code>, on <code>agg: avg</code>, against your usual level: the average of every earlier note.</p>
-        <p>A review note counts its own period. <code>period: note</code> is the day, week, month, quarter or year the note the block sits in is named for: in <code>2026-W40</code> that week, however late you open it. A period can be written out too, <code>period: 2026-Q4</code>, or given as two dates, <code>period: { from: 2026-09-01, to: 2026-09-30 }</code>, both days included. Once such a window is over, <code>current_streak</code> and <code>trend</code> end on its last day, and <code>compare: true</code> sets a week or a month against the whole one before it, June against all of May.</p>
+        <div class="with-film">
+          <div>
+          <p>A review note counts its own period. <code>period: note</code> is the day, week, month, quarter or year the note the block sits in is named for: in <code>2026-W40</code> that week, however late you open it. A period can be written out too, <code>period: 2026-Q4</code>, or given as two dates, <code>period: { from: 2026-09-01, to: 2026-09-30 }</code>, both days included. Once such a window is over, <code>current_streak</code> and <code>trend</code> end on its last day, and <code>compare: true</code> sets a week or a month against the whole one before it, June against all of May.</p>
+          </div>
+          <figure class="shot film">
+            <video data-film src="img/film-review-week.mp4" poster="img/film-review-week-poster.png" width="960" height="1200" muted loop playsinline preload="none" aria-label="Two tabs, 2026-W40 and 2026-W41, with the same blocks: switching tabs changes the cards and the chart to the week each note is named for"></video>
+            <figcaption>Illustration with made-up data.</figcaption>
+          </figure>
+        </div>
         <p><code>where</code> is a condition on frontmatter: <code>where: "rating &gt;= 4"</code>, <code>where: "tags contains books"</code>. Several conditions must all hold, as a list, <code>where: [year = 2026, "rating &gt;= 4"]</code>, or joined by <code>and</code>, <code>where: "year = 2026 and rating &gt;= 4"</code>. <code>or</code> is not supported: it warns and the filter is ignored. <code>where: "date empty"</code> keeps the notes without a <code>date</code>, or with it blank, and <code>where: "date not empty"</code> the rest.</p>
         <div class="callout quote">
           <div class="callout-title"><svg><use href="#i-quote"/></svg>A dash, not a zero</div>
@@ -1149,7 +1180,15 @@ series:
       <section class="file" id="errors" data-title="Config errors" data-path="Behaviour / Config errors">
         <div class="crumb">Behaviour/Config errors.md</div>
         <h2>When the config is wrong, the block says so</h2>
-        <p>A block that cannot draw explains why, in the note, next to what failed. An unknown key suggests the one you probably meant. A broken YAML line reports its line number. A key borrowed from another block names what it is called here: <code>layers</code> in a chart points at <code>series</code>. A filter that could not be read says the numbers below it are unfiltered. A field nobody wrote and a field that holds text instead of a number get different messages, not one generic "no data": the heatmap and the stats cards both say which.</p>
+        <div class="with-film">
+          <div>
+          <p>A block that cannot draw explains why, in the note, next to what failed. An unknown key suggests the one you probably meant. A broken YAML line reports its line number. A key borrowed from another block names what it is called here: <code>layers</code> in a chart points at <code>series</code>. A filter that could not be read says the numbers below it are unfiltered. A field nobody wrote and a field that holds text instead of a number get different messages, not one generic "no data": the heatmap and the stats cards both say which.</p>
+          </div>
+          <figure class="shot film">
+            <video data-film src="img/film-error-message.mp4" poster="img/film-error-message-poster.png" width="960" height="1200" muted loop playsinline preload="none" aria-label="A heatmap block loses a letter, field becomes fild, and in its place the note says: Unknown key &quot;fild&quot;. Did you mean &quot;field&quot;? The letter goes back and the heatmap returns"></video>
+            <figcaption>Illustration with made-up data.</figcaption>
+          </figure>
+        </div>
         <div class="pair">
           <div class="codeblock" data-code>
             <div class="bar"><span>A config with a mistake.md</span><button class="copy" type="button">Copy</button></div>
@@ -1427,5 +1466,6 @@ layers: [sleep_score]
   });
 })();
 </script>
+<script src="assets/films.js"></script>
 </body>
 </html>
