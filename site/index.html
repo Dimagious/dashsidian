@@ -322,6 +322,7 @@ h2 code.h-code { font-size: .92em; background: none; border: 0; padding: 0; colo
 .shot figcaption { font-size: 13px; color: var(--faint); padding: 8px 12px; border-top: 1px solid var(--border); background: var(--bg); }
 .shot video { width: 100%; height: auto; display: block; }
 .film { max-width: 340px; margin: 18px 0; }
+.film.wide { max-width: 720px; }
 .film-column { display: grid; gap: 18px; justify-items: start; }
 .film-column .film { margin: 0; }
 .with-film { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; margin: 18px 0; }
@@ -1256,7 +1257,11 @@ layers: [sleep_score]
         </details>
         <details class="callout">
           <summary class="callout-title"><svg><use href="#i-help"/></svg>Does it work on my phone?<svg class="chev"><use href="#i-right"/></svg></summary>
-          <p>Yes. The plugin is not desktop-only, and the blocks fit a narrow screen.</p>
+          <p>Yes. The plugin is not desktop-only, and the blocks fit a narrow screen. A tap on a heatmap cell or a chart bar shows its value, and a second tap opens the note.</p>
+          <figure class="shot film wide">
+            <video data-film src="img/film-phone.mp4" poster="img/film-phone-poster.png" width="2000" height="1240" muted loop playsinline preload="none" aria-label="Obsidian&#39;s mobile interface with a sleep heatmap: a tap on a day shows its value under the grid, a second tap opens that day&#39;s note with its properties, and the back button returns to the dashboard"></video>
+            <figcaption>Obsidian's mobile interface in a phone-sized window on a desktop, with a demo vault.</figcaption>
+          </figure>
         </details>
         <details class="callout">
           <summary class="callout-title"><svg><use href="#i-help"/></svg>How does a block know a note's date?<svg class="chev"><use href="#i-right"/></svg></summary>
