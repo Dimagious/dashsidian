@@ -9,3 +9,5 @@ Captured: 480 wide and 390 wide, light theme only, no reduced-motion pass.
 Gate: `film.mjs --gate` ended "rehearsal passed" at both widths. Coverage was reported as inconclusive (sampling gaps), so the gate does not vouch for every frame.
 Review: one fresh-eye pass. Accepted findings are fixed, and the final build was looked at only as stills from the MP4, not re-reviewed.
 Not checked: playback in a real page, dark theme.
+
+Wide cut (`dashy-b202-wide`, 720x420): the terminal beside the note, the YAML stays on screen with the bar. Gate passed at 720; on a 390 phone a wide film shrinks like any full-width GIF.

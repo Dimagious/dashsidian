@@ -15,14 +15,28 @@
 Charts, streaks, heatmaps and goals from your daily notes' properties.
 Plain YAML you can read and edit. No JavaScript, no Dataview, works on your phone.
 
+<img alt="A terminal beside an Obsidian note: the request &quot;Count the books I finished this year against a goal of 24&quot;, the agent reading the vault profile and writing the block, and a progress bar landing in the note at 16 of 24" src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/film-agent-block-wide.gif" width="100%">
+
+**Install:** Settings → **Community plugins** → **Browse** → search for **Dashy**. Then install the agent skill from Dashy's settings, under **AI agent skill**, and ask for what you want to see. Works with Claude Code, Codex, Cursor and other agents.
+
 [Website](https://dimagious.github.io/dashsidian/) · [Every block and key](https://dimagious.github.io/dashsidian/reference/) · [Guides](https://dimagious.github.io/dashsidian/guides/) · [Changelog](https://github.com/Dimagious/dashsidian/blob/master/CHANGELOG.md)
 
-## Ask in plain words
+## What you can do
 
-<img alt="A terminal under an Obsidian note: the request &quot;Count the books I finished this year against a goal of 24&quot;, the agent reading the vault profile and editing the note, and a progress bar landing in the note at 16 of 24"
-     src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/film-agent-block.gif" width="360">
+**Tick a box, the numbers follow.** Every block redraws when a note changes. No agent needed: [a habit tracker in two blocks](https://dimagious.github.io/dashsidian/guides/habit-tracker-without-dataview/).
 
-The agent reads your property names and folders and writes the block. Works with Claude Code, Codex, Cursor and other agents.
+**A broken block says why.** A typo gets a "did you mean", a broken YAML line gets its line number. Your agent can read the same messages and fix the block.
+
+<p>
+  <img alt="The gym checkbox ticked in a daily note, and below it the week count and current streak rolling up by one while today's cell of the year heatmap fills with colour" src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/film-one-tick.gif" width="49%">
+  <img alt="A heatmap block loses a letter, field becomes fild, and in its place the note says: Unknown key &quot;fild&quot;. Did you mean &quot;field&quot;? The letter goes back and the heatmap returns" src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/film-error-message.gif" width="49%">
+</p>
+
+**A review counts its own week.** A note named `2026-W40` shows that week, however late you open it, and the same template works every week: [a weekly review without Dataview](https://dimagious.github.io/dashsidian/guides/weekly-review-without-dataview/).
+
+<img alt="Two tabs, 2026-W40 and 2026-W41, with the same blocks: switching tabs changes the cards and the chart to the week each note is named for" src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/film-review-week-wide.gif" width="100%">
+
+**Read and edit what it writes.** Plain YAML, no JavaScript, no Dataview. [Setup and six prompts to copy](https://dimagious.github.io/dashsidian/guides/ai-agent-dashboard/).
 
 ````markdown
 ```progress
@@ -33,31 +47,6 @@ items:
   - { label: Books this year, agg: count, goal: 24 }
 ```
 ````
-
-[Setup and six prompts to copy](https://dimagious.github.io/dashsidian/guides/ai-agent-dashboard/)
-
-## Tick a box, the numbers follow
-
-<img alt="The gym checkbox ticked in a daily note, and below it the week count and current streak rolling up by one while today's cell of the year heatmap fills with colour"
-     src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/film-one-tick.gif" width="360">
-
-Every block redraws when a note changes. No agent needed, two blocks are enough:
-[a habit tracker without Dataview](https://dimagious.github.io/dashsidian/guides/habit-tracker-without-dataview/).
-
-## A broken block says why
-
-<img alt="A heatmap block loses a letter, field becomes fild, and in its place the note says: Unknown key &quot;fild&quot;. Did you mean &quot;field&quot;? The letter goes back and the heatmap returns"
-     src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/film-error-message.gif" width="360">
-
-A typo gets a "did you mean", a broken YAML line gets its line number. Your agent can read the same messages and fix the block.
-
-## A review counts its own week
-
-<img alt="Two tabs, 2026-W40 and 2026-W41, with the same blocks: switching tabs changes the cards and the chart to the week each note is named for"
-     src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/film-review-week.gif" width="360">
-
-A note named `2026-W40` shows that week, however late you open it. The same template works every week:
-[a weekly review without Dataview](https://dimagious.github.io/dashsidian/guides/weekly-review-without-dataview/).
 
 <sub>These clips are drawn illustrations with made-up data. The picture below is a real note in a demo vault.</sub>
 
@@ -78,12 +67,6 @@ A note named `2026-W40` shows that week, however late you open it. The same temp
 - [`tiles`](https://dimagious.github.io/dashsidian/reference/tiles/): link tiles into the vault, with live note counts.
 
 Blocks take their colours from your theme and read frontmatter only, not inline `key:: value` fields. Pie charts, tables, kanban and tasks are left to other plugins: [what it leaves out](https://dimagious.github.io/dashsidian/#scope).
-
-## Install
-
-Settings → **Community plugins** → **Browse** → search for **Dashy** → Install → Enable.
-
-Then install the agent skill from Dashy's settings, under **AI agent skill**. To write a block yourself, run **Dashy: Insert block**.
 
 ## Questions
 
