@@ -86,7 +86,7 @@ Step-by-step pages, one problem each, with YAML to copy:
   - today: https://dimagious.github.io/dashsidian/reference/today/
   - tiles: https://dimagious.github.io/dashsidian/reference/tiles/
   - countdown: https://dimagious.github.io/dashsidian/reference/countdown/
-- README, install and one complete example:
+- README, what it does, install and one complete example:
   https://raw.githubusercontent.com/Dimagious/dashsidian/master/README.md
 - Changelog:
   https://raw.githubusercontent.com/Dimagious/dashsidian/master/CHANGELOG.md

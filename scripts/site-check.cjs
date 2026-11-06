@@ -184,14 +184,14 @@ function screenPathFor(imageName) {
 
 /**
  * Every `img/...` path the page references, relative to `site/`: from
- * `src`/`srcset` attributes resolved against the page's folder (so
+ * `src`/`srcset`/`poster` attributes resolved against the page's folder (so
  * `../../img/x.png` on `guides/x/index.html` is `img/x.png`), and from
  * absolute og/twitter image URLs.
  */
 function extractImageRefs(html, pagePath = "index.html") {
     const noScripts = stripScripts(html);
     const refs = new Set();
-    for (const m of noScripts.matchAll(/\b(?:src|srcset)="([^"]+)"/g)) {
+    for (const m of noScripts.matchAll(/\b(?:src|srcset|poster)="([^"]+)"/g)) {
         if (isNonRelative(m[1])) continue;
         const resolved = resolveRef(pagePath, m[1]);
         if (resolved && resolved.path.startsWith("img/")) refs.add(resolved.path);
@@ -411,7 +411,7 @@ function findThirdPartyRequestUrls(html) {
     for (const m of html.matchAll(/<script\b[^>]*\bsrc="(https?:\/\/[^"]+)"/gi)) {
         urls.push(m[1]);
     }
-    for (const m of html.matchAll(/<(?:img|source)\b[^>]*\b(?:src|srcset)="(https?:\/\/[^"]+)"/gi)) {
+    for (const m of html.matchAll(/<(?:img|source|video)\b[^>]*\b(?:src|srcset|poster)="(https?:\/\/[^"]+)"/gi)) {
         urls.push(m[1]);
     }
     for (const block of html.match(/<style[\s\S]*?<\/style>/gi) || []) {
