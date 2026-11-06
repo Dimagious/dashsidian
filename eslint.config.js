@@ -83,6 +83,8 @@ export default [
   // Ignore patterns
   {
     ignores: [
+      // Scenes for the stageshow skill: React, built in that skill's playground
+      'design/**',
       'node_modules/**',
       'coverage/**',
       'dist/**',

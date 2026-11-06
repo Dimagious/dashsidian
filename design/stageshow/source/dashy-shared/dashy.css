@@ -1,0 +1,89 @@
+/* The plugin's look in Obsidian's default light theme. Sampled from docs/screens. */
+.ss-stage:has(.dy-app) {
+  --dy-text: #222;
+  --dy-muted: #5c5c5c;
+  --dy-faint: #8f8f8f;
+  --dy-chrome: #f1f1f1;
+  --dy-rule: #e0e0e0;
+  --dy-empty: #e4e4e4;
+  --dy-accent: #8a6bec;
+  --dy-green: #2f9e44;
+  --dy-red: #e93147;
+  background: #fff;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  color: var(--dy-text);
+}
+
+.dy-app { position: absolute; inset: 0; display: flex; flex-direction: column; background: #fff; }
+.dy-pane { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.dy-pane + .dy-pane { border-top: 1px solid var(--dy-rule); }
+.dy-body { flex: 1; min-height: 0; padding: 12px 20px 0; overflow: hidden; }
+
+.dy-tabs { flex: none; display: flex; align-items: flex-end; height: 34px; padding: 0 12px 0 7px; gap: 2px; background: var(--dy-chrome); border-bottom: 1px solid var(--dy-rule); color: var(--dy-muted); }
+.dy-tab { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 132px; height: 28px; margin-bottom: -1px; padding: 0 10px 0 12px; border-radius: 7px 7px 0 0; font-size: 13px; line-height: 1.3; color: var(--dy-muted); border: 1px solid transparent; border-bottom: 0; transition: background-color .15s ease, color .15s ease; }
+.dy-tab svg { flex: none; opacity: 0; transition: opacity .15s ease; }
+.dy-tab[data-active] { background: #fff; color: var(--dy-text); border-color: var(--dy-rule); }
+.dy-tab[data-active] svg { opacity: .7; }
+.dy-tab__name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.dy-tabs__plus { flex: none; align-self: center; margin-left: 6px; }
+.dy-tabs__end { flex: none; align-self: center; margin-left: auto; }
+
+.dy-header { flex: none; position: relative; display: flex; align-items: center; justify-content: center; height: 32px; color: var(--dy-muted); font-size: 13px; }
+.dy-header__end { position: absolute; right: 12px; top: 8px; display: flex; gap: 10px; }
+
+.dy-inline-title { font-size: 24px; line-height: 1.25; font-weight: 700; letter-spacing: -.01em; margin-bottom: 10px; }
+.dy-block-title { font-size: 14.5px; line-height: 1.3; font-weight: 600; }
+
+/* stats */
+.dy-stats { display: grid; gap: 10px; }
+.dy-card { min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 16px 8px; border: 1px solid #dcd5f4; border-radius: 12px; background: linear-gradient(135deg, #f6f4fd 0%, #eeeafb 100%); box-shadow: 0 2px 4px rgba(0, 0, 0, .05); text-align: center; }
+.dy-card__value { display: flex; justify-content: center; align-items: baseline; gap: 6px; height: 31px; font-size: 28px; line-height: 31px; font-weight: 700; letter-spacing: .01em; white-space: nowrap; }
+.dy-card__unit { font-size: 13px; font-weight: 500; color: var(--dy-muted); letter-spacing: 0; }
+.dy-card__compare { display: flex; justify-content: center; gap: 4px; margin-top: 3px; font-size: 13px; line-height: 1.35; color: var(--dy-muted); white-space: nowrap; }
+.dy-card__delta { font-weight: 600; transition: color .25s ease; }
+.dy-card__compare[data-tone="up"] .dy-card__delta { color: var(--dy-green); }
+.dy-card__compare[data-tone="down"] .dy-card__delta { color: var(--dy-red); }
+.dy-card__label { margin-top: 0; font-size: 14px; line-height: 1.3; }
+
+/* progress */
+.dy-progress__head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 7px; font-size: 14.5px; line-height: 1.3; }
+.dy-progress__label { font-weight: 500; }
+.dy-progress__value { color: var(--dy-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dy-progress__value b { margin-left: 8px; font-weight: 600; color: var(--dy-text); }
+.dy-progress__track { height: 9px; border-radius: 5px; background: var(--dy-empty); overflow: hidden; }
+.dy-progress__fill { height: 100%; border-radius: 5px; background: #9375ef; transition: width .9s cubic-bezier(.25, .8, .25, 1); }
+
+/* heatmap */
+.dy-hm__body { display: flex; gap: 6px; margin-top: 8px; }
+.dy-hm__days { flex: none; display: grid; grid-auto-rows: var(--c); row-gap: var(--g); margin-top: 20px; font-size: 12.5px; line-height: var(--c); color: var(--dy-muted); width: 30px; }
+.dy-hm__scroll { flex: 1; min-width: 0; overflow: hidden; display: flex; flex-direction: column; align-items: flex-end; -webkit-mask-image: linear-gradient(to left, black calc(100% - 42px), transparent); mask-image: linear-gradient(to left, black calc(100% - 42px), transparent); }
+.dy-hm__months { position: relative; align-self: stretch; height: 20px; font-size: 12.5px; line-height: 1.3; color: var(--dy-muted); }
+.dy-hm__months span { position: absolute; top: 0; }
+.dy-hm__grid { display: flex; gap: var(--g); align-self: flex-start; }
+.dy-hm__col { display: grid; grid-auto-rows: var(--c); row-gap: var(--g); }
+.dy-hm__cell { display: block; width: var(--c); height: var(--c); border-radius: 2.5px; background: var(--dy-empty); transition: background-color .3s ease, box-shadow .15s ease; }
+.dy-hm__cell[data-today] { outline: 2px solid var(--dy-text); outline-offset: -2px; }
+.dy-hm__cell[data-selected] { box-shadow: inset 0 0 0 2px #5a34d6; }
+.dy-hm__legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; font-size: 12px; line-height: 1.3; color: var(--dy-muted); }
+.dy-hm__leg { display: flex; align-items: center; gap: 5px; }
+.dy-hm__leg i { width: 12px; height: 12px; border-radius: 2.5px; }
+
+/* chart */
+.dy-chart { position: relative; margin: 8px 0 28px 46px; }
+.dy-chart__line { position: absolute; left: 0; right: 0; border-top: 1px solid #dfdbef; }
+.dy-chart__line[data-goal] { border-top: 1.5px dashed #a9a9a9; z-index: 1; }
+.dy-chart__y { position: absolute; left: -46px; width: 40px; transform: translateY(50%); text-align: right; font-size: 12.5px; line-height: 1.3; color: var(--dy-muted); white-space: nowrap; }
+.dy-chart__bars { position: absolute; inset: 0; display: flex; gap: 8px; padding: 0 4px; align-items: flex-end; }
+.dy-chart__slot { position: relative; flex: 1; height: 100%; display: flex; align-items: flex-end; }
+.dy-chart__bar { width: 100%; border-radius: 2px 2px 0 0; background: #4e81ee; transition: height .5s cubic-bezier(.25, .8, .25, 1); }
+.dy-chart__x { position: absolute; top: calc(100% + 5px); left: 50%; transform: translateX(-50%); font-size: 12.5px; line-height: 1.3; color: var(--dy-muted); white-space: nowrap; }
+
+/* Messages inside the note, as renderDiagnostics draws them */
+.dy-diag { margin-bottom: 5px; padding: 6px 10px; border-radius: 10px; background: #f6f6f6; font-size: 14.5px; line-height: 1.4; }
+.dy-diag[data-level="warning"] { color: var(--dy-muted); }
+.dy-diag[data-level="error"] { color: var(--dy-red); }
+
+.dy-line { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.dy-line__dot { position: absolute; width: 6px; height: 6px; margin: 0 0 -3px -3px; border-radius: 50%; background: #4e81ee; }
+.dy-line__x { position: absolute; top: calc(100% + 6px); left: 0; right: 0; display: flex; justify-content: space-between; font-size: 12.5px; line-height: 1.3; color: var(--dy-muted); }

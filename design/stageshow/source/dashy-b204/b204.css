@@ -1,0 +1,13 @@
+.b204 {
+  .b204-source { flex: none; height: 170px; }
+  .b204-code { padding: 12px 20px; font: 14.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: #3a3a3a; background: #fafafa; flex: 1; }
+  .b204-key { position: relative; display: block; }
+  .b204-caret { position: absolute; top: 2px; bottom: 2px; width: 2px; margin-left: -1px; background: #5a34d6; }
+  .b204-fence { color: var(--dy-faint); }
+  .b204-active { display: flex; align-items: center; white-space: pre; }
+  .b204-read { flex: 1; }
+  .b204-diags { padding-bottom: 10px; }
+  .b204-grid { padding-bottom: 18px; }
+  .b204-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .b204-t { margin-top: 18px; }
+}

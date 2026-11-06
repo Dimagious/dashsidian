@@ -1,0 +1,14 @@
+.b203 {
+  .b203-note { flex: none; height: 176px; }
+  .b203-dash { flex: 1; }
+  .b203-props { margin-bottom: 4px; font-size: 13px; line-height: 1.3; color: var(--dy-muted); }
+  .b203-prop { display: flex; align-items: center; gap: 8px; height: 30px; font-size: 14px; line-height: 1.3; color: var(--dy-text); }
+  .b203-prop svg { flex: none; color: var(--dy-muted); }
+  .b203-key { width: 96px; color: var(--dy-muted); }
+  .b203-box { display: block; width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid #b5b5b5; background: #fff; transition: background-color .12s ease, border-color .12s ease; }
+  .b203-box svg { display: block; margin: -0.5px; color: #fff; opacity: 0; transition: opacity .12s ease; }
+  .b203-box[data-on] { background: var(--dy-accent); border-color: var(--dy-accent); }
+  .b203-box[data-on] svg { opacity: 1; }
+  .b203-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .b203-hm { margin-top: 14px; }
+}
