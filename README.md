@@ -36,6 +36,10 @@ Plain YAML you can read and edit. No JavaScript, no Dataview, works on your phon
 
 <img alt="Two tabs, 2026-W40 and 2026-W41, with the same blocks: switching tabs changes the cards and the chart to the week each note is named for" src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/film-review-week-wide.gif" width="100%">
 
+**Works on your phone.** A tap on a heatmap cell or a chart bar shows its value, and a second tap opens the note.
+
+<img alt="Obsidian's mobile interface with a sleep heatmap: a tap on a day shows its value under the grid, a second tap opens that day's note with its properties, and the back button returns to the dashboard" src="https://raw.githubusercontent.com/Dimagious/dashsidian/HEAD/docs/screens/film-phone.gif" width="100%">
+
 **Read and edit what it writes.** Plain YAML, no JavaScript, no Dataview. [Setup and six prompts to copy](https://dimagious.github.io/dashsidian/guides/ai-agent-dashboard/).
 
 ````markdown
@@ -48,7 +52,7 @@ items:
 ```
 ````
 
-<sub>These clips are drawn illustrations with made-up data. The picture below is a real note in a demo vault.</sub>
+<sub>The phone clip is the plugin running in Obsidian's mobile interface, in a phone-sized window on a desktop, with a demo vault. The other clips are drawn illustrations with made-up data. The picture below is a real note in a demo vault.</sub>
 
 ## Seven blocks
 

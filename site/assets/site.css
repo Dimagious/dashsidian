@@ -298,6 +298,7 @@ h2 code.h-code { font-size: .92em; background: none; border: 0; padding: 0; colo
 .shot figcaption { font-size: 13px; color: var(--faint); padding: 8px 12px; border-top: 1px solid var(--border); background: var(--bg); }
 .shot video { width: 100%; height: auto; display: block; }
 .film { max-width: 340px; margin: 18px 0; }
+.film.wide { max-width: 720px; }
 .film-column { display: grid; gap: 18px; justify-items: start; }
 .film-column .film { margin: 0; }
 .with-film { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; margin: 18px 0; }
