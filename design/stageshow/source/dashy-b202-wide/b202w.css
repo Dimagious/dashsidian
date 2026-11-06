@@ -1,5 +1,5 @@
 .b202w {
-  .b202w-row { position: absolute; inset: 0; display: flex; background: #fff; }
+  .b202w-row { position: absolute; inset: 0; display: flex; background: var(--dy-page); }
   .b202-term { flex: none; width: 386px; background: #17171a; overflow: hidden; }
   .dy-app { position: relative; inset: auto; flex: 1; min-width: 0; background: transparent; }
   .ss-term { padding: 18px 18px 14px; font-size: 12px; line-height: 1.55; gap: 0; }
@@ -14,6 +14,6 @@
   .b202-note { flex: 1; }
   .b202-block { padding-bottom: 16px; }
   .b202-h { font-size: 15px; line-height: 1.3; font-weight: 600; margin-bottom: 6px; }
-  .b202-list { margin: 0; padding: 0 0 0 18px; font-size: 14px; line-height: 1.7; color: #8a6bec; }
-  .b202-list span { color: #7d5fe0; }
+  .b202-list { margin: 0; padding: 0 0 0 18px; font-size: 14px; line-height: 1.7; color: var(--dy-accent); }
+  .b202-list span { color: var(--dy-accent); }
 }

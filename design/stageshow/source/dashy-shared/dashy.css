@@ -1,4 +1,4 @@
-/* The plugin's look in Obsidian's default light theme. Sampled from docs/screens. */
+/* The plugin's look in Obsidian's default themes. Sampled from docs/screens. */
 .ss-stage:has(.dy-app) {
   --dy-text: #222;
   --dy-muted: #5c5c5c;
@@ -9,13 +9,24 @@
   --dy-accent: #8a6bec;
   --dy-green: #2f9e44;
   --dy-red: #e93147;
-  background: #fff;
+  --dy-page: #fff;
+  --dy-card-a: #f6f4fd;
+  --dy-card-b: #eeeafb;
+  --dy-card-line: #dcd5f4;
+  --dy-chart-line: #dfdbef;
+  --dy-diag: #f6f6f6;
+  --dy-select: #5a34d6;
+  --dy-code: #fafafa;
+  --dy-code-text: #3a3a3a;
+  --dy-box: #fff;
+  --dy-box-line: #b5b5b5;
+  background: var(--dy-page);
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
   color: var(--dy-text);
 }
 
-.dy-app { position: absolute; inset: 0; display: flex; flex-direction: column; background: #fff; }
+.dy-app { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--dy-page); }
 .dy-pane { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .dy-pane + .dy-pane { border-top: 1px solid var(--dy-rule); }
 .dy-body { flex: 1; min-height: 0; padding: 12px 20px 0; overflow: hidden; }
@@ -23,7 +34,7 @@
 .dy-tabs { flex: none; display: flex; align-items: flex-end; height: 34px; padding: 0 12px 0 7px; gap: 2px; background: var(--dy-chrome); border-bottom: 1px solid var(--dy-rule); color: var(--dy-muted); }
 .dy-tab { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 132px; height: 28px; margin-bottom: -1px; padding: 0 10px 0 12px; border-radius: 7px 7px 0 0; font-size: 13px; line-height: 1.3; color: var(--dy-muted); border: 1px solid transparent; border-bottom: 0; transition: background-color .15s ease, color .15s ease; }
 .dy-tab svg { flex: none; opacity: 0; transition: opacity .15s ease; }
-.dy-tab[data-active] { background: #fff; color: var(--dy-text); border-color: var(--dy-rule); }
+.dy-tab[data-active] { background: var(--dy-page); color: var(--dy-text); border-color: var(--dy-rule); }
 .dy-tab[data-active] svg { opacity: .7; }
 .dy-tab__name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .dy-tabs__plus { flex: none; align-self: center; margin-left: 6px; }
@@ -37,7 +48,7 @@
 
 /* stats */
 .dy-stats { display: grid; gap: 10px; }
-.dy-card { min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 16px 8px; border: 1px solid #dcd5f4; border-radius: 12px; background: linear-gradient(135deg, #f6f4fd 0%, #eeeafb 100%); box-shadow: 0 2px 4px rgba(0, 0, 0, .05); text-align: center; }
+.dy-card { min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 16px 8px; border: 1px solid var(--dy-card-line); border-radius: 12px; background: linear-gradient(135deg, var(--dy-card-a) 0%, var(--dy-card-b) 100%); box-shadow: 0 2px 4px rgba(0, 0, 0, .05); text-align: center; }
 .dy-card__value { display: flex; justify-content: center; align-items: baseline; gap: 6px; height: 31px; font-size: 28px; line-height: 31px; font-weight: 700; letter-spacing: .01em; white-space: nowrap; }
 .dy-card__unit { font-size: 13px; font-weight: 500; color: var(--dy-muted); letter-spacing: 0; }
 .dy-card__compare { display: flex; justify-content: center; gap: 4px; margin-top: 3px; font-size: 13px; line-height: 1.35; color: var(--dy-muted); white-space: nowrap; }
@@ -64,14 +75,14 @@
 .dy-hm__col { display: grid; grid-auto-rows: var(--c); row-gap: var(--g); }
 .dy-hm__cell { display: block; width: var(--c); height: var(--c); border-radius: 2.5px; background: var(--dy-empty); transition: background-color .3s ease, box-shadow .15s ease; }
 .dy-hm__cell[data-today] { outline: 2px solid var(--dy-text); outline-offset: -2px; }
-.dy-hm__cell[data-selected] { box-shadow: inset 0 0 0 2px #5a34d6; }
+.dy-hm__cell[data-selected] { box-shadow: inset 0 0 0 2px var(--dy-select); }
 .dy-hm__legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; font-size: 12px; line-height: 1.3; color: var(--dy-muted); }
 .dy-hm__leg { display: flex; align-items: center; gap: 5px; }
 .dy-hm__leg i { width: 12px; height: 12px; border-radius: 2.5px; }
 
 /* chart */
 .dy-chart { position: relative; margin: 8px 0 28px 46px; }
-.dy-chart__line { position: absolute; left: 0; right: 0; border-top: 1px solid #dfdbef; }
+.dy-chart__line { position: absolute; left: 0; right: 0; border-top: 1px solid var(--dy-chart-line); }
 .dy-chart__line[data-goal] { border-top: 1.5px dashed #a9a9a9; z-index: 1; }
 .dy-chart__y { position: absolute; left: -46px; width: 40px; transform: translateY(50%); text-align: right; font-size: 12.5px; line-height: 1.3; color: var(--dy-muted); white-space: nowrap; }
 .dy-chart__bars { position: absolute; inset: 0; display: flex; gap: 8px; padding: 0 4px; align-items: flex-end; }
@@ -80,10 +91,35 @@
 .dy-chart__x { position: absolute; top: calc(100% + 5px); left: 50%; transform: translateX(-50%); font-size: 12.5px; line-height: 1.3; color: var(--dy-muted); white-space: nowrap; }
 
 /* Messages inside the note, as renderDiagnostics draws them */
-.dy-diag { margin-bottom: 5px; padding: 6px 10px; border-radius: 10px; background: #f6f6f6; font-size: 14.5px; line-height: 1.4; }
+.dy-diag { margin-bottom: 5px; padding: 6px 10px; border-radius: 10px; background: var(--dy-diag); font-size: 14.5px; line-height: 1.4; }
 .dy-diag[data-level="warning"] { color: var(--dy-muted); }
 .dy-diag[data-level="error"] { color: var(--dy-red); }
 
 .dy-line { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .dy-line__dot { position: absolute; width: 6px; height: 6px; margin: 0 0 -3px -3px; border-radius: 50%; background: #4e81ee; }
 .dy-line__x { position: absolute; top: calc(100% + 6px); left: 0; right: 0; display: flex; justify-content: space-between; font-size: 12.5px; line-height: 1.3; color: var(--dy-muted); }
+
+@media (prefers-color-scheme: dark) {
+  .ss-stage:has(.dy-app) {
+    --dy-text: #dadada;
+    --dy-muted: #b3b3b3;
+    --dy-faint: #777;
+    --dy-chrome: #262626;
+    --dy-rule: #363636;
+    --dy-empty: #2e2e2e;
+    --dy-accent: #8a6bec;
+    --dy-green: #44cf6e;
+    --dy-red: #fb464c;
+    --dy-page: #1e1e1e;
+    --dy-card-a: #23202a;
+    --dy-card-b: #2a2638;
+    --dy-card-line: #3b3654;
+    --dy-chart-line: #3a3a44;
+    --dy-diag: #2a2a2a;
+    --dy-select: #b9a5ff;
+    --dy-code: #191919;
+    --dy-code-text: #cfcfcf;
+    --dy-box: #1e1e1e;
+    --dy-box-line: #666;
+  }
+}

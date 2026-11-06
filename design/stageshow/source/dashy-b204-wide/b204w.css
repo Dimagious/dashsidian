@@ -1,0 +1,18 @@
+.b204w {
+  .b204w-row { position: absolute; inset: 0; display: flex; background: var(--dy-page); }
+  .dy-app { position: relative; inset: auto; flex: 1; min-width: 0; background: transparent; }
+  .b204w-left { flex: none; width: 250px; border-right: 1px solid var(--dy-rule); }
+  .b204-source { flex: 1; }
+  .b204w-swap { margin-top: 14px; }
+  .b204-code { padding: 14px 16px; height: 100%; box-sizing: border-box; font: 14.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--dy-code-text); background: var(--dy-code); flex: 1; }
+  .b204-key { position: relative; display: block; }
+  .b204-caret { position: absolute; top: 2px; bottom: 2px; width: 2px; margin-left: -1px; background: var(--dy-select); }
+  .b204-fence { color: var(--dy-faint); }
+  .b204-active { display: flex; align-items: center; white-space: pre; }
+  .b204-read { flex: 1; }
+  .b204-diags { padding-bottom: 8px; }
+  .dy-diag { font-size: 13px; margin-bottom: 2px; }
+  .b204-grid { padding-bottom: 18px; }
+  .b204-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .b204-t { margin-top: 6px; }
+}

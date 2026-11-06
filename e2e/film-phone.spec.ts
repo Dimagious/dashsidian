@@ -63,9 +63,9 @@ test("phone", async ({ win }) => {
     const cdp = await win.context().newCDPSession(win);
     await cdp.send("Emulation.setDeviceMetricsOverride", { width: WIDTH, height: HEIGHT, deviceScaleFactor: 2, mobile: false });
 
-    await win.evaluate(async ({ name, body }) => {
+    await win.evaluate(async ({ name, body, theme }) => {
         const a = (globalThis as any).app;
-        a.changeTheme("moonstone");
+        a.changeTheme(theme);
         await new Promise((resolve) => {
             const files = a.vault.getMarkdownFiles();
             const poll = () => files.every((f: unknown) => a.metadataCache.getFileCache(f)) ? resolve(null) : setTimeout(poll, 200);
@@ -73,7 +73,7 @@ test("phone", async ({ win }) => {
         });
         await a.vault.create(`${name}.md`, body);
         await a.workspace.openLinkText(name, "", false, { state: { mode: "preview" } });
-    }, { name: NOTE, body: BODY });
+    }, { name: NOTE, body: BODY, theme: process.env.FILM_THEME ?? "moonstone" });
 
     const active = ".workspace-leaf.mod-active .markdown-reading-view";
     const cell = win.locator(`${active} a.dashy-hm-cell[data-href$="2026-10-06.md"]`);
@@ -104,7 +104,7 @@ test("phone", async ({ win }) => {
             if (!dot) {
                 dot = document.createElement("div");
                 dot.id = "film-touch";
-                dot.style.cssText = "position:fixed;z-index:999999;pointer-events:none;border-radius:50%;background:rgba(40,40,50,.28);border:1.5px solid rgba(40,40,50,.35)";
+                dot.style.cssText = "position:fixed;z-index:999999;pointer-events:none;border-radius:50%;background:rgba(128,128,140,.38);border:1.5px solid rgba(128,128,140,.55)";
                 document.body.appendChild(dot);
             }
             dot.style.left = `${x - size / 2}px`;

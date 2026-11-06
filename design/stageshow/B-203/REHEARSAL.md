@@ -9,3 +9,5 @@ Captured: 480 wide and 390 wide, light theme only, no reduced-motion pass.
 Gate: `film.mjs --gate` ended "rehearsal passed" at both widths. Coverage was reported as inconclusive (sampling gaps), so the gate does not vouch for every frame.
 Review: one fresh-eye pass. Accepted findings are fixed, and the final build was looked at only as stills from the MP4, not re-reviewed.
 Not checked: playback in a real page, dark theme.
+
+Wide cut (`dashy-b203-wide`, 720x420), light and dark: the note beside the dashboard. Gate passed at 720. Checked on the site in Chrome at 2560 wide.
