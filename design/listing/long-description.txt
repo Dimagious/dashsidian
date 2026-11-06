@@ -1,0 +1,7 @@
+Describe the dashboard you want, and your AI agent writes it into your note: weekly distance against a goal, a habit streak, a year heatmap, a countdown to a race. Dashy's settings install a skill for Claude Code and an AGENTS.md for Codex, Cursor and other agents.
+
+Seven blocks: number cards, progress bars, heatmaps, charts, countdowns, a row of links to your periodic notes, and link tiles. Each is a few lines of YAML you can read and edit. No agent needed: Insert block puts a working example at the cursor.
+
+The numbers come from your notes' properties, through Obsidian's own metadata cache. No JavaScript to write, no Dataview to install. Blocks redraw when a note changes and take their colours from your theme.
+
+A block that cannot draw says why, in the note, with a "did you mean" for a typo. A review note named 2026-W40 counts that week, however late you open it. On a phone, a tap on a heatmap cell shows its value, and a second tap opens the note.
