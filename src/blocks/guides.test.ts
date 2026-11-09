@@ -936,3 +936,27 @@ describe("guide: ai-agent-dashboard", () => {
         ]);
     });
 });
+
+/* ---------------------------------------------------- weekly chart guide */
+
+// Every day from Sunday 30 August: 5 km, an hour of each sport, 7h of sleep, a ticked gym.
+const RUNS = diary("Diary", "2026-08-30", 37, () => ({
+    run_km: 5, run_time: "1h", bike_time: "1h", swim_time: "1h", sleep: "7h", gym: true,
+}));
+
+describe("guide: weekly-chart-tracker-alternative", () => {
+    it("every Dashy block on the page draws without an error or a warning", () => {
+        const blocks = guideBlocks("weekly-chart-tracker-alternative");
+        // step 2, step 3, the whole note (2), four chart variations, the usual-goal bar
+        expect(blocks.map((b) => b.lang)).toEqual([...Array(8).fill("chart"), "progress"]);
+        for (const { lang, source } of blocks) expectClean(render(lang, source, { notes: RUNS }));
+    });
+
+    it("the usual-goal variation measures this week against the four before it (B-209)", () => {
+        const usual = guideBlocks("weekly-chart-tracker-alternative").find((b) => b.lang === "progress");
+        const el = render("progress", usual?.source ?? "", { notes: RUNS });
+        // Sunday 4 and Monday 5 October: 10 km, against 35 km in each week from 6 September.
+        expect(texts(el, ".dashy-progress-value")).toEqual(["10 / usual 35 km 29%"]);
+        expect(nodes(el, ".dashy-progress-value")[0]?.getAttribute("title")).toBe("average of 4 past periods");
+    });
+});

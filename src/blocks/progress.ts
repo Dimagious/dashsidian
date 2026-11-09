@@ -9,13 +9,14 @@ import { readDateField, readDateFormat, unmatchedDateFormat, type DateFormats } 
 import { formatReading, showsDuration, showsClock, durationDiagnostics, unitFor, statFields } from "../core/stat";
 import { readProgress, percentOf, barWidth, type ProgressSpec } from "../core/progress";
 import { readPeriod, filterByPeriod, dateFieldHasEffect, futureStart, windowLastDay, windowIsOver } from "../core/period";
+import { usualGoal, usualGoalProblem, usualWindows, roundedGoal } from "../core/usual-goal";
 import { firstDayOfWeek } from "../adapters/datetime";
 import { noteDateFormats, periodContext } from "../adapters/periodic";
 import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "../shared/parse";
 import { clearBlock, renderDiagnostics, renderNotices } from "../shared/render";
 import { notStartedNotice, renderTemplateHint } from "./window";
 import { showsTemplateHint } from "../core/template-note";
-import { t } from "../i18n";
+import { t, tPlural } from "../i18n";
 import schema from "./schema.json";
 
 /** Keys come from schema.json — the same source the agent skill is built from. */
@@ -27,12 +28,15 @@ const SHARED = KNOWN_ROOT.filter((key) => KNOWN_ITEM.includes(key));
 interface Bar {
     label: string;
     value: string;
-    goal: string;
+    /** null: no goal to measure against (`goal: usual` with no history), the value is drawn alone */
+    goal: string | null;
     unit?: string;
     percent: number | null;
     width: number;
     /** the config could not be read — the empty track must not read as a zero */
     broken: boolean;
+    /** what set a `goal: usual` (B-209), for the tooltip */
+    goalTitle?: string;
     icon?: string;
     sub?: string;
 }
@@ -173,10 +177,41 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
             diags.push({ level: "warning", message: t("period.dateFieldUnused", { card: cardLabel }) });
         }
 
-        const waiting = broken ? "broken" : startsOn !== null ? "future" : null;
+        // B-209: `goal: usual` takes its number from the periods before the
+        // window, on the same selection before `period` narrows it.
+        let goal: BarGoal = spec && typeof spec.goal === "number" ? { value: spec.goal } : null;
+        let usualBroken = false;
+        if (spec && typeof spec.goal !== "number") {
+            const problem = usualGoalProblem(cardLabel, periodSpec?.period ?? null, item.period !== undefined);
+            if (problem) diags.push(problem);
+            usualBroken = problem?.level === "error";
+            const windows = periodSpec && !problem && !broken && startsOn === null
+                ? usualWindows(periodSpec.period, today, firstDay, spec.goal.usual)
+                : null;
+            if (windows) {
+                const usual = usualGoal(selected, windows, {
+                    agg: spec.agg,
+                    field: statFields(spec),
+                    dateField,
+                    formats,
+                    atLeast: spec.atLeast,
+                    atMost: spec.atMost,
+                    days: spec.days,
+                    skipField: spec.skipField,
+                });
+                const value = usual.value === null
+                    ? null
+                    : roundedGoal(usual.value, { precision: spec.precision, duration, clock, whole: usual.whole });
+                if (value === null) notices.push(t("progress.usualNoHistory", { card: cardLabel }));
+                else if (value <= 0) notices.push(t("progress.usualZero", { card: cardLabel }));
+                else goal = { value, usual: usual.counted };
+            }
+        }
+
+        const waiting = broken || usualBroken ? "broken" : startsOn !== null ? "future" : null;
         const lastDay = windowLastDay(periodSpec?.period, today);
         const graceToday = !windowIsOver(periodSpec?.period, today);
-        bars.push(toBar(counted, spec, label, item, lastDay, graceToday, duration, clock, dateField, formats, waiting));
+        bars.push(toBar(counted, spec, goal, label, item, lastDay, graceToday, duration, clock, dateField, formats, waiting));
     }
 
     diags.push(...undatedRootDiagnostics(block, undatedCards));
@@ -207,7 +242,9 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
         head.createSpan({ cls: "dashy-progress-label", text: bar.label });
 
         const value = head.createSpan({ cls: "dashy-progress-value" });
-        value.createSpan({ text: `${bar.value} / ${bar.goal}${bar.unit ? ` ${bar.unit}` : ""}` });
+        const reading = bar.goal === null ? bar.value : `${bar.value} / ${bar.goal}`;
+        value.createSpan({ text: `${reading}${bar.unit ? ` ${bar.unit}` : ""}` });
+        if (bar.goalTitle) value.setAttribute("title", bar.goalTitle);
         if (bar.percent !== null) {
             // A real space, not just the CSS margin: otherwise the text reads
             // "100 km55%" when copied or spoken, and runs together outright if
@@ -216,16 +253,27 @@ export function renderProgress(ctx: BlockContext, source: string, el: HTMLElemen
             value.createSpan({ cls: "dashy-progress-percent", text: `${bar.percent}%` });
         }
 
-        const track = row.createDiv({ cls: "dashy-progress-track" });
-        track.createDiv({ cls: "dashy-progress-fill" }).style.width = `${bar.width}%`;
+        // No goal, no bar: an empty track would read as a zero (B-209).
+        if (bar.goal !== null) {
+            const track = row.createDiv({ cls: "dashy-progress-track" });
+            track.createDiv({ cls: "dashy-progress-fill" }).style.width = `${bar.width}%`;
+        }
 
         if (bar.sub) row.createDiv({ cls: "dashy-progress-sub", text: bar.sub });
     }
 }
 
+/**
+ * The number a bar fills towards: written in the config, or set by its past
+ * periods (`usual`, how many counted). Null: none could be set, the bar
+ * shows its value alone.
+ */
+type BarGoal = { value: number; usual?: number } | null;
+
 function toBar(
     selected: readonly NoteRecord[],
     spec: ProgressSpec | null,
+    goal: BarGoal,
     label: string,
     item: Record<string, unknown>,
     today: Date,
@@ -250,7 +298,9 @@ function toBar(
     if (typeof item.sub === "string") bar.sub = item.sub;
     if (!spec) return bar;
     if (waiting) {
-        bar.goal = formatReading(spec.goal, spec.precision, duration, clock);
+        // A usual goal is not worked out for a window that cannot count.
+        if (goal) bar.goal = formatReading(goal.value, spec.precision, duration, clock);
+        else bar.goal = "—";
         if (spec.unit && !duration) bar.unit = unitFor(spec.unit, bar.goal);
         return bar;
     }
@@ -269,11 +319,19 @@ function toBar(
     });
 
     bar.value = formatReading(current, spec.precision, duration, clock);
-    bar.goal = formatReading(spec.goal, spec.precision, duration, clock);
-    bar.percent = percentOf(current, spec.goal);
+    if (!goal) {
+        // `goal: usual` with no history, or a span: the value alone, its unit following it.
+        bar.goal = null;
+        if (spec.unit && !duration) bar.unit = unitFor(spec.unit, bar.value);
+        return bar;
+    }
+    const goalText = formatReading(goal.value, spec.precision, duration, clock);
+    bar.goal = goal.usual === undefined ? goalText : t("progress.usualGoal", { value: goalText });
+    if (goal.usual !== undefined) bar.goalTitle = tPlural("progress.usualTitle", goal.usual);
+    bar.percent = percentOf(current, goal.value);
     bar.width = barWidth(bar.percent);
     // A duration already carries its units (`durationDiagnostics` warned).
     // The unit follows the goal: "3 / 1 day" is not a sentence anyone writes.
-    if (spec.unit && !duration) bar.unit = unitFor(spec.unit, bar.goal);
+    if (spec.unit && !duration) bar.unit = unitFor(spec.unit, goalText);
     return bar;
 }

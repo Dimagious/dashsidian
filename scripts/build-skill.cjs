@@ -277,6 +277,7 @@ data is there.
 | one number over several properties, like all workouts | \`stats\` with a \`field\` list |
 | a record or a last reading with the note or date it came from | \`stats\` with \`origin\` |
 | how far along a goal is | \`progress\`, with \`goal\` |
+| a goal that follows the user's own past months or weeks, not a fixed number | \`progress\` with \`goal: usual\` and \`period\` |
 | days until or since a date, the next birthday | \`countdown\`, \`repeat: yearly\` for a birthday |
 | days until the next of many events, one note each (races, trips) | \`countdown\` with \`field\` and \`pick: next\` |
 | today's date with links to the daily, weekly, monthly note | \`today\` |
@@ -473,6 +474,24 @@ source: Results
 items:
   - { label: Best 10k, field: time, agg: min, origin: note }
   - { label: Last 10k, field: time, agg: latest, origin: date }
+\`\`\`
+
+A goal that follows the user's own history instead of a number written
+once and left to go stale: \`goal: usual\` measures this month against the
+average of the 4 months before it, on the same \`field\`, \`agg\` and
+selection, and the bar reads \`30 / usual 183 km\`. \`{ usual: 2 }\` averages
+the last 2 instead. It needs a \`period\` that repeats (\`month\`, \`week\`,
+\`30d\`, \`note\`), not \`from\`/\`to\`. A month wholly before the first note
+is left out, so a diary started in July is not measured against an empty
+June; until there is a month to average, the bar shows its value alone and
+a notice says why:
+
+\`\`\`progress
+source: Diary
+period: month
+items:
+  - { label: Running this month, field: run_km, agg: sum, goal: usual, unit: km }
+  - { label: Gym days this month, field: gym, agg: sum, goal: { usual: 2 } }
 \`\`\`
 
 ## 5. Check before handing over

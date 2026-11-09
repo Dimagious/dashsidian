@@ -119,10 +119,10 @@ describe("readProgress — duration goals", () => {
         expect(spec?.durationThresholds).toBeUndefined();
     });
 
-    it("text that is neither says a number or a duration is expected", () => {
+    it("text that is neither says a number, a duration or usual is expected", () => {
         const { spec, diagnostics } = readProgress({ agg: "avg", field: "sleep", goal: "eight hours" }, "Sleep");
         expect(spec).toBeNull();
-        expect(diagnostics.map((d) => d.message)).toEqual(['"Sleep": `goal:` needs a number or a duration like `7h 30m`. There is nothing to measure against.']);
+        expect(diagnostics.map((d) => d.message)).toEqual(['"Sleep": `goal:` needs a number, a duration like `7h 30m`, or `usual` for a goal set by your past periods. There is nothing to measure against.']);
     });
 
     it("a zero duration goal is not positive", () => {

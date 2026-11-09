@@ -23,6 +23,25 @@ removed public export.
   finish indexing first, so notes written just before the call are read,
   and writes nothing. See
   [`docs/API.md`](https://github.com/Dimagious/dashsidian/blob/master/docs/API.md).
+- **A goal that follows your own history.** `goal: usual` on a `progress`
+  bar sets the goal from the bar's own past instead of a number written
+  once: the average of the same `agg`, `field` and selection over the 4
+  periods before its window, so `period: month` measures this month against
+  the 4 months before it, `week` against the 4 weeks before this one
+  (starting on the first day of the week), `30d` against the 4 stretches of
+  30 days before the current one, and `period: note` or a named period like
+  `2026-Q4` against the 4 of its kind before it. `goal: { usual: 2 }` takes
+  another number of periods. The bar reads `30 / usual 183 km` and its
+  tooltip names how many periods the average took; the goal is rounded the
+  way the value is, so a mean of whole sums stays whole, and a duration
+  field gets a duration goal. A period that ends before the selection's
+  first dated note is left out; after that, an empty period counts as 0 for
+  `count`, `sum` and the streaks and is left out for `avg`, `min`, `max`
+  and `latest`. With no period to average, or an average of 0, the bar
+  shows its value alone and a notice says why. `goal: usual` without a
+  `period` (its own or the block root's) is an error that names the fix;
+  with `{ from, to }`, which does not repeat, it warns and shows the value
+  without a goal. `target: usual` works the same.
 
 ### Changed
 

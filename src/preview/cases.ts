@@ -171,6 +171,24 @@ items:
   - { label: Сон за неделю, source: Diary, field: sleep_duration, agg: avg, period: week, goal: 8h }`,
     },
     {
+        block: "progress",
+        title: "progress — цель по своей истории (goal: usual)",
+        source: `source: Diary
+items:
+  - { label: Шаги за месяц, field: steps, agg: sum, period: month, goal: usual }
+  - { label: Дней за неделю, agg: count, period: week, goal: { usual: 2 } }
+  - { label: Сон за неделю, field: sleep_duration, agg: avg, period: week, goal: usual }`,
+    },
+    {
+        block: "progress",
+        title: "progress — goal: usual без истории, без period, с from/to",
+        source: `source: Diary
+items:
+  - { label: Без истории, field: steps, agg: sum, period: 200d, goal: usual }
+  - { label: Без period, field: steps, agg: sum, goal: usual }
+  - { label: Отрезок, field: steps, agg: sum, period: { from: 2026-01-01, to: 2026-01-31 }, goal: usual }`,
+    },
+    {
         block: "today",
         title: "today — день, неделя, месяц",
         source: `daily: true
