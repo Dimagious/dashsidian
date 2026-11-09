@@ -280,6 +280,8 @@ data is there.
 | a number: a count, a sum, an average, a streak | \`stats\` |
 | one number over several properties, like all workouts | \`stats\` with a \`field\` list |
 | a record or a last reading with the note or date it came from | \`stats\` with \`origin\` |
+| how many notes per value of a property: games by platform, books by genre | \`stats\` with \`group_by\` |
+| the best in each group: the top rating per genre, the best time per course | \`stats\` with \`group_by\`, \`field\` and \`agg\` |
 | how far along a goal is | \`progress\`, with \`goal\` |
 | a goal that follows the user's own past months or weeks, not a fixed number | \`progress\` with \`goal: usual\` and \`period\` |
 | days until or since a date, the next birthday | \`countdown\`, \`repeat: yearly\` for a birthday |
@@ -514,6 +516,33 @@ before and after:
 date: note
 weekly: true
 monthly: true
+\`\`\`
+
+How many notes per value of a property, the games in \`Games\` by
+platform: \`group_by\` draws one card with a row per platform, the most games
+first. \`limit\` keeps the top five and folds the rest into one line, and the
+games with no platform come last as \`no value\`, outside the ranking;
+\`where: "platform not empty"\` leaves them out. A game whose \`platform\`
+lists two, PC and Switch, counts on both, and the card then says the rows
+can add up to more than the games. A link, \`[[Switch]]\`, shows as the note's
+name. Write \`group_by\` instead of one card per value with a \`where\`: it
+needs no list of the values and picks up a new one by itself:
+
+\`\`\`stats
+source: Games
+items:
+  - { label: Games by platform, group_by: platform, limit: 5 }
+\`\`\`
+
+The best in each group: \`agg\` and \`field\` work per value, as on any card.
+\`agg: max\` with \`field: rating\` is the top rating in each genre; \`agg: min\`
+ranks the smallest first, the best time per course. \`compare\`, \`trend\`
+and \`origin\` describe one number and do nothing on a \`group_by\` card:
+
+\`\`\`stats
+source: Games
+items:
+  - { label: Best rating by genre, group_by: genre, field: rating, agg: max }
 \`\`\`
 
 ## 5. Check before handing over

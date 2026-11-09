@@ -265,6 +265,20 @@ items:
 ```</code></pre>
             </div>
           </div>
+          <div class="var">
+            <h3>Books by genre</h3>
+            <p><code>group_by</code> draws one card with a row per genre, the most read first, and <code>limit</code> keeps the top five. A book with two genres counts in both, and the card says so. Books with no genre come last, as <code>no value</code>.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>stats</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```stats
+source: Reading
+date_field: date_read
+period: year
+items:
+  - { label: Books by genre this year, group_by: genre, limit: 5 }
+```</code></pre>
+            </div>
+          </div>
         </div>
 
         <!-- ============ errors ============ -->

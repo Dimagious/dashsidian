@@ -139,6 +139,18 @@ items:
     },
     {
         block: "stats",
+        title: "stats — по значению свойства (group_by): limit, «нет значения», подсказка о повторах, пусто, ошибки",
+        source: `columns: 3
+source: Games
+items:
+  - { label: Игры по платформам, group_by: platform, limit: 3 }
+  - { label: Лучшая оценка по жанру, group_by: genre, field: rating, agg: max, unit: из 10 }
+  - { label: Всего игр, agg: count }
+  - { label: Ничего не подошло, group_by: platform, where: "rating > 100" }
+  - { label: Сломанный, group_by: platform, limit: 0, compare: true }`,
+    },
+    {
+        block: "stats",
         title: "stats — против обычного уровня (compare: usual)",
         source: `source: Diary
 items:

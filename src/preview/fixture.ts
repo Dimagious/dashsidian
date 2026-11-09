@@ -61,6 +61,22 @@ export function fakeVault(): NoteRecord[] {
     for (const [name, time] of results) {
         notes.push({ path: `Results/${name}.md`, name, folder: "Results", tags: [], frontmatter: { time } });
     }
+    // Games for `group_by` (B-213): a game on two platforms, a platform as a
+    // link and in another case, a long name, one game with no platform.
+    const games: [string, Record<string, unknown>][] = [
+        ["Hades", { platform: ["PC", "Switch"], genre: "roguelike", rating: 9 }],
+        ["Celeste", { platform: "Switch", genre: "platformer", rating: 10 }],
+        ["Stardew Valley", { platform: "[[Switch]]", genre: "sim", rating: 8 }],
+        ["Baldur's Gate 3", { platform: "PC", genre: "RPG", rating: 9 }],
+        ["Disco Elysium", { platform: "pc", genre: "rpg", rating: 10 }],
+        ["Elden Ring", { platform: "PlayStation 5 Digital Edition", genre: "rpg", rating: 10 }],
+        ["Halo", { platform: "Xbox", genre: "shooter", rating: 8 }],
+        ["Gran Turismo", { platform: "PS4", genre: "racing", rating: 7 }],
+        ["Tetris", { genre: "puzzle", rating: 7 }],
+    ];
+    for (const [name, frontmatter] of games) {
+        notes.push({ path: `Games/${name}.md`, name, folder: "Games", tags: [], frontmatter });
+    }
     for (let back = 0; back < 120; back++) {
         const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - back);
         // Skip a day here and there: a solid block of colour hides nothing.

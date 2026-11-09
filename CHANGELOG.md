@@ -29,6 +29,23 @@ removed public export.
   `clock` with `date: note` warns and is not shown, `nav` without it
   warns and is ignored, and any `date` other than `note` warns and shows
   today.
+- **`stats` counts notes per value of a property.** `group_by: platform`
+  on a card draws one card with a row per platform, its name and its number,
+  the largest first: `{ label: Games by platform, source: Games, group_by:
+  platform }`. `agg` and `field` work per value, so `field: rating` with
+  `agg: max` is the best rating in each genre and `agg: min` ranks the
+  smallest first, the best time per course; durations read as `5h 58m` and
+  `unit` and `precision` apply to every row. `limit` (10 by default) keeps
+  the best rows and folds the rest into `+3 more values`. A note whose
+  property is a list counts in each of its values, and a line under the card
+  then says the rows can add up to more than the notes. Values group
+  regardless of case, shown in the spelling most notes use, and a link
+  `[[Switch]]` shows as the note's name. The notes with no value form one
+  muted `no value` row, always last and outside `limit`; `where: "platform
+  not empty"` leaves them out. The selection at the block root reaches the
+  card as it reaches any other. `compare`, `better`, `trend` and `origin`
+  are ignored on such a card with a warning, and it is not drawn with
+  `layout: inline`. The agent skill has two recipes for it.
 
 - **An API for other plugins.** A plugin that writes Dashy blocks reads
   `app.plugins.plugins.dashsidian.api` and gets `apiVersion` (1, raised only

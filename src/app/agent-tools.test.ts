@@ -164,6 +164,16 @@ describe("checkNote: the blocks' own checks, read back (B-168)", () => {
         expect(bad?.findings.map((x) => x.message).join("\n")).toContain("feild");
     });
 
+    it("a group_by card's own warnings reach the report, word for word (B-213)", () => {
+        const f = fixture(null);
+        const block = "```stats\nsource: Diary\nitems:\n  - { label: By steps, group_by: steps, limit: 0, compare: true }\n```";
+        const [checked] = checkNote(f.host, NOTE, block);
+        expect(checked?.findings.map((x) => [x.level, x.message])).toEqual([
+            ["warning", '"By steps": `limit` expects a whole number of 1 or more, got "0". Showing 10 rows.'],
+            ["warning", '"By steps": with `group_by` these keys do nothing and are ignored: `compare`.'],
+        ]);
+    });
+
     it("an unknown `dashy-` fence is reported, a fence of another language is not", () => {
         const f = fixture(null);
         const blocks = checkNote(f.host, NOTE, "```dashy-stats\nitems: []\n```\n```js\nlet x = 1;\n```");

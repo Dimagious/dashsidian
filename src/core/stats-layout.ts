@@ -3,13 +3,15 @@
  * text for a home page header (B-150). Pure layer.
  *
  * The inline line has no room for a sparkline or a caption under the label,
- * so it drops `trend`, `sub` and `origin`. Dropping a setting the author wrote without
- * saying so is the one thing a block must never do, so each dropped key gets
- * one warning per block, naming the cards that set it.
+ * so it drops `trend`, `sub` and `origin`, and a `group_by` card whole (B-213).
+ * Dropping a setting the author wrote without saying so is the one thing a
+ * block must never do, so each dropped key gets one warning per block,
+ * naming the cards that set it.
  */
 
 import { describeValue, type Diagnostic } from "../shared/parse";
 import { t } from "../i18n";
+import { hasGroupBy } from "./group-by";
 
 export type StatsLayout = "cards" | "inline";
 
@@ -61,16 +63,23 @@ export function inlineLayoutDiagnostics(
     if (root?.columns !== undefined) {
         out.push({ level: "warning", message: t("stats.inlineColumnsIgnored") });
     }
-    const withTrend = items.filter((item) => item.trend !== undefined).map(cardName);
+    // B-213: a ranked list is no item of a line. Its own keys are not
+    // listed again below: the whole card is what goes missing.
+    const grouped = items.filter(hasGroupBy);
+    if (grouped.length) {
+        out.push({ level: "warning", message: t("stats.inlineGroupByHidden", { cards: grouped.map(cardName).join(", ") }) });
+    }
+    const plain = items.filter((item) => !hasGroupBy(item));
+    const withTrend = plain.filter((item) => item.trend !== undefined).map(cardName);
     if (withTrend.length) {
         out.push({ level: "warning", message: t("stats.inlineTrendHidden", { cards: withTrend.join(", ") }) });
     }
-    const withSub = items.filter((item) => item.sub !== undefined).map(cardName);
+    const withSub = plain.filter((item) => item.sub !== undefined).map(cardName);
     if (withSub.length) {
         out.push({ level: "warning", message: t("stats.inlineSubHidden", { cards: withSub.join(", ") }) });
     }
     // B-149: the note or date a value came from is a caption too.
-    const withOrigin = items.filter((item) => item.origin !== undefined).map(cardName);
+    const withOrigin = plain.filter((item) => item.origin !== undefined).map(cardName);
     if (withOrigin.length) {
         out.push({ level: "warning", message: t("stats.inlineOriginHidden", { cards: withOrigin.join(", ") }) });
     }
