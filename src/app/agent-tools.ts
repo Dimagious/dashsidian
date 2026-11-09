@@ -46,7 +46,16 @@ export interface AgentToolsHost {
     settings: (today: Date) => ProfileSettings;
     /** a detached element to draw a block into; defaults to Obsidian's `createDiv()` */
     newHost?: () => HTMLElement;
+    /**
+     * Drops the cached vault snapshot, so a check reads the vault as it is
+     * now: the snapshot is otherwise dropped only by a debounced refresh,
+     * and a note written just before the check would be missed (B-208).
+     */
+    fresh?: () => void;
 }
+
+/** What `checkNote` reads of the host: the commands and the public API (`app/api.ts`) both call it. */
+export type CheckHost = Pick<AgentToolsHost, "fences" | "elsewhere" | "context" | "newHost" | "fresh">;
 
 /** The command palette entries. A host that can add commands: the plugin, or a test. */
 export interface CommandHost {
@@ -88,10 +97,11 @@ export function readFindings(el: HTMLElement): Finding[] {
  * and reads back what it reported. Nothing is validated twice: a check the
  * block runs when it draws shows up here, and one it does not run cannot.
  */
-export function checkNote(host: AgentToolsHost, path: string, text: string): CheckedBlock[] {
+export function checkNote(host: CheckHost, path: string, text: string): CheckedBlock[] {
     const fences = host.fences();
     const table: FenceTable = { drawn: new Set(fences.keys()), elsewhere: host.elsewhere() };
     const newHost = host.newHost ?? ((): HTMLElement => createDiv());
+    host.fresh?.();
     return dashyBlocks(findFencedBlocks(text), table).map(({ block, status, owner }): CheckedBlock => {
         const checked: CheckedBlock = { line: block.line, lang: block.lang, status, findings: [] };
         if (owner) checked.owner = owner;

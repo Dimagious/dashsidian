@@ -10,6 +10,20 @@ removed public export.
 
 ## [Unreleased]
 
+### Added
+
+- **An API for other plugins.** A plugin that writes Dashy blocks reads
+  `app.plugins.plugins.dashsidian.api` and gets `apiVersion` (1, raised only
+  by a breaking change), the plugin `version`, the block `schemaVersion`,
+  `fences()` (the code block names Dashy draws in this vault: no `chart`
+  when Obsidian Charts draws it) and `check(text, sourcePath)`, which checks
+  every Dashy block in a note's text the way **Dashy: Check blocks in this
+  note** does and resolves to each block's errors, warnings and notices, in
+  the words the user sees and at their line when the block names one. `check` waits for Obsidian to
+  finish indexing first, so notes written just before the call are read,
+  and writes nothing. See
+  [`docs/API.md`](https://github.com/Dimagious/dashsidian/blob/master/docs/API.md).
+
 ## [2.1.0] - 2026-10-30
 
 ### Added
