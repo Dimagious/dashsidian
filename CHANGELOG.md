@@ -65,6 +65,19 @@ removed public export.
   of `innerHTML`, with the same layout and behaviour (link underlines
   take the font's own thickness).
 
+### Fixed
+
+- **The vault profile names template code that never ran.** A note made from
+  a template while Templater was off keeps `created: <% tp.file.title %>` (or
+  `{{date}}` from core Templates) as its value. `.dashy/vault-profile.md` read
+  that as text, so `created` showed up as text, or as `date; also text`,
+  with the template among its samples. Now such values are counted apart: the table's kinds, counts and
+  samples hold only real values, a line under it says how many notes of each
+  property hold unexpanded template syntax, with a short sample, and a date
+  property that holds it in more of a folder's notes than dates is no longer
+  listed as that folder's `date_field` candidate. The agent skill says such
+  properties are not data.
+
 ## [2.1.0] - 2026-10-30
 
 ### Added

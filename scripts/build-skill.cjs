@@ -224,6 +224,10 @@ at the vault root: Dashy writes it when the user runs the command
 in other interface languages). It lists the properties with their kinds and
 a sample, the folders and how their notes are dated, the most used tags, and
 the settings below.
+A property it lists under unexpanded template syntax (\`<% ... %>\`,
+\`{{date}}\`) holds template code that never ran in those notes, not data:
+those notes have no date or number in it, and a property that mostly holds
+it is no \`date_field\`.
 If it is missing, or older than the notes you are about to count, ask the
 user to run the command, then read it. If they cannot, read a few small files.
 \`<configDir>\` is the vault's config folder: by default a dot followed by

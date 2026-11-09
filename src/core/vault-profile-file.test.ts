@@ -5,6 +5,7 @@ import {
     formatVaultProfile,
     isSecretName,
     sampleText,
+    templateSyntaxIn,
     type ProfileSettings,
 } from "./vault-profile-file";
 import { dateFormats, type ParseDate } from "./note-date";
@@ -227,5 +228,146 @@ describe("formatVaultProfile (B-168)", () => {
         const text = formatVaultProfile(vault, SETTINGS);
         expect(text).toContain("| mood | number; also text (1) | 3 |");
         expect(text).toContain("Showing the 2 most used tags, of 3.");
+    });
+});
+
+describe("templateSyntaxIn (B-211)", () => {
+    it("finds Templater in every tag form and the core Templates or handlebars form", () => {
+        for (const raw of [
+            "<% tp.file.title %>",
+            "<%* tR += tp.date.now() %>",
+            "<%- tp.file.title -%>",
+            "<%_ tp.file.title _%>",
+            "<%tp.file.title%>",
+            "{{date}}",
+            "{{ title }}",
+            "{{date:YYYY-MM-DD}}",
+            "Made on {{date}} at {{time}}",
+        ]) {
+            expect(templateSyntaxIn(raw), raw).toBe(raw);
+        }
+    });
+
+    it("checks each string of a list and returns the one holding it", () => {
+        expect(templateSyntaxIn(["work", "{{title}}", "<% tp.file.title %>"])).toBe("{{title}}");
+        expect(templateSyntaxIn(["work", 3, null, { a: "{{x}}" }])).toBeNull();
+    });
+
+    it("ordinary text with `%`, `<`, `{` or an unclosed tag is no template", () => {
+        for (const raw of ["50% done", "<3 you", "100%>90%", "<% not closed", "a {b} c", "{{}}", "{{ }}", "{ {x} }", "x%>y<%"]) {
+            expect(templateSyntaxIn(raw), raw).toBeNull();
+        }
+        for (const raw of [42, true, null, undefined, new Date(2026, 9, 5)]) expect(templateSyntaxIn(raw)).toBeNull();
+    });
+});
+
+describe("describeVault: unexpanded template syntax (B-211)", () => {
+    // The author's diary: 3 of 5 notes made while Templater did not run.
+    const diary = [
+        note("Diary/2026-10-01.md", { created: "<% tp.file.title %>", steps: 100 }),
+        note("Diary/2026-10-02.md", { created: "<% tp.file.title %>", steps: 200 }),
+        note("Diary/2026-10-03.md", { created: "<% tp.file.title %>", steps: 300 }),
+        note("Diary/2026-10-04.md", { created: "2026-10-04", steps: 400 }),
+        note("Diary/2026-10-05.md", { created: "2026-10-05", steps: 500 }),
+    ];
+
+    it("counts template values apart: out of the notes, the kinds and the sample", () => {
+        const created = describeVault(diary).fields.find((f) => f.name === "created");
+        expect(created).toMatchObject({
+            notes: 2,
+            empty: 0,
+            kind: "date",
+            kinds: { date: 2 },
+            sample: "2026-10-04",
+            template: 3,
+            templateSample: "<% tp.file.title %>",
+        });
+        expect(describeVault(diary).fields.find((f) => f.name === "steps")).toMatchObject({ template: 0, templateSample: null });
+    });
+
+    it("a date property mostly holding template syntax is not a folder's `date_field` candidate; one mostly holding dates still is", () => {
+        expect(describeVault(diary).folders[0]?.dateFields).toEqual([]);
+        const mostlyDates = [...diary, note("Diary/2026-10-06.md", { created: "2026-10-06" }), note("Diary/2026-10-07.md", { created: "2026-10-07" })];
+        expect(describeVault(mostlyDates).folders[0]?.dateFields).toEqual([{ name: "created", notes: 4 }]);
+        // A tie keeps it: as many notes are dated by it as are not.
+        expect(describeVault([...diary, note("Diary/2026-10-06.md", { created: "2026-10-06" })]).folders[0]?.dateFields).toEqual([{ name: "created", notes: 3 }]);
+    });
+
+    it("the share is weighed per folder: templates in one folder do not hide the dates of another", () => {
+        const vault = describeVault([...diary, note("Log/a.md", { created: "2026-10-01" })]);
+        const byFolder = Object.fromEntries(vault.folders.map((f) => [f.folder, f]));
+        expect(byFolder.Diary?.dateFields).toEqual([]);
+        expect(byFolder.Log?.dateFields).toEqual([{ name: "created", notes: 1 }]);
+    });
+
+    it("a template value is never a number, a checkbox or a duration, and a list holding one is counted as template", () => {
+        const fields = describeVault([
+            note("a.md", { mood: "{{mood}}", tags: ["work", "{{title}}"], hours: "<%* tR += 7 %>" }),
+            note("b.md", { mood: 3, tags: ["home"], hours: "7:30" }),
+        ]).fields;
+        const byName = Object.fromEntries(fields.map((f) => [f.name, f]));
+        expect(byName.mood).toMatchObject({ notes: 1, kind: "number", kinds: { number: 1 }, template: 1, templateSample: "{{mood}}" });
+        expect(byName.tags).toMatchObject({ notes: 1, kind: "list", sample: "home", template: 1, templateSample: "{{title}}" });
+        expect(byName.hours).toMatchObject({ notes: 1, kind: "duration", kinds: { duration: 1 }, template: 1 });
+    });
+
+    it("a property only templates fill still ranks by its notes and is not cut before properties in fewer notes", () => {
+        const vault = describeVault(
+            [note("a.md", { created: "{{date}}", x: 1 }), note("b.md", { created: "{{date}}" }), note("c.md", { created: "{{date}}" })],
+            { limits: { fields: 1 } },
+        );
+        expect(vault.fields.map((f) => [f.name, f.notes, f.template])).toEqual([["created", 0, 3]]);
+    });
+
+    it("a long template value is cut like any sample; a secret name shows none", () => {
+        const long = "<% tp.date.now(\"YYYY-MM-DD\", 0, tp.file.title, \"YYYY-MM-DD\") %>";
+        const fields = describeVault([note("a.md", { created: long, api_token: "<% tp.user.token() %>" })]).fields;
+        const byName = Object.fromEntries(fields.map((f) => [f.name, f]));
+        expect(byName.created?.templateSample).toBe(`${long.slice(0, 40)}...`);
+        expect(byName.api_token).toMatchObject({ hidden: true, template: 1, templateSample: null });
+    });
+});
+
+describe("formatVaultProfile: unexpanded template syntax (B-211)", () => {
+    it("names each property holding it, with the count and a sample, apart from the table", () => {
+        const text = formatVaultProfile(describeVault([
+            note("Diary/2026-10-01.md", { created: "<% tp.file.title %>", updated: "{{date}}" }),
+            note("Diary/2026-10-02.md", { created: "<% tp.file.title %>", updated: "2026-10-02" }),
+            note("Diary/2026-10-03.md", { created: "2026-10-03", updated: "2026-10-03", api_key: "{{key}}" }),
+        ]), SETTINGS);
+        expect(text).toContain("| created | date | 1 | 0 | `2026-10-03` | Diary (1) |");
+        expect(text).toContain("| updated | date | 2 | 0 | `2026-10-02` | Diary (2) |");
+        expect(text).toContain("| api_key | none: template syntax only | 0 | 0 | (hidden: the name looks like a secret) |  |");
+        expect(text).toContain("Unexpanded template syntax: these notes hold Templater (`<% ... %>`) or Templates (`{{...}}`) code that never ran, not a value.");
+        expect(text).toContain("- created: 2 notes hold unexpanded template syntax (`<% tp.file.title %>`), not a value\n");
+        expect(text).toContain("- updated: 1 note holds unexpanded template syntax (`{{date}}`), not a value\n");
+        expect(text).toContain("- api_key: 1 note holds unexpanded template syntax, not a value\n");
+        expect(text).not.toContain("{{key}}");
+        // `created` is mostly template in Diary and is no date property there; `updated` is mostly dates and stays.
+        expect(text).toContain("| Diary | 3 | 3 YYYY-MM-DD | updated (2) |  |");
+    });
+
+    it("a vault without template syntax writes no such paragraph", () => {
+        const text = formatVaultProfile(describeVault([note("a.md", { note: "50% done {x}" })]), SETTINGS);
+        expect(text).not.toContain("template syntax");
+        expect(text).toContain("| note | text | 1 | 0 | `50% done {x}` |");
+    });
+});
+
+describe("template syntax: checker follow-ups (B-211)", () => {
+    it("does not count a template's own syntax: in a template folder it is by design", () => {
+        const d = describeVault([
+            note("Templates/Daily.md", { created: "<% tp.file.title %>" }),
+            note("Diary/2026-11-01.md", { created: "<% tp.file.title %>" }),
+        ], { templateFolders: ["Templates"] });
+        expect(d.fields.find((f) => f.name === "created")?.template).toBe(1);
+    });
+
+    it("stays linear on `<%` repeated with no `%>`", () => {
+        const hostile = "<% x ".repeat(200_000);
+        const started = Date.now();
+        expect(templateSyntaxIn(hostile)).toBeNull();
+        expect(templateSyntaxIn(`${hostile}%>`)).toBe(`${hostile}%>`);
+        expect(Date.now() - started).toBeLessThan(200);
     });
 });

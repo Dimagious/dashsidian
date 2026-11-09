@@ -40,6 +40,10 @@ export interface FieldSummary {
     hidden: boolean;
     /** the folders holding it most, at most `FIELD_FOLDERS` */
     folders: { folder: string; notes: number }[];
+    /** notes whose value is unexpanded template syntax, counted apart from `notes` and `kinds` */
+    template: number;
+    /** a short sample of one such value; null when there is none or the name looks like a secret */
+    templateSample: string | null;
 }
 
 export interface FolderSummary {
@@ -120,6 +124,31 @@ export function sampleText(value: unknown): string {
 }
 
 /**
+ * Template code that was never run: Templater's `<% ... %>` (also `<%*`,
+ * `<%-`, `<%_`) and the core Templates or handlebars `{{date}}`. A note made
+ * from a template without the plugin running keeps it as its value for good,
+ * and it reads as no date and no number, so the profile counts it apart. A
+ * lone `%`, `<3` or `{x}` is ordinary text. Templater's form is found with
+ * `indexOf`, not a lazy regex: frontmatter is untrusted, and `<%` repeated
+ * with no `%>` makes a lazy match quadratic.
+ */
+const HANDLEBARS = /\{\{\s*[^{}\s][^{}]*\}\}/;
+
+function holdsTemplate(text: string): boolean {
+    const open = text.indexOf("<%");
+    return (open !== -1 && text.includes("%>", open + 2)) || HANDLEBARS.test(text);
+}
+
+/** The first string of a value, or of a list's items, holding template syntax; null when none does. */
+export function templateSyntaxIn(value: unknown): string | null {
+    const items: unknown[] = Array.isArray(value) ? value : [value];
+    for (const item of items) {
+        if (typeof item === "string" && holdsTemplate(item)) return item;
+    }
+    return null;
+}
+
+/**
  * How a block reads a value: the kind decides what `agg` can do with it. The
  * rules are the blocks' own, so a quoted `"42"` is a number, `7:30` a
  * duration in minutes, `2026-10-05` a date.
@@ -151,6 +180,8 @@ function leaves(frontmatter: Record<string, unknown>, prefix = "", depth = 1): [
 interface FieldTally {
     notes: number;
     empty: number;
+    template: number;
+    templateSample: string | null;
     kinds: Map<FieldKind, number>;
     samples: Map<FieldKind, unknown>;
     folders: Map<string, number>;
@@ -162,6 +193,8 @@ interface FolderTally {
     formatNames: number;
     periodNames: Map<PeriodUnit, number>;
     dateFields: Map<string, number>;
+    /** notes per property holding template syntax, to drop a date property that is mostly that */
+    templateFields: Map<string, number>;
     candidates: Map<string, number>;
 }
 
@@ -193,6 +226,8 @@ export function describeVault(notes: readonly NoteRecord[], options: DescribeOpt
             const tally: FieldTally = fields.get(path) ?? {
                 notes: 0,
                 empty: 0,
+                template: 0,
+                templateSample: null,
                 kinds: new Map<FieldKind, number>(),
                 samples: new Map<FieldKind, unknown>(),
                 folders: new Map<string, number>(),
@@ -200,6 +235,15 @@ export function describeVault(notes: readonly NoteRecord[], options: DescribeOpt
             fields.set(path, tally);
             if (isEmptyValue(value)) {
                 tally.empty++;
+                continue;
+            }
+            const template = templateSyntaxIn(value);
+            if (template !== null) {
+                // A template's own `<% ... %>` is by design, not code that never ran.
+                if (isInTemplateFolder(note.path, templateFolders)) continue;
+                tally.template++;
+                tally.templateSample ??= template;
+                add(folder.templateFields, path);
                 continue;
             }
             const kind = kindOf(note, path, value, options.dayFormats);
@@ -211,7 +255,8 @@ export function describeVault(notes: readonly NoteRecord[], options: DescribeOpt
         }
     }
 
-    const fieldList = [...fields].sort((a, b) => b[1].notes - a[1].notes || (a[0] < b[0] ? -1 : 1));
+    // A property only templates fill is still found in those notes, so it ranks by them too.
+    const fieldList = [...fields].sort((a, b) => b[1].notes + b[1].template - (a[1].notes + a[1].template) || (a[0] < b[0] ? -1 : 1));
     const folderList = [...folders].sort((a, b) => b[1].notes - a[1].notes || (a[0] < b[0] ? -1 : 1));
     const tagList = ranked(tags);
 
@@ -226,7 +271,11 @@ export function describeVault(notes: readonly NoteRecord[], options: DescribeOpt
             isoNames: tally.isoNames,
             formatNames: tally.formatNames,
             periodNames: Object.fromEntries(tally.periodNames),
-            dateFields: ranked(tally.dateFields).slice(0, FOLDER_DETAILS).map(([name, n]) => ({ name, notes: n })),
+            // A date property holding template syntax in more of the folder's notes than dates is no `date_field` to suggest.
+            dateFields: ranked(tally.dateFields)
+                .filter(([name, n]) => (tally.templateFields.get(name) ?? 0) <= n)
+                .slice(0, FOLDER_DETAILS)
+                .map(([name, n]) => ({ name, notes: n })),
             candidates: ranked(tally.candidates).slice(0, FOLDER_DETAILS).map(([format, n]) => ({ format, notes: n })),
         })),
         folderCount: folderList.length,
@@ -245,6 +294,7 @@ function folderTally(folders: Map<string, FolderTally>, folder: string): FolderT
             formatNames: 0,
             periodNames: new Map<PeriodUnit, number>(),
             dateFields: new Map<string, number>(),
+            templateFields: new Map<string, number>(),
             candidates: new Map<string, number>(),
         };
         folders.set(folder, tally);
@@ -285,6 +335,8 @@ function fieldSummary(name: string, tally: FieldTally): FieldSummary {
         sample: hidden || sample === undefined ? null : sampleText(sample),
         hidden,
         folders: ranked(tally.folders).slice(0, FIELD_FOLDERS).map(([folder, n]) => ({ folder, notes: n })),
+        template: tally.template,
+        templateSample: hidden || tally.templateSample === null ? null : sampleText(tally.templateSample),
     };
 }
 
@@ -417,13 +469,24 @@ export function formatVaultProfile(vault: VaultDescription, settings: ProfileSet
             "|---|---|---|---|---|---|",
         );
         for (const f of vault.fields) {
-            const kinds = Object.entries(f.kinds).length > 1
-                ? `${f.kind}; also ${Object.entries(f.kinds).filter(([k]) => k !== f.kind).map(([k, n]) => `${k} (${n})`).join(", ")}`
-                : f.kind;
+            const kinds = !f.notes && f.template
+                ? "none: template syntax only"
+                : Object.entries(f.kinds).length > 1
+                    ? `${f.kind}; also ${Object.entries(f.kinds).filter(([k]) => k !== f.kind).map(([k, n]) => `${k} (${n})`).join(", ")}`
+                    : f.kind;
             const sample = f.hidden ? "(hidden: the name looks like a secret)" : f.sample === null ? "" : code(f.sample);
             out.push(`| ${cell(f.name)} | ${kinds} | ${f.notes} | ${f.empty} | ${cell(sample)} | ${cell(f.folders.map((d) => `${folderName(d.folder)} (${d.notes})`).join(", "))} |`);
         }
         out.push("");
+        const templated = vault.fields.filter((f) => f.template > 0);
+        if (templated.length) {
+            out.push(
+                "Unexpanded template syntax: these notes hold Templater (`<% ... %>`) or Templates (`{{...}}`) code that never ran, not a value. They are left out of the table above. Do not read such a value as a date or a number, and do not pick a property that mostly holds it as `date_field`.",
+                "",
+                ...templated.map((f) => `- ${f.name}: ${f.template} ${f.template === 1 ? "note holds" : "notes hold"} unexpanded template syntax${f.templateSample === null ? "" : ` (${code(f.templateSample)})`}, not a value`),
+                "",
+            );
+        }
     }
 
     out.push("## Tags", "");
