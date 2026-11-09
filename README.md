@@ -63,7 +63,7 @@ items:
 </picture>
 
 - [`stats`](https://dimagious.github.io/dashsidian/reference/stats/): number cards, streaks, this week against last.
-- [`progress`](https://dimagious.github.io/dashsidian/reference/progress/): bars towards a goal.
+- [`progress`](https://dimagious.github.io/dashsidian/reference/progress/): bars towards a goal, one you set or one your own past weeks or months set.
 - [`heatmap`](https://dimagious.github.io/dashsidian/reference/heatmap/): a year of days, several habits on one grid, or a month as a calendar.
 - [`chart`](https://dimagious.github.io/dashsidian/reference/chart/): a line or bars by day, week, month or year, with a goal line.
 - [`countdown`](https://dimagious.github.io/dashsidian/reference/countdown/): days until a race, a holiday or the next birthday.

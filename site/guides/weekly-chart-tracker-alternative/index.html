@@ -321,6 +321,23 @@ bucket: week
 ```</code></pre>
             </div>
           </div>
+          <div class="var">
+            <h3>This week against your usual week</h3>
+            <p>A goal of 30 km goes stale as you get fitter. <code>goal: usual</code> is the average of the four weeks before this one, so it moves with you. Weeks before your first note are left out.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>progress</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```progress
+source: Diary
+period: week
+items:
+  - label: Kilometres this week
+    field: run_km
+    agg: sum
+    goal: usual
+    unit: km
+```</code></pre>
+            </div>
+          </div>
         </div>
 
         <!-- ============ errors ============ -->

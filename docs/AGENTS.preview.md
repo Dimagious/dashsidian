@@ -73,6 +73,7 @@ data is there.
 | one number over several properties, like all workouts | `stats` with a `field` list |
 | a record or a last reading with the note or date it came from | `stats` with `origin` |
 | how far along a goal is | `progress`, with `goal` |
+| a goal that follows the user's own past months or weeks, not a fixed number | `progress` with `goal: usual` and `period` |
 | days until or since a date, the next birthday | `countdown`, `repeat: yearly` for a birthday |
 | days until the next of many events, one note each (races, trips) | `countdown` with `field` and `pick: next` |
 | today's date with links to the daily, weekly, monthly note | `today` |
@@ -271,6 +272,24 @@ items:
   - { label: Last 10k, field: time, agg: latest, origin: date }
 ```
 
+A goal that follows the user's own history instead of a number written
+once and left to go stale: `goal: usual` measures this month against the
+average of the 4 months before it, on the same `field`, `agg` and
+selection, and the bar reads `30 / usual 183 km`. `{ usual: 2 }` averages
+the last 2 instead. It needs a `period` that repeats (`month`, `week`,
+`30d`, `note`), not `from`/`to`. A month wholly before the first note
+is left out, so a diary started in July is not measured against an empty
+June; until there is a month to average, the bar shows its value alone and
+a notice says why:
+
+```progress
+source: Diary
+period: month
+items:
+  - { label: Running this month, field: run_km, agg: sum, goal: usual, unit: km }
+  - { label: Gym days this month, field: gym, agg: sum, goal: { usual: 2 } }
+```
+
 ## 5. Check before handing over
 
 1. Every key you wrote is in the block reference below for that block, at the level you
@@ -451,7 +470,7 @@ Bars towards a goal: how far a number has come against a target.
 | key | type | required | default | synonyms | what it does |
 |---|---|---|---|---|---|
 | `label` | string | yes | — | `title`, `name` | caption above the bar |
-| `goal` | number\|string | yes | — | `target` | the target to fill towards; must be above zero; a duration like `8h` or `7:30` works too, read as minutes, and a plain number against a field of durations means minutes |
+| `goal` | number\|string\|map | yes | — | `target` | the target to fill towards; must be above zero; a duration like `8h` or `7:30` works too, read as minutes, and a plain number against a field of durations means minutes. `usual` sets the goal from your own history instead: the average of the bar's value over the 4 periods before its window, like the last 4 months for `period: month`; `{ usual: 6 }` averages 6. Needs `period`, on the bar or the block root, one that repeats: not `{ from, to }` |
 | `source` | string | — | — | `folder`, `from` | folder; includes nested ones |
 | `tag` | string | — | — | — | tag, with or without the hash |
 | `where` | string\|list | — | — | — | Same as `where` in Keys shared by several blocks; here also: One unreadable condition drops the whole filter with a warning, and the numbers are drawn unfiltered |
@@ -489,6 +508,7 @@ items:
 - Daily notes named another way, like `05.10.2026`, are read in the day format set in the Daily notes or Periodic Notes settings, with no key at all. Without that setting, name the format: `date_format: DD.MM.YYYY`. A time after the date is fine (`2026-10-05-14:30`), but an order that could be read two ways, like `05-10-2026`, is never guessed: without a format it is not a date.
 - A monthly review: in a note named `2026-10`, `period: note` measures the goal against that month and no other: `{ label: Running, field: distance_km, agg: sum, goal: 200, unit: km, period: note }`. `period: 2026-Q4` or `period: { from: 2026-09-01, to: 2026-11-30 }` names a window outright. The name is read in the formats set in Periodic Notes for each period (one switched on there with no format saved, in the plugin's default, so a week is the locale week `gggg-[W]ww`), the day falling back to Daily notes, then as ISO: `YYYY-MM-DD`, `GGGG-[W]WW`, `YYYY-MM`, `YYYY-[Q]Q`, `YYYY`, the day first, so `2026` never takes `2026-10`. A note named otherwise is an error that lists those formats; nothing is guessed. In a template, a note in the template folder of the core Templates plugin or of Templater, a name that is no period is no error: the block draws no numbers but a line saying the note is a template, under any other problem the config has, and a note made from it and named for a period counts that period. `current_streak` counts back from the window's last day. A window already over does not forgive that day the way a running one forgives today: a closed week with its last day unticked reads `0`. A window that has not started yet draws no bars, only the day it starts.
 - One goal over several properties: `{ label: Training, field: [run_min, bike_min, swim_min], agg: sum, goal: 600, period: month }` adds up the three in each note towards the goal, a note with none of them left out.
+- A goal that follows your history: `{ label: Running, field: run_km, agg: sum, period: month, goal: usual, unit: km }` measures this month against the average of the 4 months before it, the same `agg`, `field` and selection, and the goal reads `usual 48`, rounded the way the value is: without `precision`, a mean of whole counts or sums stays whole. Its tooltip says how many periods it averages. `period: week` takes the 4 weeks before this one, starting on the first day of the week; `30d` the 4 stretches of 30 days before the current one; `period: note` in `2026-10` or `period: 2026-Q4` the 4 months or quarters before the named one; `{ usual: 2 }` the last 2 (up to 120). A period wholly before the first dated note of the selection is skipped, so a vault started in July is not measured against an empty June; after that, a period with nothing in it counts as 0 for `count`, `sum` and the streaks and is skipped for `avg`, `min`, `max` and `latest`. With no period left to average, or an average of 0, the bar shows its value without a goal and a notice says so. Without `period` it is an error; `{ from, to }` warns, as a span has no periods before it.
 
 ### `today`
 

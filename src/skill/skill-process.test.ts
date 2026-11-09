@@ -158,6 +158,7 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
     it("SKILL.md carries the recipes, one per site guide and the month calendar", () => {
         expect(RECIPES.map((r) => r.lang)).toEqual([
             "stats", "stats", "stats", "heatmap", "heatmap", "chart", "progress", "countdown", "today", "tiles", "stats", "stats", "stats", "stats",
+            "progress",
         ]);
     });
 
@@ -223,6 +224,22 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
         // The next race is Barcelona, 13 days on; Berlin is behind, Seville further.
         expect(texts(countdown, ".dashy-countdown-value")).toEqual(["28", "258", "13"]);
         expect(texts(countdown, ".dashy-countdown-sub")).toEqual(["35 years", "12 years", "2026 IRONMAN Barcelona"]);
+    });
+
+    it("a goal that follows the history: the months before the first note are left out (B-209)", () => {
+        const recipe = RECIPES.find((r) => r.lang === "progress" && r.source.includes("goal: usual"));
+        const el = render("progress", recipe?.source ?? "");
+        expect(texts(el, ".dashy-progress-label")).toEqual(["Running this month", "Gym days this month"]);
+        expect(texts(el, ".dashy-progress-value")).toEqual([
+            // 1 to 5 October against July 184, August 185 and September 180;
+            // June lies before the first diary note and is not a zero.
+            "30 / usual 183 km 16%",
+            // 4 gym days against August 28 and September 27: 27.5, shown whole like the sums: 28.
+            "4 / usual 28 14%",
+        ]);
+        const titles = [...el.querySelectorAll(".dashy-progress-value")].map((v) => v.getAttribute("title"));
+        expect(titles).toEqual(["average of 3 past periods", "average of 2 past periods"]);
+        expect(el.querySelectorAll(".dashy-notice")).toHaveLength(0);
     });
 
     it("numeric habits: a sum, a threshold streak and a count compared with last week (B-177)", () => {

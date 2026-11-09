@@ -60,6 +60,7 @@ export type PluralKey =
     | "chart.months"
     | "chart.years"
     | "chart.notesCount"
+    | "progress.usualTitle"
     | "command.blocks"
     | "command.errors"
     | "command.warnings";

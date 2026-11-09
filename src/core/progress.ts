@@ -8,11 +8,13 @@
 
 import { readStat, noteDurationThreshold, type StatSpec } from "./stat";
 import { parseDuration } from "./duration";
-import type { Diagnostic } from "../shared/parse";
+import { MAX_USUAL_PERIODS, USUAL_PERIODS, type UsualGoalSpec } from "./usual-goal";
+import { describeValue, isRecord, type Diagnostic } from "../shared/parse";
 import { t } from "../i18n";
 
 export interface ProgressSpec extends StatSpec {
-    goal: number;
+    /** a number written in the config, or one the bar's history sets (`goal: usual`, B-209) */
+    goal: number | UsualGoalSpec;
 }
 
 export interface ProgressOutcome {
@@ -28,6 +30,8 @@ export function readProgress(item: Record<string, unknown>, label: string): Prog
     // user wrote, or a duration like `8h` (read as minutes, core/duration.ts),
     // and everything else is a mistake worth reporting.
     const written = item.goal;
+    const usual = readUsual(written, card, diagnostics);
+    if (usual) return { spec: spec ? { ...spec, goal: usual } : null, diagnostics };
     const numeric = typeof written === "string" && written.trim() !== "" ? Number(written) : Number.NaN;
     const duration = typeof written === "string" && !Number.isFinite(numeric) ? parseDuration(written) : null;
     const goal = typeof written === "number"
@@ -50,6 +54,28 @@ export function readProgress(item: Record<string, unknown>, label: string): Prog
     const withGoal: ProgressSpec = { ...spec, goal };
     if (duration !== null) noteDurationThreshold(withGoal, "goal", written);
     return { spec: withGoal, diagnostics };
+}
+
+/**
+ * `goal: usual` (B-209), in any case, or `goal: { usual: N }`: the goal the
+ * bar's own past periods set. A count of periods that is not a whole number
+ * from 1 to `MAX_USUAL_PERIODS` warns and falls back to the default four, so the bar still
+ * draws. Null for anything else, which the caller reads as a fixed goal.
+ */
+function readUsual(written: unknown, card: string, diagnostics: Diagnostic[]): UsualGoalSpec | null {
+    if (typeof written === "string") {
+        return written.trim().toLowerCase() === "usual" ? { usual: USUAL_PERIODS } : null;
+    }
+    if (!isRecord(written) || Object.keys(written).length !== 1 || !Object.prototype.hasOwnProperty.call(written, "usual")) {
+        return null;
+    }
+    const count = written.usual;
+    if (typeof count === "number" && Number.isInteger(count) && count >= 1 && count <= MAX_USUAL_PERIODS) return { usual: count };
+    diagnostics.push({
+        level: "warning",
+        message: t("progress.usualBadCount", { card, value: describeValue(count), count: USUAL_PERIODS, max: MAX_USUAL_PERIODS }),
+    });
+    return { usual: USUAL_PERIODS };
 }
 
 /**
