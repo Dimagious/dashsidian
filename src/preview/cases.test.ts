@@ -1,7 +1,10 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, afterAll, vi } from "vitest";
 import { CASES } from "./cases";
 import { BLOCKS, fakeVault, previewContext, withDates } from "./fixture";
 import { setLocale, AVAILABLE_LOCALES } from "../i18n";
+
+/** A Wednesday, noon: mid-week, so a partial week is partial whichever day the week starts on. */
+const PINNED_DAY = "2026-10-28T12:00:00";
 
 /**
  * The stand is a developer tool, but a stale one is worse than none: it was
@@ -9,8 +12,15 @@ import { setLocale, AVAILABLE_LOCALES } from "../i18n";
  * code it draws. This does.
  */
 
+// The stand draws around the real today; the test pins one, or a case that
+// depends on the weekday fails on some days and not others (B-212: a partial
+// week was not partial on Saturday 2026-10-31). Only `Date` is faked.
+vi.useFakeTimers({ toFake: ["Date"] });
+vi.setSystemTime(new Date(PINNED_DAY));
+
 const ctx = previewContext(fakeVault());
 afterEach(() => setLocale("en"));
+afterAll(() => vi.useRealTimers());
 
 const render = (index: number): HTMLElement => {
     const item = CASES[index]!;
