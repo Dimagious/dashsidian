@@ -12,6 +12,11 @@ describe("templateFolders (B-190)", () => {
         expect(templateFolders(app)).toEqual(["99-Meta/Templates", "Templater"]);
     });
 
+    it("names a folder both plugins point at once", () => {
+        const app = mockApp({ templates: { folder: "99-Meta/Templates" }, templater: { templates_folder: "99-Meta/Templates" } });
+        expect(templateFolders(app)).toEqual(["99-Meta/Templates"]);
+    });
+
     it("reads either one alone", () => {
         expect(templateFolders(mockApp({ templates: { folder: "Templates" } }))).toEqual(["Templates"]);
         expect(templateFolders(mockApp({ templater: { templates_folder: "Templater" } }))).toEqual(["Templater"]);
