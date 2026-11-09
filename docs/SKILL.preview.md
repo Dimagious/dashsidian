@@ -60,8 +60,8 @@ About, Override config folder.
   the day past midnight for every block.
 - The frontmatter of 3 to 5 recent notes in the folder the user means. Do
   not walk the whole vault. Note what the values are: numbers, ticked
-  checkboxes (count as 1), or durations like `7:30` or `5h 58min`, which
-  count as minutes.
+  checkboxes (count as 1), or durations like `7:30`, `5h 58min` or ISO
+  `PT1H45M`, which count as minutes.
 
 Then settle how a note's date is known. A name starting with `YYYY-MM-DD`
 (`2026-03-02 Monday`) dates the note. Any other name (`02.03.2026`,
