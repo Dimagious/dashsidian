@@ -81,6 +81,7 @@ data is there.
 | days until or since a date, the next birthday | `countdown`, `repeat: yearly` for a birthday |
 | days until the next of many events, one note each (races, trips) | `countdown` with `field` and `pick: next` |
 | today's date with links to the daily, weekly, monthly note | `today` |
+| a daily note template line linking the note's own week and month, and the day before and after | `today` with `date: note` |
 | a grid of links to folders or notes | `tiles` |
 | a year of days coloured by a value, a habit year | `heatmap` |
 | several habits on one grid | `heatmap` with `layers` |
@@ -292,6 +293,23 @@ period: month
 items:
   - { label: Running this month, field: run_km, agg: sum, goal: usual, unit: km }
   - { label: Gym days this month, field: gym, agg: sum, goal: { usual: 2 } }
+```
+
+A line for the daily note template, in place of links to the week and
+month typed by hand into every note: `date: note` reads the day from
+the name of each note made from the template, so a note from last spring
+still links its own week and month, and the days before and after it. The
+chips follow the weekly and monthly formats set in Periodic Notes. Keep
+the template in the template folder of the core Templates plugin or of
+Templater: there the block says it is a template, while a note named for
+anything but a day, a weekly note included, shows an error. Leave out
+`clock`: it warns with `date: note`. `nav: false` drops the days
+before and after:
+
+```today
+date: note
+weekly: true
+monthly: true
 ```
 
 ## 5. Check before handing over
@@ -517,7 +535,7 @@ items:
 
 ### `today`
 
-A day row: today's date, an optional live clock, and links to the daily, weekly and monthly notes.
+A day row: today's date, or the day a daily note is named for, an optional live clock, and links to the daily, weekly and monthly notes.
 
 **Block root**
 
@@ -527,7 +545,9 @@ A day row: today's date, an optional live clock, and links to the daily, weekly 
 | `weekly` | boolean | — | `false` | — | link to the weekly note |
 | `monthly` | boolean | — | `false` | — | link to the monthly note |
 | `title` | string | — | — | — | a custom heading instead of today's date |
-| `clock` | boolean\|string | — | `false` | — | a live clock above the date: `true` or `minutes` for hours and minutes, `seconds` to add the seconds. A 12 or 24 hour clock follows the language, the same as the date. Any other value warns and shows no clock |
+| `clock` | boolean\|string | — | `false` | — | a live clock above the date: `true` or `minutes` for hours and minutes, `seconds` to add the seconds. A 12 or 24 hour clock follows the language, the same as the date. Any other value warns and shows no clock. With `date: note` the clock warns and is not shown |
+| `date` | string | — | — | — | `note`: the day of the note this block sits in, read from its name, instead of today. The heading shows that day and the chips link its daily, weekly and monthly notes. Only a day's name will do: in a weekly note it is an error. Any other value warns and shows today |
+| `nav` | boolean | — | `true` | — | with `date: note`, links to the day before and the day after, named and filed like the daily note; `false` hides them. Without `date: note` it warns and is ignored |
 
 **Example**
 
@@ -544,6 +564,7 @@ monthly: true
 - With none of `daily`, `weekly` and `monthly` given, only the daily note is shown. With at least one given, exactly those apply.
 - The clock only changes its own digits, on the minute (or the second), and does not reread the vault. The date under it changes when the day does, at the hour set by "New day starts at" in the Dashy settings: with the day starting at 4:00, a clock that reads 01:30 still sits above yesterday's date.
 - If the note does not exist yet the link is still drawn, dimmed: clicking it creates the note.
+- In a daily note template, `date: note` with `weekly: true` and `monthly: true` gives every daily note a line with its own week and month, and the day before and after, however late the note is opened. The day is read from the note's name the way `period: note` reads it: the day format set in Periodic Notes or Daily notes, then `YYYY-MM-DD`, and a name may go on after the day past a space, `_` or `-` (`2026-11-09 Monday`). A note named for a week, a month or anything but a day is an error that lists those formats. In the template folder of the core Templates plugin or of Templater, a name that is no period is no error: the block shows a line saying the note is a template. The week and month links name the day's week and month the same way today's do, so the week of 1 January 2027 is `2026-W53` in `GGGG-[W]WW` and `2027-W01` in `gggg-[W]ww` under English. The chips read Day, Week and Month, not Today and This week, and the daily chip of the note itself is drawn without a link. No clock: `clock` with `date: note` warns and is not shown.
 
 ### `countdown`
 

@@ -12,6 +12,24 @@ removed public export.
 
 ### Added
 
+- **`today` in a daily note shows that note's day.** `date: note` reads
+  the day from the name of the note the block sits in, the way `period:
+  note` does (the day format from Periodic Notes or Daily notes, then
+  `YYYY-MM-DD`, a name going on after the day included), and the block
+  shows that day instead of today: its date as the heading, chips for its
+  weekly and monthly notes named the same way today's are, and links to
+  the day before and after, named and filed like the daily note, which
+  `nav: false` hides. Put once in the daily note template, it replaces a
+  line of week and month links typed into every note. The chips read
+  Day, Week and Month, and the daily chip of the note itself is drawn
+  without a link. A note named for a week, a month or anything but a
+  day is an error listing the day formats; in the template folder of
+  Templates or Templater, a name that is no period at all shows a line
+  saying the note is a template instead.
+  `clock` with `date: note` warns and is not shown, `nav` without it
+  warns and is ignored, and any `date` other than `note` warns and shows
+  today.
+
 - **An API for other plugins.** A plugin that writes Dashy blocks reads
   `app.plugins.plugins.dashsidian.api` and gets `apiVersion` (1, raised only
   by a breaking change), the plugin `version`, the block `schemaVersion`,

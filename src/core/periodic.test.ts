@@ -142,3 +142,44 @@ describe("readToday", () => {
         expect(diagnostics.map((d) => d.level)).toEqual(["warning", "error"]);
     });
 });
+
+describe("readToday: `date: note` and `nav` (B-210)", () => {
+    it("`date: note`, in any case, is the note's day, with the day before and after on", () => {
+        expect(readToday({ date: "note" }).spec).toEqual({ periods: ["daily"], noteDate: true, nav: true });
+        expect(readToday({ date: " Note ", weekly: true }).spec).toEqual({ periods: ["weekly"], noteDate: true, nav: true });
+        expect(readToday({ date: "note" }).diagnostics).toEqual([]);
+    });
+
+    it("`nav: false` turns the day before and after off; a string negation does too, with a warning", () => {
+        expect(readToday({ date: "note", nav: false }).spec?.nav).toBe(false);
+        const { spec, diagnostics } = readToday({ date: "note", nav: "no" });
+        expect(spec?.nav).toBe(false);
+        expect(diagnostics.map((d) => d.message)).toEqual(['`nav` expects true or false, got "no". Reading it as false.']);
+    });
+
+    it("any other `date` warns and shows today", () => {
+        for (const date of ["today", "2026-11-09", 5]) {
+            const { spec, diagnostics } = readToday({ date });
+            expect(spec, String(date)).toEqual({ periods: ["daily"] });
+            expect(diagnostics.map((d) => d.level)).toEqual(["warning"]);
+            expect(diagnostics[0]?.message).toBe(
+                `\`date\` takes only \`note\`, the day of the note this block sits in, got "${String(date)}". Showing today.`,
+            );
+        }
+    });
+
+    it("a clock with `date: note` warns and is left out; `clock: false` is quiet", () => {
+        const { spec, diagnostics } = readToday({ date: "note", clock: "seconds" });
+        expect(spec).toEqual({ periods: ["daily"], noteDate: true, nav: true });
+        expect(diagnostics.map((d) => d.message)).toEqual([
+            "`clock` is not shown with `date: note`: the time now means nothing in a note about one day. Remove `clock`.",
+        ]);
+        expect(readToday({ date: "note", clock: false }).diagnostics).toEqual([]);
+    });
+
+    it("`nav` without `date: note` warns and is ignored", () => {
+        const { spec, diagnostics } = readToday({ nav: true });
+        expect(spec).toEqual({ periods: ["daily"] });
+        expect(diagnostics.map((d) => d.message)).toEqual(["`nav` works only with `date: note`, ignored."]);
+    });
+});

@@ -93,6 +93,7 @@ data is there.
 | days until or since a date, the next birthday | `countdown`, `repeat: yearly` for a birthday |
 | days until the next of many events, one note each (races, trips) | `countdown` with `field` and `pick: next` |
 | today's date with links to the daily, weekly, monthly note | `today` |
+| a daily note template line linking the note's own week and month, and the day before and after | `today` with `date: note` |
 | a grid of links to folders or notes | `tiles` |
 | a year of days coloured by a value, a habit year | `heatmap` |
 | several habits on one grid | `heatmap` with `layers` |
@@ -304,6 +305,23 @@ period: month
 items:
   - { label: Running this month, field: run_km, agg: sum, goal: usual, unit: km }
   - { label: Gym days this month, field: gym, agg: sum, goal: { usual: 2 } }
+```
+
+A line for the daily note template, in place of links to the week and
+month typed by hand into every note: `date: note` reads the day from
+the name of each note made from the template, so a note from last spring
+still links its own week and month, and the days before and after it. The
+chips follow the weekly and monthly formats set in Periodic Notes. Keep
+the template in the template folder of the core Templates plugin or of
+Templater: there the block says it is a template, while a note named for
+anything but a day, a weekly note included, shows an error. Leave out
+`clock`: it warns with `date: note`. `nav: false` drops the days
+before and after:
+
+```today
+date: note
+weekly: true
+monthly: true
 ```
 
 ## 5. Check before handing over
