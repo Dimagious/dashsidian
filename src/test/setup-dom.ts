@@ -16,6 +16,23 @@
 if (!("activeWindow" in globalThis)) {
     (globalThis as unknown as { activeWindow: Window }).activeWindow = window;
 }
+/** Obsidian's `activeDocument`: the document of that same window, so here just `document`. */
+if (!("activeDocument" in globalThis)) {
+    (globalThis as unknown as { activeDocument: Document }).activeDocument = document;
+}
+/**
+ * Obsidian's `Node#instanceOf()`, the cross-window `instanceof`: it compares
+ * against the class of the node's own window. With a single window that is
+ * the plain operator.
+ */
+if (!("instanceOf" in Node.prototype)) {
+    (Node.prototype as unknown as Record<string, unknown>).instanceOf = function (
+        this: Node,
+        type: abstract new () => unknown,
+    ): boolean {
+        return this instanceof type;
+    };
+}
 /** Obsidian's global `createDiv()`: a detached div, nothing appended anywhere. */
 if (!("createDiv" in globalThis)) {
     (globalThis as unknown as { createDiv: () => HTMLDivElement }).createDiv = () => document.createElement("div");

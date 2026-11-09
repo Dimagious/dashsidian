@@ -3,23 +3,23 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 export default [
-  // Base JavaScript recommended
-  js.configs.recommended,
-
-  // TypeScript recommended (without type checking for faster linting)
-  ...tseslint.configs.recommended,
-
-  // Type-aware rules, scoped to the TypeScript sources because the config
-  // files are not in the tsconfig project. The catalogue's reviewer runs these
-  // and reported three findings we never saw; a gate that stops short of the
-  // reviewer's is a gate that tells you afterwards.
-  ...tseslint.configs.recommendedTypeChecked.map((c) => ({ ...c, files: ['**/*.ts'] })),
+  // ESLint's own recommended rules, from the ESLint this repo runs (10). The
+  // preset carries them too, but takes them from the ESLint it resolves, and
+  // npm nests an ESLint 9 under it, which lacks the three rules 10 added
+  // (`no-unassigned-vars`, `no-useless-assignment`, `preserve-caught-error`).
+  // Scoped to code: unscoped, the core rules reach `manifest.json` and
+  // `LICENSE`, which the preset lints since 0.5.0, and abort the run.
+  { ...js.configs.recommended, files: ['**/*.{ts,tsx,js,mjs,cjs}'] },
 
   // The plugin's own `recommended` preset, not a hand-picked subset of it.
   // Picking rules by hand is picking which parts of the review to fail: the
   // list here was 27 of the 39 the preset enables, and the twelve missing ones
   // included `no-unsupported-api` at error level and the console-logging rule
   // straight out of the plugin guidelines.
+  //
+  // Since 0.5.0 it also carries typescript-eslint's `recommendedTypeChecked`
+  // for TS files (the reviewer's type-aware rules), so this file no longer
+  // adds typescript-eslint's configs itself.
   ...obsidianmd.configs.recommended,
 
   // Our own overrides on top, each one deliberate.
@@ -45,6 +45,10 @@ export default [
       // Presence-only check: it flags a PluginSettingTab without a
       // getSettingDefinitions() method. See src/ui/settings.ts, which has one.
       'obsidianmd/settings-tab/prefer-setting-definitions': 'error',
+      // 0.5.x turns this off in favour of obsidianmd/no-nodejs-modules, which
+      // only warns, and `eslint .` passes on warnings. The plugin runs on
+      // phones: no `require` belongs in it.
+      '@typescript-eslint/no-require-imports': 'error',
 
       // Off: it reads diagnostics and button labels as headings and asks for
       // sentence case where the text is already a sentence.
@@ -61,9 +65,10 @@ export default [
       }],
 
       // A Promise returned where a void-typed callback is expected, a DOM
-      // listener for instance, drops its rejection in silence. Needs the type
-      // information that parserOptions.project above provides.
-      '@typescript-eslint/no-misused-promises': 'error',
+      // listener for instance, drops its rejection in silence. The preset runs
+      // this as `obsidianmd/no-misused-promises` at error level since 0.5.0:
+      // the same check, without Obsidian's chaining `then` counted as a
+      // Promise. Needs the type information parserOptions.project provides.
     },
   },
   
