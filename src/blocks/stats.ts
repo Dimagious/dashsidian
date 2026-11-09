@@ -3,7 +3,7 @@ import { selectNotes, unmatchedSource, type NoteRecord } from "../core/source";
 import {
     readBlockSelection, inheritSelection, blankSelectionDiagnostics, undatedRootDiagnostics, unmatchedRootDateFormat,
 } from "../core/inherit";
-import { aggregate, series, classifyField, classifyValues } from "../core/aggregate";
+import { aggregate, series, classifyField, classifyValues, type AggregateSpec } from "../core/aggregate";
 import { readDateField, readDateFormat, unmatchedDateFormat } from "../core/note-date";
 import { sparkBars } from "../core/sparkline";
 import {
@@ -29,6 +29,7 @@ import {
 } from "../core/period";
 import { readStatsLayout, inlineLayoutDiagnostics } from "../core/stats-layout";
 import { readOrigin, originLabel } from "../core/origin";
+import { readGroupBy, groupByMissing, summarizeGroups } from "../core/group-by";
 import { parseDateKey } from "../core/calendar";
 import { firstDayOfWeek, formatDayMedium } from "../adapters/datetime";
 import { noteDateFormats, periodContext } from "../adapters/periodic";
@@ -36,7 +37,7 @@ import { parseConfig, asItems, isRecord, unknownKeys, type Diagnostic } from "..
 import { clearBlock, renderDiagnostics, renderNotices, internalLink } from "../shared/render";
 import { notStartedNotice, renderTemplateHint } from "./window";
 import { showsTemplateHint } from "../core/template-note";
-import { t } from "../i18n";
+import { t, tPlural } from "../i18n";
 import schema from "./schema.json";
 
 /** Keys come from schema.json — the same source the agent skill is built from. */
@@ -71,6 +72,27 @@ interface Card {
     deltaHint?: string;
     /** `origin` (B-149): the note the value came from, as a link, or its date */
     origin?: { text: string; path?: string };
+    /** `group_by` (B-213): a row per value instead of one number */
+    group?: GroupView;
+}
+
+/** A number as a `group_by` row shows it: the formatted value and its unit. */
+interface GroupNumber {
+    text: string;
+    unit?: string;
+}
+
+interface GroupView {
+    /** ranked, best first, already cut to `limit` */
+    rows: (GroupNumber & { label: string })[];
+    /** how many values `limit` left out */
+    more: number;
+    /** the notes with no value, always the last row; unset when every note has one */
+    noValue?: GroupNumber;
+    /** some note counts in more than one row */
+    overlap: boolean;
+    /** nothing to rank: the selection is empty, or the window cannot be counted */
+    empty?: "noNotes" | "dash";
 }
 
 export function renderStats(ctx: BlockContext, source: string, el: HTMLElement): void {
@@ -128,10 +150,15 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
     const rootFormatted: { notes: readonly NoteRecord[]; dateField?: string }[] = [];
     for (const own of items) {
         diags.push(...unknownKeys(own, KNOWN_ITEM));
-        const { item, source, diagnostics: sourceDiags, inherited } = inheritSelection(own, block);
+        const { item: written, source, diagnostics: sourceDiags, inherited } = inheritSelection(own, block);
 
-        const label = typeof item.label === "string" ? item.label : "";
+        const label = typeof written.label === "string" ? written.label : "";
         const cardLabel = label ? `"${label}"` : t("stats.unlabeledCard");
+        // B-213: a `group_by` card drops the keys that describe one number
+        // (`compare`, `trend`, `origin`) with a warning, before anything reads them.
+        const grouping = readGroupBy(written, cardLabel);
+        diags.push(...grouping.diagnostics);
+        const item = grouping.item;
         const { spec, diagnostics: statDiags } = readStat(item, label);
         diags.push(...statDiags);
         // A card key only, like `agg`: the root has no `origin` to inherit.
@@ -143,6 +170,7 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         const missing = own.source !== undefined ? unmatchedSource(notes, source) : null;
         if (missing) diags.push({ level: "warning", message: t("where.noSuchFolder", { folder: missing }) });
         const selected = selectNotes(notes, source);
+        if (grouping.spec) diags.push(...groupByMissing(selected, grouping.spec.field, cardLabel));
 
         // A typo in `field` and a text field like Garmin's `running: "10 km"`
         // both aggregate to "nothing to count", indistinguishable from an
@@ -250,8 +278,8 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
             ? compareDiags.filter((d) => d.message !== needsPeriod)
             : compareDiags));
 
-        const current = spec && !broken && !future
-            ? aggregate(counted, {
+        const aggSpec: AggregateSpec | null = spec
+            ? {
                 agg: spec.agg,
                 field: statFields(spec),
                 dateField,
@@ -262,11 +290,12 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
                 skipField: spec.skipField,
                 today: lastDay,
                 graceToday: !windowIsOver(periodSpec?.period, today),
-            })
+            }
             : null;
+        const current = aggSpec && !broken && !future && !grouping.spec ? aggregate(counted, aggSpec) : null;
 
         const card: Card = {
-            label: label || spec?.field || "",
+            label: label || spec?.field || grouping.spec?.field || "",
             text: formatReading(current, spec?.precision, duration, clock),
             trend: layout === "cards" && spec?.trend && spec.field && !broken && !future
                 ? sparkBars(series(selected, statFields(spec), spec.trend, lastDay, dateField, formats))
@@ -276,6 +305,28 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
         // A duration already carries its units (`durationDiagnostics` warned).
         if (spec?.unit && !duration) card.unit = unitFor(spec.unit, card.text);
         if (typeof item.sub === "string") card.sub = item.sub;
+        if (grouping.spec) {
+            if (!spec || !aggSpec || broken || future) {
+                // An `agg` that does not read already has its error.
+                card.group = { rows: [], more: 0, overlap: false, empty: "dash" };
+            } else if (!counted.length) {
+                card.group = { rows: [], more: 0, overlap: false, empty: "noNotes" };
+            } else {
+                // Each row's number reads like a card's: the same aggregate,
+                // `precision`, `unit` and duration format, over that value's notes.
+                const show = (value: number | null): GroupNumber => {
+                    const text = formatReading(value, spec.precision, duration, clock);
+                    return spec.unit && !duration && text !== "—" ? { text, unit: unitFor(spec.unit, text) } : { text };
+                };
+                const summary = summarizeGroups(counted, grouping.spec, spec.agg, (group) => aggregate(group, aggSpec));
+                card.group = {
+                    rows: summary.rows.map((row) => ({ label: row.label, ...show(row.value) })),
+                    more: summary.more,
+                    overlap: summary.overlap,
+                };
+                if (summary.noValue) card.group.noValue = show(summary.noValue.value);
+            }
+        }
         // B-149: the note behind the number, from the same window the number
         // counts (`compare`'s previous value is not described). Not drawn
         // inline, which already warned that it drops it.
@@ -346,7 +397,9 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
     if (notStarted === cards.length) return;
 
     if (layout === "inline") {
-        renderInline(el, cards);
+        // A `group_by` card is no item of a line: `inlineLayoutDiagnostics` said so.
+        const plain = cards.filter((card) => !card.group);
+        if (plain.length) renderInline(el, plain);
         return;
     }
 
@@ -354,6 +407,10 @@ export function renderStats(ctx: BlockContext, source: string, el: HTMLElement):
     grid.style.setProperty("--dashy-stat-columns", String(Math.max(1, Math.min(6, columns))));
 
     for (const card of cards) {
+        if (card.group) {
+            renderGroupCard(grid, card, card.group);
+            continue;
+        }
         const box = grid.createDiv({ cls: "dashy-stat" });
         if (card.icon) box.createSpan({ cls: "dashy-stat-icon", text: card.icon });
 
@@ -411,6 +468,62 @@ function renderSub(box: HTMLElement, card: Card): void {
     if (card.sub) sub.appendText(" · ");
     if (card.origin.path) internalLink(sub, card.origin.path, "dashy-stat-origin").setText(card.origin.text);
     else sub.createSpan({ cls: "dashy-stat-origin", text: card.origin.text });
+}
+
+/**
+ * A `group_by` card (B-213): the label as a heading, then one row per value,
+ * its name on the left and its number on the right, best first. `limit`
+ * folds the tail into "+3 more values"; the notes with no value always come
+ * last, muted, outside the ranking. A hint under the rows says when a note
+ * with several values counted in each, so the rows add up to more than the
+ * notes.
+ */
+function renderGroupCard(grid: HTMLElement, card: Card, group: GroupView): void {
+    const box = grid.createDiv({ cls: "dashy-stat dashy-stat-group" });
+    const head = box.createDiv({ cls: "dashy-stat-group-head" });
+    if (card.icon) {
+        head.createSpan({ cls: "dashy-stat-group-icon", text: card.icon });
+        head.appendText(" ");
+    }
+    head.createSpan({ cls: "dashy-stat-label", text: card.label });
+    if (card.sub) box.createDiv({ cls: "dashy-stat-sub", text: card.sub });
+
+    if (group.empty === "dash") {
+        box.createDiv({ cls: "dashy-stat-value is-empty", text: "—" });
+        return;
+    }
+    if (group.empty === "noNotes") {
+        box.createDiv({ cls: "dashy-stat-group-empty", text: t("stats.groupNoNotes") });
+        return;
+    }
+    const list = box.createDiv({ cls: "dashy-stat-group-rows" });
+    for (const row of group.rows) renderGroupRow(list, row.label, row);
+    if (group.more > 0) {
+        const more = list.createDiv({ cls: "dashy-stat-group-more" });
+        more.createSpan({ cls: "dashy-stat-group-more-count", text: `+${group.more}` });
+        more.appendText(` ${tPlural("stats.groupMore", group.more)}`);
+    }
+    if (group.noValue) renderGroupRow(list, t("stats.groupNoValue"), group.noValue, "is-no-value");
+    if (group.overlap) box.createDiv({ cls: "dashy-stat-group-hint", text: t("stats.groupOverlap") });
+}
+
+/**
+ * One row: the value's name, then its number. A space sits between them so
+ * the row reads "Switch 12" to a screen reader and in a copy; the flex row
+ * does not draw it.
+ */
+function renderGroupRow(list: HTMLElement, name: string, number: GroupNumber, modifier = ""): void {
+    const row = list.createDiv({ cls: modifier ? `dashy-stat-group-row ${modifier}` : "dashy-stat-group-row" });
+    row.createSpan({ cls: "dashy-stat-group-name", text: name });
+    row.appendText(" ");
+    const value = row.createSpan({
+        cls: number.text === "—" ? "dashy-stat-group-value is-empty" : "dashy-stat-group-value",
+        text: number.text,
+    });
+    if (number.unit) {
+        value.appendText(" ");
+        value.createSpan({ cls: "dashy-stat-group-unit", text: number.unit });
+    }
 }
 
 /**

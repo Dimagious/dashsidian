@@ -53,6 +53,7 @@ export type PluralKey =
     | "countdown.daysAgo"
     | "countdown.years"
     | "countdown.pickSkipped"
+    | "stats.groupMore"
     | "compare.vsDays"
     | "heatmap.notesCount"
     | "chart.days"

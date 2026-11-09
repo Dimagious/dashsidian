@@ -158,6 +158,30 @@
 .dashy-stat-inline-unit { font-weight: 500; opacity: 0.6; }
 .dashy-stat-inline-label { color: var(--text-muted); }
 .dashy-stat-inline .dashy-stat-delta { margin-top: 0; }
+/* `group_by` (B-213): a ranked list of values in one card. Left-aligned so
+   the names line up; each number sits at the right edge in tabular figures,
+   so the column of numbers reads straight down. */
+.dashy-stat-group { text-align: start; }
+.dashy-stat-group-head { font-weight: 600; margin-bottom: 8px; }
+.dashy-stat-group-head .dashy-stat-label { margin-top: 0; font-size: 0.95em; }
+.dashy-stat-group-rows { display: flex; flex-direction: column; gap: 4px; }
+.dashy-stat-group-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  font-size: 0.9em;
+}
+/* a long name wraps inside its column rather than pushing the number out */
+.dashy-stat-group-name { min-width: 0; overflow-wrap: anywhere; }
+.dashy-stat-group-value { flex: none; white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dashy-stat-group-value.is-empty { color: var(--text-faint); font-weight: 500; }
+.dashy-stat-group-unit { font-weight: 500; opacity: 0.6; }
+.dashy-stat-group-more { font-size: 0.8em; color: var(--text-muted); }
+.dashy-stat-group-more-count { font-variant-numeric: tabular-nums; }
+/* the notes with no value: counted, but outside the ranking */
+.dashy-stat-group-row.is-no-value { color: var(--text-muted); }
+.dashy-stat-group-row.is-no-value .dashy-stat-group-name { font-style: italic; }
+.dashy-stat-group-row.is-no-value .dashy-stat-group-value { font-weight: 500; }
+.dashy-stat-group-empty { font-size: 0.85em; color: var(--text-faint); }
+.dashy-stat-group-hint { font-size: 0.7em; color: var(--text-muted); margin-top: 8px; }
 
 /* the block picker in the command palette */
 .dashy-suggest-name { font-weight: 500; }
@@ -519,6 +543,8 @@ a.dashy-chart-hit { cursor: pointer; text-decoration: none; color: inherit; }
   }
   /* Every pixel of gap is a pixel the bars do not get. */
   .dashy-stat-trend { gap: 0; }
+  /* A ranked list needs the width a single number does not: a whole row. */
+  .dashy-stat-group { grid-column: 1 / -1; }
   /* A card is about 156px wide here, so the same length classes shrink
      proportionally to the smaller base size. */
   .dashy-stat-value { font-size: 1.6em; }

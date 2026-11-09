@@ -228,10 +228,10 @@ const BOOKS: FakeNote[] = [
     book("H", "2025-05-19", 330, 4),
     book("I", "2025-09-30", 190, 3),
     book("J", "2025-11-20", 640, 5),
-    book("Project Hail Mary", "2026-03-14", 476, 5),
-    book("K", "2026-01-09", 300, 4),
-    book("L", "2026-04-22", 250, 3),
-    book("M", "2026-07-03", 410, 5),
+    book("Project Hail Mary", "2026-03-14", 476, 5, { genre: "sci-fi" }),
+    book("K", "2026-01-09", 300, 4, { genre: "fantasy" }),
+    book("L", "2026-04-22", 250, 3, { genre: ["sci-fi", "classics"] }),
+    book("M", "2026-07-03", 410, 5, { genre: "fantasy" }),
     book("N", "2026-09-28", 180, 4),
     book("O", null, 320, 0, { status: "to-read" }),
     book("P", null, 200, 0, { status: "to-read" }),
@@ -257,7 +257,7 @@ goal: 24`;
 describe("guide: books-per-year", () => {
     it("every Dashy block on the page draws without an error or a warning", () => {
         const blocks = guideBlocks("books-per-year");
-        expect(blocks.map((b) => b.lang)).toEqual(["stats", "chart", "stats", "chart", "progress", "chart", "chart", "stats"]);
+        expect(blocks.map((b) => b.lang)).toEqual(["stats", "chart", "stats", "chart", "progress", "chart", "chart", "stats", "stats"]);
         for (const { lang, source } of blocks) expectClean(render(lang, source, { notes: BOOKS }));
     });
 
@@ -277,6 +277,15 @@ describe("guide: books-per-year", () => {
         const el = render("stats", STATS_THIS_YEAR, { notes: BOOKS });
         expect(texts(el, ".dashy-stat-delta")).toEqual(["▲ +2 (was 3)"]);
         expect(nodes(el, ".dashy-stat-delta")[0]?.className).toContain("dashy-stat-delta-good");
+    });
+
+    it("variation: this year's books by genre, a book with two counted in both (B-213)", () => {
+        const source = guideBlocks("books-per-year")[8]?.source ?? "";
+        const el = render("stats", source, { notes: BOOKS });
+        // K and M; Project Hail Mary and L; L again; N has none.
+        expect(texts(el, ".dashy-stat-group-name")).toEqual(["fantasy", "sci-fi", "classics", "no value"]);
+        expect(texts(el, ".dashy-stat-group-value")).toEqual(["2", "2", "1", "1"]);
+        expect(texts(el, ".dashy-stat-group-hint")).toHaveLength(1);
     });
 
     it("step 3: one bar per year from 2021, an empty year is 0, this year is so far", () => {

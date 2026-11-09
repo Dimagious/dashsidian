@@ -60,6 +60,21 @@ describe("inlineLayoutDiagnostics", () => {
         ]);
     });
 
+    it("a group_by card is dropped whole: one warning, its own keys not listed again (B-213)", () => {
+        const cards = [
+            { label: "By genre", group_by: "genre", sub: "x", trend: "30d" },
+            { label: "Blank", group_by: " ", sub: "y" },
+        ];
+        expect(inlineLayoutDiagnostics("inline", null, cards)).toEqual([
+            {
+                level: "warning",
+                message: '`group_by` cards are not drawn with `layout: inline`: "By genre". Use `layout: cards` to see them.',
+            },
+            // A blank `group_by` is an ordinary card, drawn inline like one.
+            { level: "warning", message: '`sub` is not shown with `layout: inline`: "Blank". Use `layout: cards` to see it.' },
+        ]);
+    });
+
     it("is silent for an inline block that sets none of them", () => {
         expect(inlineLayoutDiagnostics("inline", { layout: "inline" }, [{ label: "Notes", icon: "x", unit: "km" }]))
             .toEqual([]);

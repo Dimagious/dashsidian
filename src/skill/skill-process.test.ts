@@ -118,6 +118,25 @@ const READING: FakeNote[] = [
     { path: "Reading/Stoner.md", frontmatter: { date_read: null, pages: 290 } },
 ];
 
+const game = (name: string, platform: unknown, genre: string, rating: number): FakeNote => ({
+    path: `Games/${name}.md`,
+    frontmatter: { ...(platform === undefined ? {} : { platform }), genre, rating },
+});
+
+const GAMES: FakeNote[] = [
+    game("Hades", ["PC", "Switch"], "roguelike", 9),
+    game("Celeste", "Switch", "platformer", 10),
+    game("Hollow Knight", "Steam Deck", "platformer", 9),
+    game("Stardew Valley", "[[Switch]]", "sim", 8),
+    game("Zelda", "Switch", "action", 9),
+    game("Baldur's Gate 3", "PC", "RPG", 9),
+    game("Disco Elysium", "pc", "rpg", 10),
+    game("Elden Ring", "PS5", "rpg", 10),
+    game("Halo", "Xbox", "shooter", 8),
+    game("Gran Turismo", "PS4", "racing", 7),
+    game("Tetris", undefined, "puzzle", 7),
+];
+
 const VAULT: FakeVault = {
     notes: [
         ...DIARY,
@@ -131,6 +150,9 @@ const VAULT: FakeVault = {
         { path: "Results/2026-04-12 City 10k.md", frontmatter: { time: "0:50:30" } },
         { path: "Results/2026-05-04 Spring 10k.md", frontmatter: { time: "0:48:05" } },
         { path: "Results/2026-09-13 Trail 10k.md", frontmatter: { time: "1:01:00" } },
+        // The group_by recipes (B-213): a game on two platforms, a platform as
+        // a link and in another case, one game with none.
+        ...GAMES,
         { path: "Inbox/idea.md" },
         { path: "Projects/Garden.md" },
         // The weekly review recipe: the template and one review made from it (B-190).
@@ -168,6 +190,7 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
             "stats", "stats", "stats", "heatmap", "heatmap", "chart", "progress", "countdown", "today", "tiles", "stats", "stats", "stats", "stats",
             "progress",
             "today",
+            "stats", "stats",
         ]);
     });
 
@@ -380,6 +403,27 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
         expect(diagnostics(render("today", source, REVIEW), "error")).toHaveLength(1);
         // And the clock the prose says to leave out warns.
         expect(diagnostics(render("today", `${source}\nclock: true`, DAILY), "warning")).toHaveLength(1);
+    });
+
+    it("notes per value: platforms ranked, the tail folded, no platform last, a game on two counted twice (B-213)", () => {
+        const el = render("stats", RECIPES.find((r) => r.source.includes("group_by: platform"))?.source ?? "");
+        expect(texts(el, ".dashy-stat-label")).toEqual(["Games by platform"]);
+        // Switch: Hades, Celeste, Zelda and Stardew's [[Switch]]; PC: Hades,
+        // Baldur's Gate 3 and Disco Elysium's "pc"; the ones then by name.
+        expect(texts(el, ".dashy-stat-group-name")).toEqual(["Switch", "PC", "PS4", "PS5", "Steam Deck", "no value"]);
+        expect(texts(el, ".dashy-stat-group-value")).toEqual(["4", "3", "1", "1", "1", "1"]);
+        expect(texts(el, ".dashy-stat-group-more")).toEqual(["+1 more value"]);
+        expect(texts(el, ".dashy-stat-group-hint")).toHaveLength(1);
+    });
+
+    it("the best in each group: the top rating per genre, ties by name (B-213)", () => {
+        const el = render("stats", RECIPES.find((r) => r.source.includes("group_by: genre"))?.source ?? "");
+        expect(texts(el, ".dashy-stat-group-name"))
+            .toEqual(["platformer", "rpg", "action", "roguelike", "shooter", "sim", "puzzle", "racing"]);
+        expect(texts(el, ".dashy-stat-group-value")).toEqual(["10", "10", "9", "9", "8", "8", "7", "7"]);
+        // Every game has one genre: no fold, no empty row, no hint.
+        expect(texts(el, ".dashy-stat-group-more")).toEqual([]);
+        expect(texts(el, ".dashy-stat-group-hint")).toEqual([]);
     });
 
     it("the same check catches a key the plugin does not have", () => {
