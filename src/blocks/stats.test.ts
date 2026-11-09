@@ -1506,6 +1506,52 @@ describe("stats — durations", () => {
     });
 });
 
+// B-214: durations written in ISO 8601 (`PT1H45M`) count as minutes like `1h 45m`.
+describe("stats — ISO 8601 durations", () => {
+    const TODAY = new Date(2026, 8, 24, 12);
+    const isoCtx = mockContext({
+        notes: [
+            { path: "Work/2026-09-22.md", frontmatter: { focus: "PT1H45M" } },
+            { path: "Work/2026-09-23.md", frontmatter: { focus: "PT45M" } },
+            { path: "Work/2026-09-24.md", frontmatter: { focus: "pt6h58m" } },
+            { path: "Months/2026-09-24.md", frontmatter: { focus: "P1M" } },
+        ],
+    });
+
+    const render = (config: string): HTMLElement => {
+        vi.useFakeTimers();
+        vi.setSystemTime(TODAY);
+        const el = host();
+        renderStats(isoCtx, config, el);
+        return el;
+    };
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it("sum, avg, max and latest read as durations: 105 + 45 + 418 = 568 minutes", () => {
+        const el = render(`source: Work
+items:
+  - { label: Sum, field: focus, agg: sum }
+  - { label: Avg, field: focus, agg: avg }
+  - { label: Max, field: focus, agg: max }
+  - { label: Latest, field: focus, agg: latest }
+  - { label: Days over 40m, field: focus, agg: current_streak, at_least: PT40M }
+  - { label: Days over 1h, field: focus, agg: streak, at_least: PT1H }`);
+        expect(texts(el, ".dashy-stat-value")).toEqual(["9h 28m", "3h 9m", "6h 58m", "6h 58m", "3", "1"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
+    it("a month, P1M, is not a duration: the field reads as text and warns", () => {
+        const el = render("items:\n  - { label: Months, source: Months, field: focus, agg: sum }");
+        expect(texts(el, ".dashy-stat-value")).toEqual(["—"]);
+        expect(diagnostics(el, "warning")).toEqual([
+            '⚠️ stats: "Months": "focus" holds text or another value that is not a number, a duration like `7h 30m` or a checkbox. Use `where: "focus contains ..."` with `agg: count` to count it instead.',
+        ]);
+    });
+});
+
 describe("stats — selection at the block root (B-131)", () => {
     it("every card inherits the root source", () => {
         const el = card(`source: Diary

@@ -577,6 +577,12 @@ describe("progress — durations", () => {
         expect(diagnostics(el, "warning")).toEqual([]);
     });
 
+    it("goal: PT8H, an ISO 8601 duration, reads as 8h (B-214)", () => {
+        const el = render("items:\n  - { label: Sleep, source: Diary, field: sleep, agg: avg, period: week, goal: PT8H }");
+        expect(texts(el, ".dashy-progress-value")).toEqual(["7h 5m / 8h 89%"]);
+        expect(diagnostics(el, "warning")).toEqual([]);
+    });
+
     it("a plain goal on a duration field means minutes and reads as a duration", () => {
         const el = render("items:\n  - { label: Sleep, source: Diary, field: sleep, agg: sum, period: week, goal: 2400 }");
         expect(texts(el, ".dashy-progress-value")).toEqual(["35h 25m / 40h 89%"]);

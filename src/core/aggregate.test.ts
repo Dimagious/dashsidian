@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+    isDurationMark,
     aggregate, numberAt, isFalseMark, isBooleanMark, classifyField, classifyValues, series, isAgg, isStreakAgg,
     newestFirst, sumAt,
 } from "./aggregate";
@@ -1130,5 +1131,20 @@ describe("a list of fields, summed per note (B-193)", () => {
     it("a trend bar is the day's sum over the fields, a day with none of them left out", () => {
         expect(series(workouts, WORKOUTS, 5, new Date(2026, 8, 24))).toEqual([80, 60, 0, 100]);
         expect(series(days, ["sleep_score"], 5, new Date(2026, 8, 23))).toEqual(series(days, "sleep_score", 5, new Date(2026, 8, 23)));
+    });
+});
+
+describe("isDurationMark: ISO 8601 (B-214)", () => {
+    const note = (focus: unknown): NoteRecord => ({ path: "D/x.md", name: "x", folder: "D", tags: [], frontmatter: { focus } });
+
+    it("marks an ISO duration, so the vault profile reads the field as a duration", () => {
+        expect(isDurationMark(note("PT1H45M"), "focus")).toBe(true);
+        expect(isDurationMark(note("p2w"), "focus")).toBe(true);
+    });
+
+    it("leaves text that starts with P alone: months, platforms, names", () => {
+        for (const text of ["P1Y", "P1M", "PC", "PS5", "P2", "Plan"]) {
+            expect(isDurationMark(note(text), "focus"), text).toBe(false);
+        }
     });
 });

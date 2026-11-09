@@ -38,7 +38,6 @@ describe("parseDuration — rejected", () => {
         ["   ", "blank"],
         ["5 ч 58 мин", "localized units"],
         ["45 мин", "localized minutes"],
-        ["PT1H30M", "ISO 8601"],
         ["-5m", "negative"],
         ["-1:30", "negative clock"],
         ["10 km · 51min", "text around it"],
@@ -60,6 +59,80 @@ describe("parseDuration — rejected", () => {
         ["1h" + " ".repeat(40) + "5m", "spaces past the length cut-off"],
     ])("%s (%s)", (text) => {
         expect(parseDuration(text)).toBeNull();
+    });
+});
+
+// B-214: ISO 8601 durations, `PT1H45M`, as some apps and exports write them.
+describe("parseDuration — ISO 8601", () => {
+    it.each([
+        ["PT1H45M", 105],
+        ["PT45M", 45],
+        ["PT90S", 1.5],
+        ["PT1H", 60],
+        ["PT1M", 1],
+        ["PT1H30S", 60.5],
+        ["PT1H5M10S", 65 + 10 / 60],
+        ["PT0.5H", 30],
+        ["PT0,5H", 30],
+        ["PT1H7.5M", 67.5],
+        ["PT1M30.5S", 1 + 30.5 / 60],
+        ["PT36H", 2160],
+        ["P1D", 1440],
+        ["P1DT2H", 1560],
+        ["P1.5D", 2160],
+        ["P2W", 20160],
+        ["P1W1D", 11520],
+        ["P0D", 0],
+        ["PT0S", 0],
+        ["pt1h45m", 105],
+        ["Pt1H45m", 105],
+        ["  PT1H45M  ", 105],
+    ])("%s is %d minutes", (text, minutes) => {
+        expect(parseDuration(text)).toBeCloseTo(minutes, 10);
+    });
+
+    it.each([
+        ["P1Y", "a year, whose length varies"],
+        ["P1M", "a month, whose length varies; PT1M is the minute"],
+        ["P1Y2M", "years and months"],
+        ["P1Y2M3DT4H", "a year among fixed units"],
+        ["P", "a bare P"],
+        ["PT", "a bare PT"],
+        ["P1DT", "a T with nothing after it"],
+        ["T1H", "no P before the T"],
+        ["P1H", "hours without the T"],
+        ["PT1M1H", "units out of order"],
+        ["PT1H1H", "a unit twice"],
+        ["P1DT1D", "a day after the T"],
+        ["PT1.5H30M", "a decimal on a unit that is not the last"],
+        ["P1.5DT2H", "a decimal day before a time"],
+        ["PT 1H", "a space inside"],
+        ["PT1H 30M", "a space between units"],
+        ["-PT1H", "negative"],
+        ["P-1D", "a negative unit"],
+        ["PT.5H", "no leading digit"],
+        ["PT1.H", "no digit after the point"],
+        ["PTH", "a unit with no number"],
+        ["PT1H45", "a trailing number with no unit"],
+        ["Plan", "a word that starts with P"],
+    ])("%s (%s) is not a duration", (text) => {
+        expect(parseDuration(text)).toBeNull();
+    });
+
+    it("carries seconds only when the S unit is written", () => {
+        expect(readDuration("PT2H16M32S")).toEqual({ minutes: 136 + 32 / 60, seconds: true });
+        expect(readDuration("PT90S")?.seconds).toBe(true);
+        expect(readDuration("PT1H45M")).toEqual({ minutes: 105, seconds: false });
+        expect(readDuration("P1D")?.seconds).toBe(false);
+    });
+
+    it("works as a threshold, the way goal and at_least read one", () => {
+        expect(readThreshold("PT8H")).toEqual({ value: 480, duration: true });
+        expect(readThreshold("P1M")).toBeNull();
+    });
+
+    it("formats like any other duration", () => {
+        expect(formatDuration(parseDuration("PT1H45M"))).toBe("1h 45m");
     });
 });
 

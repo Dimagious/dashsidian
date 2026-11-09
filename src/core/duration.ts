@@ -1,5 +1,5 @@
 /**
- * Lengths of time written as text: `5h 58min`, `7:30`, `0:51:20`. Pure layer.
+ * Lengths of time written as text: `5h 58min`, `7:30`, `0:51:20`, `PT1H45M`. Pure layer.
  *
  * A sleep tracker or a watch export writes `sleep_duration: 5h 58min`, which
  * is neither a number nor a numeric string, so without this the field read as
@@ -13,7 +13,12 @@
  *     `H:MM` is always a duration here, never a time of day.
  *   - unit form, `h`, `m`/`min`, `s`/`sec`, each at most once, in that
  *     order, spaces optional, a decimal allowed (`1.5h`).
- * Localized units (`ч`, `мин`), ISO 8601 (`PT1H30M`) and negatives are not.
+ *   - ISO 8601 duration, `PnWnDTnHnMnS`, any subset in that order, no spaces,
+ *     case-insensitive (`PT1H45M`, `PT90S`, `P1DT2H`, `P2W`); a decimal, with
+ *     a point or a comma, only on the last unit (`PT0.5H`). A week is 7 days
+ *     and a day 24 hours. Years and months (`P1Y`, `P1M`) are not durations
+ *     here, their length varies; `PT1M` is a minute.
+ * Localized units (`ч`, `мин`) and negatives are not.
  */
 
 import { t } from "../i18n";
@@ -32,6 +37,13 @@ const UNITS = new RegExp(
     String.raw`^(?:${NUMBER}\s*h)?\s*(?:${NUMBER}\s*(?:min|m))?\s*(?:${NUMBER}\s*(?:sec|s))?$`,
     "i",
 );
+const ISO_NUMBER = String.raw`(\d+(?:[.,]\d+)?)`;
+const ISO = new RegExp(
+    String.raw`^P(?:${ISO_NUMBER}W)?(?:${ISO_NUMBER}D)?(T(?:${ISO_NUMBER}H)?(?:${ISO_NUMBER}M)?(?:${ISO_NUMBER}S)?)?$`,
+    "i",
+);
+const WEEK_MINUTES = 7 * 24 * 60;
+const DAY_MINUTES = 24 * 60;
 
 /** A duration string read: its length in minutes, and whether it was written down to the second. */
 export interface ReadDuration {
@@ -62,6 +74,8 @@ export function readDuration(text: string): ReadDuration | null {
         };
     }
 
+    if (s[0] === "P" || s[0] === "p") return readIsoDuration(s);
+
     const units = UNITS.exec(s);
     if (!units) return null;
     // Every group is optional, but `s` is trimmed and non-empty, and each
@@ -69,6 +83,27 @@ export function readDuration(text: string): ReadDuration | null {
     const [, h, m, sec] = units;
     return {
         minutes: Number(h ?? 0) * 60 + Number(m ?? 0) + Number(sec ?? 0) / 60,
+        seconds: sec !== undefined,
+    };
+}
+
+/**
+ * An ISO 8601 duration (`PT1H45M`, `P1DT2H`, `P2W`) in minutes, or null. A
+ * bare `P`, a `T` with no time unit after it (`P1DT`) and a decimal on any
+ * unit but the last one written (`PT1.5H30M`) are refused, as ISO does.
+ */
+function readIsoDuration(s: string): ReadDuration | null {
+    const iso = ISO.exec(s);
+    if (!iso) return null;
+    const [, w, d, time, h, m, sec] = iso;
+    const values = [w, d, h, m, sec];
+    const written = values.filter((v): v is string => v !== undefined);
+    if (written.length === 0) return null;
+    if (time !== undefined && h === undefined && m === undefined && sec === undefined) return null;
+    if (written.slice(0, -1).some((v) => /[.,]/.test(v))) return null;
+    const n = (v: string | undefined): number => (v === undefined ? 0 : Number(v.replace(",", ".")));
+    return {
+        minutes: n(w) * WEEK_MINUTES + n(d) * DAY_MINUTES + n(h) * 60 + n(m) + n(sec) / 60,
         seconds: sec !== undefined,
     };
 }

@@ -42,6 +42,17 @@ removed public export.
   `period` (its own or the block root's) is an error that names the fix;
   with `{ from, to }`, which does not repeat, it warns and shows the value
   without a goal. `target: usual` works the same.
+- **ISO 8601 durations count as minutes.** A property written the way some
+  apps and exports store time, `focus: PT1H45M`, now reads as 105 minutes,
+  like `1h 45m` or `1:45`, everywhere a duration is read: `stats`,
+  `progress`, `chart` and `heatmap` fields, and `goal`, `at_least`,
+  `at_most` and `bands` thresholds. Any non-empty subset of `PnWnDTnHnMnS` in that
+  order works, in either case: `PT90S`, `PT0.5H`, `P1DT2H`, `P2W`, with a
+  decimal only on the last unit written. Years and months (`P1Y`, `P1M`)
+  still read as text, since their length varies; `PT1M` is a minute. A
+  value with seconds (`PT2H16M32S`) counts as written to the second, so
+  when every value of a field has them the card reads as a clock,
+  `2:16:32`, as it already does for `2h 16m 32s`.
 
 ### Changed
 
