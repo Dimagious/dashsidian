@@ -17,8 +17,15 @@ h2.step .n {
 /* "On this page": a quiet list right under the lede */
 .toc { margin: 22px 0 26px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-2); font-size: 14px; }
 .toc b { display: block; font-size: 12px; font-weight: 600; color: var(--faint); letter-spacing: .02em; margin-bottom: 4px; }
-.toc ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 28px; }
-.toc li { break-inside: avoid; padding: 1px 0; }
+/* two columns read down, then across: site.js sets --toc-rows to half the
+   items, rounded up. Without scripts the list reads across, row by row. */
+.toc ol {
+  margin: 0; padding-left: 20px; display: grid; gap: 0 28px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(var(--toc-rows), auto); grid-auto-flow: column;
+}
+.no-js .toc ol { grid-template-rows: none; grid-auto-flow: row; }
+.toc li { padding: 1px 0; }
 .toc a { color: var(--muted); text-decoration: none; }
 .toc a:hover { color: var(--accent-text); text-decoration: underline; }
 
@@ -28,9 +35,10 @@ h2.step .n {
 .codeblock .bar .file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .codeblock.other { background: var(--bg-2); border-style: dashed; border-color: var(--border-strong); }
 .codeblock.other .bar { color: var(--muted); }
-/* a prompt is prose a reader has to read in full, so it wraps instead of scrolling */
+/* a prompt is prose a reader has to read in full, so it wraps instead of scrolling;
+   its block carries `prose`, which keeps the paragraph after it apart */
 pre code.plain { color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
-.codeblock:has(code.plain) + p { margin-top: 14px; }
+.codeblock.prose + p { margin-top: 14px; }
 
 /* key notes under a block: key on the left, plain words on the right */
 .keynotes { list-style: none; padding: 0; margin: 14px 0 0; border-top: 1px solid var(--border); }
@@ -105,8 +113,11 @@ a.card:hover .card-title { color: var(--accent-text); }
   .vars, .cards, .cards.small { grid-template-columns: minmax(0, 1fr); }
   .keynotes li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+}
 @media (max-width: 560px) {
-  .toc ol { columns: 1; }
+  .toc ol { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-auto-flow: row; }
   .cards.small .thumb { display: none; }
   /* the comparison table becomes one card per row: no sideways scroll on a phone */
   .table-wrap { overflow: visible; border: 0; }

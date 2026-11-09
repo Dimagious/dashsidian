@@ -56,7 +56,7 @@ async function script(a: Act<S>) {
 
 export default function B202() {
   return (
-    <Stage<S> width={480} height={600} initial={initial} poster={poster} script={script} className="b202">
+    <Stage<S> width={480} height={600} initial={initial} poster={poster} script={script} className="dy-film b202">
       {(s) => (
         <ObsidianApp className="b202-app" tabs={<TabBar tabs={['Reading']} active={0} />}>
           <div data-crop className="dy-pane b202-note">

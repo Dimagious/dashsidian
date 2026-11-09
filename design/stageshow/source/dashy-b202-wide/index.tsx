@@ -55,7 +55,7 @@ async function script(a: Act<S>) {
 
 export default function B202Wide() {
   return (
-    <Stage<S> width={720} height={420} initial={initial} poster={poster} script={script} className="b202w">
+    <Stage<S> width={720} height={420} initial={initial} poster={poster} script={script} className="dy-film b202w">
       {(s) => (
         <div className="b202w-row">
           <div data-crop className="b202-term">

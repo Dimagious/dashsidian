@@ -56,7 +56,7 @@
 .dashy-tiles .dashy-tile .dashy-tile-link.internal-link,
 .dashy-tiles .dashy-tile .dashy-tile-link.internal-link:hover {
   color: inherit;
-  text-decoration-line: none;
+  text-decoration: none;
 }
 /* a folder tile has no href, so the browser would not show a link cursor */
 .dashy-tile-folder { cursor: pointer; }
@@ -142,11 +142,11 @@
    hover only. */
 .dashy-stats .dashy-stat .dashy-stat-origin.internal-link {
   color: inherit;
-  text-decoration-line: none;
+  text-decoration: none;
 }
 .dashy-stats .dashy-stat .dashy-stat-origin.internal-link:hover {
   color: inherit;
-  text-decoration-line: underline;
+  text-decoration: underline;
 }
 /* `layout: inline`: the same numbers as one line of text for a page header.
    An item never breaks inside itself, so a narrow pane wraps between items. */
@@ -445,7 +445,7 @@ a.dashy-hm-cal-day:hover { outline: 1px solid var(--text-normal); outline-offset
 .dashy-hm-calendar .dashy-hm-cal .dashy-hm-cal-day.internal-link,
 .dashy-hm-calendar .dashy-hm-cal .dashy-hm-cal-day.internal-link:hover {
   color: inherit;
-  text-decoration-line: none;
+  text-decoration: none;
 }
 /* Always there, even with no dots, so every row keeps the same height. */
 .dashy-hm-cal-dots {

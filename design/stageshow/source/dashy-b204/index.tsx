@@ -31,7 +31,7 @@ async function script(a: Act<S>) {
 
 export default function B204() {
   return (
-    <Stage<S> width={480} height={600} initial={{ typo: false, broken: false }} poster={{ typo: true, broken: true }} script={script} keys="bottom-right" className="b204">
+    <Stage<S> width={480} height={600} initial={{ typo: false, broken: false }} poster={{ typo: true, broken: true }} script={script} keys="bottom-right" className="dy-film b204">
       {(s) => (
         <ObsidianApp tabs={<TabBar tabs={['Habits']} active={0} />}>
           <div data-crop className="dy-pane b204-source">

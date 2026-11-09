@@ -3,7 +3,7 @@
   "use strict";
   // A film plays only while on screen. With reduced motion it stays on its
   // poster, and the controls leave playing it to the reader.
-  var films = document.querySelectorAll("video[data-film]");
+  var films = window.document.querySelectorAll("video[data-film]");
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) {
     films.forEach(function (v) { v.controls = true; });
   } else {

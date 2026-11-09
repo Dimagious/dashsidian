@@ -1,5 +1,7 @@
 /* The plugin's look in Obsidian's default themes. Sampled from docs/screens. */
-.ss-stage:has(.dy-app) {
+/* Each Dashy scene passes `dy-film` in its Stage className, which lands on
+   `.ss-fit`, the stage's parent. */
+.dy-film > .ss-stage {
   --dy-text: #222;
   --dy-muted: #5c5c5c;
   --dy-faint: #8f8f8f;
@@ -100,7 +102,7 @@
 .dy-line__x { position: absolute; top: calc(100% + 6px); left: 0; right: 0; display: flex; justify-content: space-between; font-size: 12.5px; line-height: 1.3; color: var(--dy-muted); }
 
 @media (prefers-color-scheme: dark) {
-  .ss-stage:has(.dy-app) {
+  .dy-film > .ss-stage {
     --dy-text: #dadada;
     --dy-muted: #b3b3b3;
     --dy-faint: #777;
