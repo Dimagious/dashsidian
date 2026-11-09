@@ -135,6 +135,8 @@ const VAULT: FakeVault = {
         { path: "Projects/Garden.md" },
         // The weekly review recipe: the template and one review made from it (B-190).
         { path: "Templates/Weekly review.md" },
+        // The daily note template recipe (B-210).
+        { path: "Templates/Daily note.md" },
         { path: "Reviews/2026-W40.md", frontmatter: { type: "review" } },
     ],
     templates: { folder: "Templates" },
@@ -142,6 +144,12 @@ const VAULT: FakeVault = {
 
 /** Where a recipe's block sits: the review note, which only `period: note` reads. */
 const REVIEW = "Reviews/2026-W40.md";
+
+/** Where the daily note template recipe's block sits: today's daily note, which `date: note` reads (B-210). */
+const DAILY = "Diary/2026-10-05.md";
+
+/** The note a recipe is drawn in: a daily note for `date: note`, the review for everything else. */
+const noteFor = (source: string): string => (/^date: note$/m.test(source) ? DAILY : REVIEW);
 
 function render(lang: string, source: string, sourcePath = REVIEW): HTMLElement {
     const draw = RENDERERS[lang];
@@ -159,6 +167,7 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
         expect(RECIPES.map((r) => r.lang)).toEqual([
             "stats", "stats", "stats", "heatmap", "heatmap", "chart", "progress", "countdown", "today", "tiles", "stats", "stats", "stats", "stats",
             "progress",
+            "today",
         ]);
     });
 
@@ -193,7 +202,7 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
 
     it("every recipe draws without an error or a warning", () => {
         for (const { lang, source } of RECIPES) {
-            const el = render(lang, source);
+            const el = render(lang, source, noteFor(source));
             expect(diagnostics(el, "error"), `${lang}\n${source}`).toEqual([]);
             expect(diagnostics(el, "warning"), `${lang}\n${source}`).toEqual([]);
         }
@@ -350,6 +359,27 @@ describe("the skill's recipes only teach what the plugin draws (B-164)", () => {
         expect(texts(el, ".dashy-stat-value")).toEqual(["0:48:05", "1:01:00"]);
         expect(texts(el, ".dashy-stat-sub")).toEqual(["2026-05-04 Spring 10k", "Sep 13, 2026"]);
         expect(el.querySelector(".dashy-stat-sub a")?.getAttribute("data-href")).toBe("Results/2026-05-04 Spring 10k.md");
+    });
+
+    it("the daily note template line: the note's day, its week and month, the days around it; a hint in the template (B-210)", () => {
+        const source = RECIPES.find((r) => r.lang === "today" && r.source.includes("date: note"))?.source ?? "";
+        expect(source).toContain("date: note");
+        const day = render("today", source, DAILY);
+        expect(texts(day, ".dashy-today-date")).toEqual(["Monday, October 5, 2026"]);
+        expect(texts(day, ".dashy-today-label")).toEqual(["Week", "Month"]);
+        // The default weekly format is the locale week, Sunday 4 to Saturday 10 October in English.
+        expect(texts(day, ".dashy-today-name")).toEqual(["2026-W41", "2026-10"]);
+        expect(texts(day, ".dashy-today-nav-name")).toEqual(["2026-10-04", "2026-10-06"]);
+        // A note made long ago still shows its own day, not today.
+        expect(texts(render("today", source, "Diary/2026-07-01.md"), ".dashy-today-date")).toEqual(["Wednesday, July 1, 2026"]);
+
+        const template = render("today", source, "Templates/Daily note.md");
+        expect(diagnostics(template, "error")).toEqual([]);
+        expect(texts(template, ".dashy-notice")).toHaveLength(1);
+        // A weekly note is no day: the error the prose promises.
+        expect(diagnostics(render("today", source, REVIEW), "error")).toHaveLength(1);
+        // And the clock the prose says to leave out warns.
+        expect(diagnostics(render("today", `${source}\nclock: true`, DAILY), "warning")).toHaveLength(1);
     });
 
     it("the same check catches a key the plugin does not have", () => {

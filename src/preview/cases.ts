@@ -11,6 +11,8 @@ export interface PreviewCase {
     block: string;
     title: string;
     source: string;
+    /** the note the block sits in, for what reads its name (`date: note`); absent: none */
+    note?: string;
 }
 
 export const CASES: PreviewCase[] = [
@@ -213,6 +215,23 @@ weekly: true`,
         title: "today — непонятное значение clock",
         source: `clock: hours
 daily: true`,
+    },
+    {
+        block: "today",
+        title: "today — date: note в дневной заметке на стыке лет, своя заметка без ссылки",
+        source: `date: note
+daily: true
+weekly: true
+monthly: true`,
+        note: "Diary/2026-12-31.md",
+    },
+    {
+        block: "today",
+        title: "today — date: note в недельной заметке, clock рядом",
+        source: `date: note
+clock: true
+weekly: true`,
+        note: "Weekly/2026-W45.md",
     },
     {
         block: "countdown",

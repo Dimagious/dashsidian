@@ -347,6 +347,7 @@ const HOME: FakeNote[] = [
 const HOME_VAULT: FakeVault = { notes: HOME, alsoExists: ["Attachments/books.jpg", "Attachments/desk.jpg"] };
 
 const TODAY_BLOCK = "clock: true\ndaily: true\nweekly: true";
+const DAILY_ROW = "date: note\nweekly: true\nmonthly: true";
 const INLINE = `layout: inline
 items:
   - { label: notes, agg: count }
@@ -369,9 +370,12 @@ describe("guide: homepage-dashboard", () => {
         expect(blocks.map((b) => b.lang)).toEqual([
             "today", "stats", "tiles", "countdown",
             "today", "stats", "tiles", "countdown",
-            "tiles", "stats", "today", "tiles",
+            "tiles", "stats", "today", "today", "tiles",
         ]);
-        for (const { lang, source } of blocks) expectClean(render(lang, source, HOME_VAULT));
+        // `date: note` reads the day from the note the block sits in: a daily note (B-210).
+        for (const { lang, source } of blocks) {
+            expectClean(render(lang, source, HOME_VAULT, source.includes("date: note") ? "Diary/2026-10-05.md" : undefined));
+        }
     });
 
     it("the steps and the whole note are the same YAML", () => {
@@ -384,6 +388,16 @@ describe("guide: homepage-dashboard", () => {
         expect(texts(el, ".dashy-today-clock")).toEqual(["12:00 PM"]);
         expect(texts(el, ".dashy-today-date")).toEqual(["Monday, October 5, 2026"]);
         expect(texts(el, ".dashy-today-label")).toEqual(["Today", "This week"]);
+    });
+
+    it("variation: the row in a daily note shows that note's day, its week and month, and the days around it (B-210)", () => {
+        const blocks = guideBlocks("homepage-dashboard").filter((b) => b.source.includes("date: note"));
+        expect(blocks.map((b) => b.source)).toEqual([DAILY_ROW]);
+        // A note from last spring, not today.
+        const el = render("today", DAILY_ROW, HOME_VAULT, "Diary/2026-04-15.md");
+        expect(texts(el, ".dashy-today-date")).toEqual(["Wednesday, April 15, 2026"]);
+        expect(texts(el, ".dashy-today-name")).toEqual(["2026-W16", "2026-04"]);
+        expect(texts(el, ".dashy-today-nav-name")).toEqual(["2026-04-14", "2026-04-16"]);
     });
 
     it("step 2: one line; no source counts the whole vault", () => {
@@ -425,6 +439,12 @@ describe("guide: homepage-dashboard", () => {
         const trend = render("stats", "layout: inline\nitems:\n  - { label: steps, source: Diary, field: steps, agg: avg, trend: 30d }",
             { notes: diary("Diary", "2026-10-01", 5, (i) => ({ steps: 1000 * i })) });
         expect(diagnostics(trend, "warning").join("\n")).toContain("`trend` is not drawn with `layout: inline`");
+
+        const home = render("today", DAILY_ROW, HOME_VAULT, "Home.md");
+        expect(diagnostics(home, "error").join("\n")).toContain("`date: note` needs a note named for one day");
+        const template = render("today", DAILY_ROW, { ...HOME_VAULT, templates: { folder: "Templates" } }, "Templates/Daily.md");
+        expect(diagnostics(template, "error")).toEqual([]);
+        expect(texts(template, ".dashy-notice")[0]).toContain("This note is a template");
 
         const clock = render("today", "clock: yes", HOME_VAULT);
         expect(diagnostics(clock, "warning").join("\n")).toContain("`clock` expects true, false, minutes or seconds");

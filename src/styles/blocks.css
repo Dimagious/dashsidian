@@ -238,6 +238,16 @@
 .dashy-today-icon { font-size: 1.05em; }
 .dashy-today-label { font-weight: 500; }
 .dashy-today-name { font-size: 0.75em; color: var(--text-muted); }
+/* `date: note`: the daily chip of the note itself is no link, so it does not lift on hover */
+.dashy-today-chip.is-current:hover { transform: none; box-shadow: none; }
+/* `date: note`: the day before and after, under the chips */
+.dashy-today-nav {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
+  margin-top: 8px; font-size: 0.85em;
+}
+.dashy-today-nav-link { display: inline-flex; gap: 4px; }
+.dashy-today-nav-link.is-missing { opacity: 0.7; }
+.dashy-today-nav-sep { color: var(--text-faint); }
 
 /* countdown */
 .dashy-countdown {

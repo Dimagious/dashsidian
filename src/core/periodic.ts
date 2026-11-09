@@ -7,7 +7,7 @@
  * adapters/datetime.ts.
  */
 
-import type { Diagnostic } from "../shared/parse";
+import { describeValue, type Diagnostic } from "../shared/parse";
 import { t } from "../i18n";
 import { readClock, type ClockPrecision } from "./clock";
 
@@ -72,6 +72,13 @@ export interface TodaySpec {
     title?: string;
     /** a live clock above the date; absent: none */
     clock?: ClockPrecision;
+    /**
+     * `date: note` (B-210): the day comes from the name of the note the
+     * block sits in, not from today. Absent: today.
+     */
+    noteDate?: true;
+    /** links to the day before and after; only with `noteDate`, on unless `nav: false` */
+    nav?: boolean;
 }
 
 export interface TodayOutcome {
@@ -92,18 +99,22 @@ export function readToday(value: Record<string, unknown>): TodayOutcome {
     const clock = readClock(value.clock);
     diagnostics.push(...clock.diagnostics);
 
-    for (const p of mentioned) {
-        if (typeof value[p] !== "boolean") {
+    for (const key of [...mentioned, ...(value.nav === undefined ? [] : ["nav"])]) {
+        if (typeof value[key] !== "boolean") {
             diagnostics.push({
                 level: "warning",
                 message: t("today.notBoolean", {
-                    key: p,
-                    value: String(value[p]),
-                    read: truthy(value[p]) ? "true" : "false",
+                    key,
+                    value: String(value[key]),
+                    read: truthy(value[key]) ? "true" : "false",
                 }),
             });
         }
     }
+
+    const noteDate = readDateKey(value.date, diagnostics);
+    if (noteDate && clock.clock) diagnostics.push({ level: "warning", message: t("today.clockWithNoteDate") });
+    if (!noteDate && value.nav !== undefined) diagnostics.push({ level: "warning", message: t("today.navWithoutNoteDate") });
 
     const periods = mentioned.length === 0
         ? (["daily"] as Period[])
@@ -116,8 +127,26 @@ export function readToday(value: Record<string, unknown>): TodayOutcome {
 
     const spec: TodaySpec = { periods };
     if (typeof value.title === "string" && value.title.trim()) spec.title = value.title.trim();
-    if (clock.clock) spec.clock = clock.clock;
+    if (noteDate) {
+        spec.noteDate = true;
+        spec.nav = value.nav === undefined || truthy(value.nav);
+    } else if (clock.clock) {
+        spec.clock = clock.clock;
+    }
     return { spec, diagnostics };
+}
+
+/**
+ * Reads the `date` key (B-210): `note`, in any case, is the day of the note
+ * the block sits in. Absent is today. Anything else warns and is today too:
+ * the rest of the block is still worth drawing. Only `note` for now; the
+ * keyword stays English, like every other config value.
+ */
+function readDateKey(raw: unknown, diagnostics: Diagnostic[]): boolean {
+    if (raw === undefined) return false;
+    if (typeof raw === "string" && raw.trim().toLowerCase() === "note") return true;
+    diagnostics.push({ level: "warning", message: t("today.badDate", { value: describeValue(raw) }) });
+    return false;
 }
 
 /**

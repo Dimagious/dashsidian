@@ -25,7 +25,7 @@ afterAll(() => vi.useRealTimers());
 const render = (index: number): HTMLElement => {
     const item = CASES[index]!;
     const el = document.createElement("div");
-    BLOCKS[item.block]?.(ctx, withDates(item.source), el);
+    BLOCKS[item.block]?.(item.note === undefined ? ctx : { ...ctx, sourcePath: item.note }, withDates(item.source), el);
     return el;
 };
 
@@ -109,6 +109,15 @@ describe("preview cases", () => {
         expect(Array.from(el.querySelectorAll(".dashy-countdown-value"), (n) => n.textContent)).toEqual(["12"]);
         expect(Array.from(el.querySelectorAll(".dashy-countdown-sub"), (n) => n.textContent)).toEqual(["City 10k"]);
         expect(el.querySelectorAll(".dashy-diag-warning")).toHaveLength(1);
+    });
+
+    it("the date: note cases draw a note's day with its neighbours, and a weekly note's error (B-210)", () => {
+        const day = render(CASES.findIndex((c) => c.title.startsWith("today — date: note в дневной")));
+        expect(Array.from(day.querySelectorAll(".dashy-today-nav-name"), (n) => n.textContent)).toEqual(["2026-12-30", "2027-01-01"]);
+        expect(day.querySelector(".dashy-today-chip.is-current")).not.toBeNull();
+        const week = render(CASES.findIndex((c) => c.title.startsWith("today — date: note в недельной")));
+        expect(week.querySelectorAll(".dashy-diag-error")).toHaveLength(1);
+        expect(week.querySelectorAll(".dashy-diag-warning")).toHaveLength(1);
     });
 
     it("the fake vault has gaps, so a heatmap is not a solid wall", () => {

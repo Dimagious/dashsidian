@@ -36,7 +36,7 @@ function draw(): void {
         section.createEl("pre", { cls: "case-source", text: "```" + item.block + "\n" + source + "\n```" });
 
         const mount = section.createDiv({ cls: "case-render" });
-        const dispose = BLOCKS[item.block]?.(ctx, source, mount);
+        const dispose = BLOCKS[item.block]?.(item.note === undefined ? ctx : { ...ctx, sourcePath: item.note }, source, mount);
         if (typeof dispose === "function") disposers.push(dispose);
     }
 }
