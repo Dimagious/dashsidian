@@ -10,6 +10,8 @@ removed public export.
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-11-09
+
 ### Added
 
 - **`today` in a daily note shows that note's day.** `date: note` reads
