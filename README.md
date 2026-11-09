@@ -135,6 +135,7 @@ npm run dev:vault    # build into a test vault and watch
 Logic lives in `src/core/`, which imports neither Obsidian nor the DOM. Block keys live in
 [`src/blocks/schema.json`](https://github.com/Dimagious/dashsidian/blob/master/src/blocks/schema.json); the agent skill and the site's
 reference pages are generated from it. Design notes: [`docs/SPEC.md`](https://github.com/Dimagious/dashsidian/blob/master/docs/SPEC.md).
+Another plugin can check the Dashy blocks it writes through Dashy's API: [`docs/API.md`](https://github.com/Dimagious/dashsidian/blob/master/docs/API.md).
 
 </details>
 

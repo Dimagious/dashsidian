@@ -22,7 +22,8 @@ import { t } from "../i18n";
 import { InsertBlockModal } from "../ui/insert-block";
 import { DashySettingTab } from "../ui/settings";
 import { installSkill, installAgents } from "./agent-files";
-import { registerAgentTools } from "./agent-tools";
+import { registerAgentTools, type AgentToolsHost } from "./agent-tools";
+import { createApi, type DashyApi } from "./api";
 import { profileReading, profileSettings } from "../adapters/profile";
 import schema from "../blocks/schema.json";
 
@@ -41,6 +42,11 @@ const REFRESH_DELAY_MS = 400;
 
 export default class DashyPlugin extends Plugin {
     settings: DashySettings = { ...DEFAULT_SETTINGS };
+    /**
+     * The public API for other plugins (B-208): `app.plugins.plugins.dashsidian.api`.
+     * See `app/api.ts` and `docs/API.md`.
+     */
+    api!: DashyApi;
 
     private snapshot!: VaultSnapshot;
     private refresher!: BlockRefresher;
@@ -52,6 +58,8 @@ export default class DashyPlugin extends Plugin {
     private readonly renames = new RenameTrail();
     /** The draw behind every fence name Dashy registered, for `Check blocks in this note` (B-168). */
     private readonly fences = new Map<string, Draw>();
+    /** Cuts the API off on unload, so a reference another plugin kept holds nothing of ours. */
+    private closeApi: (() => void) | null = null;
 
     async onload(): Promise<void> {
         await this.loadSettings();
@@ -121,16 +129,22 @@ export default class DashyPlugin extends Plugin {
             ...taken.map((name): [string, string | null] => [name, null]),
         ]);
         const versions = { plugin: this.manifest.version, schema: schema.version };
-        registerAgentTools(this, {
+        const agentHost: AgentToolsHost = {
             app: this.app,
             fences: () => this.fences,
             elsewhere: () => elsewhere,
             context: (sourcePath) => this.context(sourcePath),
             whenIndexed: (done) => whenIndexed(this.app, done),
+            fresh: () => this.snapshot.invalidate(),
             versions,
             reading: () => profileReading(this.app),
             settings: (today) => profileSettings(this.app, this.settings, versions, today),
-        });
+        };
+        registerAgentTools(this, agentHost);
+        // The same check as the command, for other plugins (B-208).
+        const handle = createApi(agentHost);
+        this.api = handle.api;
+        this.closeApi = handle.close;
 
         this.watchVault();
         // Redraws once the effective day rolls over, even with no vault
@@ -190,6 +204,7 @@ export default class DashyPlugin extends Plugin {
     override onunload(): void {
         this.scheduled?.cancel();
         this.dayRollover.cancel();
+        this.closeApi?.();
     }
 
     async loadSettings(): Promise<void> {
