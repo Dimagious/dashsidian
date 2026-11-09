@@ -31,5 +31,6 @@ export function templateFolders(app: App): string[] {
     const settings = isRecord(templater) ? templater.settings : undefined;
     if (isRecord(settings) && typeof settings.templates_folder === "string") out.push(settings.templates_folder);
 
-    return out;
+    // Both plugins often point at one folder: name it once.
+    return [...new Set(out)];
 }

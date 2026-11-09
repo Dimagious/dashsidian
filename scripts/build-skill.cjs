@@ -229,7 +229,10 @@ A property it lists under unexpanded template syntax (\`<% ... %>\`,
 those notes have no date or number in it, and a property that mostly holds
 it is no \`date_field\`.
 If it is missing, or older than the notes you are about to count, ask the
-user to run the command, then read it. If they cannot, read a few small files.
+user to run the command, then read it. Do not write \`.dashy/vault-profile.md\`
+yourself or count the vault with a script in its place: the command reads
+Obsidian's own index, templates and settings, which a script guesses wrong.
+If the user cannot run it, read a few small files.
 \`<configDir>\` is the vault's config folder: by default a dot followed by
 \`obsidian\`, at the vault root; the user may have renamed it in Settings,
 About, Override config folder.
@@ -248,8 +251,11 @@ About, Override config folder.
   \`gggg-[W]ww\` is a locale week, by the rules of Obsidian's interface
   language (in English it starts on Sunday); \`GGGG-[W]WW\` is the ISO week,
   Monday first. \`YYYY\` is the calendar year, not the week's: with \`ww\` or
-  \`WW\` a week across New Year gets a name with the wrong year, and the block
-  warns when its week is one. Suggest \`gggg\` or \`GGGG\` to the user.
+  \`WW\` a week across New Year gets a name with the wrong year. \`period: note\`
+  warns in such a weekly note, but the \`today\` chips do not: they link the
+  wrongly named note in silence. Whenever you write \`weekly: true\` or a
+  weekly \`period: note\`, check the weekly format and suggest \`gggg\` or
+  \`GGGG\` to the user if it uses \`YYYY\`.
 - \`<configDir>/plugins/dashsidian/data.json\`: Dashy's own settings.
   \`dailyFolder\`, \`weeklyFolder\` and \`monthlyFolder\`, when not empty,
   replace the folders above; \`startDayHour\` (0 to 6) moves the start of
@@ -302,6 +308,14 @@ with the same keys.
 ## 3. Write
 
 - One block per fenced code block, the block name as its language.
+- A question about a moving window ("this week", "the last 30 days") gets
+  a moving \`period\`: \`week\`, \`7d\`, \`30d\`. Never a \`from\`/\`to\`
+  worked out from today's date: it goes stale tomorrow. If the latest notes
+  are missing, say so instead of moving the window back to where data is.
+- \`source\` counts the notes in its subfolders too: a diary folder that
+  holds \`Weekly/\` and \`Monthly/\` counts the reviews as well. A label
+  that promises something ("notes read", "daily notes") needs the \`where\`
+  or the narrower \`source\` that makes it true.
 - Canonical keys from ${tables.name}, not their synonyms.
 - In \`stats\` and \`progress\`, write the selection the cards share
   (\`source\`, \`tag\`, \`where\`, \`period\`, \`date_field\`) once on the block
@@ -486,7 +500,7 @@ items:
 A goal that follows the user's own history instead of a number written
 once and left to go stale: \`goal: usual\` measures this month against the
 average of the 4 months before it, on the same \`field\`, \`agg\` and
-selection, and the bar reads \`30 / usual 183 km\`. \`{ usual: 2 }\` averages
+selection, and the bar reads its value against \`usual\` and that average. \`{ usual: 2 }\` averages
 the last 2 instead. It needs a \`period\` that repeats (\`month\`, \`week\`,
 \`30d\`, \`note\`), not \`from\`/\`to\`. A month wholly before the first note
 is left out, so a diary started in July is not measured against an empty
@@ -526,7 +540,9 @@ games with no platform come last as \`no value\`, outside the ranking;
 lists two, PC and Switch, counts on both, and the card then says the rows
 can add up to more than the games. A link, \`[[Switch]]\`, shows as the note's
 name. Write \`group_by\` instead of one card per value with a \`where\`: it
-needs no list of the values and picks up a new one by itself:
+needs no list of the values and picks up a new one by itself. If the
+property holds the same value in every note, the card is one row: say so
+and offer a property that varies:
 
 \`\`\`stats
 source: Games
@@ -546,6 +562,9 @@ items:
 \`\`\`
 
 ## 5. Check before handing over
+
+The numbers in the recipes are made up. Never tell the user what a block
+will show unless you counted it from their notes.
 
 1. Every key you wrote is in ${tables.name} for that block, at the level you
    wrote it (block root or list item).
@@ -604,7 +623,11 @@ description: >-
   averages, a goal or progress bar, days until a date or the next birthday,
   a link to today's note, a day calendar, a heatmap, a habit tracker, a
   chart or graph of a number over time, a weekly or monthly review that
-  counts its own week or month, or a visual entry point into the vault.
+  counts its own week or month, notes counted per value of a property, or a
+  visual entry point into the vault. Also use it to read the vault for
+  Dashy: the vault profile, properties that hold unexpanded template code,
+  or a check of the blocks in a note (the commands "Dashy: Write vault
+  profile" and "Dashy: Check blocks in this note").
 version: ${schema.version}
 ---
 ${versionComment("Dashy skill")}
