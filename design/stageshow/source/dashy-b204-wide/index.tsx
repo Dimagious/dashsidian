@@ -31,7 +31,7 @@ async function script(a: Act<S>) {
 
 export default function B204Wide() {
   return (
-    <Stage<S> width={720} height={420} initial={{ typo: false, broken: false }} poster={{ typo: true, broken: true }} script={script} keys="bottom-right" className="b204w">
+    <Stage<S> width={720} height={420} initial={{ typo: false, broken: false }} poster={{ typo: true, broken: true }} script={script} keys="bottom-right" className="dy-film b204w">
       {(s) => (
         <div className="b204w-row">
         <ObsidianApp className="b204w-left" tabs={<TabBar tabs={['Habits']} active={0} />}>

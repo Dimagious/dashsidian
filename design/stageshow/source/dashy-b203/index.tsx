@@ -39,7 +39,7 @@ async function script(a: Act<S>) {
 
 export default function B203() {
   return (
-    <Stage<S> width={480} height={600} initial={{ ticked: false, counted: false }} poster={{ ticked: true, counted: true }} script={script} cursor={{ at: REST, style: 'large', ripple: true }} className="b203">
+    <Stage<S> width={480} height={600} initial={{ ticked: false, counted: false }} poster={{ ticked: true, counted: true }} script={script} cursor={{ at: REST, style: 'large', ripple: true }} className="dy-film b203">
       {(s) => (
         <ObsidianApp tabs={<TabBar tabs={['2026-10-09']} active={0} />}>
           <div data-crop className="dy-pane b203-note">

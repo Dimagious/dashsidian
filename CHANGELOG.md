@@ -24,6 +24,17 @@ removed public export.
   and writes nothing. See
   [`docs/API.md`](https://github.com/Dimagious/dashsidian/blob/master/docs/API.md).
 
+### Changed
+
+- **The community scorecard's CSS warnings are gone.** The plugin's styles
+  set a link's underline with `text-decoration` instead of `text-decoration-line`,
+  which caniuse lists as only partly supported by Obsidian's Chromium;
+  with the default theme nothing looks different. The scanner also reads the website in `site/`,
+  so its styles lost `!important`, `:has()`, multi-column layout and
+  `ui-monospace`, and its scripts build their markup from DOM nodes instead
+  of `innerHTML`, with the same layout and behaviour (link underlines
+  take the font's own thickness).
+
 ## [2.1.0] - 2026-10-30
 
 ### Added

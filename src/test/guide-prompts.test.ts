@@ -122,6 +122,9 @@ describe.each(guideSlugs())("guide prompts: %s", (slug) => {
         const block = blocks[0];
         expect(block?.querySelector(".bar > span")?.textContent).toBe("Prompt");
         expect(block?.querySelector(".bar button.copy")?.textContent).toBe("Copy");
+        // `prose` stands in for `:has(code.plain)`, which the scanner warns about:
+        // guides.css spaces the paragraph after the block by it.
+        expect(block?.classList.contains("prose")).toBe(true);
         const prompt = block?.querySelector("pre > code.plain")?.textContent ?? "";
         expect(prompt.trim().length).toBeGreaterThan(40);
         expect(prompt).not.toContain("`");

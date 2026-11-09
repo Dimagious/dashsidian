@@ -1,5 +1,5 @@
 import { Roll, Stage, type Act } from '../../kit'
-import { Bars, StatCard, Swatch, TabBar, ObsidianApp } from '../dashy-shared/dashy'
+import { Bars, StatCard, TabBar, ObsidianApp } from '../dashy-shared/dashy'
 import './b205w.css'
 
 // B-205, wide cut for the README's full-width row: a review counts its own week. Two tabs, one set of blocks with
@@ -46,7 +46,7 @@ async function script(a: Act<S>) {
 
 export default function B205Wide() {
   return (
-    <Stage<S> width={720} height={420} initial={{ week: 'W40' }} poster={{ week: 'W41' }} script={script} cursor={{ at: REST, style: 'large', ripple: true }} className="b205w">
+    <Stage<S> width={720} height={420} initial={{ week: 'W40' }} poster={{ week: 'W41' }} script={script} cursor={{ at: REST, style: 'large', ripple: true }} className="dy-film b205w">
       {(s) => {
         const w = WEEKS[s.week]
         return (
@@ -66,7 +66,7 @@ export default function B205Wide() {
               </div>
               <div className="dy-block-title b205-t"><Roll variant="fade">{w.caption}</Roll></div>
               <Bars values={w.bars} labels={w.days} goal={10000} max={15000} height={150} />
-              <div className="b205-leg"><Swatch color="#a9a9a9">goal 10000</Swatch></div>
+              <div className="b205-leg"><span className="dy-hm__leg"><i />goal 10000</span></div>
             </div>
           </ObsidianApp>
         )

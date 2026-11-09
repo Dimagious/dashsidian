@@ -34,6 +34,13 @@
  * (`scripts/scanner.eslint.config.mjs`) over the tracked files and fails on
  * every finding, warning or error, as each one lowers the score.
  *
+ * 2026-11-09 (B-217): the listing's 24 warnings were all CSS, most of them in
+ * `site/assets/`, which the old `!important` check never walked. `checkCss`
+ * now reads every tracked `.css` file for the three kinds the scanner
+ * reports (`!important`, `:has`, browser features Obsidian's Chromium only
+ * partly supports), and fails on each. `site/` is no longer noted apart: its
+ * scripts and styles count like the plugin's.
+ *
  * Run via `npm run scorecard:check`. Hooked into `release:check`.
  *
  * Exit code: 0 if clean, 1 if any FAIL pattern matched.
@@ -301,30 +308,76 @@ function checkTsSuppressions() {
 }
 
 /**
- * Scorecard CSS: `!important` is flagged as specificity-evasion.
- * We covered the 2 1.0.6 instances; this guard keeps the floor.
- * Source is `src/styles/*.css` (the built `styles.css` is generated).
+ * The Chromium that Obsidian 1.11.4 runs on (Electron 39, Chrome 142): the
+ * browser the scanner names in "Unexpected browser feature ... is only
+ * partially supported by Obsidian 1.11.4". Raise it when the scanner names a
+ * newer Obsidian.
  */
-function checkCssImportant() {
+const OBSIDIAN_BROWSERS = ["chrome 142"];
+
+/** The tracked files a clean checkout has, as repo-relative paths. */
+function trackedFiles() {
+    const tracked = execFileSync("git", ["ls-files", "-z"], { cwd: repoRoot, encoding: "utf8" })
+        .split("\0")
+        .filter((f) => f && fs.existsSync(path.join(repoRoot, f)));
+    if (!tracked.length) throw new Error("scorecard-check: git ls-files returned no files");
+    return tracked;
+}
+
+/**
+ * Scorecard CSS, over every tracked `.css` file: the public scanner walks the
+ * whole repository, `site/` and `design/` included, not only what ships in
+ * `styles.css`. On 2026-11-09 the listing reported three kinds of finding,
+ * and this check reproduces each:
+ *
+ * - "Avoid !important": any `!important` in a declaration.
+ * - "Avoid :has": any `:has(` in a selector, for its invalidation cost.
+ * - "Unexpected browser feature ... is (only partially) supported by
+ *   Obsidian 1.11.4": caniuse data through doiuse, the library behind
+ *   stylelint-no-unsupported-browser-features, against OBSIDIAN_BROWSERS. It
+ *   matched the listing exactly: `text-decoration-line` and
+ *   `text-decoration-thickness` (partial), `columns`, `column-gap` and
+ *   `break-inside` (partial), `ui-monospace` (not supported).
+ *
+ * Comments are parsed out by PostCSS, so prose cannot trip a rule.
+ */
+async function checkCss() {
+    const postcss = require("postcss");
+    const doiuse = require("doiuse");
     const hits = [];
-    const stylesRoot = path.join(repoRoot, "src", "styles");
-    if (!fs.existsSync(stylesRoot)) return hits;
-    for (const file of walk(stylesRoot, [".css"])) {
-        const text = fs.readFileSync(file, "utf8");
-        const lines = text.split("\n");
-        for (let i = 0; i < lines.length; i++) {
-            if (/!important/.test(lines[i])) {
-                hits.push(hit({
-                    severity: "WARN",
-                    rule: "no-css-important",
-                    message:
-                        "`!important` lowers the CSS scorecard tier. Use class-doubled specificity or scoped selectors.",
-                    file: path.relative(repoRoot, file),
-                    line: i + 1,
-                    snippet: lines[i].trim(),
-                }));
-            }
-        }
+    const files = trackedFiles().filter((f) => f.endsWith(".css"));
+    if (!files.length) throw new Error("scorecard-check: no tracked CSS files");
+    for (const file of files) {
+        const css = fs.readFileSync(path.join(repoRoot, file), "utf8");
+        const root = postcss.parse(css, { from: file });
+        const line = (node) => node.source?.start?.line ?? 1;
+        root.walkDecls((decl) => {
+            if (!decl.important) return;
+            hits.push(hit({
+                severity: "FAIL",
+                rule: "css-no-important",
+                message: "`!important` is a scanner warning. Raise the selector's specificity instead.",
+                file, line: line(decl), snippet: decl.toString(),
+            }));
+        });
+        root.walkRules((rule) => {
+            if (!/:has\(/.test(rule.selector)) return;
+            hits.push(hit({
+                severity: "FAIL",
+                rule: "css-no-has",
+                message: "`:has()` is a scanner warning. Mark the element with a class instead.",
+                file, line: line(rule), snippet: rule.selector,
+            }));
+        });
+        await postcss([doiuse({
+            browsers: OBSIDIAN_BROWSERS,
+            onFeatureUsage: (usage) => hits.push(hit({
+                severity: "FAIL",
+                rule: `css-browser-feature/${usage.feature}`,
+                message: `"${usage.feature}" is ${usage.featureData.partial ? "only partially supported" : "not supported"} by ${OBSIDIAN_BROWSERS.join(", ")} (the scanner's Obsidian 1.11.4).`,
+                file, line: line(usage.usage), snippet: usage.usage.toString(),
+            })),
+        })]).process(css, { from: file });
     }
     return hits;
 }
@@ -387,28 +440,13 @@ function checkSettingsTabHasGetSettingDefinitions() {
 }
 
 /**
- * Paths the scanner's documented configuration lints but this gate does not
- * count. `site/` is the GitHub Pages site: browser scripts, not plugin code,
- * where `activeDocument` and `App#saveLocalStorage` do not exist. Nothing in
- * the scanner's ignore list leaves it out, and the public scanner does walk
- * it: on 2026-11-09 the listing's 24 CSS warnings pointed mostly at
- * `site/assets/*.css`. Its ESLint pass showed no JS finding there yet, which
- * may change once it runs 0.5.x. Until `site/` is cleaned up (backlog B-217)
- * its findings are printed as notes, so they stay in sight.
- */
-const NOTED_PATHS = ["site/"];
-
-/**
  * Scorecard Review: the community scanner's ESLint pass, with its own
  * configuration, over the files a clean checkout has. Untracked build output
  * (`main.js`, `.preview/`, `coverage/`) never reaches the scanner, so it is
  * not linted here either.
  */
 async function checkScannerLint() {
-    const tracked = execFileSync("git", ["ls-files", "-z"], { cwd: repoRoot, encoding: "utf8" })
-        .split("\0")
-        .filter((f) => f && fs.existsSync(path.join(repoRoot, f)));
-    if (!tracked.length) throw new Error("scorecard-check: git ls-files returned no files");
+    const tracked = trackedFiles();
 
     const eslint = new ESLint({
         cwd: repoRoot,
@@ -420,10 +458,9 @@ async function checkScannerLint() {
     const hits = [];
     for (const result of results) {
         const file = path.relative(repoRoot, result.filePath).replace(/\\/g, "/");
-        const noted = NOTED_PATHS.some((prefix) => file.startsWith(prefix));
         for (const m of result.messages) {
             hits.push(hit({
-                severity: noted ? "NOTE" : "FAIL",
+                severity: "FAIL",
                 rule: m.ruleId ?? "parse-error",
                 message: `${m.severity === 2 ? "error" : "warning"}: ${m.message}`,
                 file,
@@ -444,7 +481,7 @@ const allChecks = [
     { name: "active-dom-bindings", fn: checkActiveDomBindings },
     { name: "create-el-div-span", fn: checkCreateElDivSpan },
     { name: "ts-suppressions", fn: checkTsSuppressions },
-    { name: "css-important", fn: checkCssImportant },
+    { name: "css", fn: checkCss },
     { name: "manifest-description", fn: checkManifestDescription },
     { name: "settings-tab-get-setting-definitions", fn: checkSettingsTabHasGetSettingDefinitions },
     { name: "scanner-lint", fn: checkScannerLint },
@@ -464,12 +501,6 @@ async function main() {
 
     const fails = allHits.filter((h) => h.severity === "FAIL");
     const warns = allHits.filter((h) => h.severity === "WARN");
-    const notes = allHits.filter((h) => h.severity === "NOTE");
-
-    if (notes.length) {
-        const files = [...new Set(notes.map((h) => h.file))];
-        console.log(`ℹ️  ${notes.length} scanner finding(s) not counted, in ${files.join(", ")} (see NOTED_PATHS)`);
-    }
 
     if (fails.length === 0 && warns.length === 0) {
         console.log("✅ scorecard-check: 0 issues");

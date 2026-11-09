@@ -39,7 +39,7 @@ async function script(a: Act<S>) {
 
 export default function B203Wide() {
   return (
-    <Stage<S> width={720} height={420} initial={{ ticked: false, counted: false }} poster={{ ticked: true, counted: true }} script={script} cursor={{ at: REST, style: 'large', ripple: true }} className="b203w">
+    <Stage<S> width={720} height={420} initial={{ ticked: false, counted: false }} poster={{ ticked: true, counted: true }} script={script} cursor={{ at: REST, style: 'large', ripple: true }} className="dy-film b203w">
       {(s) => (
         <div className="b203w-row">
         <ObsidianApp className="b203w-left" tabs={<TabBar tabs={['2026-10-09']} active={0} />}>
