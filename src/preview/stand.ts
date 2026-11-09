@@ -22,8 +22,8 @@ const ctx = previewContext(fakeVault());
 let disposers: (() => void)[] = [];
 
 function draw(): void {
-    const root = document.querySelector("#cases");
-    if (!(root instanceof HTMLElement)) return;
+    const root = activeDocument.querySelector("#cases");
+    if (!root?.instanceOf(HTMLElement)) return;
     for (const dispose of disposers) dispose();
     disposers = [];
     root.textContent = "";
@@ -42,22 +42,22 @@ function draw(): void {
 }
 
 function bind(id: string, onPick: (value: string) => void): void {
-    const el = document.querySelector(id);
-    if (el instanceof HTMLSelectElement) {
+    const el = activeDocument.querySelector(id);
+    if (el?.instanceOf(HTMLSelectElement)) {
         onPick(el.value);
         el.addEventListener("change", () => onPick(el.value));
     }
 }
 
-const locales = document.querySelector("#locale");
-if (locales instanceof HTMLSelectElement) {
+const locales = activeDocument.querySelector("#locale");
+if (locales?.instanceOf(HTMLSelectElement)) {
     for (const code of AVAILABLE_LOCALES) {
         locales.createEl("option", { text: code, attr: { value: code } });
     }
 }
 
 bind("#theme", (value) => {
-    document.body.dataset.theme = value;
+    activeDocument.body.dataset.theme = value;
 });
 bind("#locale", (value) => {
     setLocale(value);

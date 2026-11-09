@@ -27,6 +27,13 @@
  * Also added `checkSettingsTabHasGetSettingDefinitions` for the new
  * `obsidianmd/settings-tab/prefer-setting-definitions` rule.
  *
+ * 2026-11-09 (0.4.2 -> 0.5.1, B-215): the regex checks above only guess at
+ * the scanner's rules, and they skip `src/preview/`, which the scanner does
+ * not: 0.5.1 found seven warnings on the preview stand that this gate never
+ * saw. `checkScannerLint` now runs the scanner's own configuration
+ * (`scripts/scanner.eslint.config.mjs`) over the tracked files and fails on
+ * every finding, warning or error, as each one lowers the score.
+ *
  * Run via `npm run scorecard:check`. Hooked into `release:check`.
  *
  * Exit code: 0 if clean, 1 if any FAIL pattern matched.
@@ -34,6 +41,8 @@
 
 const fs = require("fs");
 const path = require("path");
+const { execFileSync } = require("child_process");
+const { ESLint } = require("eslint");
 
 const repoRoot = path.resolve(__dirname, "..");
 const srcRoot = path.join(repoRoot, "src");
@@ -206,7 +215,7 @@ function checkActiveDomBindings() {
                     snippet: raw.trim(),
                 }));
             }
-            if (isActiveWindowTimer.test(code)) {
+            if (isActiveWindowTimer.test(code[i] ?? "")) {
                 hits.push(hit({
                     severity: "FAIL",
                     rule: "no-active-window-timer",
@@ -218,7 +227,7 @@ function checkActiveDomBindings() {
                     snippet: raw.trim(),
                 }));
             }
-            if (isBareTimerFn.test(code)) {
+            if (isBareTimerFn.test(code[i] ?? "")) {
                 hits.push(hit({
                     severity: "FAIL",
                     rule: "no-bare-timers",
@@ -377,6 +386,55 @@ function checkSettingsTabHasGetSettingDefinitions() {
     }));
 }
 
+/**
+ * Paths the scanner's documented configuration lints but this gate does not
+ * count. `site/` is the GitHub Pages site: browser scripts, not plugin code,
+ * where `activeDocument` and `App#saveLocalStorage` do not exist. Nothing in
+ * the scanner's ignore list leaves it out, and the public scanner does walk
+ * it: on 2026-11-09 the listing's 24 CSS warnings pointed mostly at
+ * `site/assets/*.css`. Its ESLint pass showed no JS finding there yet, which
+ * may change once it runs 0.5.x. Until `site/` is cleaned up (backlog B-217)
+ * its findings are printed as notes, so they stay in sight.
+ */
+const NOTED_PATHS = ["site/"];
+
+/**
+ * Scorecard Review: the community scanner's ESLint pass, with its own
+ * configuration, over the files a clean checkout has. Untracked build output
+ * (`main.js`, `.preview/`, `coverage/`) never reaches the scanner, so it is
+ * not linted here either.
+ */
+async function checkScannerLint() {
+    const tracked = execFileSync("git", ["ls-files", "-z"], { cwd: repoRoot, encoding: "utf8" })
+        .split("\0")
+        .filter((f) => f && fs.existsSync(path.join(repoRoot, f)));
+    if (!tracked.length) throw new Error("scorecard-check: git ls-files returned no files");
+
+    const eslint = new ESLint({
+        cwd: repoRoot,
+        overrideConfigFile: path.join(__dirname, "scanner.eslint.config.mjs"),
+        warnIgnored: false,
+        errorOnUnmatchedPattern: false,
+    });
+    const results = await eslint.lintFiles(tracked);
+    const hits = [];
+    for (const result of results) {
+        const file = path.relative(repoRoot, result.filePath).replace(/\\/g, "/");
+        const noted = NOTED_PATHS.some((prefix) => file.startsWith(prefix));
+        for (const m of result.messages) {
+            hits.push(hit({
+                severity: noted ? "NOTE" : "FAIL",
+                rule: m.ruleId ?? "parse-error",
+                message: `${m.severity === 2 ? "error" : "warning"}: ${m.message}`,
+                file,
+                line: m.line ?? 1,
+                snippet: "",
+            }));
+        }
+    }
+    return hits;
+}
+
 /* ------------------------------------------------------------------ *
  *  Run                                                               *
  * ------------------------------------------------------------------ */
@@ -389,39 +447,53 @@ const allChecks = [
     { name: "css-important", fn: checkCssImportant },
     { name: "manifest-description", fn: checkManifestDescription },
     { name: "settings-tab-get-setting-definitions", fn: checkSettingsTabHasGetSettingDefinitions },
+    { name: "scanner-lint", fn: checkScannerLint },
 ];
 
-const allHits = [];
-for (const { name, fn } of allChecks) {
-    try {
-        const checkHits = fn();
-        for (const h of checkHits) allHits.push({ ...h, check: name });
-    } catch (err) {
-        console.error(`[scorecard-check] ${name} threw:`, err);
-        process.exit(2);
+async function main() {
+    const allHits = [];
+    for (const { name, fn } of allChecks) {
+        try {
+            const checkHits = await fn();
+            for (const h of checkHits) allHits.push({ ...h, check: name });
+        } catch (err) {
+            console.error(`[scorecard-check] ${name} threw:`, err);
+            process.exit(2);
+        }
     }
+
+    const fails = allHits.filter((h) => h.severity === "FAIL");
+    const warns = allHits.filter((h) => h.severity === "WARN");
+    const notes = allHits.filter((h) => h.severity === "NOTE");
+
+    if (notes.length) {
+        const files = [...new Set(notes.map((h) => h.file))];
+        console.log(`ℹ️  ${notes.length} scanner finding(s) not counted, in ${files.join(", ")} (see NOTED_PATHS)`);
+    }
+
+    if (fails.length === 0 && warns.length === 0) {
+        console.log("✅ scorecard-check: 0 issues");
+        process.exit(0);
+    }
+
+    for (const h of fails) {
+        console.error(`❌ [${h.rule}] ${h.file}:${h.line}`);
+        console.error(`   ${h.message}`);
+        console.error(`   ${h.snippet}`);
+        console.error();
+    }
+    for (const h of warns) {
+        console.warn(`⚠️  [${h.rule}] ${h.file}:${h.line}`);
+        console.warn(`   ${h.message}`);
+        console.warn(`   ${h.snippet}`);
+        console.warn();
+    }
+
+    console.log(`Summary: ${fails.length} fail · ${warns.length} warn`);
+    process.exit(fails.length > 0 ? 1 : 0);
 }
 
-const fails = allHits.filter((h) => h.severity === "FAIL");
-const warns = allHits.filter((h) => h.severity === "WARN");
-
-if (fails.length === 0 && warns.length === 0) {
-    console.log("✅ scorecard-check: 0 issues");
-    process.exit(0);
-}
-
-for (const h of fails) {
-    console.error(`❌ [${h.rule}] ${h.file}:${h.line}`);
-    console.error(`   ${h.message}`);
-    console.error(`   ${h.snippet}`);
-    console.error();
-}
-for (const h of warns) {
-    console.warn(`⚠️  [${h.rule}] ${h.file}:${h.line}`);
-    console.warn(`   ${h.message}`);
-    console.warn(`   ${h.snippet}`);
-    console.warn();
-}
-
-console.log(`Summary: ${fails.length} fail · ${warns.length} warn`);
-process.exit(fails.length > 0 ? 1 : 0);
+main().catch((err) => {
+    console.error("[scorecard-check] failed:", err);
+    process.exit(2);
+});
