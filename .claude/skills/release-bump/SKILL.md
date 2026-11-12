@@ -23,29 +23,20 @@ The repository is `dashsidian`, the plugin is Dashy, the long-lived branch is
 - `master` is up to date, the tree is clean and CI is green.
 - `[Unreleased]` in `CHANGELOG.md` has the entries of the release, written by
   hand. If it is empty while commits exist, stop and ask.
-- `npm run release:check` passes (the kit's `opdk release check`, the scanner,
-  lint, typecheck and the unit tests).
+- `npm run release:check` passes. It runs the kit's `opdk release check`
+  (versions, `versions.json`, the manifest rules, a CHANGELOG section, the
+  build, a rebuild of the committed tree, the API against `minAppVersion`),
+  then the scanner, lint, typecheck, the unit tests, and the checks of the
+  generated skill, the block reference, the site and the README.
 - Instructions review (`CLAUDE.md`, "Каждый релиз"): a manual habit, one line
   in the release PR. Nothing here checks it.
 
 ## The release
 
 ```bash
-npx opdk release patch --dry-run   # everything but the commit, the tag and the pushes
-npx opdk release X.Y.Z             # or patch | minor | major
+npx opdk release X.Y.Z --dry-run   # everything but the commit, the tag and the pushes
+npx opdk release X.Y.Z             # the same argument; or patch | minor | major in both
 ```
 
 The number is the author's call. Waiting for a go before the real run is the
 whole confirmation gate: the tag push starts a release.
-
-## After it
-
-The generated skill and block reference name the plugin version, and the
-release commit holds only the version files, so CI's `build:skill -- --check`
-fails until they are rebuilt:
-
-```bash
-npm run build:skill && npm run build:reference
-```
-
-Commit the result as `chore(skill): rebuild for X.Y.Z` through a PR.

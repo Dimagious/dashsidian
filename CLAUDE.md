@@ -287,10 +287,15 @@ Backlog: B-003
 Версия схемы (`version` в `src/blocks/schema.json`) — своё число: по ней
 настройки сравнивают установленный скилл. Новый ключ, значение, поведение или
 процесс скилла — минорная цифра, правка формулировок — патч; без подъёма
-установленный скилл ничего не узнает. Заголовки сгенерированных файлов
-называют версию плагина, а коммит `opdk release` трогает только файлы версий:
-после релиза `npm run build:skill && npm run build:reference` и коммит через
-PR, иначе `build:skill -- --check` в CI краснеет.
+установленный скилл ничего не узнает. Версия плагина в сгенерированные файлы
+не зашита: заголовки несут токен `{{pluginVersion}}`, а установка в хранилище
+подставляет версию запущенного плагина (`src/skill/stamp.ts`). Поэтому подъём
+версии сам ничего не устаревает, пересобирать после релиза не нужно.
+
+Удалённый или переименованный id команды — тоже MAJOR (ломает горячую клавишу
+пользователя); смотреть `addCommand({ id })` в `src/app/plugin.ts`. Перед
+релизом локально `npm run e2e`: в CI его нет, и только он доказывает, что
+собранный бандл работает в настоящем Obsidian.
 
 ## Команды
 
@@ -305,7 +310,7 @@ PR, иначе `build:skill -- --check` в CI краснеет.
 | `npm run scorecard:check` | `opdk scan`: зеркало сканера community-plugins, его ESLint-конфиг по всем файлам в git (с `site/` и `design/`) и CSS через doiuse под Chromium Obsidian |
 | `npm run preview` | стенд состояний блоков в браузере, в `.preview/` |
 | `npm run site:check` / `readme:check` | ссылки, якоря и тире на сайте и в README |
-| `npm run release:check` | `opdk release check` (версии, `versions.json`, манифест, CHANGELOG, сборка, воспроизводимость) и затем сканер, lint, typecheck, тесты |
+| `npm run release:check` | `opdk release check` (версии, `versions.json`, манифест, CHANGELOG, сборка, воспроизводимость) и затем сканер, lint, typecheck, тесты, проверки скилла, справочника блоков, сайта и README |
 | `npx opdk release X.Y.Z` | сам релиз: версии, коммит, тег, workflow ядра, публикация; сначала `--dry-run`. Zip больше нет |
 | `npm run dev:vault` | `opdk build --vault --watch`: сборка в тестовое хранилище (`VAULT_PLUGIN` или `--vault <папка>`) |
 | `npm run e2e` | собирает плагин и гонит спеки против настоящего Obsidian (через ядро); в CI не гоняется. `firstrun`, `film-phone`, `capture`, `listing-mobile` включаются переменными `FIRSTRUN`, `FILM`, `CAPTURE`, `LISTING` (ровно `1`) |
