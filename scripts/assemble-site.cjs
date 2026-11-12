@@ -19,9 +19,10 @@
  *      (`fillShell` in `site-check.cjs`, which checks pages the same way).
  *      `_shell.html` is a source file and is not copied into `_site/`.
  *   2. `{{version}}` and `{{minAppVersion}}` from `manifest.json`. No page
- *      hand-writes a version: the Pages workflow deploys from a release tag
- *      (see `.github/workflows/pages.yml`), so `manifest.json` at that commit
- *      is already the version that just shipped.
+ *      hand-writes a version: the Pages workflow deploys when a release is
+ *      published (see `.github/workflows/pages.yml`), from that release's tag,
+ *      so `manifest.json` at that commit is already the version that just
+ *      shipped.
  */
 "use strict";
 
