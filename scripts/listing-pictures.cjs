@@ -2,7 +2,8 @@
 /**
  * The catalog's pictures in design/listing: 1200x800 from the real captures in
  * docs/screens, each with one line of caption, and 900x1600 from Obsidian's
- * mobile interface (e2e/listing-mobile.spec.ts, which steals focus).
+ * mobile interface (e2e/listing-mobile.spec.ts, which steals focus), taken with
+ * the kit's demo fixture into .opdk/listing/stills and moved here.
  * Pass --desktop to skip the mobile run.
  */
 "use strict";
@@ -50,7 +51,14 @@ function page({ shot, caption, dark }) {
     }
     await browser.close();
     if (process.argv.includes("--desktop")) return;
+    execFileSync("npm", ["run", "build"], { cwd: ROOT, stdio: "inherit" });
+    execFileSync("node", ["scripts/demo-vault.cjs"], { cwd: ROOT, stdio: "inherit" });
     execFileSync("npx", ["playwright", "test", "e2e/listing-mobile.spec.ts", "--reporter=list"], {
-        cwd: ROOT, stdio: "inherit", env: { ...process.env, LISTING: "1", DASHY_VAULT: ".capture/vault", ELECTRON_RUN_AS_NODE: "" },
+        cwd: ROOT, stdio: "inherit", env: { ...process.env, LISTING: "1" },
     });
+    const stills = path.join(ROOT, ".opdk/listing/stills");
+    for (const name of fs.readdirSync(stills).filter((f) => /^mobile-\d-.*\.png$/.test(f))) {
+        fs.copyFileSync(path.join(stills, name), path.join(OUT, name));
+        console.log(`[listing] ${path.relative(ROOT, path.join(OUT, name))}`);
+    }
 })().catch((error) => { console.error(error); process.exit(1); });

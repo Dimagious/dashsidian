@@ -33,7 +33,8 @@
     "release:audit": "node scripts/release-audit.cjs",
     "e2e": "npm run build && playwright test",
     "e2e:headed": "npm run build && playwright test --headed",
-    "capture": "node scripts/capture.cjs",
+    "capture": "npm run build && node scripts/demo-vault.cjs && CAPTURE=1 playwright test e2e/capture.spec.ts --reporter=list && opdk demo && node scripts/agent-hero.cjs",
+    "film:phone": "npm run build && node scripts/demo-vault.cjs && FILM=1 playwright test e2e/film-phone.spec.ts --reporter=list && opdk demo film-phone film-phone-dark",
     "social-card": "node scripts/social-card.cjs",
     "firstrun": "npm run build && node scripts/newcomer-vault.cjs && FIRSTRUN=1 OPDK_E2E_VAULT=.capture/newcomer playwright test e2e/firstrun.spec.ts --reporter=list"
   },
