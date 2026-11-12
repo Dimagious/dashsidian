@@ -150,3 +150,32 @@ describe("InsertBlockModal while Obsidian indexes (B-181)", () => {
         expect(pick(modal, "dashy-chart", inserted)).toMatch(/^```dashy-chart\n/);
     });
 });
+
+describe("InsertBlockModal list", () => {
+    const modal = (): InsertBlockModal => new InsertBlockModal(app, editor().editor, () => read);
+
+    it("offers every block, each as its fence name over what it draws", () => {
+        const m = modal();
+        const all = m.getSuggestions("");
+        expect(all.map((c) => c.name)).toEqual(["tiles", "stats", "progress", "today", "countdown", "heatmap", "chart"]);
+        const first = all[0];
+        if (!first) throw new Error("the list is empty");
+        const row = document.createElement("div");
+        m.renderSuggestion(first, row);
+        expect([...row.children].map((child) => child.className)).toEqual(["dashy-suggest-name", "dashy-suggest-what"]);
+        expect(row.querySelector(".dashy-suggest-name")?.textContent).toBe("tiles");
+        expect(row.querySelector(".dashy-suggest-what")?.textContent).toBe(first.what);
+    });
+
+    it("a query narrows the list by name or by description, ignoring case and outer spaces", () => {
+        const m = modal();
+        expect(m.getSuggestions("  HEAT ").map((c) => c.name)).toEqual(["heatmap"]);
+        const byWhat = m.getSuggestions("").find((c) => c.name === "countdown");
+        const word = byWhat?.what.split(" ")[0]?.toUpperCase() ?? "";
+        expect(m.getSuggestions(word).map((c) => c.name)).toContain("countdown");
+    });
+
+    it("a query that matches nothing leaves the list empty", () => {
+        expect(modal().getSuggestions("no such block")).toEqual([]);
+    });
+});
