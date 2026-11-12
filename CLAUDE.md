@@ -313,7 +313,7 @@ Backlog: B-003
 | `npm run release:check` | `opdk release check` (версии, `versions.json`, манифест, CHANGELOG, сборка, воспроизводимость) и затем сканер, lint, typecheck, тесты, проверки скилла, справочника блоков, сайта и README |
 | `npx opdk release X.Y.Z` | сам релиз: версии, коммит, тег, workflow ядра, публикация; сначала `--dry-run`. Zip больше нет |
 | `npm run dev:vault` | `opdk build --vault --watch`: сборка в тестовое хранилище (`VAULT_PLUGIN` или `--vault <папка>`) |
-| `npm run e2e` | собирает плагин и гонит спеки против настоящего Obsidian (через ядро); в CI не гоняется. `firstrun`, `film-phone`, `capture`, `listing-mobile` включаются переменными `FIRSTRUN`, `FILM`, `CAPTURE`, `LISTING` (ровно `1`) |
+| `npm run e2e` | собирает плагин и гонит спеки против настоящего Obsidian (через ядро); в CI не гоняется. `firstrun`, `film-phone`, `capture`, `listing-mobile` включаются переменными `FIRSTRUN`, `FILM`, `CAPTURE`, `LISTING` (ровно `1`). `firstrun` пишет снимки в `test-results/firstrun/`, а не в отслеживаемый `docs/screens/firstrun/` (оттуда сайт берёт `1-picker.png`) |
 | `npm run capture` | скриншоты и ролики для README и сайта: спек `capture`, затем `opdk demo` (настройки в `opdk.config.mjs`), затем agent-hero; запускать только по слову автора |
 | `npm run film:phone` | ролик с телефоном (светлый и тёмный: MP4, GIF, постер) через `opdk demo`; только по слову автора |
 

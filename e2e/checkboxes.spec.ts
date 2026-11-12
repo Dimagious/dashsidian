@@ -1,5 +1,5 @@
 import type { App } from "obsidian";
-import { test, expect, READING_VIEW } from "./fixtures";
+import { test, expect, READING_VIEW, paintedCells, expectPainted } from "./fixtures";
 
 /**
  * `gym` is a Properties checkbox on the Diary notes, not a number: 2026-01-02
@@ -18,10 +18,7 @@ test.describe("checkbox properties feed the aggregates", () => {
         await expect(values.nth(1)).toHaveText("5"); // longest run: 2026-01-02..06
         await expect(values.nth(2)).toHaveText("0.7"); // share of ticked days: 7 of 10
 
-        const painted = (): Promise<number> => view.locator(".dashy-hm-cell").evaluateAll(
-            (cells) => cells.filter((c) => (c as HTMLElement).style.backgroundColor !== "").length,
-        );
-        await expect.poll(painted).toBe(7);
+        await expectPainted(view, 7);
 
         // A false day is present data, not missing data: it reads as "no data"
         // on the cell, same as a day nothing ever set. The tooltip's date is
@@ -55,10 +52,7 @@ test.describe("checkbox properties feed the aggregates", () => {
         await expect(values.nth(1)).toHaveText("2");
         await expect(values.nth(2)).toHaveText("0.6");
 
-        const painted = await view.locator(".dashy-hm-cell").evaluateAll(
-            (cells) => cells.filter((c) => (c as HTMLElement).style.backgroundColor !== "").length,
-        );
-        expect(painted).toBe(6);
+        await expectPainted(view, 6);
 
         await expect(view.locator('[title="Jan 4, 2026: gym 1 (2026-01-04)"]')).toHaveCount(0);
         await expect(view.locator('[title="Jan 4, 2026: no data"]')).toHaveCount(1);
@@ -151,14 +145,11 @@ test.describe("checkbox properties feed the aggregates", () => {
         // count is the proof the *heatmap* redrew, not only the stats block
         // above it: the new note is a `gym: true` day the grid did not have
         // data for yet.
-        const painted = () => scroller.locator(".dashy-hm-cell").evaluateAll(
-            (cells) => cells.filter((c) => (c as HTMLElement).style.backgroundColor !== "").length,
-        );
-        const before = await painted();
+        const before = await paintedCells(scroller);
         await obsidian.evaluate(async (app: App) => {
             await app.vault.create("Diary/2026-01-11.md", "---\ngym: true\n---\n");
         });
-        await expect.poll(painted, { timeout: 5_000 }).toBe(before + 1);
+        await expectPainted(scroller, before + 1, { timeout: 5_000 });
 
         // The redrawn scroller lands within a couple of pixels of where the
         // reader left it, not back at the end.
@@ -187,14 +178,11 @@ test.describe("checkbox properties feed the aggregates", () => {
 
         // Same proof as above: the heatmap itself redrew, not only the
         // stats block sharing the note.
-        const painted = () => scroller.locator(".dashy-hm-cell").evaluateAll(
-            (cells) => cells.filter((c) => (c as HTMLElement).style.backgroundColor !== "").length,
-        );
-        const before = await painted();
+        const before = await paintedCells(scroller);
         await obsidian.evaluate(async (app: App) => {
             await app.vault.create("Diary/2026-01-12.md", "---\ngym: true\n---\n");
         });
-        await expect.poll(painted, { timeout: 5_000 }).toBe(before + 1);
+        await expectPainted(scroller, before + 1, { timeout: 5_000 });
 
         // Still pinned to the (new) end: nothing more to scroll to on the right.
         await expect(scroller).not.toHaveClass(/can-scroll-right/);

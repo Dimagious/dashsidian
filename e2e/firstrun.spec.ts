@@ -27,7 +27,9 @@ async function timed(step: string, run: () => Promise<string>): Promise<void> {
 }
 
 test("a newcomer gets from an installed plugin to a number about their own vault", async ({ win, obsidian }) => {
-    const shots = path.resolve("docs/screens/firstrun");
+    // Measurement shots go to the gitignored test-results/. The tracked docs/screens/firstrun/ holds the published
+    // pictures (the site takes 1-picker.png) and is retaken on purpose, not by every run of this script.
+    const shots = path.resolve("test-results/firstrun");
     fs.mkdirSync(shots, { recursive: true });
     await win.setViewportSize({ width: 1100, height: 760 });
 
