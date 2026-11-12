@@ -19,10 +19,10 @@ test.describe("dated names beyond an exact YYYY-MM-DD (B-081)", () => {
         await expect(values.nth(0)).toHaveText("3"); // three notes, count
         await expect(values.nth(1)).toHaveText("2"); // 5th and 6th, consecutive: one link, not two isolated days
 
-        const painted = await view.locator(".dashy-hm-cell").evaluateAll(
+        const painted = (): Promise<number> => view.locator(".dashy-hm-cell").evaluateAll(
             (cells) => cells.filter((c) => (c as HTMLElement).style.backgroundColor !== "").length,
         );
-        expect(painted).toBe(2); // two distinct days painted, not three notes
+        await expect.poll(painted).toBe(2); // two distinct days painted, not three notes
 
         // The tooltip's date is the locale's own medium format (B-092), and
         // a single contributing note is named by its own title.

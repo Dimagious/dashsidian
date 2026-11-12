@@ -34,21 +34,20 @@ test("mobile pictures", async ({ win, obsidian, demo }) => {
     };
     const open = async (path: string): Promise<void> => {
         await obsidian.openFile(path, { mode: "preview" });
+        // A real block first: zero errors is true of a view that has not drawn anything yet.
+        await expect(win.locator(".workspace-leaf.mod-active .markdown-reading-view [class*='dashy-']").first()).toBeVisible();
         await expect(win.locator(".workspace-leaf.mod-active .markdown-reading-view .dashy-diag-error")).toHaveCount(0);
     };
 
     await open("Running.md");
-    await expect(win.locator(".workspace-leaf.mod-active .markdown-reading-view [class*='dashy-']").first()).toBeVisible();
     await shoot("mobile-1-running");
     await open("Dashboard.md");
-    await expect(win.locator(".workspace-leaf.mod-active .markdown-reading-view [class*='dashy-']").first()).toBeVisible();
     await shoot("mobile-2-dashboard");
     // Last week's review: the demo vault names it for the week it was made in.
     const review = await obsidian.evaluate((app: App) =>
         app.vault.getMarkdownFiles().map((f) => f.path).find((p) => /^Reviews\/\d{4}-W\d{2}\.md$/.test(p)) ?? null);
     if (!review) throw new Error("listing: no weekly review note under Reviews/");
     await open(review);
-    await expect(win.locator(".workspace-leaf.mod-active .markdown-reading-view [class*='dashy-']").first()).toBeVisible();
     await shoot("mobile-3-review");
 
     await openPhoneNote(obsidian);

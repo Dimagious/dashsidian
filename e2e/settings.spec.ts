@@ -1,4 +1,5 @@
 import { test, expect, pluginSettings, type DashyPlugin } from "./fixtures";
+import type { App } from "obsidian";
 
 /** What the plugin has written to its `data.json`, `{}` until it has. */
 const savedSettings = (vault: { exists(p: string): boolean; read(p: string): string }): Partial<DashyPlugin["settings"]> =>
@@ -63,6 +64,9 @@ test.describe("settings tab", () => {
 
     test("a file the user already owns keeps its own text", async ({ obsidian, vault }) => {
         vault.write("AGENTS.md", "# House rules\n\nNever touch this line.\n");
+        // installAgents looks the file up in Obsidian's index; a click before it is
+        // indexed finds no file and tries to create one.
+        await expect.poll(() => obsidian.evaluate((app: App) => app.vault.getFileByPath("AGENTS.md") !== null)).toBe(true);
 
         const settings = await obsidian.openSettings("dashsidian");
         await settings.getByRole("button", { name: "AGENTS.md in the vault root" }).click();
