@@ -193,13 +193,10 @@ test.describe("2.1.0 in a real Obsidian", () => {
         await win.setViewportSize({ width: 390, height: 800 });
         const measure = (): Promise<{ scroll: number; client: number }[]> =>
             cards.evaluateAll((els) => els.map((el) => ({ scroll: el.scrollWidth, client: el.clientWidth })));
-        // The layout follows the new width on its own schedule: wait for it, then check every card.
-        await expect.poll(async () => (await measure()).every((card) => card.client < 200)).toBe(true);
-        const sizes = await measure();
-        for (const card of sizes) {
-            // Two cards side by side in a phone-wide pane, not a sliver squeezed by a sidebar.
-            expect(card.client).toBeGreaterThan(100);
-            expect(card.client).toBeLessThan(200);
+        // The layout follows the new width on its own schedule: wait until every card is in the phone-wide
+        // range (two side by side, not a sliver squeezed by a sidebar), then check nothing overflows.
+        await expect.poll(async () => (await measure()).every((card) => card.client > 100 && card.client < 200)).toBe(true);
+        for (const card of await measure()) {
             expect(card.scroll).toBeLessThanOrEqual(card.client);
         }
     });
