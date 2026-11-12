@@ -91,9 +91,8 @@ export.
 - **Pictures and films are shot with the kit's `demo` fixture and encoded by
   `opdk demo`.** `npm run capture` is the build, the demo vault, the capture
   spec, `opdk demo` and the agent hero; `npm run film:phone` makes the phone
-  film. The stills are 2x on any display (1400 x 446 where the committed ones are
-  700 x 223), so each picture in `docs/screens` changes size when it is
-  retaken; the retake is a separate change. The reels keep 256 colours, 4 fps
+  film. The stills are 2x on any display, so each picture in `docs/screens`
+  changed size when it was retaken (see the next entry). The reels keep 256 colours, 4 fps
   and 760 px (the wide one 1000), but the kit dithers them with `bayer_scale=5`
   and `diff_mode=rectangle` where `capture.cjs` used `bayer_scale=3`, so a
   retaken GIF looks slightly different. The phone film is composed by the kit:
@@ -102,6 +101,29 @@ export.
   capture run, where `capture.cjs` only warned (`film-phone.cjs` already
   threw). The four listing pictures of the phone are taken to `.opdk/listing`
   and moved to `design/listing` by `listing-pictures.cjs`.
+- **Every picture and film is retaken on the kit.** One `npm run capture`, one
+  `npm run film:phone` and one `node scripts/listing-pictures.cjs` replaced the
+  pictures of 2026-10-30. The demo vault and the window's clock are fixed on
+  2026-10-30 (`e2e/demo-day.json`, `demo.freezeTime`), so a later retake changes
+  only what the code changed. The block stills are 2x with an 8 px margin, so
+  `chart-weekly` is 1432 x 478 (was 700 x 223) and `stats` 1432 x 576 (was
+  700 x 272). `dashboard-light` and `-dark` are the note alone, without tab bar,
+  status bar, ribbon or side panels, ending on a whole block: 2512 x 1476 (was
+  1280 x 900). `settings-dark` is 1696 x 1528 (was 1350 x 1340) and the agent
+  hero 2560 x 1600 (was 1280 x 800, composed at 2x now). The reels are
+  1000 x 623 and 760 x 295, the phone film and its posters 2000 x 1240 as before,
+  the listing pictures 1200 x 800 and 900 x 1600 as before: the composer lays a
+  2x still out at half its pixel size, so the layout is the one the 1x stills
+  gave. The `width` and `height` of the pictures on the site follow the new
+  aspect ratios and keep their display widths. The two dataviewjs comparison
+  pictures are not retaken (they need Dataview and Obsidian Charts in
+  `.capture/livecheck`). `film-phone-dark` no longer makes a GIF nobody used.
+  Thirteen media files that nothing referenced are deleted: ten portrait
+  stageshow leftovers (`film-agent-block` GIF, MP4 and poster, `film-error-message`
+  MP4 and poster, `film-one-tick` MP4 and poster, `film-review-week` GIF, MP4 and
+  poster) and three first-run shots (`firstrun/2-first-block.png`,
+  `3-all-blocks.png`, `4-settings.png`). `firstrun/1-picker.png`, which the site
+  uses, is kept as it was.
 - **Releases are cut with `npx opdk release`** (`patch`, `minor`, `major` or an
   exact `X.Y.Z`; `--dry-run` first) in place of `version-sync.cjs`, a hand-pushed
   tag and the zip. It bumps the version in `package.json`, `package-lock.json`,
