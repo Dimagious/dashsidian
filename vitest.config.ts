@@ -1,6 +1,7 @@
+import { mergeConfig } from "vitest/config";
 import { defineUnitConfig } from "obsidian-plugin-dev-kit/vitest";
 
-export default defineUnitConfig({
+const unit = defineUnitConfig({
     rootDir: import.meta.dirname,
     // Dashy's own stub, for the node tests and the DOM ones alike.
     obsidian: { node: "./src/test/stubs/obsidian.ts", dom: "obsidian-test-mocks" },
@@ -43,5 +44,17 @@ export default defineUnitConfig({
             "src/ui/settings.ts",
         ],
         extraReporters: ["lcov", "html"],
+    },
+});
+
+export default mergeConfig(unit, {
+    test: {
+        // Test files share their worker instead of each getting a fresh
+        // module graph and jsdom: 3x faster here, the same tests, the same
+        // coverage. The price is that module state a test leaves behind is
+        // seen by the files after it, so keep restoring globals and timers in
+        // afterEach, and check with `vitest run --sequence.shuffle` after
+        // adding a module-level cache.
+        isolate: false,
     },
 });
