@@ -17,7 +17,7 @@ import {
 /**
  * `getSettingDefinitions()` is drawn through Obsidian's own `Setting`
  * builder and is covered end to end instead (see `vitest.config.ts`'s
- * exclusion of `src/ui/**`). `getControlValue`/`setControlValue` are plain
+ * exclusion of `src/ui/settings.ts`). `getControlValue`/`setControlValue` are plain
  * methods, though, and are exactly where the setting's own contract lives:
  * the dropdown only ever hands back a string, and the "New day starts at"
  * setting is a number, so this is the one place that conversion — and its

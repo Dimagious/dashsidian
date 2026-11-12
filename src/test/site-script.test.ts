@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -9,6 +9,12 @@ import path from "node:path";
 const source = fs.readFileSync(path.resolve(__dirname, "../../site/assets/site.js"), "utf8");
 // eslint-disable-next-line @typescript-eslint/no-implied-eval
 const run = (): void => (new Function(source) as () => void)();
+
+// The page is the shared jsdom document: leave it empty for the next file.
+afterEach(() => {
+    document.documentElement.className = "";
+    document.body.innerHTML = "";
+});
 
 function page(body: string): void {
     document.documentElement.className = "no-js";

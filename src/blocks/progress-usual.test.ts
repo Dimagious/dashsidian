@@ -28,7 +28,7 @@ const daily = at(diary("Diary", "2026-07-01", 132, () => ({ km: 1 })));
 
 afterEach(() => {
     setLocale("en");
-    setDateLocale("en");
+    setDateLocale(null);
 });
 
 describe("progress: goal: usual (B-209)", () => {

@@ -14,9 +14,11 @@ import { mockContext, host, texts, nodes, diagnostics, type FakeVault } from "..
  */
 
 afterEach(() => {
+    // moment first: applyLocale("") copies moment's global locale, and a test
+    // that set German would otherwise leave the i18n layer German.
+    moment.locale("en");
     setLocale("en");
     applyLocale("");
-    moment.locale("en");
     vi.useRealTimers();
 });
 
