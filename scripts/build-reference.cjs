@@ -38,7 +38,7 @@ const SCHEMA_URL = "https://github.com/Dimagious/dashsidian/blob/master/src/bloc
 const PAGES = [
     {
         block: "stats", tagline: "the numbers", item: "card", items: "cards",
-        showcase: { image: "stats", width: 700, height: 272,
+        showcase: { image: "stats", width: 700, height: 282,
             alt: "Eight number cards: counts, an average, sums, a maximum, a streak, two with sparklines",
             yaml: [
                 "columns: 4",
@@ -57,21 +57,21 @@ const PAGES = [
     {
         block: "chart", tagline: "a number over time", item: "series", items: "series",
         callout: "With Obsidian Charts turned on, Dashy leaves the <code>chart</code> block to it. Write <code>dashy-chart</code> instead: same keys, always Dashy.",
-        showcase: { image: "chart-weekly", width: 700, height: 223,
+        showcase: { image: "chart-weekly", width: 700, height: 234,
             alt: "Weekly bars of running distance over half a year, a dashed goal line at 30 km, the current week drawn lighter",
             yaml: "source: Diary\nfield: run_km\ntype: bar\nbucket: week\nunit: km\ngoal: 30" },
         guides: ["weekly-chart-tracker-alternative", "weekly-review-without-dataview", "books-per-year"],
     },
     {
         block: "heatmap", tagline: "the year", item: "layer", items: "layers",
-        showcase: { image: "heatmap", width: 700, height: 196,
+        showcase: { image: "heatmap", width: 700, height: 206,
             alt: "A year of days coloured by sleep score, with a legend",
             yaml: "source: Diary\nfield: sleep_score\ncolor: purple\nbands: [90, 80, 70]\ntitle: Sleep, last twelve months" },
         guides: ["habit-tracker-without-dataview", "heatmap-two-activities", "monthly-habit-calendar", "streak-weekdays", "weekly-review-without-dataview"],
     },
     {
         block: "progress", tagline: "how far along", item: "bar", items: "bars",
-        showcase: { image: "progress", width: 700, height: 156,
+        showcase: { image: "progress", width: 700, height: 168,
             alt: "Three progress bars, one past its goal and coloured green",
             yaml: [
                 "items:",
@@ -83,14 +83,14 @@ const PAGES = [
     },
     {
         block: "today", tagline: "where the day starts", item: null, items: null,
-        showcase: { image: "today", width: 700, height: 74,
+        showcase: { image: "today", width: 700, height: 88,
             alt: "The date and three chips linking to the daily, weekly and monthly notes",
             yaml: "daily: true\nweekly: true\nmonthly: true" },
         guides: ["homepage-dashboard"],
     },
     {
         block: "tiles", tagline: "getting around", item: "tile", items: "tiles",
-        showcase: { image: "tiles", width: 700, height: 127,
+        showcase: { image: "tiles", width: 700, height: 140,
             alt: "Four tiles with emoji, labels and note counts",
             yaml: [
                 "columns: 4",
@@ -104,7 +104,7 @@ const PAGES = [
     },
     {
         block: "countdown", tagline: "what is coming", item: "date", items: "dates",
-        showcase: { image: "countdown", width: 700, height: 187,
+        showcase: { image: "countdown", width: 700, height: 198,
             alt: "Three cards counting the days to a race, a holiday and a review",
             yaml: [
                 "columns: 3",
