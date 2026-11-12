@@ -2,9 +2,10 @@
 /**
  * Builds the vault the listing screenshots are taken from.
  *
- * Generated rather than committed: the dates have to end today or the heatmap
- * is a stripe that stops in the middle and the day row links to nothing. Three
- * hundred committed notes that go stale in a week are worse than a script.
+ * Generated rather than committed: the dates have to end on the day the window's
+ * clock is frozen at (e2e/demo-day.json) or the heatmap is a stripe that stops in
+ * the middle and the day row links to nothing. Three hundred committed notes that
+ * go stale in a week are worse than a script.
  */
 const fs = require("fs");
 const path = require("path");
@@ -386,7 +387,10 @@ function build() {
     fs.mkdirSync(path.join(out, "Books"), { recursive: true });
     fs.mkdirSync(path.join(out, ".obsidian"), { recursive: true });
 
-    const today = new Date();
+    // The fixed day of e2e/demo-day.json, not the day the script runs: a retake on another date then changes only
+    // what the code changed. The specs freeze the window's clock at the same day.
+    const [dayYear, dayMonth, dayOfMonth] = require("../e2e/demo-day.json").day.split("-").map(Number);
+    const today = new Date(dayYear, dayMonth - 1, dayOfMonth);
     // Date-only: `today` still carries the hour the script happened to run
     // at, and that hour crossing midnight nudged the last book's `finished`
     // date computed below into tomorrow, which `period: year` then excludes

@@ -11,10 +11,13 @@ const { execFileSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const { chromium } = require("@playwright/test");
+const { pngSize } = require("./png-size.cjs");
 
 const ROOT = path.resolve(__dirname, "..");
 const OUT = path.join(ROOT, "design/listing");
 const SHOTS = path.join(ROOT, "docs/screens");
+/** The stills in docs/screens are 2x (the kit's demo fixture), and the pictures here keep their 1200x800 size. */
+const STILL_SCALE = 2;
 
 const DESKTOP = [
     { file: "desktop-1-agent.png", shot: "agent-hero-dark.png", dark: true },
@@ -26,6 +29,10 @@ const DESKTOP = [
 
 function page({ shot, caption, dark }) {
     const data = fs.readFileSync(path.join(SHOTS, shot)).toString("base64");
+    // Laid out at its pixel size, a 2x still would fill the frame where a 1x one sat inside it: it is laid out at half
+    // of that, and the page is rendered at 1x so the file keeps the size the catalog asks for.
+    // The caption frame's padding is part of the box (border-box), as it was around a 1x still's own width.
+    const width = pngSize(path.join(SHOTS, shot)).width / STILL_SCALE + (caption ? 36 : 0);
     const bg = dark ? "#191722" : "#f4f1fd";
     const ink = dark ? "#e8e8ec" : "#222";
     const frame = dark ? "#3b3654" : "#d8d0f2";
@@ -36,7 +43,7 @@ function page({ shot, caption, dark }) {
              font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
       h2 { margin: 0; font-size: 38px; line-height: 1.15; letter-spacing: -.01em; text-align: center; flex: none; }
       .wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; width: 100%; }
-      img { max-width: 100%; max-height: 100%; width: auto; height: auto; min-height: 0; display: block; border-radius: 12px; background: ${sheet};
+      img { max-width: 100%; max-height: 100%; width: ${width}px; height: auto; min-height: 0; display: block; border-radius: 12px; background: ${sheet};
             padding: ${caption ? "18px" : "0"}; box-sizing: border-box; box-shadow: 0 0 0 1px ${frame}, 0 14px 40px rgba(70, 50, 140, .16); }
     </style>${caption ? `<h2>${caption}</h2>` : ""}<div class="wrap"><img src="data:image/png;base64,${data}"></div>`;
 }
