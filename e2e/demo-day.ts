@@ -1,8 +1,8 @@
 import fs from "node:fs";
-import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-/** Read from the file `scripts/demo-vault.cjs` reads too (the specs run from the repository root, like the other specs' paths). */
-const demoDay = JSON.parse(fs.readFileSync(path.resolve("e2e/demo-day.json"), "utf8")) as { day: string; time: string };
+/** Read from the file `scripts/demo-vault.cjs` reads too, found next to this module whatever the working directory. */
+const demoDay = JSON.parse(fs.readFileSync(fileURLToPath(new URL("./demo-day.json", import.meta.url)), "utf8")) as { day: string; time: string };
 
 /**
  * The one day every picture and film is taken on. `scripts/demo-vault.cjs` ends the demo vault on it and the specs

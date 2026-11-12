@@ -396,8 +396,8 @@ test("settings", async ({ win, obsidian, demo }) => {
     if (!headingBox || !paneBox || headingBox.y < paneBox.y) {
         throw new Error("capture: the agent section does not fit in the settings window");
     }
-    // The settings pane alone, without Obsidian's own tab list beside it. No margin: it would take in the modal's edge
-    // and its close button.
+    // The settings pane alone, without Obsidian's own tab list beside it, and no margin. In this window size the clip
+    // still shows the modal's close button and cuts through the first row at the top.
     await demo.still("settings-dark", { clip: pane, ...STILL });
 });
 
