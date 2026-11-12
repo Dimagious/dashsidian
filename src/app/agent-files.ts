@@ -12,6 +12,7 @@ import {
     AGENTS_BEGIN,
     AGENTS_END,
 } from "../skill/skill-content";
+import { stampPluginVersion } from "../skill/stamp";
 import { upsertManagedSection, hasManagedSection } from "../core/agents-file";
 import { t } from "../i18n";
 
@@ -40,8 +41,8 @@ export async function installSkill(app: App, plugin: DashyPlugin): Promise<boole
     const folder = normalizePath(SKILL_DIR);
     try {
         if (!(await adapter.exists(folder))) await adapter.mkdir(folder);
-        await adapter.write(normalizePath(REFERENCE_PATH), REFERENCE_MARKDOWN);
-        await adapter.write(normalizePath(SKILL_PATH), SKILL_MARKDOWN);
+        await adapter.write(normalizePath(REFERENCE_PATH), stampPluginVersion(REFERENCE_MARKDOWN, plugin.manifest.version));
+        await adapter.write(normalizePath(SKILL_PATH), stampPluginVersion(SKILL_MARKDOWN, plugin.manifest.version));
         plugin.settings.installedSkillVersion = SKILL_VERSION;
         await plugin.saveSettings();
         new Notice(t("settings.written", { path: SKILL_DIR }));
@@ -65,7 +66,7 @@ export async function installAgents(app: App, plugin: DashyPlugin): Promise<bool
         // knows about it, indexes it, and shows the change straight away.
         const file = app.vault.getFileByPath(target);
         const existing = file ? await app.vault.read(file) : null;
-        const next = upsertManagedSection(existing, AGENTS_SECTION, markers);
+        const next = upsertManagedSection(existing, stampPluginVersion(AGENTS_SECTION, plugin.manifest.version), markers);
 
         if (existing !== null && next === existing && !hasManagedSection(existing, markers)) {
             new Notice(t("settings.agentsUntouched", { path: AGENTS_PATH }));
