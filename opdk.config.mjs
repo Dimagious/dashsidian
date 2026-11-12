@@ -28,7 +28,8 @@ export default defineConfig({
                 },
             },
             "film-phone-dark": {
-                gif: { colors: 128, fps: 15, width: 1000 },
+                // The README shows the light GIF and the site swaps the two MP4s: nothing uses a dark GIF.
+                gif: false,
                 mp4: true,
                 poster: true,
                 layout: "phone-captions",

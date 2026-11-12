@@ -14,10 +14,13 @@
 const fs = require("fs");
 const path = require("path");
 const { chromium } = require("@playwright/test");
+const { pngSize } = require("./png-size.cjs");
 
 const ROOT = path.resolve(__dirname, "..");
 const SHOTS = path.join(ROOT, "docs/screens");
 const SIZE = { width: 1280, height: 800 };
+/** The hero is composed in CSS pixels and rendered at this density; the shots of the note are at the same one. */
+const SCALE = 2;
 
 const PROMPT =
     "Make me a dashboard for my running in a new note called Running: weekly distance as bars " +
@@ -33,6 +36,8 @@ const THEMES = {
 function html(theme, shot) {
     const c = THEMES[theme];
     const data = "data:image/png;base64," + fs.readFileSync(shot).toString("base64");
+    // The still is SCALE times its CSS size: laid out at its pixel size it would fill the frame where a 1x one sat in it.
+    const width = pngSize(shot).width / SCALE;
     return `<!doctype html><meta charset="utf-8"><style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -54,7 +59,7 @@ function html(theme, shot) {
         .then { margin-top: 22px; font-size: 16px; line-height: 1.5; color: ${c.muted}; }
         .note { flex: 1; min-width: 0; display: flex; justify-content: center; }
         .note img {
-            max-width: 100%; max-height: ${SIZE.height - 96}px; display: block;
+            width: ${width}px; max-width: 100%; max-height: ${SIZE.height - 96}px; display: block;
             border-radius: 12px; border: 1px solid ${c.border};
             box-shadow: 0 24px 60px rgba(0, 0, 0, ${theme === "dark" ? ".5" : ".12"});
         }
@@ -89,7 +94,7 @@ async function launch() {
     const browser = await launch();
     for (const theme of ["light", "dark"]) {
         const shot = path.join(SHOTS, `agent-note-${theme}.png`);
-        const page = await browser.newPage({ viewport: SIZE, deviceScaleFactor: 1 });
+        const page = await browser.newPage({ viewport: SIZE, deviceScaleFactor: SCALE });
         await page.setContent(html(theme, shot));
         const out = path.join(SHOTS, `agent-hero-${theme}.png`);
         await page.screenshot({ path: out });

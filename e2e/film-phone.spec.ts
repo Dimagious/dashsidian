@@ -1,4 +1,5 @@
 import { test, expect, onlyWhen } from "./demo-fixtures";
+import { DEMO_NOW } from "./demo-day";
 import { dayCell, openPhoneNote, tapDay } from "./phone-note";
 
 /**
@@ -20,6 +21,8 @@ test.setTimeout(180_000);
 
 for (const [name, mode] of [["film-phone", "light"], ["film-phone-dark", "dark"]] as const) {
     test(`phone, ${mode}`, async ({ win, obsidian, demo }) => {
+        // The day the demo vault ends on; mobile() reloads the window, which draws the blocks on it.
+        await demo.freezeTime(DEMO_NOW);
         await obsidian.mobile({ width: WIDTH, height: HEIGHT });
         await obsidian.setTheme({ mode });
         await openPhoneNote(obsidian);

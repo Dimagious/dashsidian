@@ -1,5 +1,6 @@
 import { createObsidianTest } from "obsidian-plugin-dev-kit/e2e";
 import type { App } from "obsidian";
+import { DEMO_NOW } from "./demo-day";
 import { dayCell, openPhoneNote, tapDay } from "./phone-note";
 
 /**
@@ -24,6 +25,8 @@ onlyWhen("LISTING");
 test.setTimeout(180_000);
 
 test("mobile pictures", async ({ win, obsidian, demo }) => {
+    // The day the demo vault ends on; mobile() reloads the window, which draws the blocks on it.
+    await demo.freezeTime(DEMO_NOW);
     await obsidian.mobile({ width: WIDTH, height: HEIGHT + TOP });
     await obsidian.setTheme({ mode: "dark" });
     await obsidian.waitForMetadataCache();
