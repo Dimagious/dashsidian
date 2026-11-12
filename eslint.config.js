@@ -24,4 +24,12 @@ export default [
       'src/test/**',
     ],
   }),
+  {
+    files: ['**/*.ts'],
+    rules: {
+      // The preset leaves this off in favour of obsidianmd/no-nodejs-modules,
+      // which only warns. The plugin runs on phones: no `require` belongs in it.
+      '@typescript-eslint/no-require-imports': 'error',
+    },
+  },
 ];
