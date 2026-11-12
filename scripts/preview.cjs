@@ -13,12 +13,19 @@
 const esbuild = require("esbuild");
 const fs = require("fs");
 const path = require("path");
-const { spawn } = require("child_process");
-const { buildCSS } = require("./build-css.cjs");
+const { execFileSync, spawn } = require("child_process");
 
 const root = path.resolve(__dirname, "..");
 const out = path.join(root, ".preview");
 const watch = process.argv.includes("--watch");
+
+/** The stylesheet comes from the kit's CSS step, the one `opdk build` runs. A failure stops the stand. */
+function buildCSS() {
+    execFileSync(process.execPath, [path.join(root, "node_modules", "obsidian-plugin-dev-kit", "bin", "opdk.js"), "build-css"], {
+        cwd: root,
+        stdio: "inherit",
+    });
+}
 
 async function build() {
     // The stylesheet that ships, not a copy of it.
@@ -46,7 +53,12 @@ async function build() {
     const ctx = await esbuild.context(options);
     await ctx.watch();
     fs.watch(path.join(root, "src/styles"), { recursive: true }, () => {
-        buildCSS();
+        // A broken @import is the kit's error, already printed; keep watching so the next save recovers.
+        try {
+            buildCSS();
+        } catch {
+            return;
+        }
         fs.copyFileSync(path.join(root, "styles.css"), path.join(out, "styles.css"));
     });
     return ctx;
