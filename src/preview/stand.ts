@@ -7,10 +7,11 @@
  * those would hide the one class of bug it exists to catch.
  */
 
-// The same shim the unit tests install: Obsidian puts these helpers on
-// HTMLElement.prototype and every block is written against them. Two copies of
-// it would drift, and the stand has to run the code that ships.
-import "../test/setup-dom";
+// The kit's Obsidian DOM helpers, the same ones the unit tests install:
+// Obsidian puts them on HTMLElement.prototype and every block is written
+// against them. Two copies would drift, and the stand has to run the code that
+// ships.
+import "obsidian-plugin-dev-kit/vitest/dom/setup";
 
 import { setLocale, AVAILABLE_LOCALES } from "../i18n";
 import { CASES } from "./cases";
