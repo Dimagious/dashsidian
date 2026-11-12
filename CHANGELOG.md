@@ -36,9 +36,10 @@ export.
   `--max-warnings=0`.** The scan runs the community scanner's own ESLint
   configuration, a CSS check and the source and manifest checks over the files
   git tracks, `site/` and `design/` included, as the old script did: 0
-  findings in 424 tracked files. The old script's own bare `window.*` source
-  check is gone on purpose: the kit's scanner rules cover those cases through
-  the upstream ESLint rules, and nothing replaces it one for one. It also reads `src/preview/`, which the old
+  findings in 424 tracked files. The old script's own check for bare `window.*`
+  members (other than timers) is gone, and nothing replaces it yet: the
+  upstream rules flag only timers and `document`. Dashy has no such use today
+  (`window.open` in settings was allowed by the old check too). It also reads `src/preview/`, which the old
   source checks skipped. `eslint.config.js` is `obsidianPlugin()` from the kit
   with Dashy's ignores (`.preview`, `.capture`, `site`, `_site`, `src/test`);
   `eslint-plugin-obsidianmd`, `typescript-eslint`, `@eslint/js`, `postcss`

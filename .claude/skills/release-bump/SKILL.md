@@ -13,7 +13,8 @@ tags `X.Y.Z` (annotated, bare, no `v`), pushes the tag, waits for
 kit's reusable workflow: build, attestation, a draft release), verifies the
 draft against a local build of the tag, publishes it and only then pushes
 `master`. Its flags, stops and how to resume:
-https://github.com/Dimagious/obsidian-plugin-dev-kit/blob/main/docs/release.md
+https://github.com/Dimagious/obsidian-plugin-dev-kit/blob/v0.1.0/docs/release.md
+(the docs of the pinned kit; move the tag here when the kit pin moves)
 
 The repository is `dashsidian`, the plugin is Dashy, the long-lived branch is
 `master`.
