@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Locator, Page } from "@playwright/test";
-import type { ObsidianHelpers } from "obsidian-plugin-dev-kit/e2e";
+import type { DemoHelpers, ObsidianHelpers } from "obsidian-plugin-dev-kit/e2e";
 import type { App } from "obsidian";
 import { test, expect, onlyWhen, READING_VIEW } from "./demo-fixtures";
 
@@ -78,8 +78,7 @@ for (const theme of ["obsidian", "moonstone"] as const) {
         ];
         for (const [name, selector] of parts) {
             const block = view.locator(selector).first();
-            await block.scrollIntoViewIfNeeded();
-            await demo.still(`${name}-${suffix}`, { clip: block, ...STILL });
+            await stillOf(obsidian, demo, `${name}-${suffix}`, block);
         }
 
         // The habit tracker is two blocks read as one picture: the gym cards
@@ -112,6 +111,16 @@ async function openNote(win: Page, obsidian: ObsidianHelpers, file: string, read
     await expect(view.locator(".dashy-diag-warning, .dashy-diag-error")).toHaveCount(0);
 }
 
+/**
+ * One element as a still. The clip has to lie inside the window, so the element is brought to the middle of the
+ * note pane first (Playwright's own element screenshot scrolled it into view and took what stuck out).
+ */
+async function stillOf(obsidian: ObsidianHelpers, demo: DemoHelpers, name: string, block: Locator): Promise<void> {
+    await block.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await obsidian.settle();
+    await demo.still(name, { clip: block, ...STILL });
+}
+
 /** The union of two boxes, the way the habit tracker shot is clipped. */
 async function union(first: Locator, last: Locator): Promise<Box> {
     const top = await first.boundingBox();
@@ -140,8 +149,7 @@ for (const theme of ["obsidian", "moonstone"] as const) {
             ["streak", view.locator(".dashy-stats").first()],
         ];
         for (const [name, block] of crops) {
-            await block.scrollIntoViewIfNeeded();
-            await demo.still(`${name}-${suffix}`, { clip: block, ...STILL });
+            await stillOf(obsidian, demo, `${name}-${suffix}`, block);
         }
 
         await openNote(win, obsidian, "Sleep.md", ".dashy-hm-cell");
@@ -160,8 +168,7 @@ for (const theme of ["obsidian", "moonstone"] as const) {
 
         await openNote(win, obsidian, "Layers.md", ".dashy-hm-cell");
         const layers = view.locator(".block-language-heatmap").first().locator(".dashy-hm-wrap").first();
-        await layers.scrollIntoViewIfNeeded();
-        await demo.still(`heatmap-layers-${suffix}`, { clip: layers, ...STILL });
+        await stillOf(obsidian, demo, `heatmap-layers-${suffix}`, layers);
 
         // Back where `setUp` expects to find the next test.
         await openNote(win, obsidian, "Dashboard.md", ".dashy-hm-cell");
@@ -216,8 +223,7 @@ for (const theme of ["obsidian", "moonstone"] as const) {
         const view = win.locator(READING_VIEW);
         await openNote(win, obsidian, "Habit calendar.md", ".dashy-hm-cal");
         const month = view.locator(".block-language-heatmap").first().locator(".dashy-hm-calendar").first();
-        await month.scrollIntoViewIfNeeded();
-        await demo.still(`habit-calendar-${suffix}`, { clip: month, ...STILL });
+        await stillOf(obsidian, demo, `habit-calendar-${suffix}`, month);
 
         // Back where `setUp` expects to find the next test.
         await openNote(win, obsidian, "Dashboard.md", ".dashy-hm-cell");
@@ -406,7 +412,8 @@ test("reel: the dashboard follows the theme", async ({ win, obsidian, demo }) =>
     const view = win.locator(READING_VIEW);
     const region = view.locator(".dashy-stats").first();
 
-    await region.scrollIntoViewIfNeeded();
+    await region.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await obsidian.settle();
     const film = demo.film({ name: "theme-follow", kind: "desktop", clip: region, cursor: false });
     for (const theme of ["obsidian", "moonstone", "obsidian"] as const) {
         await obsidian.setTheme({ mode: MODE[theme] });
