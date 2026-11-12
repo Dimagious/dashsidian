@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import type { App } from "obsidian";
 import { DashySettingTab } from "./settings";
 import { DEFAULT_SETTINGS, type DashySettings } from "../types";
+import { stampPluginVersion } from "../skill/stamp";
 import type DashyPlugin from "../app/plugin";
 import {
     SKILL_DIR,
@@ -25,6 +26,7 @@ import {
  */
 function fakePlugin(settings: DashySettings): DashyPlugin {
     return {
+        manifest: { version: "7.8.9" },
         settings,
         saveSettings: vi.fn(async () => undefined),
     } as unknown as DashyPlugin;
@@ -100,8 +102,8 @@ describe("DashySettingTab: installing the skill (B-164)", () => {
         expect(adapter.mkdir).toHaveBeenCalledWith(SKILL_DIR);
         // The reference first: SKILL.md never points at a file not written yet.
         expect(adapter.writes).toEqual([REFERENCE_PATH, SKILL_PATH]);
-        expect(adapter.files.get(SKILL_PATH)).toBe(SKILL_MARKDOWN);
-        expect(adapter.files.get(REFERENCE_PATH)).toBe(REFERENCE_MARKDOWN);
+        expect(adapter.files.get(SKILL_PATH)).toBe(stampPluginVersion(SKILL_MARKDOWN, "7.8.9"));
+        expect(adapter.files.get(REFERENCE_PATH)).toBe(stampPluginVersion(REFERENCE_MARKDOWN, "7.8.9"));
         expect(plugin.settings.installedSkillVersion).toBe(SKILL_VERSION);
         expect(plugin.saveSettings).toHaveBeenCalledOnce();
     });
@@ -112,8 +114,8 @@ describe("DashySettingTab: installing the skill (B-164)", () => {
         await tabWith(adapter, plugin)["installSkill"]();
 
         expect(adapter.mkdir).not.toHaveBeenCalled();
-        expect(adapter.files.get(SKILL_PATH)).toBe(SKILL_MARKDOWN);
-        expect(adapter.files.get(REFERENCE_PATH)).toBe(REFERENCE_MARKDOWN);
+        expect(adapter.files.get(SKILL_PATH)).toBe(stampPluginVersion(SKILL_MARKDOWN, "7.8.9"));
+        expect(adapter.files.get(REFERENCE_PATH)).toBe(stampPluginVersion(REFERENCE_MARKDOWN, "7.8.9"));
         expect(plugin.settings.installedSkillVersion).toBe(SKILL_VERSION);
     });
 
