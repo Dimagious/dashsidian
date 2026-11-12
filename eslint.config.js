@@ -18,10 +18,13 @@ export default [
       // timers) have no meaning there, and none of it ships in main.js.
       'site/**',
       '_site/**',
-      // Test scaffolding: the fake Obsidian, the DOM shim, the fake vault.
-      // None of it is bundled, and the preset forbids silencing its DOM rules
-      // per line, rightly, since in plugin code they are never negotiable.
-      'src/test/**',
+      // The fake Obsidian. It is not bundled, and it re-exports `moment` from
+      // the package on purpose, the one import the plugin preset forbids
+      // (the real app hands plugins its own). The fake vault next to it
+      // (src/test/vault.ts) is linted like plugin code. Unit tests
+      // (`src/**/*.test.ts`, the tests of the site and README scripts in
+      // src/test among them) are left out by the preset itself.
+      'src/test/stubs/**',
     ],
   }),
   {
