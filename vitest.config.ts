@@ -29,8 +29,8 @@ export default defineUnitConfig({
             "scripts/**",
             "src/main.ts",
             "src/types.ts",
-            // Generated file, no code of its own.
-            "src/skill/**",
+            // Generated file, no code of its own (stamp.ts next to it is covered).
+            "src/skill/skill-content.ts",
             // Registration only: onload wiring that a mount test cannot
             // observe without launching Obsidian. The E2E suite covers it.
             "src/app/plugin.ts",

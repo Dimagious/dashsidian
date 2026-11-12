@@ -36,7 +36,7 @@ export.
   `--max-warnings=0`.** The scan runs the community scanner's own ESLint
   configuration, a CSS check and the source and manifest checks over the files
   git tracks, `site/` and `design/` included, as the old script did: 0
-  findings in 422 tracked files. The old script's own bare `window.*` source
+  findings in 424 tracked files. The old script's own bare `window.*` source
   check is gone on purpose: the kit's scanner rules cover those cases through
   the upstream ESLint rules, and nothing replaces it one for one. It also reads `src/preview/`, which the old
   source checks skipped. `eslint.config.js` is `obsidianPlugin()` from the kit
@@ -50,8 +50,8 @@ export.
 - **Unit tests run in jsdom only where they need a DOM.** `vitest.config.ts`
   is `defineUnitConfig()`: 32 test files run in jsdom with the kit's Obsidian
   DOM helpers (20 under `src/blocks`, `src/ui` and `src/preview`, and twelve
-  single files that fail without a DOM), the other 53 run in node (every file
-  started jsdom before). Same 85 files and 3271 tests, same coverage (99.13
+  single files that fail without a DOM), the other 54 run in node (every file
+  started jsdom before). The same 3271 tests as before plus four for the version stamp (86 files, 3275 tests), same coverage (99.13
   percent statements, 99.69 lines, 96.32 branches), same 90/80 gate and reports; the run takes
   about 14 s where it took 26 s. `vite` is a devDependency now.
 - **The e2e harness is the kit's.** `e2e/fixtures.ts` is one
