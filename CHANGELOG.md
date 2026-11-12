@@ -13,6 +13,21 @@ export.
 
 ### Changed
 
+- **The e2e suite launches Obsidian less often and measures the heatmap one way.**
+  The 16 read-only tests of `e2e/blocks.spec.ts` are three tests with the old
+  names as `test.step`s (blocks render, broken config is reported, stylesheet
+  is applied), so a run starts Obsidian 3 times for that file instead of 16.
+  Every assertion is kept and a failure still names its step; a failing step
+  stops the steps after it in its group. The "painted heatmap cells" count,
+  written six times in `blocks`, `checkboxes` and `dated-names`, is one
+  `paintedCells`/`expectPainted` pair in `e2e/fixtures.ts` that always polls:
+  one read in `checkboxes.spec.ts` took the count once, right after a stat
+  changed, and relied on the heatmap redrawing in the same pass.
+- **`npm run firstrun` no longer writes into the tracked `docs/screens/firstrun/`.**
+  Its measurement shots go to `test-results/firstrun/` (gitignored), so a run
+  does not dirty the working tree with screenshots at the display's density.
+  The committed pictures stay as they are (the site publishes `1-picker.png`);
+  retaking them is a separate item.
 - **Build, scanner, e2e, films and release come from [obsidian-plugin-dev-kit](https://github.com/Dimagious/obsidian-plugin-dev-kit) 0.1.0.**
   The `opdk` command is installed from the kit's `v0.1.0` tag, and Dashy's own
   settings are in `opdk.config.mjs`. The scripts and the harness it replaces

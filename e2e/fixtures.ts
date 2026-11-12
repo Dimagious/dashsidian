@@ -1,5 +1,5 @@
 import { createObsidianTest, type ObsidianHelpers } from "obsidian-plugin-dev-kit/e2e";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import type { App } from "obsidian";
 
 /**
@@ -49,3 +49,16 @@ export async function styleOf(win: Page, selector: string, property: string): Pr
         [`${READING_VIEW} ${selector}`, property],
     );
 }
+
+/** How many heatmap cells under `scope` carry a colour right now; an unpainted cell has no inline background. */
+export const paintedCells = (scope: Locator): Promise<number> =>
+    scope.locator(".dashy-hm-cell").evaluateAll(
+        (cells) => cells.filter((c) => (c as HTMLElement).style.backgroundColor !== "").length,
+    );
+
+/**
+ * Waits for the painted-cell count to reach `expected`. Always a poll: the heatmap redraws on its own pass, so a
+ * single read right after a stat changed can see the old grid.
+ */
+export const expectPainted = (scope: Locator, expected: number, options?: { timeout?: number }): Promise<void> =>
+    expect.poll(() => paintedCells(scope), options).toBe(expected);
