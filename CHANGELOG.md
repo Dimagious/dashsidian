@@ -56,7 +56,7 @@ export.
   upstream rules flag only timers and `document`. Dashy has no such use today
   (`window.open` in settings was allowed by the old check too). It also reads `src/preview/`, which the old
   source checks skipped. `eslint.config.js` is `obsidianPlugin()` from the kit
-  with Dashy's ignores (`.preview`, `.capture`, `site`, `_site`, `src/test`);
+  with Dashy's ignores (`.preview`, `.capture`, `site`, `_site`, `src/test/stubs`);
   `eslint-plugin-obsidianmd`, `typescript-eslint`, `@eslint/js`, `postcss`
   and `doiuse` are no longer devDependencies, the kit pins them.
   `package.json` overrides `eslint` to the root one, because npm nests an
@@ -70,6 +70,24 @@ export.
   started jsdom before). The same 3271 tests as before plus four for the version stamp (86 files, 3275 tests), same coverage (99.13
   percent statements, 99.69 lines, 96.32 branches), same 90/80 gate and reports; the run takes
   about 14 s where it took 26 s. `vite` is a devDependency now.
+- **More of the plugin is under the unit gate, and the tests are type-checked.**
+  `src/app/plugin.ts` (the `onload` wiring: commands, fences, the vault
+  watcher, the day-rollover timer, `onunload`) has a test on
+  obsidian-test-mocks 8.0.0, and `src/ui/insert-block.ts` is counted now; only
+  `src/ui/settings.ts` stays out of the gate, as its declarative setting rows
+  cannot be rendered by the mocks. The tests with a DOM run on
+  obsidian-test-mocks (a new devDependency, pinned exactly, major updates
+  ignored by Dependabot), the node ones keep `src/test/stubs/obsidian.ts`.
+  `npm run typecheck` also checks the test files, with `tsconfig.test.json`
+  (ES2022 library, because the tests use `Array#at` and `replaceAll`; the plugin
+  code stays on ES2020): 17 type errors in 8 test files are fixed. The unit
+  config sets `isolate: false`, so test files share a worker: 3300 tests (25
+  more) in about 8 s where the run took about 21 s, same gate (statements 99.09
+  percent, branches 96.33, functions 98.72, lines 99.65). The suite passes five
+  times in a row under `--sequence.shuffle`. The `coverage` script is gone (it
+  was `npm test`, which already writes `coverage/index.html`), and the lint
+  ignore for `src/test` is narrowed to `src/test/stubs`, so the fake vault is
+  linted.
 - **The e2e harness is the kit's.** `e2e/fixtures.ts` is one
   `createObsidianTest` call and `playwright.config.ts` is
   `defineObsidianConfig()`. Each test still has its own Obsidian process, vault

@@ -301,9 +301,9 @@ Backlog: B-003
 
 | | |
 |---|---|
-| `npm test` | vitest + гейты покрытия (90/80) |
+| `npm test` | vitest + гейты покрытия (90/80); заодно пишет HTML-отчёт `coverage/index.html` и `lcov` (отдельного `coverage` нет). Тесты с DOM идут на `obsidian-test-mocks` (точная версия), без DOM на `src/test/stubs/obsidian.ts`. `isolate: false`: файлы делят воркер, так что после нового кеша на уровне модуля прогнать `npx vitest run --sequence.shuffle` |
 | `npm run lint` | eslint с пресетом ядра (`obsidianPlugin()`) и `--max-warnings=0` |
-| `npm run typecheck` | tsc --noEmit |
+| `npm run typecheck` | tsc --noEmit трижды: плагин (`tsconfig.json`, ES2020), тесты (`tsconfig.test.json`, ES2022: `at`, `replaceAll`) и `e2e/` |
 | `npm run build` | `opdk build`: styles.css + main.js + проверка, что в бандле нет кода только для Node |
 | `npm run build:skill` | пересобрать скилл из схемы |
 | `npm run build:reference` | пересобрать справочник блоков на сайте |

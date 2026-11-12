@@ -19,7 +19,6 @@
     "preview": "node scripts/preview.cjs",
     "preview:watch": "node scripts/preview.cjs --watch",
     "test": "vitest run --coverage",
-    "coverage": "vitest run --coverage",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit && tsc -p e2e/tsconfig.json --noEmit",
