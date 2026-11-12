@@ -104,6 +104,7 @@ describe("catalogs", () => {
     // an error message that switches to English mid-dashboard reads as a bug.
     it.each(["ru", "de", "fr", "es"])("%s is complete, every English key is translated", (code) => {
         const catalog = CATALOGS[code];
+        if (!catalog) throw new Error(`no catalog for ${code}`);
         const missing = (Object.keys(en) as MessageKey[]).filter((k) => catalog[k] === undefined);
         expect(missing).toEqual([]);
     });

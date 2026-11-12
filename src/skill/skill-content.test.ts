@@ -14,6 +14,15 @@ import schema from "../blocks/schema.json";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+type KeyDocs = Record<string, { required?: boolean }>;
+
+/** One key of a block's `root` or `item` table in the schema; fails the test when the key is gone, rather than reading `undefined`. */
+function keyDoc(table: KeyDocs, key: string): { required?: boolean } {
+    const doc = table[key];
+    if (!doc) throw new Error(`the schema has no key "${key}"`);
+    return doc;
+}
+
 /**
  * Pins the facts a live test with AI agents (B-105..B-110) found agents
  * getting wrong from the generated skill text. `REFERENCE_MARKDOWN` (the
@@ -74,17 +83,17 @@ describe("the generated skill corrects what agents got wrong", () => {
         expect(REFERENCE_MARKDOWN).toContain("A birthday or an anniversary repeats with `repeat: yearly`");
         // `date` gave way to `field` as an alternative, the way heatmap's `field` did to `layers`.
         const countdown = schema.blocks.countdown as { item: Record<string, { required?: boolean }> };
-        expect(countdown.item.date.required).toBeUndefined();
+        expect(keyDoc(countdown.item, "date").required).toBeUndefined();
         expect(REFERENCE_MARKDOWN).toContain("Required unless `field` is set, and not allowed together with it");
     });
 
     it("heatmap field is not marked required, since layers replaces it (B-124)", () => {
         const heatmap = schema.blocks.heatmap as { root: Record<string, { required?: boolean }> };
-        expect(heatmap.root.field.required).toBeUndefined();
+        expect(keyDoc(heatmap.root, "field").required).toBeUndefined();
         expect(REFERENCE_MARKDOWN).toContain("required unless `layers` is set, and not allowed together with it");
         // The layer's own `field` stays required: a layer without one paints nothing.
         const item = schema.blocks.heatmap as { item: Record<string, { required?: boolean }> };
-        expect(item.item.field.required).toBe(true);
+        expect(keyDoc(item.item, "field").required).toBe(true);
     });
 
     it("no example labels a streak card as a running count, and none leaks a unit onto it", () => {
@@ -142,7 +151,7 @@ describe("the generated skill corrects what agents got wrong", () => {
     it("chart: the facts ADR 0005 says an agent gets wrong", () => {
         const chart = schema.blocks.chart as { root: Record<string, { required?: boolean }>; hints: Record<string, string> };
         // `field` is optional at the root: `series` or `agg: count` replace it.
-        expect(chart.root.field.required).toBeUndefined();
+        expect(keyDoc(chart.root, "field").required).toBeUndefined();
         expect(REFERENCE_MARKDOWN).toContain("A list in the block's own `field` is an error rather than a guess");
         expect(REFERENCE_MARKDOWN).toContain("A bucket with no data is a gap in the line and no bar, never a zero");
         expect(REFERENCE_MARKDOWN).toContain("`avg` is over values, not days");
@@ -311,10 +320,10 @@ describe("the reference prints a key doc shared by several blocks once (B-177)",
     });
 
     it("loses no sentence of any key doc in the schema", () => {
-        const blocks = schema.blocks as Record<string, Record<string, Record<string, { doc: string }> | undefined>>;
-        for (const [name, block] of Object.entries(blocks)) {
-            for (const level of ["root", "item"]) {
-                for (const [key, f] of Object.entries(block[level] ?? {})) {
+        for (const [name, block] of Object.entries(schema.blocks)) {
+            const tables = { root: block.root, item: "item" in block ? block.item : undefined };
+            for (const [level, table] of Object.entries(tables)) {
+                for (const [key, f] of Object.entries(table ?? {})) {
                     for (const sentence of sentences(f.doc)) {
                         expect(REFERENCE_MARKDOWN, `${name} ${level} ${key}: ${sentence}`).toContain(cell(sentence));
                     }

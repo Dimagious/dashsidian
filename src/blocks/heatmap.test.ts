@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { Platform } from "obsidian";
 import { renderHeatmap } from "./heatmap";
 import { formatValue } from "../core/stat";
-import { mockContext, diary, host, texts, nodes, diagnostics } from "../test/vault";
+import { mockContext, diary, host, texts, nodes, diagnostics, type FakeNote } from "../test/vault";
 import { DEFAULT_SETTINGS } from "../types";
 import { setDateLocale, formatDayMedium } from "../adapters/datetime";
 import { parseDateKey } from "../core/calendar";
@@ -2826,7 +2826,7 @@ describe("heatmap — durations", () => {
     // B-145: race times written to the second read as a clock in tooltips
     // and the average; the legend's round thresholds keep hours and minutes.
     describe("race times as a clock (B-145)", () => {
-        const races = [
+        const races: FakeNote[] = [
             { path: "Races/2026-09-20.md", frontmatter: { time: "2:16:32", sleep: "7h 30m" } },
             { path: "Races/2026-09-22.md", frontmatter: { time: "5h 2m 17s", sleep: "8h" } },
             { path: "Races/2026-09-24.md", frontmatter: { time: "0:18:51", sleep: "7h" } },

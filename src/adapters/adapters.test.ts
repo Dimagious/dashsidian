@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { Platform, type App } from "obsidian";
+import { Platform, type App, type TFile } from "obsidian";
 import { snapshot, noteExists, VaultSnapshot, pathKind, revealFolder, notesPending, whenIndexed } from "./vault";
 import { discoverPeriodics, dailyNoteFormat, noteDateFormats, periodNameFormats, periodContext } from "./periodic";
 import {
@@ -646,7 +646,8 @@ describe("VaultSnapshot", () => {
     it("walks again once invalidated, and sees what changed", () => {
         const app = mockApp({ notes: [{ path: "a.md" }] });
         const files = [{ path: "a.md", basename: "a", parent: { path: "" }, note: { path: "a.md" } }];
-        app.vault.getMarkdownFiles = (() => files) as typeof app.vault.getMarkdownFiles;
+        // Only the fields `toRecord` reads; the rest of TFile is not needed to count snapshots.
+        app.vault.getMarkdownFiles = () => files as unknown as TFile[];
         const cache = new VaultSnapshot(app);
 
         expect(cache.get()).toHaveLength(1);
