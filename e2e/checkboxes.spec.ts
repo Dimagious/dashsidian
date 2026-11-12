@@ -18,10 +18,10 @@ test.describe("checkbox properties feed the aggregates", () => {
         await expect(values.nth(1)).toHaveText("5"); // longest run: 2026-01-02..06
         await expect(values.nth(2)).toHaveText("0.7"); // share of ticked days: 7 of 10
 
-        const painted = await view.locator(".dashy-hm-cell").evaluateAll(
+        const painted = (): Promise<number> => view.locator(".dashy-hm-cell").evaluateAll(
             (cells) => cells.filter((c) => (c as HTMLElement).style.backgroundColor !== "").length,
         );
-        expect(painted).toBe(7);
+        await expect.poll(painted).toBe(7);
 
         // A false day is present data, not missing data: it reads as "no data"
         // on the cell, same as a day nothing ever set. The tooltip's date is
