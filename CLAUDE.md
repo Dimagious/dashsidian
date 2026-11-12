@@ -21,6 +21,7 @@
 - Автор: Dmitriy Yurkin (`Dimagious`), MIT, Obsidian ≥ 1.13.0, `isDesktopOnly: false`
 - Полное ТЗ: `docs/SPEC.md`
 - Второй плагин автора; харнесс перенесён из [`Dimagious/snipsidian`](https://github.com/Dimagious/snipsidian)
+- Сборка, сканер, юнит-конфиг, e2e, ролики и релиз — у [`Dimagious/obsidian-plugin-dev-kit`](https://github.com/Dimagious/obsidian-plugin-dev-kit) (`opdk`, тег пинится в `package.json`); свои настройки — в `opdk.config.mjs`
 
 ## Имя ≠ id, и это не случайность
 
@@ -196,9 +197,9 @@ ui/b-004-periodic-folder-settings
 - **Всё — только через PR.** В `master` не коммитим и локально в него не
   мержим, даже `--ff-only`. Готово и зелено — пуш ветки и
   `gh pr create --base master`. Мерж PR решает автор.
-- **Исключение — релиз.** Коммит `chore(release): X.Y.Z` и тег идут прямо
-  в `master` после влитого PR, как описано в `/release-bump`: правило про PR
-  касается рабочих веток, а не бампа версии.
+- **Исключение — релиз.** Коммит `chore(release): X.Y.Z` и тег делает
+  `npx opdk release` (см. `/release-bump`) прямо в `master` после влитого PR:
+  правило про PR касается рабочих веток, а не бампа версии.
 - Сопутствующая работа (правка агентов, этого файла) может ехать в том же
   PR, если так решили; тогда в описании PR перечисляются все пункты бэклога.
 - **Релиз одним PR** (решение автора, 2.2.0). Пункты релиза делаются
@@ -258,8 +259,8 @@ Backlog: B-003
 
 ## Каждый релиз: пересмотр скиллов и агентов
 
-**Обязательно в каждом релизе.** В строке релиза в бэклоге есть пункт
-«пересмотр инструкций», без него `/release-bump` тег не ставит. Фичи выходят,
+**Привычка, не гейт.** В строке релиза в бэклоге есть пункт «пересмотр
+инструкций»; `/release-bump` его не проверяет, держит его автор. Фичи выходят,
 а инструкции отстают: валидатор forum-helper не знал наследования ключей
 с корня блока из B-131 (B-158).
 
@@ -278,6 +279,19 @@ Backlog: B-003
 
 Итог — правка или строка в PR «пересмотрено, менять нечего» по каждому из четырёх.
 
+## Релиз: что решает автор
+
+Релиз делает `npx opdk release X.Y.Z` (или `patch`, `minor`, `major`; сначала
+`--dry-run`): версии, `chore(release)`, аннотированный тег, workflow ядра,
+публикация. Номер выбирает автор по MAJOR-правилам из начала `CHANGELOG.md`.
+Версия схемы (`version` в `src/blocks/schema.json`) — своё число: по ней
+настройки сравнивают установленный скилл. Новый ключ, значение, поведение или
+процесс скилла — минорная цифра, правка формулировок — патч; без подъёма
+установленный скилл ничего не узнает. Заголовки сгенерированных файлов
+называют версию плагина, а коммит `opdk release` трогает только файлы версий:
+после релиза `npm run build:skill && npm run build:reference` и коммит через
+PR, иначе `build:skill -- --check` в CI краснеет.
+
 ## Команды
 
 | | |
@@ -291,10 +305,12 @@ Backlog: B-003
 | `npm run scorecard:check` | `opdk scan`: зеркало сканера community-plugins, его ESLint-конфиг по всем файлам в git (с `site/` и `design/`) и CSS через doiuse под Chromium Obsidian |
 | `npm run preview` | стенд состояний блоков в браузере, в `.preview/` |
 | `npm run site:check` / `readme:check` | ссылки, якоря и тире на сайте и в README |
-| `npm run release` | полный гейт + zip |
+| `npm run release:check` | `opdk release check` (версии, `versions.json`, манифест, CHANGELOG, сборка, воспроизводимость) и затем сканер, lint, typecheck, тесты |
+| `npx opdk release X.Y.Z` | сам релиз: версии, коммит, тег, workflow ядра, публикация; сначала `--dry-run`. Zip больше нет |
 | `npm run dev:vault` | `opdk build --vault --watch`: сборка в тестовое хранилище (`VAULT_PLUGIN` или `--vault <папка>`) |
-| `npm run e2e` | спеки против настоящего Obsidian; в CI не гоняется |
-| `npm run capture` | скриншоты для README и сайта, включая agent-hero; запускать только по слову автора |
+| `npm run e2e` | собирает плагин и гонит спеки против настоящего Obsidian (через ядро); в CI не гоняется. `firstrun`, `film-phone`, `capture`, `listing-mobile` включаются переменными `FIRSTRUN`, `FILM`, `CAPTURE`, `LISTING` (ровно `1`) |
+| `npm run capture` | скриншоты и ролики для README и сайта: спек `capture`, затем `opdk demo` (настройки в `opdk.config.mjs`), затем agent-hero; запускать только по слову автора |
+| `npm run film:phone` | ролик с телефоном (светлый и тёмный: MP4, GIF, постер) через `opdk demo`; только по слову автора |
 
 ## Ссылки
 

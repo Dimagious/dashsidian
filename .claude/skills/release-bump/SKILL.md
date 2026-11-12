@@ -1,261 +1,51 @@
 ---
 name: release-bump
-description: Cut a new release of Dashy (dashsidian) end-to-end. Triggered when the user says "релизим", "выкатываем версию", "поднять версию", "bump version", "release bump", or right before tagging a new version. Reads conventional commits since the last tag, applies the plugin-level MAJOR rules (a settings key removed or renamed, a block key removed or renamed, a raised minAppVersion, a removed public export), bumps `package.json` and propagates it with `scripts/version-sync.cjs` to `manifest.json` and `versions.json`, promotes `[Unreleased]` in `CHANGELOG.md`, commits as `chore(release): X.Y.Z`, tags as `X.Y.Z` (no `v` prefix — matches `.github/workflows/release.yml` pattern `'*.*.*'`), and pushes to trigger the release workflow.
+description: Cut a new release of Dashy (dashsidian). Triggered when the user says "релизим", "выкатываем версию", "поднять версию", "bump version", "release bump", or right before tagging a new version. Checks that master is green and `[Unreleased]` in `CHANGELOG.md` has entries, then runs `npx opdk release X.Y.Z` (or `patch`, `minor`, `major`), which bumps the version everywhere, commits `chore(release): X.Y.Z`, tags it, runs the kit's release workflow and publishes the release.
 ---
 
 # Release bump for Dashy
 
-Cuts a new tagged release of the **dashsidian** repository (the plugin is named
-Dashy; the id and the repository are `dashsidian`, and that mismatch is
-deliberate — see `CLAUDE.md`). Releases are tag-driven: pushing a tag `X.Y.Z`
-triggers [`.github/workflows/release.yml`](../../../.github/workflows/release.yml),
-which builds, attests provenance and creates a GitHub Release with `main.js`,
-`manifest.json` and `styles.css` attached as separate files, the way Obsidian
-requires. This skill owns the version decision **and** the file edits, commit
-and tag that lead up to it.
+Dashy's release is `opdk release` from obsidian-plugin-dev-kit. It bumps
+`package.json`, `package-lock.json`, `manifest.json` and `versions.json`,
+promotes `[Unreleased]` in `CHANGELOG.md`, commits `chore(release): X.Y.Z` and
+tags `X.Y.Z` (annotated, bare, no `v`), pushes the tag, waits for
+[`.github/workflows/release.yml`](../../../.github/workflows/release.yml) (the
+kit's reusable workflow: build, attestation, a draft release), verifies the
+draft against a local build of the tag, publishes it and only then pushes
+`master`. Its flags, stops and how to resume:
+https://github.com/Dimagious/obsidian-plugin-dev-kit/blob/main/docs/release.md
 
-## Mental model
+The repository is `dashsidian`, the plugin is Dashy, the long-lived branch is
+`master`.
 
-- The version is written in **four** places: `package.json`, `manifest.json`,
-  `versions.json` and the tag. `scripts/version-sync.cjs` propagates
-  `package.json` into the first three. `scripts/assert-versions.cjs` checks all
-  four — pass it the tag as an argument, which is what the release workflow
-  does with `github.ref_name`.
-- `versions.json` maps a plugin version to the Obsidian it needs. The catalogue
-  reads it to decide what to serve someone on an older Obsidian. It is the file
-  that rots silently, which is why the sync writes it even when the manifest
-  needed nothing.
-- Tag format is bare `X.Y.Z`, no `v` prefix. The workflow trigger is
-  `tags: ['*.*.*']`. Every tag so far is bare, so there is no prefix legacy to
-  work around.
-- The long-lived branch is **`master`**, not `main`.
-- `CHANGELOG.md` is curated by hand in Keep a Changelog format. `[Unreleased]`
-  is where in-flight items accumulate; this skill promotes it to
-  `[X.Y.Z] - YYYY-MM-DD` and re-opens an empty `[Unreleased]`.
-- The block schema has its own version, `version` in `src/blocks/schema.json`.
-  It is what the settings tab compares with the installed agent skill, by
-  string, so without a bump an installed skill never learns about the change.
-  Policy from 1.8.0 on (1.7.0 was never tagged; its work ships in 1.8.0): a
-  new key or value, or changed behaviour, moves the minor digit; a
-  wording-only change to `doc`, `notes` or `example` moves the patch digit.
-  (1.5.1 and 1.5.2 shipped note edits without a bump and left installed
-  skills stale.) The schema version is its own number, not the plugin's:
-  1.6.0 shipped schema 1.8.0, and plugin 1.8.0, which adds keys and values
-  (`pick`, `layout`, `date_format`, `compare: usual`, `period: note`,
-  `range: note`, literal periods, `from`/`to`), raises it to 1.9.0. Then
-  rebuild with `npm run build:skill` and `npm run build:reference`.
-  The release commit also updates "Состояние" in `CLAUDE.md`.
-- The end-to-end suite never runs in CI: it drives a real Obsidian through a
-  project-local Electron. Before a release, run it locally (`npm run e2e`) — it
-  is the only thing that proves the built bundle works in the app.
+## Before it
 
-Three confirmation gates:
+- `master` is up to date, the tree is clean and CI is green.
+- `[Unreleased]` in `CHANGELOG.md` has the entries of the release, written by
+  hand. If it is empty while commits exist, stop and ask.
+- `npm run release:check` passes (the kit's `opdk release check`, the scanner,
+  lint, typecheck and the unit tests).
+- Instructions review (`CLAUDE.md`, "Каждый релиз"): a manual habit, one line
+  in the release PR. Nothing here checks it.
 
-1. After analysing commits and applying the MAJOR rules → **wait for OK** on
-   the proposed bump.
-2. After staging the file edits → **wait for OK** before commit and tag.
-3. Before `git push --follow-tags` → **wait for OK**; pushing the tag starts
-   the release on the spot.
-
-## What this skill DOES
-
-- ✅ Decide the next version from conventional commits plus the MAJOR rules below
-- ✅ Bump `package.json` and run `scripts/version-sync.cjs` to write
-  `manifest.json` and `versions.json`
-- ✅ Promote `[Unreleased]` to the new version with today's date and re-open it
-- ✅ Create the release commit `chore(release): X.Y.Z` and the annotated tag
-- ✅ Push commit and tag together
-
-## What this skill does NOT do
-
-- ❌ Invent CHANGELOG entries from commit subjects. The section is curated; if
-  it is empty while commits exist, **stop and ask**.
-- ❌ Submit to `obsidianmd/obsidian-releases`. The catalogue entry is a separate
-  pull request against someone else's repository and needs the user's explicit
-  go-ahead.
-- ❌ Cherry-pick, rebase or force-push. If `master` is not what should ship,
-  fix that first.
-- ❌ Re-tag. A tag that already ran the workflow is spent; ship `X.Y.Z+1`.
-
-## Step 1 — Read current state
+## The release
 
 ```bash
-node scripts/assert-versions.cjs          # all four places, minus the tag
-node -p "require('./versions.json')"
-
-LAST_TAG=$(git tag --list '[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1)
-echo "Last tag: ${LAST_TAG:-none yet}"
-
-RANGE=${LAST_TAG:+"$LAST_TAG..HEAD"}
-git log --pretty=format:"%h %s" $RANGE | grep -vE "^[0-9a-f]+ Merge "
-git log --pretty=format:"%h%n%B%n---" $RANGE | grep -E "^BREAKING CHANGE:|!:"
-
-awk '/^## \[Unreleased\]/,/^## \[[0-9]/' CHANGELOG.md
+npx opdk release patch --dry-run   # everything but the commit, the tag and the pushes
+npx opdk release X.Y.Z             # or patch | minor | major
 ```
 
-If `assert-versions.cjs` fails, **stop** and reconcile before bumping.
+The number is the author's call. Waiting for a go before the real run is the
+whole confirmation gate: the tag push starts a release.
 
-If `[Unreleased]` is empty but the range is not, **stop** and ask what belongs
-in it. The one honest exception is the first release, where the section for the
-version may already be written by hand — check before promoting, or you will
-end up with two headings for one version.
+## After it
 
-If the release's "instructions review" backlog item is not `done`, **stop**.
-Every release reviews the user-facing skill (hand-written parts of
-`scripts/build-skill.cjs`), `.claude/agents/`, `.claude/skills/` and
-`CLAUDE.md` against what ships; see CLAUDE.md, "Каждый релиз".
-
-| Conventional type | Default bump | CHANGELOG bucket |
-|---|---|---|
-| `feat:` | MINOR | Added |
-| `fix:`, `perf:` | PATCH | Fixed |
-| `<type>!:` or a `BREAKING CHANGE:` footer | **MAJOR** | Changed (breaking) |
-| `docs:`, `chore:`, `refactor:`, `test:` | hidden | skipped |
-
-## Step 2 — Apply the plugin-level MAJOR rules
-
-Conventional commits do not catch breakage that only hurts someone who already
-has the plugin installed. `CHANGELOG.md` states the contract; this is the same
-list with the place to look.
-
-| Trigger for MAJOR, with or without `!:` | Where to look |
-|---|---|
-| A settings key removed or renamed — an existing `data.json` stops loading or loses a field | `git diff $LAST_TAG..HEAD -- src/types.ts src/ui/settings.ts` |
-| A block key removed or renamed — a dashboard someone already wrote stops rendering | `git diff $LAST_TAG..HEAD -- src/blocks/schema.json` |
-| `minAppVersion` raised in `manifest.json` | `git diff $LAST_TAG..HEAD -- manifest.json` |
-| A public export removed or renamed | `git diff $LAST_TAG..HEAD -- src/types.ts src/main.ts` |
-| A command id removed or renamed — it breaks the user's hotkey | `git diff $LAST_TAG..HEAD -- src/app/plugin.ts`, the `addCommand({ id: ... })` calls (today: `insert-block`) |
-
-Two things that look breaking and are not:
-
-- **A block key gained a synonym.** `KEY_ALIASES` is built from the schema, and
-  old spellings keep working. That is MINOR.
-- **A translation catalogue changed.** A missing key falls back to English by
-  design, so a partial catalogue is not a break.
-
-And one that looks harmless and is not: **raising the block schema version**
-(`src/blocks/schema.json`) is only MINOR while every old config still parses.
-If a key changed meaning rather than being added, it is a break even though
-nothing was removed.
-
-## Step 3 — Propose the bump
-
-```text
-Baseline:          1.0.0 (package, manifest and versions.json agree)
-Last tag:          1.0.0
-Commits since:     2 feat / 4 fix / 17 hidden
-Breaking markers:  none
-[Unreleased]:      non-empty (6 entries)
-
-MAJOR review:
-  • Settings key removed/renamed:  NO
-  • Block key removed/renamed:     NO
-  • minAppVersion raised:          NO
-  • Public export removed:         NO
-  • Command id removed/renamed:    NO
-
-Proposed: 1.1.0 (MINOR — new feat:, nothing breaking)
-```
-
-**Wait for OK.** If the user wants a different number, take it — the contract
-with their users is theirs to set — and record the reason in the commit body.
-
-## Step 4 — Execute
-
-```bash
-NEW_VERSION="1.1.0"   # whatever was confirmed
-
-npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
-node scripts/version-sync.cjs     # manifest.json + versions.json
-node scripts/assert-versions.cjs "$NEW_VERSION"
-```
-
-`npm version` writes the number into `package-lock.json` too, in two places.
-The assertion does not read the lockfile, but `npm ci` does, and it refuses a
-lockfile whose version disagrees with `package.json` — so the lockfile belongs
-in the release commit with the rest.
-
-If the schema changed since the last tag (`git diff $LAST_TAG..HEAD -- src/blocks/schema.json`),
-or the hand-written process text in `scripts/build-skill.cjs` did, raise the
-schema `version` (minor for keys, values or behaviour, and for a changed
-process an installed skill must learn about; patch for wording only, see the
-mental model). Whether or not it moved, rebuild after the version bump: the
-header of every generated file names the plugin version at build time (B-192),
-so the files from before the bump are stale.
+The generated skill and block reference name the plugin version, and the
+release commit holds only the version files, so CI's `build:skill -- --check`
+fails until they are rebuilt:
 
 ```bash
 npm run build:skill && npm run build:reference
 ```
 
-Then edit `CHANGELOG.md` by hand (not `sed`): insert
-`## [X.Y.Z] - YYYY-MM-DD` under `[Unreleased]`, move the entries beneath it,
-leave `[Unreleased]` empty. Use the date from the session context rather than
-`date` on the host — the host's timezone has bitten this repository before.
-
-Run the gate before committing, because the tag push starts a release that
-cannot be taken back quietly:
-
-```bash
-npm run release          # release:check + zip
-npm run release:audit    # tag, manifest inside the zip, file structure
-npm run e2e              # real Obsidian; never runs in CI
-git diff -- package.json manifest.json versions.json CHANGELOG.md
-```
-
-**Wait for OK** before the commit.
-
-## Step 5 — Commit and tag
-
-```bash
-git add package.json package-lock.json manifest.json versions.json CHANGELOG.md CLAUDE.md
-git add src/blocks/schema.json src/skill/ docs/ site/reference/   # always: the headers carry the plugin version
-git commit -m "chore(release): $NEW_VERSION"   # body: why, if the bump was overridden
-git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
-```
-
-Annotated tag, not lightweight — the release action reads its message. The tag
-belongs on a commit that is already on `master`: merge first, then tag.
-
-## Step 6 — Push
-
-**Wait for OK.** The push starts the workflow immediately.
-
-```bash
-git push --follow-tags
-```
-
-## Step 7 — Say what happens next
-
-1. The workflow builds, attests and publishes the Release with the three files.
-   Watch it: https://github.com/Dimagious/dashsidian/actions
-2. The plugin is listed in the catalogue: it re-reads `manifest.json` from
-   `master` on its own schedule and offers the update, and `versions.json`
-   decides what an older Obsidian is offered.
-
-## Common pitfalls
-
-**The version files disagree going in** → `assert-versions.cjs` says which pair
-and stops. Fix in a small commit first; do not bump on top of it.
-
-**`versions.json` left behind** → it cannot happen through `version-sync.cjs`
-any more, but a hand-edited `manifest.json` still can. This is why the
-assertion reads all three files rather than two.
-
-**Tagging a tree whose manifest says something else** → the workflow now fails
-on it, by design. Before that check existed, it would have published a release
-whose own manifest contradicted its tag.
-
-**The first release** → `CHANGELOG.md` already carries a written `[1.0.0]`
-section while `[Unreleased]` is empty. Promote nothing; check the date and the
-contents, then bump.
-
-**Wanting to skip the gate for a chore-only release** → do not. A release that
-ships a broken bundle costs a version number, and the number is public.
-
-## What NOT to do
-
-- ❌ Edit `manifest.json` or `versions.json` by hand — go through the sync
-- ❌ A lightweight tag, or a `v` prefix — the workflow matches neither
-- ❌ Merge the three confirmation gates into one
-- ❌ Force-push a moved tag — find out why the first one was wrong
-- ❌ Open the catalogue pull request as part of this skill
+Commit the result as `chore(skill): rebuild for X.Y.Z` through a PR.
