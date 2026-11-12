@@ -120,19 +120,19 @@ describe("autoBands — a scale fitted to the grid's own values", () => {
     });
 
     it("negative values fit the same way, labels sign and all", () => {
-        expect(autoBands([-10, -5, 0, 5], false).map((b) => b.label)).toEqual([
+        expect(autoBands([-10, -5, 0, 5], false)?.map((b) => b.label)).toEqual([
             "1+", "-3–0", "-6–-4", "-10–-7",
         ]);
     });
 
     it("a huge range still divides cleanly, no overflow or precision loss", () => {
-        expect(autoBands([0, 1_000_000], false).map((b) => b.label)).toEqual([
+        expect(autoBands([0, 1_000_000], false)?.map((b) => b.label)).toEqual([
             "750000+", "500000–749999", "250000–499999", "0–249999",
         ]);
     });
 
     it("floats get one decimal, the same rounding a stat card's own value would", () => {
-        expect(autoBands([12.3, 45.6, 78.9], false).map((b) => b.label)).toEqual([
+        expect(autoBands([12.3, 45.6, 78.9], false)?.map((b) => b.label)).toEqual([
             "62.3+", "45.6–62.2", "29–45.5", "12.3–28.9",
         ]);
     });
@@ -272,7 +272,7 @@ describe("autoBands — a scale fitted to the grid's own values", () => {
         });
 
         it("negative whole numbers narrow-spread the same way", () => {
-            expect(autoBands([-2, -1, 0], false).map((b) => b.label)).toEqual(["0+", "-1", "-2"]);
+            expect(autoBands([-2, -1, 0], false)?.map((b) => b.label)).toEqual(["0+", "-1", "-2"]);
         });
 
         it("adjacent labels never overlap: two distinct values two apart still read as a range, not a false match", () => {

@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { renderCountdown } from "./countdown";
 import { setLocale } from "../i18n";
-import { mockContext, host, texts, nodes, diagnostics } from "../test/vault";
+import { mockContext, host, texts, nodes, diagnostics, type FakeNote } from "../test/vault";
 
 const ctx = mockContext();
 afterEach(() => setLocale("en"));
@@ -374,7 +374,7 @@ describe("countdown — a field date not written as YYYY-MM-DD (B-120)", () => {
 describe("countdown: pick next (B-170)", () => {
     // 7 October 2026.
     const TODAY = new Date(2026, 9, 7, 12, 0, 0);
-    const races = [
+    const races: FakeNote[] = [
         { path: "Races/2026-01-10 IRONMAN 70.3.md", frontmatter: { date: "2026-11-15" } },
         { path: "Races/2025-12-01 Marathon.md", frontmatter: { date: "2026-10-20" } },
         { path: "Races/2026-03-01 Half.md", frontmatter: { date: "2026-03-01" } },

@@ -121,13 +121,14 @@ describe("the public API: check (B-208)", () => {
     });
 
     it("reads a note changed after the previous check: the cached snapshot is dropped", async () => {
-        const vault: FakeVault = { notes: diary("Log", "2026-10-01", 3, () => ({})) };
+        const notes = diary("Log", "2026-10-01", 3, () => ({}));
+        const vault: FakeVault = { notes };
         const { api } = createApi(fixture({ vault }).host);
         const block = "```stats\nsource: Log\nitems:\n  - { label: Weight, field: weight, agg: latest }\n```";
         const before = await api.check(block, "Home.md");
         expect(before[0]?.findings.length).toBeGreaterThan(0);
         // What a consumer does between two checks: writes a property.
-        const note = vault.notes[2];
+        const note = notes[2];
         if (note) note.frontmatter = { weight: 80 };
         const after = await api.check(block, "Home.md");
         expect(after[0]?.findings).toEqual([]);

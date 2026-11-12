@@ -233,7 +233,7 @@ describe("readStat — a list of fields (B-193)", () => {
         const { spec, diagnostics } = readStat({ agg: "sum", field: ["run_min", " bike_min ", "swim_min"] }, "");
         expect(diagnostics).toEqual([]);
         expect(spec).toEqual({ agg: "sum", field: "run_min + bike_min + swim_min", fields: ["run_min", "bike_min", "swim_min"] });
-        expect(statFields(spec ?? { agg: "count" })).toEqual(["run_min", "bike_min", "swim_min"]);
+        expect(statFields(spec ?? {})).toEqual(["run_min", "bike_min", "swim_min"]);
     });
 
     it("a list of one is exactly that one field", () => {
@@ -246,7 +246,7 @@ describe("readStat — a list of fields (B-193)", () => {
         ]) {
             const single = readStat(item, "X");
             expect(readStat({ ...item, field: [item.field] }, "X")).toEqual(single);
-            expect(statFields(single.spec ?? { agg: "count" })).toEqual([item.field]);
+            expect(statFields(single.spec ?? {})).toEqual([item.field]);
         }
     });
 

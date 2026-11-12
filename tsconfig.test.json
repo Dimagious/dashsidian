@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  // The tests run on Node 22, not in Obsidian, so they may use what the plugin
+  // code may not: `Array#at`, `replaceAll`. The plugin code stays on the
+  // ES2020 library of tsconfig.json, which still excludes the test files.
+  "compilerOptions": { "lib": ["ES2022", "DOM", "DOM.Iterable"] },
+  "include": ["src/**/*.test.ts", "src/test/**/*.ts"],
+  "exclude": ["node_modules", "coverage", "dist", "main.js", "scripts/**"]
+}
