@@ -11,17 +11,17 @@ Read `CLAUDE.md` first (Russian; the "Соглашения" section is binding).
 
 **Hard gates. Run them yourself, always, regardless of what the maker reports.** Any gate red = automatic **NEEDS CHANGES**; APPROVE is only possible with all of them green:
 
-1. `npm run scorecard:check`: must report **0 issues**. Any new scorecard finding is a blocker, not a note. Since 2.2.0 it runs the public scanner's own ESLint configuration (`scripts/scanner.eslint.config.mjs`) over every tracked file, `site/` and `design/` included, and checks every tracked `.css` with PostCSS and doiuse against Obsidian's Chromium (`!important`, `:has`, partly supported features), the check behind the catalog listing's CSS warnings.
-2. `npm run lint`: clean, including the `eslint-plugin-obsidianmd` rules, plus the scanner parity check below. Warnings in an untracked `ChatExport_*/` directory are local noise, not the maker's.
+1. `npm run scorecard:check`: must report **0 issues**. Any new scorecard finding is a blocker, not a note. It is `opdk scan` from obsidian-plugin-dev-kit: the public scanner's own ESLint configuration over every tracked file, `site/` and `design/` included, and every tracked `.css` checked with PostCSS and doiuse against Obsidian's Chromium (`!important`, `:has`, partly supported features), the check behind the catalog listing's CSS warnings.
+2. `npm run lint` (`--max-warnings=0`): clean, including the `eslint-plugin-obsidianmd` rules, plus the scanner parity check below. Warnings in an untracked `ChatExport_*/` directory are local noise, not the maker's.
 3. `npm test`: all tests pass and coverage holds (lines/functions/statements ≥ 90%, branches ≥ 80%).
 4. `npm run typecheck`: no type errors.
 5. `npm run build:skill -- --check` and `npm run build:reference -- --check`: the generated skill, docs and `site/reference/` are in sync with `src/blocks/schema.json`.
-6. `npm run build`: bundle builds and `scripts/assert-bundle.cjs` passes.
+6. `npm run build`: bundle builds and the bundle check of `opdk build` passes.
 
 **Scanner parity check (part of gate 2).** The public scorecard scanner at community.obsidian.md tracks the latest `eslint-plugin-obsidianmd`, and its rules change between versions, sometimes flipping direction (0.1.x demanded `activeWindow.setTimeout`; 0.4.x `prefer-window-timers` demands `window.setTimeout`). A green lint against a stale pin proves nothing about the public score. So:
 
 1. `npm view eslint-plugin-obsidianmd version` (network access is allowed and expected) and compare with `npm ls eslint-plugin-obsidianmd`.
-2. If upstream is newer: `npm install --no-save eslint-plugin-obsidianmd@latest`, then run `scripts/scanner.eslint.config.mjs` (the scanner's documented configuration) the way `scorecard:check` does, then `npm ci` to restore `node_modules` exactly. `git checkout package-lock.json` alone is not enough: after the 2.2.0 parity runs a half-restored `node_modules` crashed `npm run lint` ("Invalid version"). In a worktree whose `node_modules` is a symlink to the main checkout, install nothing at all: say parity was not run and why.
+2. The plugin comes with the kit (`obsidian-plugin-dev-kit`, which pins it), not as a devDependency. If upstream is newer, the kit has to move: say so in the verdict as "scorecard drift, needs a kit release" and do not install anything. If you do try a newer one, `npm install --no-save eslint-plugin-obsidianmd@latest`, run `npm run scorecard:check`, then `npm ci` to restore `node_modules` exactly. `git checkout package-lock.json` alone is not enough: after the 2.2.0 parity runs a half-restored `node_modules` crashed `npm run lint` ("Invalid version"). In a worktree whose `node_modules` is a symlink to the main checkout, install nothing at all: say parity was not run and why.
 3. A finding from a new rule that touches the diff is a blocker. Pre-existing findings outside the diff go into the verdict as "scorecard drift, needs its own task" with rule and file:line.
 4. If the version check fails (no network), say so explicitly. Never skip it silently.
 
