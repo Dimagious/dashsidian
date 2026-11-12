@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { App } from "obsidian";
 import { test, expect, READING_VIEW } from "./fixtures";
 
 /**
@@ -8,43 +8,9 @@ import { test, expect, READING_VIEW } from "./fixtures";
  * clear of Dashboard.md's own nth()-indexed stat cards.
  */
 
-async function openHabits(win: Page): Promise<void> {
-    await win.evaluate(async () => {
-        const a = (globalThis as unknown as {
-            app?: {
-                vault?: { getFileByPath?: (p: string) => unknown };
-                workspace?: {
-                    getLeaf?: (n?: boolean) => { openFile?: (f: unknown, s?: unknown) => Promise<void> };
-                };
-            };
-        }).app;
-        const file = a?.vault?.getFileByPath?.("Habits.md");
-        await a?.workspace?.getLeaf?.(false)?.openFile?.(file, {
-            state: { mode: "preview", source: false },
-        });
-    });
-    await win.waitForTimeout(800);
-}
-
-/** More screen for the note pane, so a 560px viewport is actually 560px of note. */
-async function collapseSidebars(win: Page): Promise<void> {
-    await win.evaluate(() => {
-        const a = (globalThis as unknown as {
-            app?: {
-                workspace?: {
-                    leftSplit?: { collapse?: () => void };
-                    rightSplit?: { collapse?: () => void };
-                };
-            };
-        }).app;
-        a?.workspace?.leftSplit?.collapse?.();
-        a?.workspace?.rightSplit?.collapse?.();
-    });
-}
-
 test.describe("checkbox properties feed the aggregates", () => {
-    test("sum, streak and heatmap render from ticked days on load", async ({ win }) => {
-        await openHabits(win);
+    test("sum, streak and heatmap render from ticked days on load", async ({ win, obsidian }) => {
+        await obsidian.openFile("Habits.md", { mode: "preview" });
         const view = win.locator(READING_VIEW);
 
         const values = view.locator(".dashy-stat-value");
@@ -66,8 +32,8 @@ test.describe("checkbox properties feed the aggregates", () => {
         await expect(view.locator(".dashy-hm-title")).toHaveText(/7 of \d+ days/);
     });
 
-    test("toggling a checkbox redraws the stat and the heatmap cell", async ({ win }) => {
-        await openHabits(win);
+    test("toggling a checkbox redraws the stat and the heatmap cell", async ({ win, obsidian }) => {
+        await obsidian.openFile("Habits.md", { mode: "preview" });
         const view = win.locator(READING_VIEW);
         const values = view.locator(".dashy-stat-value");
         await expect(values.nth(0)).toHaveText("7");
@@ -75,24 +41,12 @@ test.describe("checkbox properties feed the aggregates", () => {
 
         // The Properties pane writes through fileManager.processFrontMatter,
         // not a raw modify of the file's text.
-        await win.evaluate(async () => {
-            const a = (globalThis as unknown as {
-                app?: {
-                    vault?: { getFileByPath?: (p: string) => unknown };
-                    fileManager?: {
-                        processFrontMatter?: (
-                            f: unknown,
-                            fn: (fm: Record<string, unknown>) => void,
-                        ) => Promise<void>;
-                    };
-                };
-            }).app;
-            const file = a?.vault?.getFileByPath?.("Diary/2026-01-04.md");
-            if (file) {
-                await a?.fileManager?.processFrontMatter?.(file, (fm) => {
-                    fm.gym = false;
-                });
-            }
+        await obsidian.evaluate(async (app: App) => {
+            const file = app.vault.getFileByPath("Diary/2026-01-04.md");
+            if (!file) throw new Error("no note at Diary/2026-01-04.md");
+            await app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+                fm.gym = false;
+            });
         });
 
         // 2,3,4,5,6,8,10 loses 4: sum drops to 6, and the run 2..6 splits into
@@ -111,23 +65,14 @@ test.describe("checkbox properties feed the aggregates", () => {
         await expect(view.locator(".dashy-hm-title")).toHaveText(/6 of \d+ days/);
     });
 
-    test("unticking the box in the Properties pane redraws the dashboard", async ({ win }) => {
+    test("unticking the box in the Properties pane redraws the dashboard", async ({ win, obsidian }) => {
         // The same flip as above, but by a click on the checkbox a person
         // would click: Habits in one pane, the day note in a split beside it.
-        await openHabits(win);
-        await win.evaluate(async () => {
-            const a = (globalThis as unknown as {
-                app?: {
-                    vault?: { getFileByPath?: (p: string) => unknown };
-                    workspace?: {
-                        getLeaf?: (split: string) => { openFile?: (f: unknown, s?: unknown) => Promise<void> };
-                    };
-                };
-            }).app;
-            const file = a?.vault?.getFileByPath?.("Diary/2026-01-04.md");
-            await a?.workspace?.getLeaf?.("split")?.openFile?.(file, {
-                state: { mode: "source", source: false },
-            });
+        await obsidian.openFile("Habits.md", { mode: "preview" });
+        await obsidian.evaluate(async (app: App) => {
+            const file = app.vault.getFileByPath("Diary/2026-01-04.md");
+            if (!file) throw new Error("no note at Diary/2026-01-04.md");
+            await app.workspace.getLeaf("split").openFile(file, { state: { mode: "source", source: false } });
         });
 
         const box = win.locator('.metadata-property[data-property-key="gym"] input[type="checkbox"]');
@@ -151,10 +96,10 @@ test.describe("checkbox properties feed the aggregates", () => {
     // deferred (the block is built off-document, so its width reads 0 at
     // draw time) to the first ResizeObserver callback after attach, so this
     // waits for it rather than asserting immediately after open.
-    test("a heatmap too wide for its pane opens scrolled toward the end, not stuck at the start", async ({ win }) => {
-        await collapseSidebars(win);
+    test("a heatmap too wide for its pane opens scrolled toward the end, not stuck at the start", async ({ win, obsidian }) => {
+        await obsidian.collapseSidebars();
         await win.setViewportSize({ width: 560, height: 800 });
-        await openHabits(win);
+        await obsidian.openFile("Habits.md", { mode: "preview" });
         const view = win.locator(READING_VIEW);
         const scroller = view.locator(".dashy-hm-scroll");
         await expect(scroller.locator(".dashy-hm-cell").first()).toBeVisible();
@@ -170,10 +115,10 @@ test.describe("checkbox properties feed the aggregates", () => {
     // moment anything else in the vault changed. `app.vault.create` here is
     // the "anything else" — a plain file create, same event family as a
     // sync pulling in a new note.
-    test("a heatmap the reader scrolled by hand keeps its position across a redraw", async ({ win }) => {
-        await collapseSidebars(win);
+    test("a heatmap the reader scrolled by hand keeps its position across a redraw", async ({ win, obsidian }) => {
+        await obsidian.collapseSidebars();
         await win.setViewportSize({ width: 560, height: 800 });
-        await openHabits(win);
+        await obsidian.openFile("Habits.md", { mode: "preview" });
         const view = win.locator(READING_VIEW);
         const scroller = view.locator(".dashy-hm-scroll");
         await expect(scroller.locator(".dashy-hm-cell").first()).toBeVisible();
@@ -210,11 +155,8 @@ test.describe("checkbox properties feed the aggregates", () => {
             (cells) => cells.filter((c) => (c as HTMLElement).style.backgroundColor !== "").length,
         );
         const before = await painted();
-        await win.evaluate(async () => {
-            const a = (globalThis as unknown as {
-                app?: { vault?: { create?: (path: string, content: string) => Promise<unknown> } };
-            }).app;
-            await a?.vault?.create?.("Diary/2026-01-11.md", "---\ngym: true\n---\n");
+        await obsidian.evaluate(async (app: App) => {
+            await app.vault.create("Diary/2026-01-11.md", "---\ngym: true\n---\n");
         });
         await expect.poll(painted, { timeout: 5_000 }).toBe(before + 1);
 
@@ -229,10 +171,10 @@ test.describe("checkbox properties feed the aggregates", () => {
         await expect(scroller).toHaveClass(/can-scroll-right/);
     });
 
-    test("a heatmap the reader left at the end stays at the end across a redraw", async ({ win }) => {
-        await collapseSidebars(win);
+    test("a heatmap the reader left at the end stays at the end across a redraw", async ({ win, obsidian }) => {
+        await obsidian.collapseSidebars();
         await win.setViewportSize({ width: 560, height: 800 });
-        await openHabits(win);
+        await obsidian.openFile("Habits.md", { mode: "preview" });
         const view = win.locator(READING_VIEW);
         const scroller = view.locator(".dashy-hm-scroll");
         await expect(scroller.locator(".dashy-hm-cell").first()).toBeVisible();
@@ -249,11 +191,8 @@ test.describe("checkbox properties feed the aggregates", () => {
             (cells) => cells.filter((c) => (c as HTMLElement).style.backgroundColor !== "").length,
         );
         const before = await painted();
-        await win.evaluate(async () => {
-            const a = (globalThis as unknown as {
-                app?: { vault?: { create?: (path: string, content: string) => Promise<unknown> } };
-            }).app;
-            await a?.vault?.create?.("Diary/2026-01-12.md", "---\ngym: true\n---\n");
+        await obsidian.evaluate(async (app: App) => {
+            await app.vault.create("Diary/2026-01-12.md", "---\ngym: true\n---\n");
         });
         await expect.poll(painted, { timeout: 5_000 }).toBe(before + 1);
 

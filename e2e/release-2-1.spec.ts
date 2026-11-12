@@ -1,8 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Locator, Page } from "@playwright/test";
-import { test as base, expect, openSettings, closeSettings, READING_VIEW } from "./fixtures";
+import type { Locator } from "@playwright/test";
+import type { App } from "obsidian";
+import type { ObsidianHelpers } from "obsidian-plugin-dev-kit/e2e";
+import { test as base, expect, READING_VIEW } from "./fixtures";
 
 /**
  * The 2.1.0 features in a real Obsidian: what jsdom cannot show (computed
@@ -107,62 +109,23 @@ items:
     ),
 };
 
-const test = base.extend({
-    vaultPath: async ({ vaultPath }, use) => {
-        for (const [rel, text] of Object.entries(SEED)) {
-            const file = path.join(vaultPath, rel);
-            fs.mkdirSync(path.dirname(file), { recursive: true });
-            fs.writeFileSync(file, text);
-        }
-        await use(vaultPath);
-    },
+/**
+ * The notes are written into the vault and Obsidian is reloaded, so they are indexed the way notes already in a
+ * vault are, and the core Templates plugin reads `.obsidian/templates.json` when it loads.
+ */
+const test = base.extend<{ seeded: void }>({
+    seeded: [async ({ vault, obsidian }, use) => {
+        for (const [rel, text] of Object.entries(SEED)) vault.write(rel, text);
+        await obsidian.reload();
+        await obsidian.waitForMetadataCache();
+        await use();
+    }, { auto: true }],
 });
 
 // Serial by the config (one worker, fullyParallel off); each test opens its own note.
 
-async function openNote(win: Page, notePath: string): Promise<void> {
-    await win.evaluate(async (p) => {
-        const a = (globalThis as unknown as {
-            app?: {
-                vault?: { getFileByPath?: (p: string) => unknown };
-                workspace?: {
-                    getLeaf?: (n?: boolean) => { openFile?: (f: unknown, s?: unknown) => Promise<void> };
-                };
-            };
-        }).app;
-        const file = a?.vault?.getFileByPath?.(p);
-        if (!file) throw new Error(`no note at ${p}`);
-        await a?.workspace?.getLeaf?.(false)?.openFile?.(file, {
-            state: { mode: "preview", source: false },
-        });
-    }, notePath);
-    await win.waitForTimeout(800);
-}
-
-async function runCommand(win: Page, id: string): Promise<boolean> {
-    return win.evaluate((commandId) => {
-        const a = (globalThis as unknown as {
-            app?: { commands?: { executeCommandById?: (id: string) => boolean } };
-        }).app;
-        return a?.commands?.executeCommandById?.(commandId) ?? false;
-    }, id);
-}
-
-/** The whole window to the note pane, so a 390px viewport is 390px of note, not of sidebars. */
-async function collapseSidebars(win: Page): Promise<void> {
-    await win.evaluate(() => {
-        const a = (globalThis as unknown as {
-            app?: {
-                workspace?: {
-                    leftSplit?: { collapse?: () => void };
-                    rightSplit?: { collapse?: () => void };
-                };
-            };
-        }).app;
-        a?.workspace?.leftSplit?.collapse?.();
-        a?.workspace?.rightSplit?.collapse?.();
-    });
-}
+const openNote = (obsidian: ObsidianHelpers, notePath: string): Promise<void> =>
+    obsidian.openFile(notePath, { mode: "preview" });
 
 /** The number of tracks a grid draws, from the computed style a real engine resolves. */
 async function trackCount(block: Locator): Promise<number> {
@@ -170,14 +133,13 @@ async function trackCount(block: Locator): Promise<number> {
     return columns.split(/\s+/).filter(Boolean).length;
 }
 
-const view = (win: Page): Locator => win.locator(READING_VIEW);
+const view = (win: import("@playwright/test").Page): Locator => win.locator(READING_VIEW);
 
 test.describe("2.1.0 in a real Obsidian", () => {
-    test("B-168: the two agent commands write .dashy/ only when run", async ({ win, vaultPath }) => {
-        const dashy = path.join(vaultPath, ".dashy");
-        expect(fs.existsSync(dashy), ".dashy/ must not exist before a command runs").toBe(false);
+    test("B-168: the two agent commands write .dashy/ only when run", async ({ win, obsidian, vault }) => {
+        expect(vault.exists(".dashy"), ".dashy/ must not exist before a command runs").toBe(false);
 
-        await openNote(win, "R21/Check.md");
+        await openNote(obsidian, "R21/Check.md");
         // The message the note itself shows, which the report must repeat word for word.
         const shown = view(win).locator(".dashy-diag-error");
         await expect(shown).toHaveCount(1);
@@ -185,10 +147,9 @@ test.describe("2.1.0 in a real Obsidian", () => {
         expect(message).toMatch(/^Could not parse YAML: /);
         const blockLine = await shown.getAttribute("data-line");
 
-        expect(await runCommand(win, "dashsidian:check-blocks")).toBe(true);
-        const checkFile = path.join(dashy, "block-check.md");
-        await expect.poll(() => fs.existsSync(checkFile)).toBe(true);
-        const report = fs.readFileSync(checkFile, "utf8");
+        await obsidian.runCommand("dashsidian:check-blocks");
+        await expect.poll(() => vault.exists(".dashy/block-check.md")).toBe(true);
+        const report = vault.read(".dashy/block-check.md");
 
         expect(report).toContain("# Dashy block check");
         expect(report).toContain("- Note: R21/Check.md");
@@ -202,10 +163,9 @@ test.describe("2.1.0 in a real Obsidian", () => {
         expect(report).toContain(`- error, line ${10 + at} (block line ${at}): ${(message ?? "").replace(/\s*\n\s*/g, " ").trim()}`);
         expect(report.trimEnd().split("\n").at(-1)).toBe("Summary: 2 blocks, 1 error, 0 warnings.");
 
-        expect(await runCommand(win, "dashsidian:vault-profile")).toBe(true);
-        const profileFile = path.join(dashy, "vault-profile.md");
-        await expect.poll(() => fs.existsSync(profileFile)).toBe(true);
-        const profile = fs.readFileSync(profileFile, "utf8");
+        await obsidian.runCommand("dashsidian:vault-profile");
+        await expect.poll(() => vault.exists(".dashy/vault-profile.md")).toBe(true);
+        const profile = vault.read(".dashy/vault-profile.md");
         expect(profile).toContain("sleep_score");
         expect(profile).toContain(`Dashy ${PLUGIN_VERSION}, block schema ${SCHEMA_VERSION}`);
         // Note bodies never reach it: the Journal's and the one seeded above.
@@ -213,11 +173,11 @@ test.describe("2.1.0 in a real Obsidian", () => {
         expect(profile).not.toContain("second entry the same day");
         expect(profile).not.toContain("morning entry");
 
-        expect(fs.readdirSync(dashy).sort()).toEqual(["block-check.md", "vault-profile.md"]);
+        expect(fs.readdirSync(vault.resolve(".dashy")).sort()).toEqual(["block-check.md", "vault-profile.md"]);
     });
 
-    test("B-194: compare shows the previous value and fits a phone-wide card", async ({ win }) => {
-        await openNote(win, "R21/Compare.md");
+    test("B-194: compare shows the previous value and fits a phone-wide card", async ({ win, obsidian }) => {
+        await openNote(obsidian, "R21/Compare.md");
         const cards = view(win).locator(".dashy-stat");
         await expect(cards).toHaveCount(2);
 
@@ -229,11 +189,13 @@ test.describe("2.1.0 in a real Obsidian", () => {
         await expect(cards.nth(1).locator(".dashy-stat-delta")).toHaveText(/^\S+ \+5300 \(was 4600\)$/);
         await expect(cards.nth(1).locator(".dashy-stat-delta-previous-value")).toHaveText("(was 4600)");
 
-        await collapseSidebars(win);
+        await obsidian.collapseSidebars();
         await win.setViewportSize({ width: 390, height: 800 });
-        await win.waitForTimeout(300);
-        const sizes = await cards.evaluateAll((els) =>
-            els.map((el) => ({ scroll: el.scrollWidth, client: el.clientWidth })));
+        const measure = (): Promise<{ scroll: number; client: number }[]> =>
+            cards.evaluateAll((els) => els.map((el) => ({ scroll: el.scrollWidth, client: el.clientWidth })));
+        // The layout follows the new width on its own schedule: wait for it, then check every card.
+        await expect.poll(async () => (await measure()).every((card) => card.client < 200)).toBe(true);
+        const sizes = await measure();
         for (const card of sizes) {
             // Two cards side by side in a phone-wide pane, not a sliver squeezed by a sidebar.
             expect(card.client).toBeGreaterThan(100);
@@ -242,8 +204,8 @@ test.describe("2.1.0 in a real Obsidian", () => {
         }
     });
 
-    test("B-149: origin names the note as a quiet link, or its date", async ({ win }) => {
-        await openNote(win, "R21/Origin.md");
+    test("B-149: origin names the note as a quiet link, or its date", async ({ win, obsidian }) => {
+        await openNote(obsidian, "R21/Origin.md");
         const cards = view(win).locator(".dashy-stat");
         await expect(cards).toHaveCount(2);
 
@@ -273,8 +235,8 @@ test.describe("2.1.0 in a real Obsidian", () => {
         await expect(view(win).locator(".dashy-diag")).toHaveCount(0);
     });
 
-    test("B-197: a phone keeps one column for columns: 1 and at most two otherwise", async ({ win }) => {
-        await openNote(win, "R21/Columns.md");
+    test("B-197: a phone keeps one column for columns: 1 and at most two otherwise", async ({ win, obsidian }) => {
+        await openNote(obsidian, "R21/Columns.md");
         const grids = {
             countdown: view(win).locator(".dashy-countdown"),
             tiles: view(win).locator(".dashy-tiles"),
@@ -282,31 +244,26 @@ test.describe("2.1.0 in a real Obsidian", () => {
         };
         for (const grid of Object.values(grids)) await expect(grid).toHaveCount(2);
 
+        // Each count is polled: the grid takes the new width on its own schedule.
         await win.setViewportSize({ width: 700, height: 800 });
-        await win.waitForTimeout(300);
         for (const [name, grid] of Object.entries(grids)) {
-            expect(await trackCount(grid.nth(0)), `${name} columns: 1 at 700px`).toBe(1);
-            expect(await trackCount(grid.nth(1)), `${name} columns: 3 at 700px`).toBe(2);
+            await expect.poll(() => trackCount(grid.nth(0)), { message: `${name} columns: 1 at 700px` }).toBe(1);
+            await expect.poll(() => trackCount(grid.nth(1)), { message: `${name} columns: 3 at 700px` }).toBe(2);
         }
 
         await win.setViewportSize({ width: 1000, height: 800 });
-        await win.waitForTimeout(300);
         for (const [name, grid] of Object.entries(grids)) {
-            expect(await trackCount(grid.nth(0)), `${name} columns: 1 at 1000px`).toBe(1);
-            expect(await trackCount(grid.nth(1)), `${name} columns: 3 at 1000px`).toBe(3);
+            await expect.poll(() => trackCount(grid.nth(0)), { message: `${name} columns: 1 at 1000px` }).toBe(1);
+            await expect.poll(() => trackCount(grid.nth(1)), { message: `${name} columns: 3 at 1000px` }).toBe(3);
         }
     });
 
-    test("B-190: a template shows a calm hint, the same block elsewhere an error", async ({ win }) => {
-        const folder = await win.evaluate(() => {
-            const a = (globalThis as unknown as {
-                app?: { internalPlugins?: { plugins?: Record<string, { instance?: { options?: { folder?: unknown } } }> } };
-            }).app;
-            return a?.internalPlugins?.plugins?.templates?.instance?.options?.folder ?? null;
-        });
+    test("B-190: a template shows a calm hint, the same block elsewhere an error", async ({ win, obsidian }) => {
+        const folder = await obsidian.evaluate((app: App & { internalPlugins: { plugins: Record<string, { instance?: { options?: { folder?: unknown } } }> } }) =>
+            app.internalPlugins.plugins.templates?.instance?.options?.folder ?? null);
         expect(folder, "the core Templates plugin read .obsidian/templates.json").toBe("Templates");
 
-        await openNote(win, "Templates/Weekly-Review.md");
+        await openNote(obsidian, "Templates/Weekly-Review.md");
         const blocks = view(win).locator(".block-language-stats");
         await expect(blocks).toHaveCount(2);
         const hint = "This note is a template, so there is nothing to count here yet. A note made from it and named for a period, like 2026-W40, counts that period.";
@@ -322,21 +279,21 @@ test.describe("2.1.0 in a real Obsidian", () => {
         );
         await expect(blocks.nth(1).locator(".dashy-notice")).toHaveText(hint);
 
-        await openNote(win, "Reviews/Weekly-Review.md");
+        await openNote(obsidian, "Reviews/Weekly-Review.md");
         const error = view(win).locator(".dashy-diag-error");
         await expect(error).toHaveCount(1);
         await expect(error).toHaveAttribute("data-message", /^`period: note` needs a note named like a day, week, month, quarter or year, and this note is "Weekly-Review"\./);
         await expect(view(win).locator(".dashy-notice")).toHaveCount(0);
     });
 
-    test("B-198: a week name with words after it counts that ISO week", async ({ win }) => {
-        await openNote(win, "Reviews/2026-W41 Weekly.md");
+    test("B-198: a week name with words after it counts that ISO week", async ({ win, obsidian }) => {
+        await openNote(obsidian, "Reviews/2026-W41 Weekly.md");
         await expect(view(win).locator(".dashy-diag-error")).toHaveCount(0);
         await expect(view(win).locator(".dashy-stat-value")).toHaveText("1110");
     });
 
-    test("B-193 and B-199: a list of fields sums per note, and where finds empty properties", async ({ win }) => {
-        await openNote(win, "R21/Sums.md");
+    test("B-193 and B-199: a list of fields sums per note, and where finds empty properties", async ({ win, obsidian }) => {
+        await openNote(obsidian, "R21/Sums.md");
         const cards = view(win).locator(".dashy-stat");
         await expect(cards).toHaveCount(4);
 
@@ -351,12 +308,11 @@ test.describe("2.1.0 in a real Obsidian", () => {
         await expect(view(win).locator(".dashy-diag")).toHaveCount(0);
     });
 
-    test("B-192: the skill row names the schema version", async ({ app, win }) => {
-        const settings = await openSettings(app, win);
+    test("B-192: the skill row names the schema version", async ({ obsidian }) => {
+        const settings = await obsidian.openSettings("dashsidian");
         await settings.getByRole("button", { name: "Skill file in this vault" }).click();
-        await win.waitForTimeout(800);
         await expect(settings.getByText(`Installed, schema version ${SCHEMA_VERSION}. Nothing to do.`, { exact: true }))
             .toBeVisible();
-        await closeSettings(win);
+        await obsidian.closeSettings();
     });
 });

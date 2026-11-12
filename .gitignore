@@ -19,13 +19,15 @@ coverage/
 .obsidian-unpacked/
 playwright-report/
 test-results/
-e2e-vault.pristine/.obsidian/plugins/dashsidian/
 
 # Preview stand
 .preview/
 
 # Capture run (the demo vault is generated)
 .capture/
+
+# Raw frames and stills of the demo fixture, before opdk demo publishes them
+.opdk/
 
 # Build output
 main.js

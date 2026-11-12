@@ -1,107 +1,72 @@
 import fs from "node:fs";
 import path from "node:path";
-import { test, expect, openSettings, READING_VIEW } from "./fixtures";
+import type { Locator, Page } from "@playwright/test";
+import type { ObsidianHelpers } from "obsidian-plugin-dev-kit/e2e";
+import type { App } from "obsidian";
+import { test, expect, onlyWhen, READING_VIEW } from "./demo-fixtures";
 
 /**
  * The pictures for the README, the site and the store listing.
  *
  * Taken from the running plugin rather than a mock, because a listing showing
- * something other than what installs is a lie, however small. Run on demand:
- * `npm run capture`.
+ * something other than what installs is a lie, however small. Everything goes
+ * through the kit's `demo` fixture: stills and frames land in `.opdk/demo`, and
+ * `opdk demo` copies the stills to `docs/screens` and turns the films into GIFs
+ * (settings in opdk.config.mjs). Run on demand: `npm run capture`.
  */
 
-const SHOTS = path.resolve("docs/screens");
-const FRAMES = path.resolve(".capture/frames");
 const WIDTH = 1280;
 const HEIGHT = 900;
+/** The whole window, the way the dashboard pictures are taken. */
+const WINDOW_CLIP = { x: 0, y: 0, width: WIDTH, height: HEIGHT };
 
-test.skip(!process.env.CAPTURE, "capture run only — `npm run capture`");
+onlyWhen("CAPTURE");
 test.describe.configure({ mode: "serial" });
+test.setTimeout(180_000);
 
-test.beforeAll(() => {
-    fs.mkdirSync(SHOTS, { recursive: true });
-    fs.rmSync(FRAMES, { recursive: true, force: true });
-    fs.mkdirSync(FRAMES, { recursive: true });
-});
+/** Every still is 2x on any display, waits for the page to settle and has no cursor arrow in it. */
+const STILL = { settle: true, cursor: false } as const;
 
-/**
- * A GIF is assembled from a sequence of stills rather than from a video.
- * Recording the window gives a 1280-wide clip that has to be cropped back to
- * the part anyone cares about; shooting the region directly skips the round
- * trip and keeps the frames sharp. ffmpeg stitches them in scripts/capture.cjs.
- */
-class Reel {
-    private frame = 0;
+type Box = { x: number; y: number; width: number; height: number };
 
-    constructor(private readonly name: string) {
-        fs.mkdirSync(path.join(FRAMES, name), { recursive: true });
-    }
+/** The theme names Obsidian's own: `obsidian` is the dark default, `moonstone` the light one. */
+const MODE = { obsidian: "dark", moonstone: "light" } as const;
 
-    async shoot(target: { screenshot: (o: { path: string }) => Promise<unknown> }): Promise<void> {
-        const file = path.join(FRAMES, this.name, `${String(this.frame).padStart(3, "0")}.png`);
-        this.frame += 1;
-        await target.screenshot({ path: file });
-    }
-
-    /** A pause on the last frame, so the loop does not snap round. */
-    async hold(target: { screenshot: (o: { path: string }) => Promise<unknown> }, frames: number): Promise<void> {
-        for (let i = 0; i < frames; i++) await this.shoot(target);
-    }
-}
-
-async function setUp(win: import("@playwright/test").Page, theme: "obsidian" | "moonstone") {
-    await win.setViewportSize({ width: WIDTH, height: HEIGHT });
-    await win.evaluate((name) => {
-        const a = (globalThis as unknown as {
-            app?: {
-                vault?: { setConfig?: (k: string, v: unknown) => void };
-                workspace?: { trigger?: (e: string) => void };
-                changeTheme?: (n: string) => void;
-            };
-        }).app;
-        a?.changeTheme?.(name);
-        a?.vault?.setConfig?.("theme", name);
-        a?.workspace?.trigger?.("css-change");
-    }, theme);
+async function setUp(win: Page, obsidian: ObsidianHelpers, theme: "obsidian" | "moonstone"): Promise<void> {
+    await obsidian.setTheme({ mode: MODE[theme] });
     // The dashboard is drawn from a snapshot that fills in as Obsidian indexes.
     // Every test starts a cold Obsidian, and a first heatmap cell only means
     // the first notes are in: a shot taken then shows a dash on "Steps this
     // week" and no sparklines. Wait until every note has its metadata cached.
     const view = win.locator(READING_VIEW);
     await expect(view.locator(".dashy-hm-cell").first()).toBeVisible();
-    await expect.poll(() => win.evaluate(() => {
-        const a = (globalThis as unknown as {
-            app?: {
-                vault?: { getMarkdownFiles?: () => unknown[] };
-                metadataCache?: { getFileCache?: (f: unknown) => unknown };
-            };
-        }).app;
-        const files = a?.vault?.getMarkdownFiles?.() ?? [];
-        const cached = files.filter((f) => a?.metadataCache?.getFileCache?.(f)).length;
-        return files.length > 0 && cached === files.length;
-    }), { timeout: 60_000 }).toBe(true);
+    await obsidian.waitForMetadataCache();
     // Then the redraw that follows the last cache event: no card left on a
     // dash, and the sparklines drawn.
     await expect(view.locator(".dashy-stat-trend").first()).toBeVisible({ timeout: 15_000 });
     await expect.poll(async () => (await view.locator(".dashy-stat-value").allTextContents())
         .some((text) => text.trim() === "—"), { timeout: 15_000 }).toBe(false);
-    await win.waitForTimeout(1_200);
-
     // "Indexing complete." sits over the top right corner of every shot.
     // Transient chrome, and it hides the thing being photographed.
-    await win.evaluate(() => {
-        for (const notice of Array.from(document.querySelectorAll(".notice"))) notice.remove();
-    });
+    await obsidian.clearNotices();
+}
+
+/** Readable line length, which the note column's width follows. */
+async function setReadableLineLength(obsidian: ObsidianHelpers, on: boolean): Promise<void> {
+    await obsidian.evaluate((app: App & { vault: { setConfig(key: string, value: unknown): void } }, value: boolean) => {
+        app.vault.setConfig("readableLineLength", value);
+        app.workspace.trigger("css-change");
+    }, on);
 }
 
 for (const theme of ["obsidian", "moonstone"] as const) {
     const suffix = theme === "obsidian" ? "dark" : "light";
 
-    test(`blocks, ${suffix}`, async ({ win }) => {
-        await setUp(win, theme);
+    test(`blocks, ${suffix}`, async ({ win, obsidian, demo }) => {
+        await setUp(win, obsidian, theme);
         const view = win.locator(READING_VIEW);
 
-        await win.screenshot({ path: path.join(SHOTS, `dashboard-${suffix}.png`) });
+        await demo.still(`dashboard-${suffix}`, { clip: WINDOW_CLIP, ...STILL });
 
         const parts: [string, string][] = [
             ["today", ".dashy-today"],
@@ -114,7 +79,7 @@ for (const theme of ["obsidian", "moonstone"] as const) {
         for (const [name, selector] of parts) {
             const block = view.locator(selector).first();
             await block.scrollIntoViewIfNeeded();
-            await block.screenshot({ path: path.join(SHOTS, `${name}-${suffix}.png`) });
+            await demo.still(`${name}-${suffix}`, { clip: block, ...STILL });
         }
 
         // The habit tracker is two blocks read as one picture: the gym cards
@@ -127,51 +92,28 @@ for (const theme of ["obsidian", "moonstone"] as const) {
         // Obsidian scrolls the note, not the page: bring the cards to the top
         // so both blocks fit in the window the clip is taken from.
         await cards.evaluate((el) => el.scrollIntoView({ block: "start" }));
-        await win.waitForTimeout(300);
-        const top = await cards.boundingBox();
-        const bottom = await grid.boundingBox();
-        if (!top || !bottom) throw new Error("habit blocks are not on screen");
-        const clip = {
-            x: Math.min(top.x, bottom.x),
-            y: top.y,
-            width: Math.max(top.x + top.width, bottom.x + bottom.width) - Math.min(top.x, bottom.x),
-            height: bottom.y + bottom.height - top.y,
-        };
-        await win.screenshot({ path: path.join(SHOTS, `habits-${suffix}.png`), clip });
+        await obsidian.settle();
+        await demo.still(`habits-${suffix}`, { clip: await union(cards, grid), ...STILL });
     });
 }
 
 /** Opens a demo note in the current leaf and waits until its blocks are drawn. */
-async function openNote(win: import("@playwright/test").Page, file: string, ready: string): Promise<void> {
-    await win.evaluate(async (link) => {
-        const a = (globalThis as unknown as {
-            app?: {
-                vault?: { setConfig?: (k: string, v: unknown) => void };
-                workspace?: { openLinkText?: (l: string, s: string) => Promise<void>; trigger?: (e: string) => void };
-            };
-        }).app;
-        // The reel below turns readable line length off; these shots are read
-        // at a note column's width, so they keep it on whatever ran before.
-        a?.vault?.setConfig?.("readableLineLength", true);
-        a?.workspace?.trigger?.("css-change");
-        await a?.workspace?.openLinkText?.(link, "");
-    }, file);
+async function openNote(win: Page, obsidian: ObsidianHelpers, file: string, ready: string): Promise<void> {
+    // The reel below turns readable line length off; these shots are read
+    // at a note column's width, so they keep it on whatever ran before.
+    await setReadableLineLength(obsidian, true);
+    await obsidian.openFile(file, { mode: "preview" });
     const view = win.locator(READING_VIEW);
     await expect(view.locator(ready).first()).toBeVisible();
-    await win.locator(".markdown-preview-view").first().evaluate((el) => { el.scrollTop = 0; });
-    await win.waitForTimeout(800);
-    await win.evaluate(() => {
-        for (const notice of Array.from(document.querySelectorAll(".notice"))) notice.remove();
-    });
+    await win.locator(".markdown-preview-view").first().evaluate((el: HTMLElement) => { el.scrollTop = 0; });
+    await obsidian.settle();
+    await obsidian.clearNotices();
     // A published picture showing a warning box would be advertising a mistake.
     await expect(view.locator(".dashy-diag-warning, .dashy-diag-error")).toHaveCount(0);
 }
 
 /** The union of two boxes, the way the habit tracker shot is clipped. */
-async function union(
-    first: import("@playwright/test").Locator,
-    last: import("@playwright/test").Locator,
-): Promise<{ x: number; y: number; width: number; height: number }> {
+async function union(first: Locator, last: Locator): Promise<Box> {
     const top = await first.boundingBox();
     const bottom = await last.boundingBox();
     if (!top || !bottom) throw new Error("capture: blocks are not on screen");
@@ -187,42 +129,42 @@ async function union(
 for (const theme of ["obsidian", "moonstone"] as const) {
     const suffix = theme === "obsidian" ? "dark" : "light";
 
-    test(`charts, streaks and sleep, ${suffix}`, async ({ win }) => {
-        await setUp(win, theme);
+    test(`charts, streaks and sleep, ${suffix}`, async ({ win, obsidian, demo }) => {
+        await setUp(win, obsidian, theme);
         const view = win.locator(READING_VIEW);
 
-        await openNote(win, "Charts.md", ".dashy-chart-svg");
-        const crops: [string, import("@playwright/test").Locator][] = [
+        await openNote(win, obsidian, "Charts.md", ".dashy-chart-svg");
+        const crops: [string, Locator][] = [
             ["chart-weekly", view.locator(".dashy-chart").nth(0)],
             ["chart-series", view.locator(".dashy-chart").nth(1)],
             ["streak", view.locator(".dashy-stats").first()],
         ];
         for (const [name, block] of crops) {
             await block.scrollIntoViewIfNeeded();
-            await block.screenshot({ path: path.join(SHOTS, `${name}-${suffix}.png`) });
+            await demo.still(`${name}-${suffix}`, { clip: block, ...STILL });
         }
 
-        await openNote(win, "Sleep.md", ".dashy-hm-cell");
+        await openNote(win, obsidian, "Sleep.md", ".dashy-hm-cell");
         const cards = view.locator(".dashy-stats").first();
         await cards.evaluate((el) => el.scrollIntoView({ block: "start" }));
-        await win.waitForTimeout(300);
+        await obsidian.settle();
         const grid = view.locator(".block-language-heatmap").last().locator(".dashy-hm-wrap").last();
-        await win.screenshot({ path: path.join(SHOTS, `sleep-${suffix}.png`), clip: await union(cards, grid) });
+        await demo.still(`sleep-${suffix}`, { clip: await union(cards, grid), ...STILL });
 
-        await openNote(win, "Workdays.md", ".dashy-hm-cell");
+        await openNote(win, obsidian, "Workdays.md", ".dashy-hm-cell");
         const workCards = view.locator(".dashy-stats").first();
         await workCards.evaluate((el) => el.scrollIntoView({ block: "start" }));
-        await win.waitForTimeout(300);
+        await obsidian.settle();
         const workGrid = view.locator(".block-language-heatmap").last().locator(".dashy-hm-wrap").last();
-        await win.screenshot({ path: path.join(SHOTS, `streak-weekdays-${suffix}.png`), clip: await union(workCards, workGrid) });
+        await demo.still(`streak-weekdays-${suffix}`, { clip: await union(workCards, workGrid), ...STILL });
 
-        await openNote(win, "Layers.md", ".dashy-hm-cell");
+        await openNote(win, obsidian, "Layers.md", ".dashy-hm-cell");
         const layers = view.locator(".block-language-heatmap").first().locator(".dashy-hm-wrap").first();
         await layers.scrollIntoViewIfNeeded();
-        await layers.screenshot({ path: path.join(SHOTS, `heatmap-layers-${suffix}.png`) });
+        await demo.still(`heatmap-layers-${suffix}`, { clip: layers, ...STILL });
 
         // Back where `setUp` expects to find the next test.
-        await openNote(win, "Dashboard.md", ".dashy-hm-cell");
+        await openNote(win, obsidian, "Dashboard.md", ".dashy-hm-cell");
     });
 }
 
@@ -234,8 +176,8 @@ for (const theme of ["obsidian", "moonstone"] as const) {
 for (const theme of ["obsidian", "moonstone"] as const) {
     const suffix = theme === "obsidian" ? "dark" : "light";
 
-    test(`guides: birthdays, books and home, ${suffix}`, async ({ win }) => {
-        await setUp(win, theme);
+    test(`guides: birthdays, books and home, ${suffix}`, async ({ win, obsidian, demo }) => {
+        await setUp(win, obsidian, theme);
         const view = win.locator(READING_VIEW);
         const shots: [string, string, string, string, string][] = [
             // [picture, note, drawn when this shows, first block, last block]
@@ -244,19 +186,19 @@ for (const theme of ["obsidian", "moonstone"] as const) {
             ["homepage", "Home.md", ".dashy-countdown-card", ".dashy-today", ".dashy-countdown"],
         ];
         for (const [name, note, ready, first, last] of shots) {
-            await openNote(win, note, ready);
+            await openNote(win, obsidian, note, ready);
             const top = view.locator(first).first();
             await top.evaluate((el) => el.scrollIntoView({ block: "start" }));
-            await win.waitForTimeout(300);
+            await obsidian.settle();
             const clip = await union(top, view.locator(last).last());
             if (clip.y + clip.height > HEIGHT) {
                 throw new Error(`capture: ${name} runs to ${Math.round(clip.y + clip.height)}px, past the window`);
             }
-            await win.screenshot({ path: path.join(SHOTS, `${name}-${suffix}.png`), clip });
+            await demo.still(`${name}-${suffix}`, { clip, ...STILL });
         }
 
         // Back where `setUp` expects to find the next test.
-        await openNote(win, "Dashboard.md", ".dashy-hm-cell");
+        await openNote(win, obsidian, "Dashboard.md", ".dashy-hm-cell");
     });
 }
 
@@ -269,16 +211,16 @@ for (const theme of ["obsidian", "moonstone"] as const) {
 for (const theme of ["obsidian", "moonstone"] as const) {
     const suffix = theme === "obsidian" ? "dark" : "light";
 
-    test(`guides: monthly habit calendar, ${suffix}`, async ({ win }) => {
-        await setUp(win, theme);
+    test(`guides: monthly habit calendar, ${suffix}`, async ({ win, obsidian, demo }) => {
+        await setUp(win, obsidian, theme);
         const view = win.locator(READING_VIEW);
-        await openNote(win, "Habit calendar.md", ".dashy-hm-cal");
+        await openNote(win, obsidian, "Habit calendar.md", ".dashy-hm-cal");
         const month = view.locator(".block-language-heatmap").first().locator(".dashy-hm-calendar").first();
         await month.scrollIntoViewIfNeeded();
-        await month.screenshot({ path: path.join(SHOTS, `habit-calendar-${suffix}.png`) });
+        await demo.still(`habit-calendar-${suffix}`, { clip: month, ...STILL });
 
         // Back where `setUp` expects to find the next test.
-        await openNote(win, "Dashboard.md", ".dashy-hm-cell");
+        await openNote(win, obsidian, "Dashboard.md", ".dashy-hm-cell");
     });
 }
 
@@ -291,26 +233,24 @@ for (const theme of ["obsidian", "moonstone"] as const) {
 for (const theme of ["obsidian", "moonstone"] as const) {
     const suffix = theme === "obsidian" ? "dark" : "light";
 
-    test(`guides: weekly review, ${suffix}`, async ({ win }) => {
-        await setUp(win, theme);
+    test(`guides: weekly review, ${suffix}`, async ({ win, obsidian, demo }) => {
+        await setUp(win, obsidian, theme);
         const view = win.locator(READING_VIEW);
-        const note = await win.evaluate(() => {
-            const a = (globalThis as unknown as { app?: { vault?: { getMarkdownFiles?: () => { path: string }[] } } }).app;
-            return (a?.vault?.getMarkdownFiles?.() ?? []).map((f) => f.path).find((p) => /^Reviews\/\d{4}-W\d{2}\.md$/.test(p));
-        });
+        const note = await obsidian.evaluate((app: App) =>
+            app.vault.getMarkdownFiles().map((f) => f.path).find((p) => /^Reviews\/\d{4}-W\d{2}\.md$/.test(p)) ?? null);
         if (!note) throw new Error("capture: no weekly review note under Reviews/");
-        await openNote(win, note, ".dashy-chart-svg");
+        await openNote(win, obsidian, note, ".dashy-chart-svg");
         const top = view.locator(".dashy-stats").first();
         await top.evaluate((el) => el.scrollIntoView({ block: "start" }));
-        await win.waitForTimeout(300);
+        await obsidian.settle();
         const clip = await union(top, view.locator(".dashy-chart").last());
         if (clip.y + clip.height > HEIGHT) {
             throw new Error(`capture: weekly-review runs to ${Math.round(clip.y + clip.height)}px, past the window`);
         }
-        await win.screenshot({ path: path.join(SHOTS, `weekly-review-${suffix}.png`), clip });
+        await demo.still(`weekly-review-${suffix}`, { clip, ...STILL });
 
         // Back where `setUp` expects to find the next test.
-        await openNote(win, "Dashboard.md", ".dashy-hm-cell");
+        await openNote(win, obsidian, "Dashboard.md", ".dashy-hm-cell");
     });
 }
 
@@ -324,17 +264,22 @@ const COMPARE_PLUGINS = ["dataview", "obsidian-charts"];
 const compareReady = COMPARE_PLUGINS.every((id) =>
     fs.existsSync(path.resolve(".capture/vault/.obsidian/plugins", id, "main.js")));
 
+type PluginHost = App & {
+    plugins: {
+        enablePlugin(id: string): Promise<unknown>;
+        disablePlugin(id: string): Promise<unknown>;
+        plugins: { dataview?: { index?: { initialized?: boolean } } };
+    };
+};
+
 for (const theme of ["obsidian", "moonstone"] as const) {
     const suffix = theme === "obsidian" ? "dark" : "light";
 
-    test(`dataviewjs comparison, ${suffix}`, async ({ win }) => {
+    test(`dataviewjs comparison, ${suffix}`, async ({ win, obsidian, demo }) => {
         test.skip(!compareReady, "no Dataview/Obsidian Charts under .capture/livecheck: comparison shot skipped");
-        await setUp(win, theme);
-        const toggle = (on: boolean): Promise<void> => win.evaluate(async ({ ids, enable }) => {
-            const plugins = (globalThis as unknown as {
-                app?: { plugins?: { enablePlugin?: (id: string) => Promise<unknown>; disablePlugin?: (id: string) => Promise<unknown> } };
-            }).app?.plugins;
-            for (const id of ids) await (enable ? plugins?.enablePlugin?.(id) : plugins?.disablePlugin?.(id));
+        await setUp(win, obsidian, theme);
+        const toggle = (on: boolean): Promise<void> => obsidian.evaluate(async (app: PluginHost, arg: { ids: string[]; enable: boolean }) => {
+            for (const id of arg.ids) await (arg.enable ? app.plugins.enablePlugin(id) : app.plugins.disablePlugin(id));
         }, { ids: COMPARE_PLUGINS, enable: on });
 
         await toggle(true);
@@ -342,42 +287,32 @@ for (const theme of ["obsidian", "moonstone"] as const) {
             // A script run before Dataview finished indexing sees a handful of
             // notes and draws a handful of weeks. Wait for the index, then
             // open the note, so the script gets the whole diary.
-            await expect.poll(() => win.evaluate(() => {
-                const dv = (globalThis as unknown as {
-                    app?: { plugins?: { plugins?: { dataview?: { index?: { initialized?: boolean } } } } };
-                }).app?.plugins?.plugins?.dataview;
-                return dv?.index?.initialized === true;
-            }), { timeout: 30_000 }).toBe(true);
-            await openNote(win, "Dataview compare.md", ".dashy-chart-svg");
+            await expect.poll(() => obsidian.evaluate((app: PluginHost) =>
+                app.plugins.plugins.dataview?.index?.initialized === true), { timeout: 30_000 }).toBe(true);
+            await openNote(win, obsidian, "Dataview compare.md", ".dashy-chart-svg");
             const view = win.locator(READING_VIEW);
             const canvas = view.locator(".block-language-dataviewjs canvas").first();
             await expect(canvas).toBeVisible({ timeout: 15_000 });
-            await win.waitForTimeout(1_500); // Chart.js animates its bars in
-            await win.evaluate(() => {
-                for (const notice of Array.from(document.querySelectorAll(".notice"))) notice.remove();
-            });
+            // Chart.js animates its bars in on a canvas, which no DOM change tells us about.
+            await win.waitForTimeout(1_500);
+            await obsidian.clearNotices();
             const top = await view.locator(".markdown-preview-sizer").first().boundingBox();
             const last = await view.locator(".dashy-chart").last().boundingBox();
             if (!top || !last) throw new Error("capture: the comparison note is not on screen");
-            await win.screenshot({
-                path: path.join(SHOTS, `compare-${suffix}.png`),
+            await demo.still(`compare-${suffix}`, {
                 clip: { x: top.x, y: top.y, width: top.width, height: last.y + last.height - top.y },
+                ...STILL,
             });
         } finally {
             await toggle(false);
-            await openNote(win, "Dashboard.md", ".dashy-hm-cell");
+            await openNote(win, obsidian, "Dashboard.md", ".dashy-hm-cell");
         }
     });
 }
 
-test("diagnostics", async ({ win }) => {
-    await setUp(win, "obsidian");
-    await win.evaluate(async () => {
-        const a = (globalThis as unknown as {
-            app?: { workspace?: { openLinkText?: (l: string, s: string) => Promise<void> } };
-        }).app;
-        await a?.workspace?.openLinkText?.("A config with a mistake.md", "");
-    });
+test("diagnostics", async ({ win, obsidian, demo }) => {
+    await setUp(win, obsidian, "obsidian");
+    await obsidian.openFile("A config with a mistake.md", { mode: "preview" });
     const view = win.locator(READING_VIEW);
     await expect(view.locator(".dashy-diag-warning").first()).toBeVisible();
     await expect(view.locator(".dashy-chart-svg").first()).toBeVisible();
@@ -387,28 +322,25 @@ test("diagnostics", async ({ win }) => {
     // a picture whose subject is four lines tall.
     const top = await view.locator(".markdown-preview-sizer").first().boundingBox();
     const last = await view.locator(".dashy-chart").last().boundingBox();
-    if (top && last) {
-        await win.screenshot({
-            path: path.join(SHOTS, "diagnostics-dark.png"),
-            clip: { x: top.x, y: top.y, width: top.width, height: last.y + last.height - top.y + 12 },
-        });
-    }
+    if (!top || !last) throw new Error("capture: the diagnostics note is not on screen");
+    await demo.still("diagnostics-dark", {
+        clip: { x: top.x, y: top.y, width: top.width, height: last.y + last.height - top.y + 12 },
+        ...STILL,
+    });
 });
 
-test("settings", async ({ app, win }) => {
-    await setUp(win, "obsidian");
-    // Since Obsidian 1.13 the settings live in a window of their own.
-    const settings = await openSettings(app, win);
-    await settings.waitForTimeout(600);
+test("settings", async ({ win, obsidian, demo }) => {
+    await setUp(win, obsidian, "obsidian");
+    await obsidian.openSettings("dashsidian");
     // The site puts this picture under the agent section and describes its
     // two install buttons, so they have to be in it. The pane outgrew one
     // window when "New day" arrived: scroll until the last setting (the
     // AGENTS.md row) sits at the bottom, and let the top fall where it may.
-    const pane = settings.locator(".vertical-tab-content-container").first();
+    const pane = win.locator(".modal.mod-settings .vertical-tab-content-container").first();
     const agents = pane.locator(".setting-item").filter({ hasText: "AGENTS.md in the vault root" }).first();
     await expect(agents).toHaveCount(1);
     await agents.evaluate((el) => el.scrollIntoView({ block: "end" }));
-    await settings.waitForTimeout(300);
+    await obsidian.settle();
     const heading = pane.getByText("AI agent skill", { exact: true }).first();
     const headingBox = await heading.boundingBox();
     const paneBox = await pane.boundingBox();
@@ -416,7 +348,7 @@ test("settings", async ({ app, win }) => {
         throw new Error("capture: the agent section does not fit in the settings window");
     }
     // The settings pane alone, without Obsidian's own tab list beside it.
-    await pane.screenshot({ path: path.join(SHOTS, "settings-dark.png") });
+    await demo.still("settings-dark", { clip: pane, ...STILL });
 });
 
 /**
@@ -426,23 +358,13 @@ test("settings", async ({ app, win }) => {
  * line length goes off so the note fills the pane and the reel comes out wide
  * rather than tall, which is what a feed scales well.
  */
-test("reel: the whole dashboard", async ({ win }) => {
-    await setUp(win, "obsidian");
+test("reel: the whole dashboard", async ({ win, obsidian, demo }) => {
+    await setUp(win, obsidian, "obsidian");
     const view = win.locator(READING_VIEW);
-    const reel = new Reel("dashboard-wide");
 
-    await win.evaluate(() => {
-        const a = (globalThis as unknown as {
-            app?: {
-                vault?: { setConfig?: (k: string, v: unknown) => void };
-                workspace?: { trigger?: (e: string) => void };
-            };
-        }).app;
-        a?.vault?.setConfig?.("readableLineLength", false);
-        a?.workspace?.trigger?.("css-change");
-    });
-    await win.locator(".markdown-preview-view").first().evaluate((el) => { el.scrollTop = 0; });
-    await win.waitForTimeout(600);
+    await setReadableLineLength(obsidian, false);
+    await win.locator(".markdown-preview-view").first().evaluate((el: HTMLElement) => { el.scrollTop = 0; });
+    await obsidian.settle();
 
     // As much of the note as fits above the fold, ending on a whole block. A
     // clip that stops mid-card reads as a broken screenshot.
@@ -463,47 +385,32 @@ test("reel: the whole dashboard", async ({ win }) => {
         width: Math.min(WIDTH - x, sizer.width + pad * 2),
         height: Math.min(HEIGHT - y, bottom - y + pad),
     };
-    const region = { screenshot: (o: { path: string }) => win.screenshot({ ...o, clip }) };
+    const film = demo.film({ name: "dashboard-wide", kind: "desktop", clip, cursor: false });
 
-    await reel.hold(region, 4);
+    // Four 4 fps frames held, a note added every half second, eight held at the end.
+    await film.shot({ hold: 1, settle: true });
     let count = Number((await view.locator(".dashy-stat-value").first().textContent())?.replace(/\D/g, "") ?? 0);
     for (let i = 1; i <= 5; i++) {
-        await win.evaluate(async (n) => {
-            const a = (globalThis as unknown as {
-                app?: { vault?: { create?: (p: string, d: string) => Promise<unknown> } };
-            }).app;
-            await a?.vault?.create?.(`Diary/2019-01-0${n}.md`, `---\nsleep_score: 9${n}\nsteps: 1200${n}\n---\n`);
+        await obsidian.evaluate(async (app: App, n: number) => {
+            await app.vault.create(`Diary/2019-01-0${n}.md`, `---\nsleep_score: 9${n}\nsteps: 1200${n}\n---\n`);
         }, i);
         count += 1;
         await expect(view.locator(".dashy-stat-value").first()).toHaveText(String(count));
-        await reel.shoot(region);
-        await reel.shoot(region);
+        await film.shot({ hold: 0.5, settle: true });
     }
-    await reel.hold(region, 8);
+    await film.shot({ hold: 2, settle: true });
 });
 
-test("reel: the dashboard follows the theme", async ({ win }) => {
-    await setUp(win, "obsidian");
+test("reel: the dashboard follows the theme", async ({ win, obsidian, demo }) => {
+    await setUp(win, obsidian, "obsidian");
     const view = win.locator(READING_VIEW);
     const region = view.locator(".dashy-stats").first();
-    const reel = new Reel("theme-follow");
 
     await region.scrollIntoViewIfNeeded();
+    const film = demo.film({ name: "theme-follow", kind: "desktop", clip: region, cursor: false });
     for (const theme of ["obsidian", "moonstone", "obsidian"] as const) {
-        await win.evaluate((name) => {
-            const a = (globalThis as unknown as {
-                app?: {
-                    changeTheme?: (n: string) => void;
-                    vault?: { setConfig?: (k: string, v: unknown) => void };
-                    workspace?: { trigger?: (e: string) => void };
-                };
-            }).app;
-            a?.changeTheme?.(name);
-            a?.vault?.setConfig?.("theme", name);
-            a?.workspace?.trigger?.("css-change");
-        }, theme);
-        await win.waitForTimeout(500);
-        await reel.hold(region, 6);
+        await obsidian.setTheme({ mode: MODE[theme] });
+        await film.shot({ hold: 1.5, settle: true });
     }
 });
 
@@ -515,17 +422,17 @@ test("reel: the dashboard follows the theme", async ({ win }) => {
 for (const theme of ["obsidian", "moonstone"] as const) {
     const suffix = theme === "obsidian" ? "dark" : "light";
 
-    test(`agent hero note, ${suffix}`, async ({ win }) => {
-        await setUp(win, theme);
+    test(`agent hero note, ${suffix}`, async ({ win, obsidian, demo }) => {
+        await setUp(win, obsidian, theme);
         const view = win.locator(READING_VIEW);
-        await openNote(win, "Running.md", ".dashy-chart-svg");
+        await openNote(win, obsidian, "Running.md", ".dashy-chart-svg");
         // From the note's title, so the picture says which note this is.
         const box = await union(view.locator(".inline-title").first(), view.locator(".dashy-chart").last());
         const pad = 24;
-        await win.screenshot({
-            path: path.join(SHOTS, `agent-note-${suffix}.png`),
+        await demo.still(`agent-note-${suffix}`, {
             clip: { x: box.x - pad, y: box.y - pad, width: box.width + 2 * pad, height: box.height + 2 * pad },
+            ...STILL,
         });
-        await openNote(win, "Dashboard.md", ".dashy-hm-cell");
+        await openNote(win, obsidian, "Dashboard.md", ".dashy-hm-cell");
     });
 }

@@ -11,24 +11,6 @@ import { test, expect, READING_VIEW } from "./fixtures";
 
 const LIVE_PREVIEW = ".markdown-source-view.is-live-preview";
 
-async function openTilesCover(win: Page, mode: "preview" | "source"): Promise<void> {
-    await win.evaluate(async (viewMode) => {
-        const a = (globalThis as unknown as {
-            app?: {
-                vault?: { getFileByPath?: (p: string) => unknown };
-                workspace?: {
-                    getLeaf?: (n?: boolean) => { openFile?: (f: unknown, s?: unknown) => Promise<void> };
-                };
-            };
-        }).app;
-        const file = a?.vault?.getFileByPath?.("TilesCover.md");
-        await a?.workspace?.getLeaf?.(false)?.openFile?.(file, {
-            state: { mode: viewMode, source: false },
-        });
-    }, mode);
-    await win.waitForTimeout(800);
-}
-
 interface CoverBox {
     loaded: boolean;
     coverLeft: number;
@@ -76,13 +58,13 @@ async function expectCoversFill(win: Page, scope: string): Promise<void> {
 }
 
 test.describe("a tile cover reaches both edges of the tile (B-152)", () => {
-    test("in reading view", async ({ win }) => {
-        await openTilesCover(win, "preview");
+    test("in reading view", async ({ win, obsidian }) => {
+        await obsidian.openFile("TilesCover.md", { mode: "preview" });
         await expectCoversFill(win, READING_VIEW);
     });
 
-    test("in live preview", async ({ win }) => {
-        await openTilesCover(win, "source");
+    test("in live preview", async ({ win, obsidian }) => {
+        await obsidian.openFile("TilesCover.md", { mode: "live" });
         await expectCoversFill(win, LIVE_PREVIEW);
     });
 });

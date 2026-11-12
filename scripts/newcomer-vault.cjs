@@ -71,11 +71,7 @@ function build() {
         }, null, 2) + "\n",
     );
 
-    const pluginDir = path.join(out, ".obsidian", "plugins", "dashsidian");
-    fs.mkdirSync(pluginDir, { recursive: true });
-    for (const f of ["main.js", "manifest.json", "styles.css"]) {
-        fs.symlinkSync(path.join(root, f), path.join(pluginDir, f));
-    }
+    // The plugin itself is not put here: the e2e fixture installs the build into its copy of the vault.
 
     console.log(`[firstrun] newcomer vault: ${out} (${written} journal entries, 12 work notes, 1 template)`);
 }

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { test, expect, openSettings, closeSettings } from "./fixtures";
+import type { App } from "obsidian";
+import { test, expect, onlyWhen } from "./fixtures";
 
 /**
  * The first run, walked the way a newcomer walks it.
@@ -10,13 +11,13 @@ import { test, expect, openSettings, closeSettings } from "./fixtures";
  * `Templates` folder, as almost every vault has. A first run that only works
  * on a vault shaped like our examples does not work.
  *
- * Run with `npm run firstrun`. It measures rather than asserts: the report it
- * prints is the artefact.
+ * Run with `npm run firstrun`, which points `OPDK_E2E_VAULT` at that vault. It
+ * measures rather than asserts: the report it prints is the artefact.
  */
 
 const steps: { step: string; ms: number; saw: string }[] = [];
 
-test.skip(!process.env.FIRSTRUN, "first-run audit only — `npm run firstrun`");
+onlyWhen("FIRSTRUN");
 test.describe.configure({ mode: "serial" });
 
 async function timed(step: string, run: () => Promise<string>): Promise<void> {
@@ -25,7 +26,7 @@ async function timed(step: string, run: () => Promise<string>): Promise<void> {
     steps.push({ step, ms: Date.now() - started, saw });
 }
 
-test("a newcomer gets from an installed plugin to a number about their own vault", async ({ app, win }) => {
+test("a newcomer gets from an installed plugin to a number about their own vault", async ({ win, obsidian }) => {
     const shots = path.resolve("docs/screens/firstrun");
     fs.mkdirSync(shots, { recursive: true });
     await win.setViewportSize({ width: 1100, height: 760 });
@@ -36,24 +37,15 @@ test("a newcomer gets from an installed plugin to a number about their own vault
     });
 
     await timed("they look for the plugin in the command palette", async () => {
-        const commands = await win.evaluate(() => {
-            const a = (globalThis as unknown as {
-                app?: { commands?: { commands?: Record<string, { name?: string }> } };
-            }).app;
-            return Object.values(a?.commands?.commands ?? {})
+        const commands = await obsidian.evaluate((app: App & { commands: { commands: Record<string, { name?: string }> } }) =>
+            Object.values(app.commands.commands)
                 .map((c) => c.name ?? "")
-                .filter((n) => n.toLowerCase().includes("dashy"));
-        });
+                .filter((n) => n.toLowerCase().includes("dashy")));
         return commands.join(" / ") || "nothing found";
     });
 
     await timed("they run it and pick the first block offered", async () => {
-        await win.evaluate(() => {
-            const a = (globalThis as unknown as {
-                app?: { commands?: { executeCommandById?: (id: string) => boolean } };
-            }).app;
-            a?.commands?.executeCommandById?.("dashsidian:insert-block");
-        });
+        await obsidian.runCommand("dashsidian:insert-block");
         await expect(win.locator(".prompt-input")).toBeVisible();
         const offered = await win.locator(".suggestion-item").allTextContents();
         await win.screenshot({ path: path.join(shots, "1-picker.png") });
@@ -62,7 +54,8 @@ test("a newcomer gets from an installed plugin to a number about their own vault
     });
 
     await timed("the block renders", async () => {
-        await win.waitForTimeout(1200);
+        await expect(win.locator(".dashy-tile-badge, .dashy-stat-value, .dashy-diag-error").first()).toBeVisible();
+        await obsidian.settle();
         await win.screenshot({ path: path.join(shots, "2-first-block.png") });
         const numbers = await win.locator(".dashy-tile-badge, .dashy-stat-value").allTextContents();
         const errors = await win.locator(".dashy-diag-error").allTextContents();
@@ -77,15 +70,10 @@ test("a newcomer gets from an installed plugin to a number about their own vault
     await timed("they try every other block the same way", async () => {
         const lines: string[] = [];
         for (const block of ["stats", "progress", "today", "countdown", "heatmap"]) {
-            await win.evaluate(() => {
-                const a = (globalThis as unknown as {
-                    app?: { commands?: { executeCommandById?: (id: string) => boolean } };
-                }).app;
-                a?.commands?.executeCommandById?.("dashsidian:insert-block");
-            });
+            await obsidian.runCommand("dashsidian:insert-block");
             await win.locator(".prompt-input").fill(block);
             await win.locator(".suggestion-item").first().click();
-            await win.waitForTimeout(700);
+            await obsidian.settle();
             const errors = await win.locator(".dashy-diag-error").allTextContents();
             const values = await win.locator(".dashy-stat-value, .dashy-progress-value, .dashy-countdown-value")
                 .allTextContents();
@@ -96,11 +84,11 @@ test("a newcomer gets from an installed plugin to a number about their own vault
     });
 
     await timed("they open the settings to find out what to do", async () => {
-        const settings = await openSettings(app, win);
-        await settings.locator(".vertical-tab-content-container").first()
+        const settings = await obsidian.openSettings("dashsidian");
+        await win.locator(".modal.mod-settings .vertical-tab-content-container").first()
             .screenshot({ path: path.join(shots, "4-settings.png") });
         const rows = await settings.locator(".setting-item-name").allTextContents();
-        await closeSettings(win);
+        await obsidian.closeSettings();
         return `rows: ${rows.join(", ")}`;
     });
 

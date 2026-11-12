@@ -1,4 +1,3 @@
-import type { Page } from "@playwright/test";
 import { test, expect, READING_VIEW } from "./fixtures";
 
 /**
@@ -9,27 +8,9 @@ import { test, expect, READING_VIEW } from "./fixtures";
  * tests use. `Diary` holds ten notes, seven of them `gym: true`.
  */
 
-async function openTilesSelection(win: Page): Promise<void> {
-    await win.evaluate(async () => {
-        const a = (globalThis as unknown as {
-            app?: {
-                vault?: { getFileByPath?: (p: string) => unknown };
-                workspace?: {
-                    getLeaf?: (n?: boolean) => { openFile?: (f: unknown, s?: unknown) => Promise<void> };
-                };
-            };
-        }).app;
-        const file = a?.vault?.getFileByPath?.("TilesSelection.md");
-        await a?.workspace?.getLeaf?.(false)?.openFile?.(file, {
-            state: { mode: "preview", source: false },
-        });
-    });
-    await win.waitForTimeout(800);
-}
-
 test.describe("a tile's badge: count narrowed by where (B-114)", () => {
-    test("only the notes matching where are counted, not the whole folder", async ({ win }) => {
-        await openTilesSelection(win);
+    test("only the notes matching where are counted, not the whole folder", async ({ win, obsidian }) => {
+        await obsidian.openFile("TilesSelection.md", { mode: "preview" });
         const view = win.locator(READING_VIEW);
 
         await expect(view.locator(".dashy-tile")).toHaveCount(1);
