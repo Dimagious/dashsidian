@@ -1,77 +1,60 @@
-import path from "node:path";
-import { test, expect } from "./fixtures";
+import { createObsidianTest } from "obsidian-plugin-dev-kit/e2e";
+import type { App } from "obsidian";
+import { dayCell, openPhoneNote, tapDay } from "./phone-note";
 
 /**
  * The catalog's mobile pictures, 900x1600, from the running plugin in
  * Obsidian's own mobile interface in a phone-sized window. It is not a device,
  * so the top of the frame, where a status bar would sit, is cropped off.
+ * They land in `.opdk/listing/stills`, apart from the README's pictures, and
+ * `scripts/listing-pictures.cjs` moves them to `design/listing`.
  * Run on demand: `node scripts/listing-pictures.cjs`.
  */
 
-const OUT = path.resolve("design/listing");
+const { test, expect, onlyWhen } = createObsidianTest({
+    seedVault: ".capture/vault",
+    demo: { outDir: ".opdk/listing" },
+});
+
 const WIDTH = 450;
 const HEIGHT = 800;
 const TOP = 44;
-const NOTE = "Sleep on my phone";
-const BODY = [
-    "```stats", "source: Diary", "columns: 2", "items:",
-    "  - { label: Sleep score, field: sleep_score, agg: avg, period: week }",
-    "  - { label: Gym this week, field: gym, agg: sum, period: week }",
-    "```", "",
-    "```heatmap", "source: Diary", "field: sleep_score", "color: green", "title: Sleep score", "range: 120d", "```", "",
-    "```chart", "source: Diary", "field: sleep_score", "title: Last two weeks", "range: 14d", "type: line", "```", "",
-].join("\n");
 
-test.skip(!process.env.LISTING, "listing run only");
+onlyWhen("LISTING");
+test.setTimeout(180_000);
 
-test("mobile pictures", async ({ win }) => {
-    test.setTimeout(180_000);
-    await win.evaluate(() => (globalThis as any).app.emulateMobile(true)).catch(() => undefined);
-    await win.waitForLoadState("domcontentloaded");
-    await expect.poll(() => win.evaluate(() => {
-        const a = (globalThis as any).app;
-        return Boolean(a?.workspace?.layoutReady && a?.plugins?.plugins?.dashsidian);
-    }).catch(() => false), { timeout: 60_000 }).toBe(true);
-    // Twice the pixels for the same layout: a screenshot ignores a device scale
-    // set from outside, but not the window's own zoom.
-    await win.setViewportSize({ width: WIDTH * 2, height: (HEIGHT + TOP) * 2 });
-    await win.evaluate(() => (globalThis as any).require("electron").webFrame.setZoomFactor(2));
-    await win.waitForTimeout(800);
+test("mobile pictures", async ({ win, obsidian, demo }) => {
+    await obsidian.mobile({ width: WIDTH, height: HEIGHT + TOP });
+    await obsidian.setTheme({ mode: "dark" });
+    await obsidian.waitForMetadataCache();
 
-    await win.evaluate(async ({ name, body }) => {
-        const a = (globalThis as any).app;
-        a.changeTheme("obsidian");
-        await new Promise((resolve) => {
-            const files = a.vault.getMarkdownFiles();
-            const poll = () => files.every((f: unknown) => a.metadataCache.getFileCache(f)) ? resolve(null) : setTimeout(poll, 200);
-            poll();
-        });
-        await a.vault.create(`${name}.md`, body);
-    }, { name: NOTE, body: BODY });
-
-    const shoot = async (file: string): Promise<void> => {
-        await win.evaluate(() => { for (const n of Array.from(document.querySelectorAll(".notice"))) n.remove(); });
-        await win.screenshot({ path: path.join(OUT, file), clip: { x: 0, y: TOP * 2, width: WIDTH * 2, height: HEIGHT * 2 } });
+    const shoot = async (name: string): Promise<void> => {
+        await obsidian.clearNotices();
+        await demo.still(name, { clip: { x: 0, y: TOP, width: WIDTH, height: HEIGHT }, settle: true, cursor: false });
     };
-    const open = async (note: string): Promise<void> => {
-        await win.evaluate(async (n) => {
-            await (globalThis as any).app.workspace.openLinkText(n, "", false, { state: { mode: "preview" } });
-        }, note);
-        await win.waitForTimeout(3_500);
+    const open = async (path: string): Promise<void> => {
+        await obsidian.openFile(path, { mode: "preview" });
+        await expect(win.locator(".workspace-leaf.mod-active .markdown-reading-view .dashy-diag-error")).toHaveCount(0);
     };
 
-    await open("Running");
-    await shoot("mobile-1-running.png");
-    await open("Dashboard");
-    await shoot("mobile-2-dashboard.png");
-    await open("Reviews/2026-W44");
-    await shoot("mobile-3-review.png");
-    await open(NOTE);
-    const cell = win.locator('.workspace-leaf.mod-active .markdown-reading-view a.dashy-hm-cell[data-href$="2026-10-06.md"]');
+    await open("Running.md");
+    await expect(win.locator(".workspace-leaf.mod-active .markdown-reading-view [class*='dashy-']").first()).toBeVisible();
+    await shoot("mobile-1-running");
+    await open("Dashboard.md");
+    await expect(win.locator(".workspace-leaf.mod-active .markdown-reading-view [class*='dashy-']").first()).toBeVisible();
+    await shoot("mobile-2-dashboard");
+    // Last week's review: the demo vault names it for the week it was made in.
+    const review = await obsidian.evaluate((app: App) =>
+        app.vault.getMarkdownFiles().map((f) => f.path).find((p) => /^Reviews\/\d{4}-W\d{2}\.md$/.test(p)) ?? null);
+    if (!review) throw new Error("listing: no weekly review note under Reviews/");
+    await open(review);
+    await expect(win.locator(".workspace-leaf.mod-active .markdown-reading-view [class*='dashy-']").first()).toBeVisible();
+    await shoot("mobile-3-review");
+
+    await openPhoneNote(obsidian);
+    const cell = dayCell(win, tapDay());
     await expect(cell).toHaveCount(1, { timeout: 30_000 });
     await cell.click();
-    await win.waitForTimeout(400);
-    await shoot("mobile-4-tap.png");
-    await cell.click();
-    await win.waitForTimeout(1_000);
+    await expect(win.locator(".workspace-leaf.mod-active .markdown-reading-view .dashy-hm-cell.is-selected")).toHaveCount(1);
+    await shoot("mobile-4-tap");
 });

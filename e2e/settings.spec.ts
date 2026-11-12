@@ -1,4 +1,14 @@
-import { test, expect, openSettings, closeSettings } from "./fixtures";
+import { test, expect, pluginSettings, type DashyPlugin } from "./fixtures";
+
+/** What the plugin has written to its `data.json`, `{}` until it has. */
+const savedSettings = (vault: { exists(p: string): boolean; read(p: string): string }): Partial<DashyPlugin["settings"]> =>
+    vault.exists(".obsidian/plugins/dashsidian/data.json")
+        ? (JSON.parse(vault.read(".obsidian/plugins/dashsidian/data.json")) as Partial<DashyPlugin["settings"]>)
+        : {};
+
+/** A file of the vault's folder on disk, or "" until it is written: what a poll reads while the plugin is still at it. */
+const fileText = (vault: { exists(p: string): boolean; read(p: string): string }, rel: string): string =>
+    vault.exists(rel) ? vault.read(rel) : "";
 
 /**
  * The settings tab is declared through `getSettingDefinitions()`, so Obsidian
@@ -6,125 +16,85 @@ import { test, expect, openSettings, closeSettings } from "./fixtures";
  * place it gets exercised.
  */
 test.describe("settings tab", () => {
-    test.afterEach(async ({ win }) => {
-        await closeSettings(win);
+    test.afterEach(async ({ obsidian }) => {
+        await obsidian.closeSettings();
     });
 
-    test("all three periodic folders can be set", async ({ app, win }) => {
-        const settings = await openSettings(app, win);
+    test("all three periodic folders can be set", async ({ obsidian }) => {
+        const settings = await obsidian.openSettings("dashsidian");
         for (const name of ["Daily notes folder", "Weekly notes folder", "Monthly notes folder"]) {
             await expect(settings.getByText(name, { exact: true })).toBeVisible();
         }
     });
 
-    test("typing a folder is saved to disk", async ({ app, win }) => {
-        const settings = await openSettings(app, win);
-        await settings.locator(".modal.mod-settings input[type=text]").first().fill("Diary");
-        await win.waitForTimeout(500);
+    test("typing a folder is saved to disk", async ({ obsidian, vault }) => {
+        const settings = await obsidian.openSettings("dashsidian");
+        await settings.locator("input[type=text]").first().fill("Diary");
 
-        const saved = await win.evaluate(async () => {
-            const a = (globalThis as unknown as {
-                app?: { plugins?: { plugins?: Record<string, { settings?: { dailyFolder?: string } }> } };
-            }).app;
-            return a?.plugins?.plugins?.dashsidian?.settings?.dailyFolder ?? null;
-        });
-        expect(saved).toBe("Diary");
+        await expect.poll(async () => (await pluginSettings(obsidian))?.dailyFolder).toBe("Diary");
+        // The name says disk: the plugin's data.json is what a restart would load.
+        await expect.poll(() => savedSettings(vault).dailyFolder).toBe("Diary");
     });
 
-    test("the new-day hour can be changed and persists to disk", async ({ app, win }) => {
-        const settings = await openSettings(app, win);
-        const row = settings.locator(".setting-item", { has: settings.getByText("New day starts at", { exact: true }) });
+    test("the new-day hour can be changed and persists to disk", async ({ win, obsidian, vault }) => {
+        await obsidian.openSettings("dashsidian");
+        // The filter goes through `win`: a locator made from the settings content would be looked up inside each row.
+        const row = win.locator(".modal.mod-settings .setting-item", { has: win.getByText("New day starts at", { exact: true }) });
         // Obsidian's dropdown keeps a second, hidden `select` around purely
         // to measure its own width; `.is-measuring` is the one to skip.
         await row.locator("select:not(.is-measuring)").selectOption({ label: "04:00" });
-        await win.waitForTimeout(500);
 
-        const saved = await win.evaluate(async () => {
-            const a = (globalThis as unknown as {
-                app?: { plugins?: { plugins?: Record<string, { settings?: { startDayHour?: number } }> } };
-            }).app;
-            return a?.plugins?.plugins?.dashsidian?.settings?.startDayHour ?? null;
-        });
-        expect(saved).toBe(4);
+        await expect.poll(async () => (await pluginSettings(obsidian))?.startDayHour).toBe(4);
+        await expect.poll(() => savedSettings(vault).startDayHour).toBe(4);
     });
 
-    test("AGENTS.md is written for agents that do not read Claude skills", async ({ app, win }) => {
-        const settings = await openSettings(app, win);
+    test("AGENTS.md is written for agents that do not read Claude skills", async ({ obsidian, vault }) => {
+        const settings = await obsidian.openSettings("dashsidian");
         await settings.getByRole("button", { name: "AGENTS.md in the vault root" }).click();
-        // The notice lands in whichever window Obsidian considers active, and
-        // since 1.13 that is not the one holding the settings. The file on disk
-        // is the assertion that matters anyway.
-        await win.waitForTimeout(800);
+        // The file on disk is the assertion that matters: the notice lands in
+        // whichever window Obsidian considers active.
+        await expect.poll(() => fileText(vault, "AGENTS.md")).toContain("<!-- dashy:end -->");
 
-        const written = await win.evaluate(async () => {
-            const a = (globalThis as unknown as {
-                app?: { vault?: { adapter?: { read?: (p: string) => Promise<string> } } };
-            }).app;
-            return a?.vault?.adapter?.read?.("AGENTS.md") ?? null;
-        });
+        const written = vault.read("AGENTS.md");
         expect(written).toContain("<!-- dashy:begin -->");
         expect(written).toContain("### `countdown`");
-        expect(written?.trimEnd().endsWith("<!-- dashy:end -->")).toBe(true);
+        expect(written.trimEnd().endsWith("<!-- dashy:end -->")).toBe(true);
     });
 
-    test("a file the user already owns keeps its own text", async ({ app, win }) => {
-        await win.evaluate(async () => {
-            const a = (globalThis as unknown as {
-                app?: { vault?: { adapter?: { write?: (p: string, d: string) => Promise<void> } } };
-            }).app;
-            await a?.vault?.adapter?.write?.("AGENTS.md", "# House rules\n\nNever touch this line.\n");
-        });
+    test("a file the user already owns keeps its own text", async ({ obsidian, vault }) => {
+        vault.write("AGENTS.md", "# House rules\n\nNever touch this line.\n");
 
-        const settings = await openSettings(app, win);
+        const settings = await obsidian.openSettings("dashsidian");
         await settings.getByRole("button", { name: "AGENTS.md in the vault root" }).click();
-        await win.waitForTimeout(800);
+        await expect.poll(() => vault.read("AGENTS.md")).toContain("<!-- dashy:begin -->");
 
-        const written = await win.evaluate(async () => {
-            const a = (globalThis as unknown as {
-                app?: { vault?: { adapter?: { read?: (p: string) => Promise<string> } } };
-            }).app;
-            return a?.vault?.adapter?.read?.("AGENTS.md") ?? "";
-        });
+        const written = vault.read("AGENTS.md");
         expect(written).toContain("# House rules");
         expect(written).toContain("Never touch this line.");
-        expect(written).toContain("<!-- dashy:begin -->");
     });
 
-    test("the skill can be installed into the vault from the button", async ({ app, win }) => {
-        const settings = await openSettings(app, win);
+    test("the skill can be installed into the vault from the button", async ({ obsidian, vault }) => {
+        const settings = await obsidian.openSettings("dashsidian");
         await settings.getByRole("button", { name: "Skill file in this vault" }).click();
-        await win.waitForTimeout(800);
-
-        const written = await win.evaluate(async () => {
-            const a = (globalThis as unknown as {
-                app?: { vault?: { adapter?: { read?: (p: string) => Promise<string> } } };
-            }).app;
-            const adapter = a?.vault?.adapter;
-            if (!adapter?.read) return null;
-            return {
-                skill: await adapter.read(".claude/skills/dashy/SKILL.md"),
-                reference: await adapter.read(".claude/skills/dashy/reference.md"),
-            };
-        });
         // The process in SKILL.md, the key tables in reference.md next to it (B-164).
-        expect(written?.skill).toContain("## 1. Look before writing");
-        expect(written?.skill).toContain("[reference.md](reference.md)");
-        expect(written?.reference).toContain("# Dashy block reference");
-        expect(written?.reference).toContain("### `countdown`");
+        await expect.poll(() => fileText(vault, ".claude/skills/dashy/SKILL.md")).toContain("## 1. Look before writing");
+        const skill = vault.read(".claude/skills/dashy/SKILL.md");
+        expect(skill).toContain("[reference.md](reference.md)");
+        await expect.poll(() => fileText(vault, ".claude/skills/dashy/reference.md")).toContain("### `countdown`");
+        expect(vault.read(".claude/skills/dashy/reference.md")).toContain("# Dashy block reference");
     });
 
-    test("the About rows are there, with somewhere to send feedback", async ({ app, win }) => {
-        const settings = await openSettings(app, win);
+    test("the About rows are there, with somewhere to send feedback", async ({ obsidian }) => {
+        const settings = await obsidian.openSettings("dashsidian");
         for (const name of ["Report a bug", "Suggest a feature", "Documentation", "Buy me a coffee"]) {
             await expect(settings.getByText(name, { exact: true })).toBeVisible();
         }
         await expect(settings.getByRole("button", { name: "Report a bug" })).toBeVisible();
     });
 
-    test("installing again offers an update rather than a fresh install", async ({ app, win }) => {
-        const settings = await openSettings(app, win);
+    test("installing again offers an update rather than a fresh install", async ({ obsidian }) => {
+        const settings = await obsidian.openSettings("dashsidian");
         await settings.getByRole("button", { name: "Skill file in this vault" }).click();
-        await win.waitForTimeout(800);
         // The row redraws through update(), so the button relabels itself.
         await expect(settings.getByRole("button", { name: "Skill file in this vault" }))
             .toHaveText("Update");

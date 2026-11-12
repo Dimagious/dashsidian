@@ -710,12 +710,7 @@ title: Gym and reading
 
     compareSetup();
 
-    // Symlink the built plugin in, the way the E2E setup does.
-    const pluginDir = path.join(out, ".obsidian", "plugins", "dashsidian");
-    fs.mkdirSync(pluginDir, { recursive: true });
-    for (const f of ["main.js", "manifest.json", "styles.css"]) {
-        fs.symlinkSync(path.join(root, f), path.join(pluginDir, f));
-    }
+    // The plugin itself is not put here: the e2e fixture installs the build into its copy of the vault.
 
     console.log(`[capture] demo vault: ${out} (${days} diary notes)`);
 }

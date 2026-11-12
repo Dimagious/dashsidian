@@ -1,3 +1,4 @@
+import type { App } from "obsidian";
 import { test, expect, READING_VIEW } from "./fixtures";
 
 /**
@@ -14,50 +15,41 @@ import { test, expect, READING_VIEW } from "./fixtures";
 
 const WAITING = "Obsidian is still indexing the vault. The block will appear when it is done.";
 
-interface IndexingApp {
-    app?: {
-        metadataCache?: { inProgressTaskCount?: number; trigger?: (name: string) => void };
-        vault?: { getFileByPath?: (p: string) => unknown };
-        workspace?: {
-            getActiveFile?: () => { path: string } | null;
-            getLeaf?: (n?: boolean) => { openFile?: (f: unknown, s?: unknown) => Promise<void> };
-        };
-        plugins?: {
-            disablePlugin?: (id: string) => Promise<unknown>;
-            enablePlugin?: (id: string) => Promise<unknown>;
-        };
-    };
-}
+/** The private parts of Obsidian this spec holds by hand: the metadata cache's queue counter and its event. */
+type IndexingApp = App & {
+    metadataCache: { inProgressTaskCount: number; trigger(name: string): void };
+    plugins: { disablePlugin(id: string): Promise<unknown>; enablePlugin(id: string): Promise<unknown> };
+};
 
-test("a block drawn mid-index waits, then draws the real numbers", async ({ win }) => {
+test("a block drawn mid-index waits, then draws the real numbers", async ({ win, obsidian }) => {
     const view = win.locator(READING_VIEW);
     const days = view.locator(".dashy-stat-value").first();
     await expect(days).toHaveText("10");
 
-    await win.evaluate(async () => {
-        const a = (globalThis as unknown as IndexingApp).app;
-        await a?.plugins?.disablePlugin?.("dashsidian");
-        if (a?.metadataCache) a.metadataCache.inProgressTaskCount = (a.metadataCache.inProgressTaskCount ?? 0) + 1;
-        await a?.plugins?.enablePlugin?.("dashsidian");
+    await obsidian.evaluate(async (app: IndexingApp) => {
+        await app.plugins.disablePlugin("dashsidian");
+        app.metadataCache.inProgressTaskCount += 1;
+        await app.plugins.enablePlugin("dashsidian");
         // Whether enabling re-renders the open note is Obsidian's call; a
         // note opened afresh is drawn by the new plugin either way.
-        const path = a?.workspace?.getActiveFile?.()?.path ?? "Dashboard.md";
+        const path = app.workspace.getActiveFile()?.path ?? "Dashboard.md";
         const preview = { state: { mode: "preview", source: false } };
-        await a?.workspace?.getLeaf?.(false)?.openFile?.(a.vault?.getFileByPath?.("Journal.md"), preview);
-        await a?.workspace?.getLeaf?.(false)?.openFile?.(a.vault?.getFileByPath?.(path), preview);
+        const journal = app.vault.getFileByPath("Journal.md");
+        const back = app.vault.getFileByPath(path);
+        if (!journal || !back) throw new Error("the notes to reopen are missing");
+        await app.workspace.getLeaf(false).openFile(journal, preview);
+        await app.workspace.getLeaf(false).openFile(back, preview);
     });
 
     await expect(view.locator(".dashy-notice").filter({ hasText: WAITING }).first()).toBeVisible();
     await expect(view.locator(".dashy-diag-warning"), "no warning drawn from a half-read vault").toHaveCount(0);
     await expect(view.locator(".dashy-stat-value")).toHaveCount(0);
 
-    await win.evaluate(() => {
-        const cache = (globalThis as unknown as IndexingApp).app?.metadataCache;
-        if (!cache) return;
-        cache.inProgressTaskCount = Math.max(0, (cache.inProgressTaskCount ?? 1) - 1);
+    await obsidian.evaluate((app: IndexingApp) => {
+        app.metadataCache.inProgressTaskCount = Math.max(0, app.metadataCache.inProgressTaskCount - 1);
         // What Obsidian fires when its parse queue empties; the clean-cache
         // callbacks the plugin waits on run from it.
-        cache.trigger?.("finished");
+        app.metadataCache.trigger("finished");
     });
 
     await expect(days).toHaveText("10");

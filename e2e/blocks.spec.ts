@@ -63,10 +63,11 @@ test.describe("blocks render in a real Obsidian", () => {
     });
 
     test("the heatmap colours exactly the days that have data", async ({ win }) => {
-        const coloured = await view(win).locator(".dashy-hm-cell").evaluateAll(
+        await expect(view(win).locator(".dashy-hm-cell").first()).toBeVisible();
+        const coloured = (): Promise<number> => view(win).locator(".dashy-hm-cell").evaluateAll(
             (cells) => cells.filter((c) => (c as HTMLElement).style.backgroundColor !== "").length,
         );
-        expect(coloured).toBe(10);
+        await expect.poll(coloured).toBe(10);
         await expect(view(win).locator(".dashy-hm-leg")).toHaveCount(3);
     });
 
@@ -101,20 +102,20 @@ test.describe("a broken config is reported, not swallowed", () => {
  * a real browser engine can tell us the rules actually applied.
  */
 test.describe("the stylesheet is really applied", () => {
+    // The plugin has loaded when the test starts, its first render may not have: each lookup
+    // below waits for the block to be there (an empty value is "not drawn yet", never a pass).
     test("grids are grids", async ({ win }) => {
-        expect(await styleOf(win, ".dashy-tiles", "display")).toBe("grid");
-        expect(await styleOf(win, ".dashy-stats", "display")).toBe("grid");
-        expect(await styleOf(win, ".dashy-countdown", "display")).toBe("grid");
+        for (const selector of [".dashy-tiles", ".dashy-stats", ".dashy-countdown"]) {
+            await expect.poll(() => styleOf(win, selector, "display"), { message: selector }).toBe("grid");
+        }
     });
 
     test("the progress track has a height to fill", async ({ win }) => {
-        const height = await styleOf(win, ".dashy-progress-track", "height");
-        expect(Number.parseFloat(height)).toBeGreaterThan(0);
+        await expect.poll(async () => Number.parseFloat(await styleOf(win, ".dashy-progress-track", "height"))).toBeGreaterThan(0);
     });
 
     test("heatmap cells have a size", async ({ win }) => {
-        const width = await styleOf(win, ".dashy-hm-cell", "width");
-        expect(Number.parseFloat(width)).toBeGreaterThan(0);
+        await expect.poll(async () => Number.parseFloat(await styleOf(win, ".dashy-hm-cell", "width"))).toBeGreaterThan(0);
     });
 
     test("the plugin's own tokens resolved against the theme", async ({ win }) => {
@@ -123,7 +124,6 @@ test.describe("the stylesheet is really applied", () => {
         const surface = await win.evaluate(() =>
             getComputedStyle(document.body).getPropertyValue("--dashy-surface").trim());
         expect(surface).not.toBe("");
-        const card = await styleOf(win, ".dashy-stat", "background-image");
-        expect(card).toContain("gradient");
+        await expect.poll(() => styleOf(win, ".dashy-stat", "background-image")).toContain("gradient");
     });
 });

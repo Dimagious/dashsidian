@@ -22,7 +22,7 @@
     "coverage": "vitest run --coverage",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p e2e/tsconfig.json --noEmit",
     "scorecard:check": "opdk scan",
     "site:check": "node scripts/site-check.cjs",
     "site:assemble": "node scripts/assemble-site.cjs",
@@ -31,21 +31,20 @@
     "release:zip": "node scripts/make-zip.cjs",
     "release": "npm run release:check && npm run release:zip",
     "release:audit": "node scripts/release-audit.cjs",
-    "e2e:setup": "./scripts/e2e-setup.sh",
-    "e2e": "./scripts/e2e-setup.sh && env -u ELECTRON_RUN_AS_NODE playwright test",
-    "e2e:headed": "./scripts/e2e-setup.sh && env -u ELECTRON_RUN_AS_NODE playwright test --headed",
+    "e2e": "npm run build && playwright test",
+    "e2e:headed": "npm run build && playwright test --headed",
     "capture": "node scripts/capture.cjs",
     "social-card": "node scripts/social-card.cjs",
-    "firstrun": "npm run build && node scripts/newcomer-vault.cjs && env -u ELECTRON_RUN_AS_NODE FIRSTRUN=1 DASHY_VAULT=.capture/newcomer playwright test e2e/firstrun.spec.ts --reporter=list"
+    "firstrun": "npm run build && node scripts/newcomer-vault.cjs && FIRSTRUN=1 OPDK_E2E_VAULT=.capture/newcomer playwright test e2e/firstrun.spec.ts --reporter=list"
   },
   "dependencies": {
     "yaml": "^2.4.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.0",
+    "@playwright/test": "1.65.0",
     "@types/node": "^26.6.3",
     "@vitest/coverage-v8": "^5.0.2",
-    "electron": "^44.9.1",
+    "electron": "44.10.2",
     "esbuild": "0.28.2",
     "eslint": "^10.11.0",
     "jsdom": "^30.1.1",

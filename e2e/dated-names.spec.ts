@@ -1,4 +1,3 @@
-import type { Page } from "@playwright/test";
 import { test, expect, READING_VIEW } from "./fixtures";
 
 /**
@@ -11,27 +10,9 @@ import { test, expect, READING_VIEW } from "./fixtures";
  * stubs the unit tests use.
  */
 
-async function openJournal(win: Page): Promise<void> {
-    await win.evaluate(async () => {
-        const a = (globalThis as unknown as {
-            app?: {
-                vault?: { getFileByPath?: (p: string) => unknown };
-                workspace?: {
-                    getLeaf?: (n?: boolean) => { openFile?: (f: unknown, s?: unknown) => Promise<void> };
-                };
-            };
-        }).app;
-        const file = a?.vault?.getFileByPath?.("Journal.md");
-        await a?.workspace?.getLeaf?.(false)?.openFile?.(file, {
-            state: { mode: "preview", source: false },
-        });
-    });
-    await win.waitForTimeout(800);
-}
-
 test.describe("dated names beyond an exact YYYY-MM-DD (B-081)", () => {
-    test("a suffixed name counts, same-day notes sum, and the streak spans them as one day", async ({ win }) => {
-        await openJournal(win);
+    test("a suffixed name counts, same-day notes sum, and the streak spans them as one day", async ({ win, obsidian }) => {
+        await obsidian.openFile("Journal.md", { mode: "preview" });
         const view = win.locator(READING_VIEW);
 
         const values = view.locator(".dashy-stat-value");
