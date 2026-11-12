@@ -15,6 +15,15 @@ updates:
     commit-message:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
+    ignore:
+      # The kit pin moves by hand, together with the two workflow SHAs (see the github-actions block).
+      - dependency-name: "obsidian-plugin-dev-kit"
+      # Obsidian runs on its own Electron; ours only drives it for the e2e suite and moves with the kit's.
+      - dependency-name: "electron"
+        update-types: ["version-update:semver-major"]
+      # The kit's peer range does not allow TypeScript 7 yet; revisit when a kit release allows it.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       # One pull request, one lockfile. Separate ones conflict with each other
       # the moment the first is merged.
@@ -22,14 +31,18 @@ updates:
         dependency-type: "development"
         patterns: ["*"]
 
-  # The workflows pin actions by major, and the runner already warns that the
-  # Node 20 ones are deprecated.
+  # ci.yml and release.yml run on ubuntu-24.04 and pin every action to a full commit with the version in a
+  # comment; Dependabot moves both together.
+  # The three kit pins (the tag in package.json, the SHA in ci.yml, the SHA in release.yml) move together by
+  # hand with a kit release, so Dependabot leaves the kit's reusable workflows alone.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "monthly"
     commit-message:
       prefix: "chore(ci)"
+    ignore:
+      - dependency-name: "Dimagious/obsidian-plugin-dev-kit*"
     groups:
       actions:
         patterns: ["*"]

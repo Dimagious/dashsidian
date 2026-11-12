@@ -8,33 +8,25 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-jobs:
-  test-build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
+permissions:
+  contents: read
 
-      - uses: actions/setup-node@v7
+jobs:
+  # Lint, typecheck, unit tests with the coverage gate, the scanner, the release check, the build with its
+  # Node-only check, and the bundle artifact (dashsidian-bundle).
+  kit:
+    uses: Dimagious/obsidian-plugin-dev-kit/.github/workflows/plugin-ci.yml@6e33ca4f10b24fc9f7547f41ea9902fe30ebb362 # v0.1.0
+
+  # Only Dashy checks these. They read the repository's files and need no install.
+  plugin:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
-          cache: npm
-
-      - name: Install
-        run: npm ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Verify versions (package.json vs manifest.json)
-        run: node scripts/assert-versions.cjs
-
-      # Зеркало сканера community-plugins. Ловит паттерны, роняющие
-      # публичный скоркард, до того как их увидит мир.
-      - name: Scorecard regression gate
-        run: npm run scorecard:check
 
       - name: Agent skill is in sync with block schemas
         run: npm run build:skill -- --check
@@ -47,23 +39,3 @@ jobs:
 
       - name: README (broken images, dead anchors, dashes)
         run: npm run readme:check
-
-      - name: Unit tests (with coverage gates)
-        run: npm run test
-
-      - name: Build release bundle
-        run: npm run build
-
-      - name: Pack plugin zip
-        run: npm run release:zip
-
-      - name: Upload plugin bundle
-        uses: actions/upload-artifact@v7
-        with:
-          name: dashsidian-bundle
-          path: |
-            main.js
-            manifest.json
-            styles.css
-            dashsidian-*.zip
-          if-no-files-found: error
