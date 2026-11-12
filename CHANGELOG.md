@@ -10,6 +10,117 @@ removed public export.
 
 ## [Unreleased]
 
+### Changed
+
+- **Build, scanner, e2e, films and release come from [obsidian-plugin-dev-kit](https://github.com/Dimagious/obsidian-plugin-dev-kit) 0.1.0.**
+  The `opdk` command is installed from the kit's `v0.1.0` tag, and Dashy's own
+  settings are in `opdk.config.mjs`. The scripts and the harness it replaces
+  are deleted: `build-css.cjs`, `assert-bundle.cjs`, `build-vault.cjs`,
+  `scorecard-check.cjs`, `scanner.eslint.config.mjs`, `e2e-setup.sh`,
+  `capture.cjs`, `film-phone.cjs`, `version-sync.cjs`, `assert-versions.cjs`,
+  `make-zip.cjs`, `release-audit.cjs` and `src/test/setup-dom.ts`.
+- **`npm run build` is `opdk build`.** `main.js` and `styles.css` come out
+  byte for byte as before (856959 and 31334 bytes): the old command was
+  already minified, for the browser platform, with the same externals and
+  footer, so the bundle size does not change. The Node-only check of the
+  bundle (the 1.0.0 mobile failure) is the kit's now. `build:css`,
+  `build:vault` and `dev:vault` call `opdk build-css` and `opdk build --vault`;
+  the vault build refuses a plugin folder that belongs to another plugin
+  (`--force` overrides it) and rebuilds `styles.css` on every sync, as the
+  old script did. `npm run preview` takes its stylesheet from `opdk build-css`
+  and keeps `esbuild` (pinned to the kit's 0.28.2) for the stand.
+- **`npm run scorecard:check` is `opdk scan`, and `npm run lint` runs with
+  `--max-warnings=0`.** The scan runs the community scanner's own ESLint
+  configuration, a CSS check and the source and manifest checks over the files
+  git tracks, `site/` and `design/` included, as the old script did: 0
+  findings in 422 tracked files. It also reads `src/preview/`, which the old
+  source checks skipped. `eslint.config.js` is `obsidianPlugin()` from the kit
+  with Dashy's ignores (`.preview`, `.capture`, `site`, `_site`, `src/test`);
+  `eslint-plugin-obsidianmd`, `typescript-eslint`, `@eslint/js`, `postcss`
+  and `doiuse` are no longer devDependencies, the kit pins them.
+  `package.json` overrides `eslint` to the root one, because npm nests an
+  ESLint 9 under `eslint-plugin-obsidianmd`, which lacks
+  `preserve-caught-error`, `no-useless-assignment` and `no-unassigned-vars`;
+  the `js.configs.recommended` block that worked around it is gone.
+- **Unit tests run in jsdom only where they need a DOM.** `vitest.config.ts`
+  is `defineUnitConfig()`: the 32 test files under `src/blocks`, `src/ui`,
+  `src/preview` and twelve single files that fail without a DOM run in jsdom
+  with the kit's Obsidian DOM helpers, the other 53 run in node (every file
+  started jsdom before). Same 85 files and 3271 tests, same coverage (99.13
+  percent lines, 96.32 branches), same 90/80 gate and reports; the run takes
+  about 14 s where it took 26 s. `vite` is a devDependency now.
+- **The e2e harness is the kit's.** `e2e/fixtures.ts` is one
+  `createObsidianTest` call and `playwright.config.ts` is
+  `defineObsidianConfig()`. Each test still has its own Obsidian process, vault
+  copy and user-data folder; the kit installs the build, trusts it and waits for
+  the plugin to load, where the old fixture pressed Escape on the trust dialog,
+  called `plugins.setEnable` and slept 1500 ms. The specs use
+  `obsidian.openFile`, `openSettings` (Settings stay in the main window),
+  `runCommand`, `collapseSidebars`, `evaluate`, `reload`, `settle` and
+  `waitForMetadataCache` in place of the `globalThis` casts and fixed waits.
+  `release-2-1` writes its extra notes and reloads Obsidian, so they are indexed
+  like notes already in a vault. `npm run e2e` builds first, `npm run typecheck`
+  also checks `e2e/` through `e2e/tsconfig.json`, and `@playwright/test` and
+  `electron` are pinned to the versions the kit documents (1.65.0 and 44.10.2).
+  `DASHY_VAULT` is `OPDK_E2E_VAULT` (`npm run firstrun`), the seed vault no
+  longer needs the symlinks of `e2e-setup.sh`, and `firstrun`, `film-phone`,
+  `capture` and `listing-mobile` are switched on with `FIRSTRUN=1`, `FILM=1`,
+  `CAPTURE=1` and `LISTING=1` (exactly `1`).
+- **Pictures and films are shot with the kit's `demo` fixture and encoded by
+  `opdk demo`.** `npm run capture` is the build, the demo vault, the capture
+  spec, `opdk demo` and the agent hero; `npm run film:phone` makes the phone
+  film. The stills are 2x on any display (1400 x 446 where the committed ones are
+  700 x 223), so each picture in `docs/screens` changes size when it is
+  retaken; the retake is a separate change. The reels keep 256 colours, 4 fps
+  and 760 px (the wide one 1000). The phone film is composed by the kit: the phone
+  is 540 px tall (it was 580), the poster is the film's first frame, and the dark
+  film gets a GIF as well as an MP4. A failed ffmpeg fails the run, where
+  `film-phone.cjs` only warned. The four listing pictures of the phone are
+  taken to `.opdk/listing` and moved to `design/listing` by `listing-pictures.cjs`.
+- **Releases are cut with `npx opdk release`** (`patch`, `minor`, `major` or an
+  exact `X.Y.Z`; `--dry-run` first) in place of `version-sync.cjs`, a hand-pushed
+  tag and the zip. It bumps the version in `package.json`, `package-lock.json`,
+  `manifest.json` and `versions.json` (an existing `versions.json` entry is never
+  rewritten), moves the `[Unreleased]` entries under the new version, commits,
+  pushes the annotated tag, waits for `release.yml`, verifies the draft against a
+  build of the tag, publishes it and only then pushes `master`. The release notes
+  are the CHANGELOG section. No zip is built or attached any more:
+  `npm run release`, `release:zip` and `release:audit` are gone (the audit
+  exited 0 on problems). `npm run release:check` runs `opdk release check`
+  (versions, `versions.json`, the manifest rules, a CHANGELOG section for the
+  version, the build, a rebuild of the committed tree byte for byte, the API
+  against `minAppVersion`), then the scanner, lint, typecheck, the unit tests
+  and the skill, block reference, site and README checks. After a release,
+  `npm run build:skill && npm run build:reference` and a PR, because the
+  generated files name the plugin version.
+- **`release.yml` calls the kit's reusable workflow**, pinned to the full commit
+  of `v0.1.0`: it builds with a read-only token, attests `main.js`,
+  `manifest.json` and `styles.css` and makes a draft. A `test` job of Dashy's own
+  runs the unit tests first, because the kit's workflow runs none.
+- **`ci.yml` calls the kit's `plugin-ci.yml`** (pinned to the same commit) for
+  lint, typecheck, unit tests, `opdk scan`, `opdk release check`, the build and the
+  `dashsidian-bundle` artifact, and keeps the skill, block reference, site and
+  README checks as a job of its own. Runners are `ubuntu-24.04` and actions are
+  pinned to commits (they were `ubuntu-latest` and major tags). The artifact no
+  longer holds a zip. Dependabot leaves the kit pin, Electron and TypeScript
+  majors alone.
+- **The `/release-bump` skill is the call to `opdk release`** and what to look
+  at before it. The MAJOR table and the three confirmation gates are gone from
+  it; the schema version policy moved to `CLAUDE.md`, and the instructions
+  review is a habit, not a gate.
+
+### Fixed
+
+- The settings specs "typing a folder is saved to disk" and "the new-day hour
+  persists to disk" read the plugin's settings in memory, so they did not test
+  what their names say; they now also poll `data.json` on disk.
+- Four `blocks` specs (the heatmap colours, the stylesheet checks) read the page at
+  once and passed only because of the 1500 ms sleep of the old fixture; they poll
+  for what they assert.
+- `listing-mobile` opened `Reviews/2026-W44`, a note that exists only in that week,
+  and tapped the day 2026-10-06; it finds the review in the demo vault and taps the
+  day three weeks back.
+
 ## [2.2.0] - 2026-11-09
 
 ### Added
