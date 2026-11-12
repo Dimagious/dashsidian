@@ -1,17 +1,6 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from "vitest";
 
-const notices = vi.hoisted(() => [] as string[]);
-vi.mock("obsidian", async (importOriginal) => {
-    const real = await importOriginal<typeof import("obsidian")>();
-    return {
-        ...real,
-        Notice: class {
-            constructor(message: string) {
-                notices.push(message);
-            }
-        },
-    };
-});
+import { Notice } from "obsidian-test-mocks/obsidian";
 
 import {
     BLOCK_CHECK_PATH,
@@ -39,7 +28,18 @@ import { DEFAULT_SETTINGS } from "../types";
 import { setLocale, t, FALLBACK_LOCALE } from "../i18n";
 import { diary, host, mockApp, texts, type FakeVault } from "../test/vault";
 
+// What the plugin shows with `new Notice(...)`. The mock's construction hook is
+// spied on instead of mocking the "obsidian" module: with test files sharing a
+// worker, a module another file already loaded would never see a vi.mock.
+const notices: string[] = [];
+let noticeSpy: MockInstance | undefined;
+beforeEach(() => {
+    noticeSpy = vi.spyOn(Notice.prototype, "constructor__").mockImplementation((message) => {
+        notices.push(String(message));
+    });
+});
 afterEach(() => {
+    noticeSpy?.mockRestore();
     notices.length = 0;
     setLocale(FALLBACK_LOCALE);
 });

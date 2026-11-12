@@ -81,11 +81,15 @@ export.
   `npm run typecheck` also checks the test files, with `tsconfig.test.json`
   (ES2022 library, because the tests use `Array#at` and `replaceAll`; the plugin
   code stays on ES2020): 17 type errors in 8 test files are fixed. The unit
-  config sets `isolate: false`, so test files share a worker: 3300 tests (25
+  config sets `isolate: false`, so test files share a worker: 3301 tests (26
   more) in about 8 s where the run took about 21 s, same gate (statements 99.09
-  percent, branches 96.33, functions 98.72, lines 99.65). The suite passes five
-  times in a row under `--sequence.shuffle`. The `coverage` script is gone (it
-  was `npm test`, which already writes `coverage/index.html`), and the lint
+  percent, branches 96.33, functions 98.72, lines 99.65). Sharing a worker
+  exposed state that tests left behind (a German moment locale, a `vi.mock` of
+  `obsidian` that a file loaded earlier never saw); those are fixed, and the
+  check is `vitest run --maxWorkers=1 --sequence.shuffle --sequence.seed=N`
+  (one worker, because with many each gets a few files and a leak hides). The
+  `coverage` script is gone (it was `npm test`, which already writes
+  `coverage/index.html`), and the lint
   ignore for `src/test` is narrowed to `src/test/stubs`, so the fake vault is
   linted.
 - **The e2e harness is the kit's.** `e2e/fixtures.ts` is one
