@@ -285,14 +285,14 @@ Backlog: B-003
 | `npm test` | vitest + гейты покрытия (90/80) |
 | `npm run lint` | eslint + eslint-plugin-obsidianmd |
 | `npm run typecheck` | tsc --noEmit |
-| `npm run build` | styles.css + main.js |
+| `npm run build` | `opdk build`: styles.css + main.js + проверка, что в бандле нет кода только для Node |
 | `npm run build:skill` | пересобрать скилл из схемы |
 | `npm run build:reference` | пересобрать справочник блоков на сайте |
 | `npm run scorecard:check` | зеркало сканера community-plugins: его ESLint-конфиг по всем файлам в git (с `site/` и `design/`) и CSS через doiuse под Chromium Obsidian |
 | `npm run preview` | стенд состояний блоков в браузере, в `.preview/` |
 | `npm run site:check` / `readme:check` | ссылки, якоря и тире на сайте и в README |
 | `npm run release` | полный гейт + zip |
-| `npm run dev:vault` | сборка в тестовое хранилище с watch |
+| `npm run dev:vault` | `opdk build --vault --watch`: сборка в тестовое хранилище (`VAULT_PLUGIN` или `--vault <папка>`) |
 | `npm run e2e` | спеки против настоящего Obsidian; в CI не гоняется |
 | `npm run capture` | скриншоты для README и сайта, включая agent-hero; запускать только по слову автора |
 
