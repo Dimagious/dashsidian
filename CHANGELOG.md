@@ -13,7 +13,7 @@ export.
 
 ### Changed
 
-- **The dev kit moves to its next release, and `opdk scan` reports what the community scanner reports.**
+- **The dev kit is obsidian-plugin-dev-kit 0.3.0, and `opdk scan` reports what the community scanner reports.**
   Dashy now builds with TypeScript 6 (`typescript@^6.0.3`), which the scan
   needs because the scanner type-checks with it; the code compiled without
   changes. The lint config is `eslint.config.mjs` (was `.js`): the scanner
