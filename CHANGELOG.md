@@ -13,6 +13,14 @@ export.
 
 ### Changed
 
+- **The dev kit is [obsidian-plugin-dev-kit](https://github.com/Dimagious/obsidian-plugin-dev-kit) 0.2.0** (was 0.1.0),
+  moved with its new `opdk kit upgrade` command: the tag in `package.json`, the
+  lockfile and the two kit workflow lines name commit `32a1860`, and
+  `opdk release check` now fails when they disagree. Its lint preset reports a
+  bare `window.<member>`; Dashy has none. Typecheck, lint, unit tests, build,
+  `opdk scan`, `opdk release check`, `build:skill --check`,
+  `build:reference --check`, `readme:check`, `site:check` and the e2e pass on
+  it.
 - **The e2e suite launches Obsidian less often and measures the heatmap one way.**
   The 16 read-only tests of `e2e/blocks.spec.ts` are three tests with the old
   names as `test.step`s (blocks render, broken config is reported, stylesheet
