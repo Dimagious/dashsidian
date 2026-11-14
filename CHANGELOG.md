@@ -17,6 +17,12 @@ export.
 
 ### Changed
 
+- **The dev kit is obsidian-plugin-dev-kit 0.3.1.** The tag in `package.json`,
+  the lockfile and the two kit workflow lines name v0.3.1, moved with
+  `opdk kit upgrade v0.3.1`. Its `opdk scan` now also lints `e2e/` files that
+  a `tsconfig.json` covers. Dashy keeps its e2e type-checking in the root
+  `tsconfig.e2e.json` (there is no `e2e/tsconfig.json`), so the scan reports
+  nothing new here.
 - **The dev kit is obsidian-plugin-dev-kit 0.3.0, and `opdk scan` reports what the community scanner reports.**
   Dashy now builds with TypeScript 6 (`typescript@^6.0.3`), which the scan
   needs because the scanner type-checks with it; the code compiled without
