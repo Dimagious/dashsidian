@@ -13,6 +13,14 @@ export.
 
 ### Changed
 
+- **The dev kit is obsidian-plugin-dev-kit 0.3.0, and `opdk scan` reports what the community scanner reports.**
+  Dashy now builds with TypeScript 6 (`typescript@^6.0.3`), which the scan
+  needs because the scanner type-checks with it; the code compiled without
+  changes. The lint config is `eslint.config.mjs` (was `.js`): the scanner
+  installs the kit without building it, so the `.js` file that imports the kit
+  had two `no-unsafe-*` warnings on the scorecard, and it ignores `.mjs` files.
+  `npm run lint` lints the same files as before. `opdk scan` reports 0 findings
+  (it reported those 2).
 - **The dev kit is [obsidian-plugin-dev-kit](https://github.com/Dimagious/obsidian-plugin-dev-kit) 0.2.0** (was 0.1.0),
   moved with its new `opdk kit upgrade` command: the tag in `package.json`, the
   lockfile and the two kit workflow lines name commit `32a1860`, and
