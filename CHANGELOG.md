@@ -11,6 +11,10 @@ export.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The e2e helpers stay off the community scorecard.** The scanner lints every file a `tsconfig.json` covers, and `e2e/tsconfig.json` made it cover `e2e/fixtures.ts` and the other helpers (Garmy's 1.1.1 scorecard lists 22 warnings from the same setup: Obsidian runtime rules such as `window.setTimeout` and `globalThis`, which do not apply to Playwright code running in Node). Dashy's last release predates that file, so the scorecard has not shown them yet. The config is now `tsconfig.e2e.json` in the root, with the same options, and `npm run typecheck` checks `e2e/` through it; the scanner finds only files named `tsconfig.json`. Nothing in `main.js` changes.
+
 ### Changed
 
 - **The dev kit is obsidian-plugin-dev-kit 0.3.0, and `opdk scan` reports what the community scanner reports.**
