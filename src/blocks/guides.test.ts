@@ -989,3 +989,104 @@ describe("guide: weekly-chart-tracker-alternative", () => {
         expect(nodes(el, ".dashy-progress-value")[0]?.getAttribute("title")).toBe("average of 4 past periods");
     });
 });
+
+/* ------------------------------------------------- monthly heatmap (B-223) */
+
+/** Steps on every day from 1 January to today (Monday 5 October), gym on Mondays, Wednesdays and Fridays, reading every other day. */
+const STEPS_VAULT: FakeVault = {
+    notes: diary("Diary", "2026-01-01", 278, (i) => ({
+        steps: 6000 + (i % 7) * 1000,
+        gym: [1, 3, 5].includes(new Date(2026, 0, 1 + i).getDay()),
+        read: i % 2 === 0,
+    })),
+};
+
+const STEPS_MONTH = `source: Diary
+field: steps
+range: month
+title: Steps this month`;
+
+const STEPS_90D = `source: Diary
+field: steps
+range: 90d
+title: Steps, last 90 days`;
+
+const STEPS_YEAR = `source: Diary
+field: steps
+range: year
+title: Steps this year so far`;
+
+describe("guide: monthly-heatmap", () => {
+    /** The day cells of a grid, the empty pads that align the first column excluded. */
+    const cells = (el: HTMLElement): HTMLElement[] => nodes(el, ".dashy-hm-cell:not(.dashy-hm-pad)");
+    const steps = (range: string): string => `source: Diary\nfield: steps\nrange: ${range}`;
+
+    it("every Dashy block on the page draws without an error or a warning", () => {
+        const blocks = guideBlocks("monthly-heatmap");
+        // step 2, step 4, the whole note (3), four variations
+        expect(blocks.map((b) => b.lang)).toEqual(Array(9).fill("heatmap"));
+        for (const { lang, source } of blocks) {
+            // Step 4 sits in a monthly note; it reads its window from the note's name.
+            const sourcePath = source.includes("range: note") ? "Months/2026-10.md" : undefined;
+            expectClean(render(lang, source, STEPS_VAULT, sourcePath));
+        }
+    });
+
+    it("the whole note is the picture's three blocks, the first of them step 2", () => {
+        const blocks = guideBlocks("monthly-heatmap").map((b) => b.source);
+        expect(blocks[0]).toBe(STEPS_MONTH);
+        expect(blocks.slice(2, 5)).toEqual([STEPS_MONTH, STEPS_90D, STEPS_YEAR]);
+    });
+
+    it("step 2: this month is the 1st to today, one grid, today ringed, the title as written", () => {
+        const el = render("heatmap", STEPS_MONTH, STEPS_VAULT);
+        expect(nodes(el, ".dashy-hm-grid")).toHaveLength(1);
+        expect(cells(el)).toHaveLength(5);
+        expect(nodes(el, ".is-today")).toHaveLength(1);
+        expect(texts(el, ".dashy-hm-title")).toEqual(["Steps this month"]);
+    });
+
+    it("step 2: a day opens its note, and its tooltip names the date and the value", () => {
+        const el = render("heatmap", STEPS_MONTH, STEPS_VAULT);
+        const second = cells(el)[1];
+        expect(second?.getAttribute("data-href")).toBe("Diary/2026-10-02.md");
+        expect(second?.getAttribute("title")).toContain("Oct 2, 2026");
+        expect(second?.getAttribute("title")).toContain("steps");
+    });
+
+    it("step 2: shaded by this month's own lowest and highest value", () => {
+        const el = render("heatmap", STEPS_MONTH, STEPS_VAULT);
+        const alphas = new Set(cells(el).map((c) => c.style.backgroundColor));
+        expect(alphas.size).toBeGreaterThan(1);
+    });
+
+    it("step 3: week, year so far and rolling windows end today", () => {
+        // Sunday-first in the test locale: Sunday 4 and Monday 5 October.
+        expect(cells(render("heatmap", steps("week"), STEPS_VAULT))).toHaveLength(2);
+        expect(cells(render("heatmap", STEPS_90D, STEPS_VAULT))).toHaveLength(90);
+        expect(cells(render("heatmap", STEPS_YEAR, STEPS_VAULT))).toHaveLength(278);
+        expect(cells(render("heatmap", steps("30d"), STEPS_VAULT))).toHaveLength(30);
+    });
+
+    it("step 3: a month or quarter written out is drawn up to today while it runs, whole once it is over", () => {
+        expect(cells(render("heatmap", steps("2026-10"), STEPS_VAULT))).toHaveLength(5);
+        expect(cells(render("heatmap", steps("2026-Q4"), STEPS_VAULT))).toHaveLength(5);
+        expect(cells(render("heatmap", steps("2026-09"), STEPS_VAULT))).toHaveLength(30);
+        expect(cells(render("heatmap", steps("2026-Q3"), STEPS_VAULT))).toHaveLength(92);
+        expect(cells(render("heatmap", steps("{ from: 2026-09-01, to: 2026-09-10 }"), STEPS_VAULT))).toHaveLength(10);
+    });
+
+    it("errors: a range it cannot read warns and falls back to a grid per year", () => {
+        const el = render("heatmap", steps("monthly"), STEPS_VAULT);
+        expect(diagnostics(el, "warning").join(" ")).toContain("`range` expects");
+        // The calendar year's own grid, 1 January to today, instead of this month's five days.
+        expect(cells(el)).toHaveLength(278);
+    });
+
+    it("step 4 and errors: range: note reads the month a note is named for, and is an error anywhere else", () => {
+        const month = render("heatmap", steps("note"), STEPS_VAULT, "Months/2026-09.md");
+        expectClean(month);
+        expect(cells(month)).toHaveLength(30);
+        expect(diagnostics(render("heatmap", steps("note"), STEPS_VAULT, "Steps.md"), "error")).not.toEqual([]);
+    });
+});

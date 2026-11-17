@@ -52,6 +52,11 @@ Step-by-step pages, one problem each, with YAML to copy:
 - Two activities on one heatmap (`layers`, one colour each; on a day with
   both, the first layer's colour shows, or the larger value with `pick: max`):
   https://dimagious.github.io/dashsidian/guides/heatmap-two-activities/
+- A monthly or weekly heatmap (`heatmap` with `range`: `month`, `week`,
+  `year` for the year so far, `90d`, `2026-10`, `2026-Q4`, `from`/`to`, or
+  `note` for the period a note is named for; shaded by the window's own
+  lowest and highest value):
+  https://dimagious.github.io/dashsidian/guides/monthly-heatmap/
 - A monthly habit calendar without Dataview (`heatmap` with `range: month`
   and `layout: calendar`: day numbers, a dot per habit with `layers`;
   `range: week` for one row, `skip_field` for days off):
