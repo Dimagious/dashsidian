@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A monthly or weekly heatmap in Obsidian · Dashy</title>
+<meta name="description" content="A heatmap of this month, this week, the last 90 days, a quarter or the year so far, instead of a whole year. From a number or a checkbox in your daily notes, no Dataview, YAML you can copy.">
+<link rel="canonical" href="https://dimagious.github.io/dashsidian/guides/monthly-heatmap/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%238b6cef'/%3E%3Crect x='7' y='7.5' width='11' height='3' rx='1.5' fill='%23fff'/%3E%3Crect x='7' y='13' width='8.5' height='7' rx='2' fill='%23fff' fill-opacity='.55'/%3E%3Crect x='16.5' y='13' width='8.5' height='7' rx='2' fill='%23fff'/%3E%3Crect x='7' y='22.5' width='18' height='3' rx='1.5' fill='%23fff' fill-opacity='.35'/%3E%3Crect x='7' y='22.5' width='12' height='3' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Dashy">
+<meta property="og:url" content="https://dimagious.github.io/dashsidian/guides/monthly-heatmap/">
+<meta property="og:title" content="A monthly or weekly heatmap in Obsidian">
+<meta property="og:description" content="This month, the last 90 days, the year so far: one heatmap block, one line for the window.">
+<meta property="og:image" content="https://dimagious.github.io/dashsidian/img/heatmap-windows-light.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="../../assets/site.css">
+<link rel="stylesheet" href="../../assets/guides.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"HowTo","name":"A monthly or weekly heatmap in Obsidian","step":[
+{"@type":"HowToStep","name":"A number in each daily note"},
+{"@type":"HowToStep","name":"This month on one grid"},
+{"@type":"HowToStep","name":"Any other window"},
+{"@type":"HowToStep","name":"A month per monthly note"}]}
+</script>
+</head>
+<body>
+<!--shell:top tab="Monthly heatmap"-->
+
+    <main class="note guide" id="note">
+      <article class="file" style="padding-top:34px">
+        <div class="crumb">Guides/Monthly heatmap.md</div>
+        <h1 class="inline-title">A monthly or weekly heatmap in Obsidian</h1>
+
+        <div class="props" aria-label="Properties">
+          <div class="props-title"><svg><use href="#i-list"/></svg>Properties</div>
+          <div class="prop"><div class="k"><svg><use href="#i-tag"/></svg>blocks</div><div class="v"><span class="pill">heatmap</span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-text"/></svg>keys</div><div class="v"><code>range</code></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-box"/></svg>needs dataview</div><div class="v"><span class="check off" aria-label="no"></span></div></div>
+          <div class="prop"><div class="k"><svg><use href="#i-hash"/></svg>checked on</div><div class="v">Dashy {{version}}</div></div>
+        </div>
+
+        <p class="lede">A year of days is a lot of grid when all you want to see is this month. One line, <code>range</code>, cuts the heatmap down to this month, this week, the last 90 days, a quarter or the year so far. The cells are shaded by your own numbers, the darkest for your best day in that window.</p>
+
+        <figure class="shot">
+          <picture>
+            <source data-dark srcset="../../img/heatmap-windows-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="../../img/heatmap-windows-light.png" width="700" height="636" alt="Three heatmaps of daily steps: this month, the last 90 days and the year so far">
+          </picture>
+          <figcaption>Steps over three windows, from step 3. From a demo vault with a year of daily notes.</figcaption>
+        </figure>
+
+        <nav class="toc" aria-label="On this page">
+          <b>ON THIS PAGE</b>
+          <ol>
+            <li><a href="#daily-note">A number in each daily note</a></li>
+            <li><a href="#month">This month on one grid</a></li>
+            <li><a href="#windows">Any other window</a></li>
+            <li><a href="#monthly-note">A month per monthly note</a></li>
+            <li><a href="#full">The whole note</a></li>
+            <li><a href="#ask-your-agent">Ask your agent</a></li>
+            <li><a href="#other-ways">With Heatmap Calendar</a></li>
+            <li><a href="#variations">Variations</a></li>
+            <li><a href="#errors">If a block shows an error</a></li>
+            <li><a href="#related">Related guides</a></li>
+          </ol>
+        </nav>
+
+        <!-- ============ 1 ============ -->
+        <h2 class="step" id="daily-note" data-short="A number in each daily note"><span class="n">1</span>A number in each daily note</h2>
+        <p>The heatmap reads one property from your daily notes. A number shades the day by how high it is. A checkbox paints it when ticked.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Diary/2026-10-14.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">---
+steps: 11240
+gym: true
+---
+
+## 2026-10-14</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>2026-10-14</code><span>The note's name is its date. Anything after the date is fine: <code>2026-10-14 Wednesday</code> counts too. A date in a property works as well, with <code>date_field</code>.</span></li>
+          <li><code>steps</code><span>Any number: steps, pages read, minutes of practice, a sleep score. Durations such as <code>1h 30m</code> are read as minutes.</span></li>
+          <li><code>Diary</code><span>The folder the block reads from. Use the one your daily notes already live in.</span></li>
+        </ul>
+
+        <!-- ============ 2 ============ -->
+        <h2 class="step" id="month" data-short="This month on one grid"><span class="n">2</span>This month on one grid</h2>
+        <p>Make a note, say <code>Steps.md</code>, and paste this block.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Steps.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+field: steps
+range: month
+title: Steps this month
+```</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>range: month</code><span>From the 1st of this month to today. On the 1st of next month it starts over by itself.</span></li>
+          <li>Columns<span>One column per week, one row per weekday, the same shape as the year grid. Today has a ring around it.</span></li>
+          <li>Shading<span>Set by the lowest and highest value in this window, not the whole year. A slow month still has a darkest day.</span></li>
+          <li>Click a day<span>Opens that day's note. Hover shows the date and the value.</span></li>
+        </ul>
+        <div class="callout tip">
+          <div class="callout-title"><svg><use href="#i-info"/></svg>Want it shaped like a calendar?</div>
+          <p>Add <code>layout: calendar</code> and the month is drawn with weekday columns and day numbers, a dot under each day that has a value. Dots rather than shades, so it suits habits best. <a href="../monthly-habit-calendar/">The monthly habit calendar guide</a> covers it.</p>
+        </div>
+
+        <!-- ============ 3 ============ -->
+        <h2 class="step" id="windows" data-short="Any other window"><span class="n">3</span>Any other window</h2>
+        <p>Change the one line. Everything else in the block stays the same.</p>
+        <div class="table-wrap">
+          <table class="cmp">
+            <thead><tr><th><code>range</code></th><th>Draws</th></tr></thead>
+            <tbody>
+              <tr><td><code>week</code></td><td data-h="Draws"><span>This week to today, from your first day of the week</span></td></tr>
+              <tr><td><code>month</code></td><td data-h="Draws"><span>This month to today</span></td></tr>
+              <tr><td><code>year</code></td><td data-h="Draws"><span>1 January to today: the year so far</span></td></tr>
+              <tr><td><code>30d</code>, <code>90d</code>, <code>365d</code></td><td data-h="Draws"><span>The last 30, 90 or 365 days, ending today</span></td></tr>
+              <tr><td><code>2026-10</code></td><td data-h="Draws"><span>October 2026</span></td></tr>
+              <tr><td><code>2026-W40</code></td><td data-h="Draws"><span>Week 40 of 2026</span></td></tr>
+              <tr><td><code>2026-Q4</code></td><td data-h="Draws"><span>October to December 2026</span></td></tr>
+              <tr><td><code>{ from: 2026-09-01, to: 2026-11-30 }</code></td><td data-h="Draws"><span>Those days, both included. <code>from</code> alone runs to today</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>A period written out is drawn whole once it is over. While it is still running, it is drawn up to today, so <code>2026-Q4</code> in early October is a few days long.</p>
+        <p>The picture at the top is three blocks in one note: <code>month</code>, <code>90d</code> and <code>year</code>.</p>
+        <p class="muted" style="font-size:14.5px">There is no word for "this quarter" that moves by itself. For a quarter that follows the calendar, write it out (<code>2026-Q4</code>) or use <code>range: note</code> in a quarterly note, as in the next step. For a rolling quarter, <code>90d</code>.</p>
+
+        <!-- ============ 4 ============ -->
+        <h2 class="step" id="monthly-note" data-short="A month per monthly note"><span class="n">4</span>A month per monthly note</h2>
+        <p>If you keep a note per month, named like <code>2026-10</code>, put the block in its template with <code>range: note</code>. Each monthly note then shows its own month, and October still shows October when you open it in March.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Months/2026-10.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+field: steps
+range: note
+```</code></pre>
+        </div>
+        <ul class="keynotes">
+          <li><code>range: note</code><span>The period the note's name stands for: <code>2026-10</code> is a month, <code>2026-W40</code> a week, <code>2026-Q4</code> a quarter, <code>2026</code> a year.</span></li>
+          <li>In the template<span>The block shows a hint there instead of an error, and works in each note made from it.</span></li>
+        </ul>
+
+        <!-- ============ full ============ -->
+        <h2 id="full" data-short="The whole note">The whole note</h2>
+        <p>The note from the picture, ready to paste into an empty note.</p>
+        <div class="codeblock" data-code>
+          <div class="bar"><span class="file"><svg><use href="#i-file"/></svg><span>Steps.md</span></span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+field: steps
+range: month
+title: Steps this month
+```
+
+```heatmap
+source: Diary
+field: steps
+range: 90d
+title: Steps, last 90 days
+```
+
+```heatmap
+source: Diary
+field: steps
+range: year
+title: Steps this year so far
+```</code></pre>
+        </div>
+
+        <!-- ============ ask your agent ============ -->
+        <h2 id="ask-your-agent" data-short="Ask your agent">Ask your agent</h2>
+        <p>With Dashy's skill installed, an AI agent can write this from a request in plain words: it looks at your property names and folders first, then writes the blocks. Open the note in Reading view and paste any error a block shows back to the agent.</p>
+        <div class="codeblock prose" data-code>
+          <div class="bar"><span>Prompt</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="plain">In a new note called Steps, show my daily steps as a heatmap of this month, then the last 90 days, then the year so far, one under the other.</code></pre>
+        </div>
+        <p>What comes back is something like the note above. The agent's YAML may differ from the guide's, with your own property names and titles, but it should do the same, and this guide is the reference to compare it against. <a href="../ai-agent-dashboard/">More on working with an agent</a>.</p>
+
+        <!-- ============ other ways ============ -->
+        <h2 id="other-ways" data-short="With Heatmap Calendar">The same with Heatmap Calendar</h2>
+        <p>Heatmap Calendar draws from a dataviewjs script, so it needs Dataview too. This is the shape its README gives:</p>
+        <div class="codeblock other" data-code>
+          <div class="bar"><span>With Heatmap Calendar and Dataview</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```dataviewjs
+const calendarData = {
+  year: 2026,
+  entries: [],
+}
+for (let page of dv.pages('"Diary"').where(p => p.steps)) {
+  calendarData.entries.push({
+    date: page.file.name,
+    intensity: page.steps,
+  })
+}
+renderHeatmapCalendar(this.container, calendarData)
+```</code></pre>
+        </div>
+        <ul>
+          <li>It draws one calendar year. A single month (<a href="https://github.com/Richardsl/heatmap-calendar-obsidian/issues/7">#7</a>), a week, month or quarter (<a href="https://github.com/Richardsl/heatmap-calendar-obsidian/issues/72">#72</a>) and the year to date (<a href="https://github.com/Richardsl/heatmap-calendar-obsidian/issues/95">#95</a>) are open feature requests.</li>
+          <li>You can filter <code>entries</code> to a month in the script, but the grid around them is still the whole year.</li>
+        </ul>
+
+        <div class="table-wrap">
+          <table class="cmp">
+            <thead><tr><th></th><th class="us">Dashy</th><th>Heatmap Calendar</th></tr></thead>
+            <tbody>
+              <tr><td>This month, this week</td><td data-h="Dashy" class="us"><span><code>range: month</code>, <code>range: week</code></span></td><td data-h="Heatmap Calendar"><span>A whole year</span></td></tr>
+              <tr><td>Last 90 days, year to date</td><td data-h="Dashy" class="us"><span><code>90d</code>, <code>year</code></span></td><td data-h="Heatmap Calendar"><span>A whole year</span></td></tr>
+              <tr><td>The month a note is named for</td><td data-h="Dashy" class="us"><span><code>range: note</code></span></td><td data-h="Heatmap Calendar"><span>A whole year</span></td></tr>
+              <tr><td>What you write</td><td data-h="Dashy" class="us"><span>Four lines of YAML</span></td><td data-h="Heatmap Calendar"><span>A JavaScript loop</span></td></tr>
+              <tr><td>What you install</td><td data-h="Dashy" class="us"><span>Dashy</span></td><td data-h="Heatmap Calendar"><span>Heatmap Calendar and Dataview</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ============ variations ============ -->
+        <h2 id="variations" data-short="Variations">Variations</h2>
+        <div class="vars">
+          <div class="var">
+            <h3>A habit this month</h3>
+            <p>A checkbox instead of a number: a ticked day is painted, the rest stay empty.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>heatmap</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+field: gym
+color: orange
+range: month
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>Your own thresholds</h3>
+            <p>Shades from fixed steps instead of this month's lowest and highest, with a legend.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>heatmap</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+field: steps
+range: month
+bands: [12000, 9000, 6000]
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>Two habits, last 30 days</h3>
+            <p>A colour each on one grid. <a href="../heatmap-two-activities/">More on <code>layers</code></a>.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>heatmap</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+layers:
+  - { field: gym, color: orange, label: Gym }
+  - { field: read, color: green, label: Reading }
+range: 30d
+```</code></pre>
+            </div>
+          </div>
+          <div class="var">
+            <h3>Autumn</h3>
+            <p>Any stretch of days, both ends included.</p>
+            <div class="codeblock" data-code>
+              <div class="bar"><span>heatmap</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="yaml-fenced">```heatmap
+source: Diary
+field: steps
+range: { from: 2026-09-01, to: 2026-11-30 }
+```</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ errors ============ -->
+        <h2 id="errors" data-short="If a block shows an error">If a block shows an error</h2>
+        <p>A block that cannot draw says why, inside the note. The usual three:</p>
+        <ul>
+          <li><b>The grid is a whole year again.</b> The <code>range</code> value was not understood, and the block says so in a warning. Check the spelling: <code>month</code>, <code>90d</code>, <code>2026-10</code>.</li>
+          <li><b><code>range: note</code> in a note not named for a period.</b> It works in notes named like <code>2026-10</code> or <code>2026-W40</code>. Anywhere else, write the window out.</li>
+          <li><b>"steps" never contributed a value here.</b> The property is misspelled, or the notes are in another folder.</li>
+        </ul>
+
+        <!-- ============ related ============ -->
+        <h2 id="related" data-short="Related guides">Related guides</h2>
+        <div class="cards small">
+          <a class="card" href="../monthly-habit-calendar/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/habit-calendar-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/habit-calendar-light.png" width="700" height="286" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A monthly habit calendar</span><p class="card-promise">This month as a calendar, a dot under every day you kept a habit.</p></div>
+          </a>
+          <a class="card" href="../heatmap-two-activities/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/heatmap-layers-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/heatmap-layers-light.png" width="700" height="206" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">Two activities on one heatmap</span><p class="card-promise">Gym in orange, reading in green, on one grid.</p></div>
+          </a>
+          <a class="card" href="../weekly-review-without-dataview/">
+            <div class="thumb"><picture><source data-dark srcset="../../img/weekly-review-dark.png" media="(prefers-color-scheme: dark)"><img src="../../img/weekly-review-light.png" width="700" height="499" loading="lazy" alt=""></picture></div>
+            <div class="body"><span class="card-title">A weekly review without Dataview</span><p class="card-promise">Each review note counts the week it is named for.</p></div>
+          </a>
+        </div>
+
+        <div class="next">
+          <p>Dashy is in Obsidian's community plugins. Search for <b>Dashy</b>, install, enable, then paste the note above.</p>
+          <div class="actions">
+            <a class="btn primary" href="../../#install"><svg><use href="#i-plug"/></svg>Install Dashy</a>
+            <a class="btn" href="../../#heatmap">Every heatmap key</a>
+          </div>
+        </div>
+
+        <footer class="note-foot">
+          <span>MIT © Dmitriy Yurkin</span>
+          <a href="../../guides/">All guides</a>
+          <a href="https://github.com/Dimagious/dashsidian">GitHub</a>
+          <a href="https://community.obsidian.md/plugins/dashsidian">Plugin listing</a>
+          <a href="https://github.com/Dimagious/dashsidian/issues">Something wrong on this page?</a>
+        </footer>
+      </article>
+    </main>
+<!--shell:bottom-->

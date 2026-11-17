@@ -275,6 +275,32 @@ test("guides: monthly habit calendar", async ({ win, obsidian, demo }) => {
 });
 
 /**
+ * The picture for the heatmap windows guide (B-223): the three blocks of
+ * `Heatmap windows.md`, this month, the last 90 days and the year so far,
+ * clipped from the first block to the last the way the books-per-year shot
+ * is. The note comes from `guideNotes` in scripts/demo-vault.cjs.
+ */
+test("guides: heatmap windows", async ({ win, obsidian, demo }) => {
+    await setUp(win, obsidian, demo, "light");
+    const view = win.locator(READING_VIEW);
+
+    await demo.themes(BOTH, async () => {
+        await openNote(win, obsidian, "Heatmap windows.md", ".dashy-hm-cell");
+        const top = view.locator(".block-language-heatmap").first();
+        await atTop(top);
+        await obsidian.settle();
+        const clip = await union(top, view.locator(".block-language-heatmap").last());
+        if (clip.y + clip.height > HEIGHT) {
+            throw new Error(`capture: heatmap-windows runs to ${Math.round(clip.y + clip.height)}px, past the window`);
+        }
+        await demo.still("heatmap-windows", { clip, ...ELEMENT });
+
+        // Back where `setUp` expects to find the next test.
+        await openNote(win, obsidian, "Dashboard.md", ".dashy-hm-cell");
+    });
+});
+
+/**
  * The picture for the weekly review guide (B-163): the cards and the chart of
  * last week's review note, clipped from the first block to the last the way
  * the books-per-year shot is. The note is named for last week by

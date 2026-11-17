@@ -324,6 +324,31 @@ skip_field: vacation
 \`\`\`
 `);
 
+    // The heatmap windows guide (B-223): one property, `steps`, over three
+    // windows, this month, the last 90 days and the year so far, the blocks
+    // the guide teaches, verbatim. The diary carries `steps` on every day.
+    write("Heatmap windows.md", `\`\`\`heatmap
+source: Diary
+field: steps
+range: month
+title: Steps this month
+\`\`\`
+
+\`\`\`heatmap
+source: Diary
+field: steps
+range: 90d
+title: Steps, last 90 days
+\`\`\`
+
+\`\`\`heatmap
+source: Diary
+field: steps
+range: year
+title: Steps this year so far
+\`\`\`
+`);
+
     // The weekly review guide (B-163): its two templates, verbatim, in notes
     // named for last week (ISO, the format Dashy reads without Periodic Notes
     // settings) and last month, both over, so `compare: true` reads the whole

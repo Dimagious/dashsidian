@@ -67,7 +67,7 @@ const PAGES = [
         showcase: { image: "heatmap", width: 700, height: 206,
             alt: "A year of days coloured by sleep score, with a legend",
             yaml: "source: Diary\nfield: sleep_score\ncolor: purple\nbands: [90, 80, 70]\ntitle: Sleep, last twelve months" },
-        guides: ["habit-tracker-without-dataview", "heatmap-two-activities", "monthly-habit-calendar", "streak-weekdays", "weekly-review-without-dataview"],
+        guides: ["habit-tracker-without-dataview", "heatmap-two-activities", "monthly-heatmap", "monthly-habit-calendar", "streak-weekdays", "weekly-review-without-dataview"],
     },
     {
         block: "progress", tagline: "how far along", item: "bar", items: "bars",
