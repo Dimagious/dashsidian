@@ -1,6 +1,7 @@
 ---
 name: release-bump
 description: Cut a new release of Dashy (dashsidian). Triggered when the user says "релизим", "выкатываем версию", "поднять версию", "bump version", "release bump", or right before tagging a new version. Checks that master is green and `[Unreleased]` in `CHANGELOG.md` has entries, then runs `npx opdk release X.Y.Z` (or `patch`, `minor`, `major`), which bumps the version everywhere, commits `chore(release): X.Y.Z`, tags it, runs the kit's release workflow and publishes the release.
+disable-model-invocation: true
 ---
 
 # Release bump for Dashy

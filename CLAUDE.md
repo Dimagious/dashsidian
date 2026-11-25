@@ -1,11 +1,13 @@
 # Dashy — Claude project notes
 
-> Локальные заметки для ассистента. Держать коротко (≤300 строк) и не давать протухнуть.
+> Инструкции для Claude Code по этому репозиторию; файл в git. Держать коротко (≤300 строк)
+> и не давать протухнуть: история уходит в `.claude/brain/`, здесь только то, что действует сейчас.
 
 ## Где лежит остальная память
 
 - `.claude/brain/README.md` — соглашения по brain
 - `.claude/brain/backlog.md` — что дальше, с приоритетами
+- `.claude/brain/state.md` — что вошло в каждый релиз
 - `.claude/brain/sessions/` — журналы сессий
 - `.claude/brain/decisions/` — ADR по нетривиальным решениям
 - `.claude/skills/release-bump/SKILL.md` — как резать релиз (`/release-bump`)
@@ -22,49 +24,21 @@
 - Полное ТЗ: `docs/SPEC.md`
 - Второй плагин автора; харнесс перенесён из [`Dimagious/snipsidian`](https://github.com/Dimagious/snipsidian)
 - Сборка, сканер, юнит-конфиг, e2e, ролики и релиз — у [`Dimagious/obsidian-plugin-dev-kit`](https://github.com/Dimagious/obsidian-plugin-dev-kit) (`opdk`, тег пинится в `package.json`); свои настройки — в `opdk.config.mjs`
-
-## Имя ≠ id, и это не случайность
-
-`name: Dashy`, `id: dashsidian`, репозиторий `dashsidian`. Расхождение намеренное.
-
-Ревью Obsidian **заворачивает имя плагина, похожее на «Obsidian»**. Первый плагин автора
-подавался как `Snipsidian` и получил отказ именно по имени; после переименования в
-`Snipsy` прошёл. При этом **id остался `snipsidian`** и живёт в публичном URL
-`community.obsidian.md/plugins/snipsidian` — то есть правило действует на `name`, а не
-на `id`.
-
-Отсюда схема, которую повторяем: `id` и репозиторий — `<что-то>sidian`, `name` — короткое
-собственное слово. Менять `name` на что-то вроде `Dashsidian` нельзя, завернут.
-
-## Состояние
-
-2.2.0 от 2026-11-09: движок + то, что просили люди. Публичный API для других плагинов (`app.plugins.plugins.dashsidian.api`, `src/app/api.ts`, `docs/API.md`; первый потребитель Garmy, `garmidian`, который пишет блоки Dashy и требует Dashy), `goal: usual` у `progress` (`core/usual-goal.ts`), `group_by` у карточки `stats` (`core/group-by.ts`), `today` с `date: note` (`core/note-day.ts`), длительности ISO 8601 (`PT1H45M`), профиль хранилища видит нераскрытые шаблоны, `scorecard:check` зеркалит сканер каталога целиком, включая CSS и `site/`. Схема блоков 1.12.0. Решение автора: релиз идёт одним PR.
-
-2.1.0 от 2026-10-30: обзоры периода (имя заметки с хвостом, подсказка в шаблоне), `stats` догоняет таблицы (`field` списком, `compare` с прошлым значением, `origin`, `where … empty`), две команды для агента (`.dashy/block-check.md`, `.dashy/vault-profile.md`). 2.0.0 от 2026-10-07 (до него в каталоге был 1.8.0; 1.7.0 отдельно не выходил); мажор по позиционированию (ADR 0008): агент ИИ главный автор YAML-блоков, фичи плагина инструменты для агента. Трекер
-привычек: чекбоксы как 1/0, `period`, `compare`, `current_streak`. Шесть блоков
-ТЗ (`tiles`, `stats`, `progress`, `today`, `countdown`, `heatmap`) и седьмой,
-`chart` (ADR 0005); при включённом Obsidian Charts `chart` уступается ему, наш —
-`dashy-chart` (ADR 0007). Схема блоков — 1.11.0 (в 2.0 добавлен `pick: next` у `countdown`; 1.11.0 — новые ключи 2.1 и процесс скилла с профилем и проверкой). Длительности (`5h 58min`, `7:30`)
-читаются как минуты, `core/duration.ts`. В `stats` и `progress` выборка (`source`,
-`tag`, `where`, `period`, `date_field`, `date_format`) пишется раз на корне блока
-и наследуется карточками, `core/inherit.ts` (B-131).
-
-В 1.8.0: `heatmap` — `pick: max` и `layout: calendar` (месяц календарём); даты не
-только ISO — `date_format` (и у плитки) и формат дня из Daily notes / Periodic
-Notes, включая Periodic Notes 1.0 beta (`core/note-date.ts`, `adapters/periodic.ts`);
-окно из имени заметки — `period: note` / `range: note`, период словом (`2026-W40`,
-`2026-Q4`, `2026` — год) и `{ from, to }` (`core/period-name.ts`, ADR 0006);
-`compare: usual`; на холодном старте блоки ждут индексации (`app/indexing.ts`).
-
-Скилл для агентов в 2.0 — продукт: два файла (`SKILL.md` — процесс «посмотри, выбери, напиши, проверь», `reference.md` — таблицы ключей), ставятся кнопкой в настройках или командами палитры (`app/agent-files.ts`), пишут только по вызову. Процесс пишется руками в `scripts/build-skill.cjs`, рецепты проверяет `src/skill/skill-process.test.ts`. У каждого гайда на сайте есть блок «Ask your agent» с промптом (`src/test/guide-prompts.test.ts`). README показывает функции GIF-роликами (`docs/screens/film-*`, правила в `design/stageshow/README.md`), они нарисованы, а не сняты. Настоящий снимок `agent-hero` стоит в разделе блоков, его снимает `npm run capture` (промпт-карточка + заметка, которую написал агент, `scripts/agent-hero.cjs`).
+- Версия — `manifest.json`, что в ней — `CHANGELOG.md`, история релизов — `.claude/brain/state.md`; у схемы блоков своя версия (см. «Релиз»)
 
 Сайт (`site/`, GitHub Pages) — витрина, гайды под поисковые запросы
 (`site/guides/`) и справочник блоков (`site/reference/`, генерируется из схемы).
 README — короткий лендинг со ссылками на сайт: его же показывает браузер
 плагинов Obsidian, поэтому ссылки и картинки в нём только абсолютные.
 
-Код, тесты и всё, что видит пользователь, на английском: проект целится
-в международный стор. Русский — через i18n, наравне с любым следующим языком.
+## Имя ≠ id, и это не случайность
+
+`name: Dashy`, `id: dashsidian`, репозиторий `dashsidian`. Расхождение намеренное.
+
+Ревью Obsidian **заворачивает имя плагина, похожее на «Obsidian»**: `Snipsidian`
+получил отказ по имени и прошёл как `Snipsy`, а id `snipsidian` остался и живёт
+в публичном URL. Правило действует на `name`, не на `id`. Схема: `id` и репозиторий
+`<что-то>sidian`, `name` — короткое собственное слово; `Dashsidian` в `name` завернут.
 
 ## Раскладка
 
@@ -88,20 +62,12 @@ src/
     inherit.ts           выборка с корня stats/progress → карточкам
     sparkline.ts         разбор `trend` и высоты полос
     progress.ts          цель и проценты; надстройка над stat.ts
-    countdown.ts         разбор даты и дни до неё
-    clock.ts             часы блока `today`
     duration.ts          длительности: разбор в минуты и формат `6h 12m`
     chart*.ts            корзины, шкала и раскладка графика; без DOM
-    agents-file.ts       вставка секции в чужой AGENTS.md
-    bands.ts             пороги раскраски и их подписи
-    layers.ts            слои heatmap и `pick`
-    month-calendar.ts    heatmap `layout: calendar`: месяц сеткой по дням недели
-    folder-tile.ts       куда ведёт плитка с папкой
     note-date.ts         дата заметки: ISO, `date_format`, формат из настроек; `ParseDate` внедряется
     period.ts            окна `period`/`range`: бегущие и закрытые, `compare`
     period-name.ts       какой день/неделю/месяц/квартал/год значит имя `2026-W40`
     periodic.ts          папка/формат/путь периодических заметок
-    palette.ts           именованные цвета → rgb
     vault-profile.ts     подгонка примера под чужое хранилище
     vault-profile-file.ts  текст `.dashy/vault-profile.md` для агента: поля, папки, даты
     block-check.ts       разбор блоков заметки в отчёт `.dashy/block-check.md`
@@ -110,7 +76,6 @@ src/
     usual-goal.ts        `goal: usual` у `progress`: прошлые периоды и их среднее
     group-by.ts          `group_by` у `stats`: группы по значению свойства, ранжирование
     note-day.ts          `today` с `date: note`: день из имени заметки, соседние дни
-    feedback.ts          issue с подставленными версиями, сниппет блока
   adapters/            единственное место, где блоки трогают Obsidian
     vault.ts             снимок metadataCache + его кэш, существование заметки
     periodic.ts          настройки Periodic Notes / Daily notes
@@ -240,22 +205,30 @@ Backlog: B-003
 `master`. Рабочая ветка пушится ради PR; `master` меняется только мержем PR.
 Пункт бэклога становится `done` с хешем, когда PR влит, не раньше.
 
-## Maker / checker
+## Maker and checker
 
-Сложные и важные пункты гоняем через агентов из `.claude/agents/`:
-`maker` пишет (в рабочее дерево, без коммитов), `checker` проверяет и сам
-перезапускает все гейты. Круг повторяется до APPROVE; коммит и PR — после
-вердикта и «ок» автора.
+Агенты `maker` (Sonnet) и `checker` (Opus) — из кита:
+`.claude/agents/opdk -> node_modules/obsidian-plugin-dev-kit/claude/agents`.
+Оба читают этот раздел и **`.claude/maker-checker.md`** как обязательные:
+там слои, окна дат, контракты (скилл, agent tools, публичный API) и линзы
+ревью, которые есть только у Dashy. Общие правила (TypeScript, сканер, что
+не запускать) приходят из кита и `.claude/rules/opdk`, здесь их не повторять.
 
-- Задача maker'у — с решённой семантикой, а не «сделай фичу»: спорные
-  места решаются до запуска, иначе их решит модель.
-- Смотреть, что увидит пользователь, а не только юнит: все вызовы
-  изменённой функции, примеры первого запуска, подписи, легенды,
-  форматирование. На B-078 checker поймал именно это.
-- Каждое утверждение в README и CHANGELOG сверяется с кодом.
-- Решения автора, принятые по ходу («оставляем как есть»), передаются
-  checker'у явно, чтобы не всплывали находками снова.
-- Отчёты checker'а — в `.claude/brain/reports/` дословно.
+- **Оркестратор код не пишет.** Любая фича или багфикс с изменением кода:
+  основная сессия ставит задачу maker'у, передаёт его отчёт checker'у,
+  показывает вердикт и дифф. Без агентов можно: опечатки, документация,
+  комментарии, файлы `.claude/**`, или когда автор просит явно.
+- **Один круг checker'а на пункт.** Низкие находки правятся сразу с ручной
+  перепроверкой гейтов; второй круг только для high/medium. Коммит после вердикта.
+- Задача maker'у — с решённой семантикой и родительской веткой, от которой
+  смотреть дифф. Спорные места решаются до запуска, иначе их решит модель.
+- Решения автора по ходу («оставляем как есть») передаются checker'у явно,
+  чтобы не всплывали находками снова. Отчёты checker'а — в
+  `.claude/brain/reports/` дословно.
+- На релизной ветке, собранной cherry-pick'ом, checker гоняет гейты заново.
+- **Дополнительные гейты** сверх пяти китовых: `npm run build:skill -- --check`,
+  `npm run build:reference -- --check`, `npm run build`; если дифф трогает
+  `site/` или `README.md`, ещё `npm run site:check` и `npm run readme:check`.
 
 ## Каждый релиз: пересмотр скиллов и агентов
 
@@ -270,12 +243,13 @@ Backlog: B-003
    из схемы, а рецепты, примеры и «чего плагин не делает» написаны руками
    в `scripts/build-skill.cjs`. У новой фичи есть рецепт? Пример не врёт
    после изменённого поведения?
-2. **Агенты** `.claude/agents/` (maker, checker): новые соглашения, слои,
-   грабли, пойманные на релизе.
+2. **Правила для агентов**: раздел «Maker and checker» и
+   `.claude/maker-checker.md` — новые соглашения, слои, грабли, пойманные
+   на релизе. Сами агенты приходят из кита; их пересмотр — задача кита.
 3. **Скиллы** `.claude/skills/`: `release-bump`, `tech-writer` в git;
    `forum-helper` (и его `validate_block.py`), `idea-scout`, `search-report`
    локальные, правятся на месте и в PR не едут.
-4. **Этот файл**: «Состояние», раскладка, команды.
+4. **Этот файл**: раскладка, команды; строка релиза в `.claude/brain/state.md`.
 
 Итог — правка или строка в PR «пересмотрено, менять нечего» по каждому из четырёх.
 
@@ -311,7 +285,7 @@ Backlog: B-003
 | `npm run preview` | стенд состояний блоков в браузере, в `.preview/` |
 | `npm run site:check` / `readme:check` | ссылки, якоря и тире на сайте и в README |
 | `npm run release:check` | `opdk release check` (версии, `versions.json`, манифест, CHANGELOG, сборка, воспроизводимость) и затем сканер, lint, typecheck, тесты, проверки скилла, справочника блоков, сайта и README |
-| `npx opdk release X.Y.Z` | сам релиз: версии, коммит, тег, workflow ядра, публикация; сначала `--dry-run`. Zip больше нет |
+| `npx opdk release X.Y.Z` | сам релиз: версии, коммит, тег, workflow ядра, публикация; сначала `--dry-run` |
 | `npm run dev:vault` | `opdk build --vault --watch`: сборка в тестовое хранилище (`VAULT_PLUGIN` или `--vault <папка>`) |
 | `npm run e2e` | собирает плагин и гонит спеки против настоящего Obsidian (через ядро); в CI не гоняется. `firstrun`, `film-phone`, `capture`, `listing-mobile` включаются переменными `FIRSTRUN`, `FILM`, `CAPTURE`, `LISTING` (ровно `1`). `firstrun` пишет снимки в `test-results/firstrun/`, а не в отслеживаемый `docs/screens/firstrun/` (оттуда сайт берёт `1-picker.png`) |
 | `npm run capture` | скриншоты и ролики для README и сайта: спек `capture`, затем `opdk demo` (настройки в `opdk.config.mjs`), затем agent-hero; запускать только по слову автора |
