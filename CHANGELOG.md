@@ -17,6 +17,12 @@ export.
 
 ### Changed
 
+- **The dev kit is obsidian-plugin-dev-kit 0.5.0.** The tag in `package.json`,
+  the lockfile and the two kit workflow lines name v0.5.0, moved with
+  `opdk kit upgrade v0.5.0`. Its `opdk scan` runs `eslint-plugin-obsidianmd`
+  0.6.0, which adds `no-await-chainable` and `check-callback-uses-checking`;
+  the scan reports nothing new here. The kit's rules for Claude Code are linked
+  into `.claude/rules/opdk`. Nothing in `main.js` changes.
 - **The dev kit is obsidian-plugin-dev-kit 0.3.1.** The tag in `package.json`,
   the lockfile and the two kit workflow lines name v0.3.1, moved with
   `opdk kit upgrade v0.3.1`. Its `opdk scan` now also lints `e2e/` files that
