@@ -18,13 +18,23 @@ import {
 } from "../skill/skill-content";
 import { installSkill, installAgents } from "../app/agent-files";
 import { buildIssueUrl, DOCS_URL, FUNDING_URL, type IssueKind } from "../core/feedback";
+import { normalizeWeekStart } from "../core/settings";
 import { MIN_START_HOUR, MAX_START_HOUR, normalizeStartHour } from "../core/today";
 import { t, AVAILABLE_LOCALES } from "../i18n";
 import { applyLocale } from "../adapters/locale";
+import { setWeekStart, weekdayNames } from "../adapters/datetime";
 
 type FolderKey = "dailyFolder" | "weeklyFolder" | "monthlyFolder";
 type TextKey = FolderKey | "language";
 const START_DAY_HOUR_KEY = "startDayHour";
+const WEEK_START_KEY = "weekStart";
+/** The dropdown's value for "follow the language"; the stored setting is `null` then. */
+const WEEK_START_AUTO = "auto";
+/**
+ * Dropdown keys are words, not the numbers 1, 0, 6: JavaScript lists integer-like
+ * keys first and in ascending order, which would show Sunday, Monday, Saturday, Auto.
+ */
+const WEEK_START_KEYS: Record<string, number> = { mon: 1, sun: 0, sat: 6 };
 
 /**
  * The dropdown's own options, `"0"` through `"6"`, each labelled a plain
@@ -113,6 +123,19 @@ export class DashySettingTab extends PluginSettingTab {
             },
             {
                 type: "group",
+                heading: t("settings.weekStartHeading"),
+                items: [{
+                    name: t("settings.weekStart"),
+                    desc: t("settings.weekStartDesc"),
+                    control: {
+                        type: "dropdown",
+                        key: WEEK_START_KEY,
+                        options: this.weekStartOptions(),
+                    },
+                }],
+            },
+            {
+                type: "group",
                 heading: t("settings.skillHeading"),
                 items: [this.skillRow(), this.agentsRow()],
             },
@@ -160,11 +183,24 @@ export class DashySettingTab extends PluginSettingTab {
         });
     }
 
+    /** Auto first, then Monday, Sunday, Saturday, named in the language the plugin speaks. */
+    weekStartOptions(): Record<string, string> {
+        const days = weekdayNames();
+        const options: Record<string, string> = { [WEEK_START_AUTO]: t("settings.weekStartAuto") };
+        for (const [key, day] of Object.entries(WEEK_START_KEYS)) options[key] = days[day] ?? String(day);
+        return options;
+    }
+
     /** Obsidian reads a control's value from here, by the key the control names. */
     override getControlValue(key: string): unknown {
         // The dropdown control only ever carries a string; the setting
         // itself is a number, so the two are converted at this boundary.
         if (key === START_DAY_HOUR_KEY) return String(this.plugin.settings.startDayHour);
+        if (key === WEEK_START_KEY) {
+            const day = this.plugin.settings.weekStart;
+            const option = Object.keys(WEEK_START_KEYS).find((k) => WEEK_START_KEYS[k] === day);
+            return option ?? WEEK_START_AUTO;
+        }
         return this.plugin.settings[key as TextKey];
     }
 
@@ -173,6 +209,14 @@ export class DashySettingTab extends PluginSettingTab {
         if (typeof value !== "string") return;
         if (key === START_DAY_HOUR_KEY) {
             this.plugin.settings.startDayHour = normalizeStartHour(Number(value));
+            await this.plugin.saveSettings();
+            return;
+        }
+        if (key === WEEK_START_KEY) {
+            const day = Object.prototype.hasOwnProperty.call(WEEK_START_KEYS, value) ? normalizeWeekStart(WEEK_START_KEYS[value]) : null;
+            this.plugin.settings.weekStart = day;
+            // Ahead of the save, which redraws the blocks.
+            setWeekStart(day);
             await this.plugin.saveSettings();
             return;
         }

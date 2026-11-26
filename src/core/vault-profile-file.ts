@@ -386,6 +386,8 @@ export interface ProfileSettings {
     pluginLanguage: string;
     /** 0 is Sunday, 1 Monday, as moment has it */
     firstDayOfWeek: number;
+    /** the first day of a locale week (`gggg`, `ww`) in a note name: Obsidian's locale, not Dashy's week start */
+    noteWeekFirstDay: number;
     /** the periodic notes the `today` block links: the folder and format it uses, and where the folder came from */
     periodic: { period: string; folder: string; format: string; from: "Dashy settings" | "Periodic Notes or Daily notes" | "default" }[];
     /** the name format of each period from the settings; ISO is always read too */
@@ -420,7 +422,7 @@ export function formatVaultProfile(vault: VaultDescription, settings: ProfileSet
         `- Dashy ${settings.pluginVersion}, block schema ${settings.schemaVersion}`,
         `- Today: ${settings.today}; a new day starts at ${String(settings.startDayHour).padStart(2, "0")}:00`,
         `- Obsidian language: ${settings.obsidianLanguage}; Dashy's language: ${settings.pluginLanguage}`,
-        `- First day of the week: ${WEEKDAYS[settings.firstDayOfWeek] ?? String(settings.firstDayOfWeek)} (locale weeks, \`gggg\` and \`ww\`, start on it; ISO weeks, \`GGGG\` and \`WW\`, start on Monday)`,
+        `- First day of the week: ${WEEKDAYS[settings.firstDayOfWeek] ?? String(settings.firstDayOfWeek)} (week windows, the heatmap grid and chart weeks start on it; locale weeks in note names, \`gggg\` and \`ww\`, start on ${WEEKDAYS[settings.noteWeekFirstDay] ?? String(settings.noteWeekFirstDay)}, by Obsidian's language; ISO weeks, \`GGGG\` and \`WW\`, start on Monday)`,
         `- Template folders: ${settings.templateFolders.length ? settings.templateFolders.map(code).join(", ") : "none"} (a \`period: note\` block in a template shows a hint, not an error)`,
         "",
         "## Periodic notes",

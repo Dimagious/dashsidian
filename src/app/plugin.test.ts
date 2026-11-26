@@ -6,6 +6,7 @@ import { InsertBlockModal } from "../ui/insert-block";
 import { DashySettingTab } from "../ui/settings";
 import { DEFAULT_SETTINGS, type DashySettings } from "../types";
 import { AGENTS_BEGIN } from "../skill/skill-content";
+import { firstDayOfWeek, setWeekStart } from "../adapters/datetime";
 import manifest from "../../manifest.json";
 
 // `onload` is the one place that wires Dashy to Obsidian: which commands exist, which fences are claimed, what is
@@ -92,11 +93,19 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    setWeekStart(null);
     vi.useRealTimers();
     vi.restoreAllMocks();
 });
 
 describe("onload", () => {
+    it("applies the stored week start (B-231): data.json weekStart 1 makes weeks start on Monday", async () => {
+        expect(firstDayOfWeek()).toBe(0);
+        const { plugin } = await boot({ data: { weekStart: 1 } });
+        expect(plugin.settings.weekStart).toBe(1);
+        expect(firstDayOfWeek()).toBe(1);
+    });
+
     it("registers the commands, one processor per fence, the settings tab and the public API", async () => {
         const { plugin, mock } = await boot();
         expect([...mock.commands__.keys()].sort()).toEqual(COMMANDS);

@@ -265,7 +265,9 @@ About, Override config folder.
 - \`<configDir>/plugins/dashsidian/data.json\`: Dashy's own settings.
   \`dailyFolder\`, \`weeklyFolder\` and \`monthlyFolder\`, when not empty,
   replace the folders above; \`startDayHour\` (0 to 6) moves the start of
-  the day past midnight for every block.
+  the day past midnight for every block; \`weekStart\` (null follows the
+  language; 1 Monday, 0 Sunday, 6 Saturday) moves the week windows and the
+  heatmap grid, not the names of weekly notes.
 - The frontmatter of 3 to 5 recent notes in the folder the user means. Do
   not walk the whole vault. Note what the values are: numbers, ticked
   checkboxes (count as 1), or durations like \`7:30\`, \`5h 58min\` or ISO

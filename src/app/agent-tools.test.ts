@@ -125,6 +125,7 @@ function fixture(active: string | null, options: { chartsEnabled?: boolean; inde
                 obsidianLanguage: "en",
                 pluginLanguage: "en",
                 firstDayOfWeek: 1,
+                noteWeekFirstDay: 1,
                 periodic: [],
                 nameFormats: {},
                 templateFolders: ["Templates"],

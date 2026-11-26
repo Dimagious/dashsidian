@@ -1,6 +1,7 @@
 import { Plugin, debounce, type Debouncer } from "obsidian";
 import { DEFAULT_SETTINGS, type DashySettings } from "../types";
 import { applyLocale } from "../adapters/locale";
+import { setWeekStart } from "../adapters/datetime";
 import { VaultSnapshot, notesPending, whenIndexed } from "../adapters/vault";
 import { mergeSettings } from "../core/settings";
 import { createDayRollover, type DayRollover } from "../core/day-rollover";
@@ -68,6 +69,7 @@ export default class DashyPlugin extends Plugin {
         // change, but ours does not: the settings tab re-applies it and every
         // block redraws.
         applyLocale(this.settings.language);
+        setWeekStart(this.settings.weekStart);
 
         this.snapshot = new VaultSnapshot(this.app);
         this.refresher = new BlockRefresher(

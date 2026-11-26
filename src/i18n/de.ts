@@ -432,6 +432,12 @@ export const de: Catalog = {
     "settings.startDayHourDesc":
         "Was jeder Block als heute zählt: welche Notiz der today-Block verlinkt und wo die Fenster von period, compare und trend enden. Mitternacht behält das bisherige Verhalten bei und ändert nie, welchem Tag eine Notiz selbst zugeordnet ist.",
 
+    "settings.weekStartHeading": "Woche",
+    "settings.weekStart": "Woche beginnt am",
+    "settings.weekStartDesc":
+        "Wo Wochenfenster beginnen: das Heatmap-Raster samt Wochentagen, period: week und range: week, compare und Diagrammwochen. Namen von Wochennotizen folgen weiterhin Obsidian und Periodic Notes.",
+    "settings.weekStartAuto": "Auto (nach Sprache)",
+
     "settings.skillHeading": "Skill für KI-Agenten",
     "settings.skillName": "Skill-Datei in diesem Vault",
     "settings.skillNotInstalled":

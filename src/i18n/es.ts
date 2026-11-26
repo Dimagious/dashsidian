@@ -432,6 +432,12 @@ export const es: Catalog = {
     "settings.startDayHourDesc":
         "Lo que cada bloque llama hoy: qué nota enlaza el bloque today y dónde terminan las ventanas de period, compare y trend. Medianoche mantiene el comportamiento actual y nunca cambia el día de la propia nota.",
 
+    "settings.weekStartHeading": "Semana",
+    "settings.weekStart": "La semana empieza el",
+    "settings.weekStartDesc":
+        "Dónde empiezan las ventanas de semana: la cuadrícula del heatmap y sus días, period: week y range: week, compare y las semanas del gráfico. Los nombres de las notas semanales siguen a Obsidian y Periodic Notes.",
+    "settings.weekStartAuto": "Auto (según el idioma)",
+
     "settings.skillHeading": "Skill para agentes de IA",
     "settings.skillName": "Archivo de skill en esta bóveda",
     "settings.skillNotInstalled":

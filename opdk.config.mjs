@@ -12,6 +12,8 @@ export default defineConfig({
         films: {
             // The whole dashboard filling up: it ends with five more notes than it began with, on purpose.
             "dashboard-wide": { gif: { colors: 256, fps: 4, width: 1000 }, loop: "off" },
+            // The answer to issue #94: note, settings, note again. It does not end where it began.
+            "week-start": { gif: { colors: 256, fps: 4, width: 1000 }, loop: "off" },
             // The phone film: the real Obsidian in its mobile interface beside two steps, as an MP4 for the site, a GIF
             // for the README and a poster. Light and dark are two films, as the site swaps the video by theme.
             "film-phone": {

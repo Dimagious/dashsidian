@@ -432,6 +432,12 @@ export const fr: Catalog = {
     "settings.startDayHourDesc":
         "Ce que chaque bloc appelle aujourd'hui : quelle note le bloc today ouvre, et où se terminent les fenêtres period, compare et trend. Minuit garde le comportement actuel et ne change jamais le jour de la note elle-même.",
 
+    "settings.weekStartHeading": "Semaine",
+    "settings.weekStart": "La semaine commence le",
+    "settings.weekStartDesc":
+        "Où commencent les fenêtres de semaine : la grille de la heatmap et ses jours, period: week et range: week, compare et les semaines du graphique. Les noms des notes hebdomadaires continuent de suivre Obsidian et Periodic Notes.",
+    "settings.weekStartAuto": "Auto (selon la langue)",
+
     "settings.skillHeading": "Skill pour agent IA",
     "settings.skillName": "Fichier skill dans ce coffre",
     "settings.skillNotInstalled":

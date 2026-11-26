@@ -445,6 +445,12 @@ export const en = {
     "settings.startDayHourDesc":
         "What every block calls today: which note the today block links, and where period, compare and trend windows end. Midnight keeps today's behaviour; it never changes which day a note itself falls on.",
 
+    "settings.weekStartHeading": "Week",
+    "settings.weekStart": "Week starts on",
+    "settings.weekStartDesc":
+        "Where week windows begin: the heatmap grid and its weekday labels, period: week and range: week, compare, and chart weeks. Weekly note names keep following Obsidian and Periodic Notes.",
+    "settings.weekStartAuto": "Auto (from language)",
+
     "settings.skillHeading": "AI agent skill",
     "settings.skillName": "Skill file in this vault",
     "settings.skillNotInstalled":

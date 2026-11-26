@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import type { App } from "obsidian";
 import { DashySettingTab } from "./settings";
+import { firstDayOfWeek, setWeekStart } from "../adapters/datetime";
+import { WEEK_STARTS } from "../core/settings";
 import { DEFAULT_SETTINGS, type DashySettings } from "../types";
 import { stampPluginVersion } from "../skill/stamp";
 import type DashyPlugin from "../app/plugin";
@@ -182,5 +184,54 @@ describe("DashySettingTab: Copy markdown (B-164)", () => {
         const tab = new DashySettingTab({} as App, fakePlugin({ ...DEFAULT_SETTINGS }));
         await tab["copySkill"]();
         expect(writeText).toHaveBeenCalledWith(COMBINED_MARKDOWN);
+    });
+});
+
+describe("DashySettingTab: the Week starts on control (B-231)", () => {
+    afterEach(() => setWeekStart(null));
+
+    it("reads auto and a chosen day back as the dropdown's strings", () => {
+        const tab = (weekStart: number | null) =>
+            new DashySettingTab({} as App, fakePlugin({ ...DEFAULT_SETTINGS, weekStart }));
+        expect(tab(null).getControlValue("weekStart")).toBe("auto");
+        expect(tab(1).getControlValue("weekStart")).toBe("mon");
+        expect(tab(0).getControlValue("weekStart")).toBe("sun");
+        expect(tab(6).getControlValue("weekStart")).toBe("sat");
+    });
+
+    it("lists Auto, Monday, Sunday, Saturday in that order, and offers exactly the allowed days", () => {
+        const options = new DashySettingTab({} as App, fakePlugin({ ...DEFAULT_SETTINGS })).weekStartOptions();
+        expect(Object.keys(options)).toEqual(["auto", "mon", "sun", "sat"]);
+        expect(Object.values(options)).toEqual(["Auto (from language)", "Monday", "Sunday", "Saturday"]);
+    });
+
+    it("stores the day, applies it before the save, and auto clears it", async () => {
+        const plugin = fakePlugin({ ...DEFAULT_SETTINGS });
+        const tab = new DashySettingTab({} as App, plugin);
+        await tab.setControlValue("weekStart", "mon");
+        expect(plugin.settings.weekStart).toBe(1);
+        expect(firstDayOfWeek()).toBe(1);
+        expect(plugin.saveSettings).toHaveBeenCalledTimes(1);
+        await tab.setControlValue("weekStart", "auto");
+        expect(plugin.settings.weekStart).toBeNull();
+        expect(firstDayOfWeek()).toBe(0);
+    });
+
+    it("a value the dropdown never offers means auto", async () => {
+        const plugin = fakePlugin({ ...DEFAULT_SETTINGS, weekStart: 1 });
+        await new DashySettingTab({} as App, plugin).setControlValue("weekStart", "3");
+        expect(plugin.settings.weekStart).toBeNull();
+    });
+});
+
+describe("the allowed week starts have one source (B-231)", () => {
+    afterEach(() => setWeekStart(null));
+
+    it.each(["mon", "sun", "sat"])("%s round-trips through the dropdown", async (key) => {
+        const plugin = fakePlugin({ ...DEFAULT_SETTINGS });
+        const tab = new DashySettingTab({} as App, plugin);
+        await tab.setControlValue("weekStart", key);
+        expect(WEEK_STARTS).toContain(plugin.settings.weekStart);
+        expect(tab.getControlValue("weekStart")).toBe(key);
     });
 });
