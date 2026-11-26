@@ -17,6 +17,7 @@ Binding for both agents, on top of the "Соглашения" in `CLAUDE.md` (la
 
 ## Date windows
 
+- **Two first days of the week.** `firstDayOfWeek()` is Dashy's: the `weekStart` setting, else the language; every window, grid and bucket uses it. Periodic note names (`gggg-[W]ww`, `parsePeriodStart`, `formatNoteName`, `noteWeekFirstDay()`) stay in Obsidian's moment locale, because Periodic Notes names the files there (B-231). Never mix the two.
 - **Running windows** (`period: week`, `month`, `year`, `Nd`) end today and forgive today (`current_streak`, the `so far` bucket).
 - **Fixed windows** (`period: note`, a literal like `2026-W40`, `from`/`to`) end on their own last day; `from` alone runs to today. Every "today" in the code (end of `trend`, the streak's last day, notes after the end, the `compare` window) uses that end. While a fixed window runs it behaves like `week`; once over it forgives nothing (B-173).
 - A new date feature is tested in both kinds plus a window that has not started yet.
