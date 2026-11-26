@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mergeSettings } from "./settings";
+import { mergeSettings, normalizeWeekStart } from "./settings";
 import { DEFAULT_SETTINGS } from "../types";
 
 describe("mergeSettings", () => {
@@ -39,6 +39,24 @@ describe("mergeSettings", () => {
     it("a non-object stored value (garbage data.json) falls back to every default", () => {
         for (const bad of ["nonsense", 42, [], true]) {
             expect(mergeSettings(bad)).toEqual(DEFAULT_SETTINGS);
+        }
+    });
+});
+
+describe("weekStart (B-231)", () => {
+    it("no key stored: auto (null), so existing users see no change", () => {
+        expect(mergeSettings({ dailyFolder: "Diary" }).weekStart).toBeNull();
+        expect(mergeSettings(null).weekStart).toBeNull();
+    });
+
+    it.each([0, 1, 6])("keeps a stored %i", (day) => {
+        expect(mergeSettings({ weekStart: day }).weekStart).toBe(day);
+    });
+
+    it("garbage in data.json is auto, never a crash", () => {
+        for (const bad of [2, 7, -1, 1.5, "1", "monday", true, [], {}, NaN, undefined]) {
+            expect(mergeSettings({ weekStart: bad }).weekStart).toBeNull();
+            expect(normalizeWeekStart(bad)).toBeNull();
         }
     });
 });

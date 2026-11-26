@@ -5,7 +5,7 @@ import { dateKey } from "../core/calendar";
 import type { DescribeOptions, ProfileSettings } from "../core/vault-profile-file";
 import { getLocale } from "../i18n";
 import type { DashySettings } from "../types";
-import { currentLocale, firstDayOfWeek, parsePeriodStart } from "./datetime";
+import { currentLocale, firstDayOfWeek, noteWeekFirstDay, parsePeriodStart } from "./datetime";
 import { discoverPeriodics, noteDateFormats, periodNameFormats } from "./periodic";
 import { templateFolders } from "./templates";
 
@@ -41,6 +41,7 @@ export function profileSettings(
         obsidianLanguage: currentLocale(),
         pluginLanguage: getLocale(),
         firstDayOfWeek: firstDayOfWeek(),
+        noteWeekFirstDay: noteWeekFirstDay(),
         periodic: PERIODS.map((period) => {
             const own = settings[DASHY_FOLDER[period]];
             const found = discovered[period];

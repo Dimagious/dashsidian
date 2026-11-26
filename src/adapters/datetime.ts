@@ -1,5 +1,6 @@
 import { moment } from "obsidian";
 import type { LocaleTimeFormats } from "../core/clock";
+import { normalizeWeekStart } from "../core/settings";
 
 /**
  * Dates and locale, all in one place.
@@ -27,6 +28,7 @@ interface MomentDate {
 
 interface MomentLocaleData {
     firstDayOfWeek(): number;
+    weekdays(): string[];
     weekdaysShort(): string[];
     monthsShort(): string[];
     longDateFormat(key: string): string;
@@ -101,9 +103,39 @@ export function weekdayNamesShort(): string[] {
     return data().weekdaysShort();
 }
 
-/** Which day the locale starts its week on: 0 is Sunday, 1 is Monday. */
+/** Full weekday names, Sunday first, the first letter capitalised (Russian moment gives lowercase). */
+export function weekdayNames(): string[] {
+    return data().weekdays().map((name) => name.charAt(0).toLocaleUpperCase() + name.slice(1));
+}
+
+/**
+ * The first day of the week the person chose in Dashy's settings, or null to
+ * follow the language. It moves what Dashy draws and counts (week windows,
+ * the heatmap grid, chart week buckets), never how a periodic note is named.
+ */
+let weekStart: number | null = null;
+
+export function setWeekStart(day: number | null): void {
+    weekStart = normalizeWeekStart(day);
+}
+
+/**
+ * The first day of Dashy's weeks: the setting when one is chosen, otherwise
+ * the language's. 0 is Sunday, 1 is Monday.
+ *
+ * Not for note names: `formatNoteName` and `parsePeriodStart` stay in
+ * Obsidian's moment locale, because Periodic Notes names the files that way.
+ */
 export function firstDayOfWeek(): number {
-    return data().firstDayOfWeek();
+    return weekStart ?? data().firstDayOfWeek();
+}
+
+/**
+ * The first day of a locale week (`gggg`, `ww`) in a periodic note's name:
+ * Obsidian's own moment locale, untouched by Dashy's language and week start.
+ */
+export function noteWeekFirstDay(): number {
+    return (m.localeData() as MomentLocaleData).firstDayOfWeek();
 }
 
 /**

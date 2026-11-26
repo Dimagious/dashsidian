@@ -51,9 +51,10 @@ describe("the generated skill corrects what agents got wrong", () => {
         expect(REFERENCE_MARKDOWN.split(cap).length - 1).toBe(2);
     });
 
-    it("a week starts on the first day of the interface language, the plugin's own if picked (B-107)", () => {
-        const phrase = "A week starts on the first day of the interface language, Dashy's own when one "
-            + "is picked in its settings, otherwise Obsidian's: Sunday in English, Monday in most European languages";
+    it("a week starts on the Week starts on setting, else the first day of the interface language (B-107, B-231)", () => {
+        const phrase = "A week starts on the day set in Dashy's `Week starts on` setting (Monday, Sunday or Saturday); "
+            + "on Auto, the first day of the interface language, Dashy's own when one is picked in its settings, "
+            + "otherwise Obsidian's: Sunday in English, Monday in most European languages";
         // stats, progress and tiles each document `period` separately, chart its `bucket`.
         expect(REFERENCE_MARKDOWN.split(phrase).length - 1).toBe(4);
     });

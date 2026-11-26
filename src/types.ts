@@ -21,6 +21,14 @@ export interface DashySettings {
      * up. See `core/today.ts`.
      */
     startDayHour: number;
+    /**
+     * The first day of the week for week windows, the heatmap grid and chart
+     * week buckets: 1 Monday, 0 Sunday, 6 Saturday. `null` follows the
+     * language, which is what most people want. Periodic note names are not
+     * affected: they keep following Obsidian's locale (see
+     * `adapters/datetime.ts#formatNoteName`).
+     */
+    weekStart: number | null;
 }
 
 export const DEFAULT_SETTINGS: DashySettings = {
@@ -31,4 +39,5 @@ export const DEFAULT_SETTINGS: DashySettings = {
     installedAgentsVersion: null,
     language: "",
     startDayHour: 0,
+    weekStart: null,
 };

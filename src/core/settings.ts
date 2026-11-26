@@ -6,6 +6,14 @@
 import { DEFAULT_SETTINGS, type DashySettings } from "../types";
 import { normalizeStartHour } from "./today";
 
+/** The days a week can start on: Sunday, Monday, Saturday. The one list the setting, the adapter and the dropdown share. */
+export const WEEK_STARTS: readonly number[] = [0, 1, 6];
+
+/** A stored week start is one of 0, 1 or 6; anything else (garbage, a future value) means "follow the language". */
+export function normalizeWeekStart(value: unknown): number | null {
+    return typeof value === "number" && WEEK_STARTS.includes(value) ? value : null;
+}
+
 /** A plain object is the only shape `loadData()` can sensibly mean as settings. */
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -25,5 +33,6 @@ export function mergeSettings(stored: unknown): DashySettings {
         ...DEFAULT_SETTINGS,
         ...partial,
         startDayHour: normalizeStartHour(partial.startDayHour),
+        weekStart: normalizeWeekStart(partial.weekStart),
     };
 }

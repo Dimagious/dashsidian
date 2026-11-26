@@ -171,6 +171,7 @@ const SETTINGS: ProfileSettings = {
     obsidianLanguage: "en",
     pluginLanguage: "ru",
     firstDayOfWeek: 0,
+    noteWeekFirstDay: 0,
     periodic: [
         { period: "daily", folder: "Diary", format: "YYYY-MM-DD", from: "Periodic Notes or Daily notes" },
         { period: "weekly", folder: "", format: "gggg-[W]ww", from: "default" },
@@ -190,7 +191,8 @@ describe("formatVaultProfile (B-168)", () => {
         expect(text).toContain("- Dashy 2.1.0, block schema 1.10.0");
         expect(text).toContain("- Today: 2026-10-30; a new day starts at 04:00");
         expect(text).toContain("- Obsidian language: en; Dashy's language: ru");
-        expect(text).toContain("- First day of the week: Sunday");
+        expect(text).toContain("- First day of the week: Sunday (week windows");
+        expect(text).toContain("start on Sunday, by Obsidian's language");
         expect(text).toContain("- Template folders: `Templates`");
         expect(text).toContain("| daily | Diary | `YYYY-MM-DD` | Periodic Notes or Daily notes |");
         expect(text).toContain("| weekly | (vault root) | `gggg-[W]ww` | default |");

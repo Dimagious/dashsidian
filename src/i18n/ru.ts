@@ -430,6 +430,12 @@ export const ru: Catalog = {
     "settings.startDayHourDesc":
         "Что каждый блок считает сегодняшним днём: какую заметку открывает блок today и где заканчиваются окна period, compare и trend. Полночь сохраняет текущее поведение и не меняет день самой заметки.",
 
+    "settings.weekStartHeading": "Неделя",
+    "settings.weekStart": "Первый день недели",
+    "settings.weekStartDesc":
+        "С какого дня идут окна недели: сетка heatmap и подписи дней, period: week и range: week, compare и недели на графике. Имена недельных заметок по-прежнему следуют Obsidian и Periodic Notes.",
+    "settings.weekStartAuto": "Авто (по языку)",
+
     "settings.skillHeading": "Скилл для ИИ-агента",
     "settings.skillName": "Файл скилла в этом хранилище",
     "settings.skillNotInstalled":
