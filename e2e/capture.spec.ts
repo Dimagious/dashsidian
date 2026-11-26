@@ -494,3 +494,48 @@ test("agent hero note", async ({ win, obsidian, demo }) => {
         await openNote(win, obsidian, "Dashboard.md", ".dashy-hm-cell");
     });
 });
+
+/**
+ * The answer to issue #94 (B-231): the habit calendar under English starts on
+ * Sunday, "Week starts on" goes to Monday in the settings, and the same
+ * calendar starts on Monday. The whole window, so the settings tab fits in the
+ * same frame size as the note.
+ */
+test("reel: week starts on Monday", async ({ win, obsidian, demo }) => {
+    await setUp(win, obsidian, demo, "light");
+    await demo.cleanUi();
+    await openNote(win, obsidian, "Habit calendar.md", ".dashy-hm-cal");
+
+    const film = demo.film({ name: "week-start", kind: "desktop" });
+    await demo.caption("English Obsidian: the week starts on Sunday");
+    await film.shot({ hold: 2.5, settle: true });
+
+    await obsidian.openSettings("dashsidian");
+    const pane = win.locator(".modal.mod-settings .vertical-tab-content-container").first();
+    const row = pane.locator(".setting-item").filter({ hasText: "Week starts on" }).first();
+    await row.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await obsidian.settle();
+    await demo.caption("Settings → Dashy → Week starts on");
+    await film.shot({ hold: 1.5, settle: true });
+    const select = row.locator("select").first();
+    await demo.moveAndClick(select);
+    await select.selectOption("mon");
+    await select.blur();
+    await film.shot({ hold: 2, settle: true });
+
+    await win.keyboard.press("Escape");
+    await expect(win.locator(".modal.mod-settings")).toHaveCount(0);
+    await obsidian.settle();
+    await demo.hideCursor();
+    await demo.caption("Now the week starts on Monday");
+    await film.shot({ hold: 3.5, settle: true });
+
+    // Leave the seed vault as the other scenes expect it.
+    await obsidian.evaluate(async (app: App) => {
+        const plugin = (app as unknown as { plugins: { plugins: Record<string, { settings: { weekStart: number | null }; saveSettings(): Promise<void> }> } }).plugins.plugins["dashsidian"];
+        if (!plugin) throw new Error("capture: Dashy is not loaded");
+        plugin.settings.weekStart = null;
+        await plugin.saveSettings();
+    });
+    await demo.caption(null);
+});
