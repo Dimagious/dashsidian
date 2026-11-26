@@ -11,6 +11,8 @@ export.
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-11-26
+
 ### Added
 
 - **A "Week starts on" setting (B-231).** The week used to start where the language starts it, so a Monday habit tracker under an English interface drew Sunday first. The settings tab now has Auto (from language, the default and today's behaviour), Monday, Sunday and Saturday. The choice moves the heatmap grid and its weekday labels, `period: week` and `range: week`, `compare` against the previous week, chart week buckets, and the first day the vault profile reports. Weekly note names are not touched: `period: note`, a literal like `2026-W40`, and the `today` links still follow Obsidian's language, because Periodic Notes names the files that way. Changing it redraws open blocks. A value in `data.json` that is not 0, 1 or 6 means Auto.
@@ -1361,7 +1363,8 @@ agent can read.
 - No Dataview, no JavaScript in your notes, and not one hard-coded colour: the
   blocks take their palette from whatever theme you run.
 
-[Unreleased]: https://github.com/Dimagious/dashsidian/compare/1.6.0...HEAD
+[Unreleased]: https://github.com/Dimagious/dashsidian/compare/2.3.0...HEAD
+[2.3.0]: https://github.com/Dimagious/dashsidian/compare/2.2.0...2.3.0
 [1.6.0]: https://github.com/Dimagious/dashsidian/releases/tag/1.6.0
 [1.5.2]: https://github.com/Dimagious/dashsidian/releases/tag/1.5.2
 [1.5.1]: https://github.com/Dimagious/dashsidian/releases/tag/1.5.1
